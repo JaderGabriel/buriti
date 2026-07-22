@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+PHP=(/usr/bin/php
+  -d "extension=$ROOT/ext/pdo_sqlite.so"
+  -d "extension=$ROOT/ext/sqlite3.so"
+)
+
+# artisan serve spawns a child without -d flags; run the built-in server ourselves.
+if [[ "${1##*/}" == "artisan" && "${2:-}" == "serve" ]]; then
+  shift 2
+  HOST="127.0.0.1"
+  PORT="8000"
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --host=*) HOST="${1#*=}" ;;
+      --host) HOST="$2"; shift ;;
+      --port=*) PORT="${1#*=}" ;;
+      --port) PORT="$2"; shift ;;
+    esac
+    shift
+  done
+  cd "$ROOT/public" || exit 1
+  echo "BURI-TI server: http://${HOST}:${PORT}"
+  exec "${PHP[@]}" -S "${HOST}:${PORT}" \
+    "$ROOT/vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php"
+fi
+
+exec "${PHP[@]}" "$@"

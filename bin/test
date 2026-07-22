@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT" || exit 1
+exec "$ROOT/bin/php" "$ROOT/vendor/bin/phpunit" "$@"
