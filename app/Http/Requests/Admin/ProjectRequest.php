@@ -25,6 +25,7 @@ class ProjectRequest extends FormRequest
             'github_url' => ['nullable', 'url', 'max:255'],
             'status' => ['required', Rule::enum(ProjectStatus::class)],
             'is_public' => ['sometimes', 'boolean'],
+            'repo_is_private' => ['sometimes', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'logo' => ['nullable', 'image', 'max:4096'],
             'contract' => ['nullable', 'file', 'mimes:pdf,doc,docx,png,jpg,jpeg', 'max:10240'],
@@ -43,6 +44,7 @@ class ProjectRequest extends FormRequest
             'github_url' => $this->input('github_url'),
             'status' => $this->string('status')->toString(),
             'is_public' => $this->boolean('is_public'),
+            'repo_is_private' => $this->boolean('repo_is_private'),
             'sort_order' => (int) $this->input('sort_order', 0),
         ];
     }

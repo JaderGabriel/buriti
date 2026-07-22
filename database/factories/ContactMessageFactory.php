@@ -19,6 +19,7 @@ class ContactMessageFactory extends Factory
             'name' => fake()->name(),
             'email' => fake()->safeEmail(),
             'phone' => fake()->optional()->phoneNumber(),
+            'preferred_channel' => fake()->randomElement(['email', 'phone', 'whatsapp']),
             'company' => fake()->optional()->company(),
             'subject' => fake()->sentence(6),
             'message' => fake()->paragraphs(2, true),

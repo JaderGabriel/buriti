@@ -20,6 +20,7 @@ class PortfolioSeeder extends Seeder
                     'github_url' => $item['github_url'] ?? null,
                     'status' => $item['status'] ?? 'active',
                     'is_public' => (bool) ($item['is_public'] ?? true),
+                    'repo_is_private' => (bool) ($item['repo_is_private'] ?? false),
                     'sort_order' => (int) ($item['sort_order'] ?? 0),
                 ]
             );

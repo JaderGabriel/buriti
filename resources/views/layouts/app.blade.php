@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR" class="dark">
+<html lang="pt-BR" class="light">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,7 +9,7 @@
     <script>
         (() => {
             const theme = localStorage.getItem('buriti-theme');
-            const dark = theme ? theme === 'dark' : true;
+            const dark = theme ? theme === 'dark' : false;
             document.documentElement.classList.toggle('dark', dark);
             document.documentElement.classList.toggle('light', !dark);
         })();

@@ -11,6 +11,7 @@
             <thead class="bg-panel text-mist">
                 <tr>
                     <th class="px-4 py-3 font-medium">De</th>
+                    <th class="hidden px-4 py-3 font-medium lg:table-cell">Telefone</th>
                     <th class="hidden px-4 py-3 font-medium md:table-cell">Assunto</th>
                     <th class="px-4 py-3 font-medium">Quando</th>
                     <th class="px-4 py-3 font-medium">Status</th>
@@ -25,6 +26,16 @@
                             </a>
                             <p class="text-xs text-mist">{{ $message->email }}</p>
                         </td>
+                        <td class="hidden px-4 py-3 text-mist lg:table-cell">
+                            @if($message->phone)
+                                <a href="tel:{{ preg_replace('/\s+/', '', $message->phone) }}" class="hover:text-brand-bright">{{ $message->phone }}</a>
+                                @if($message->preferred_channel)
+                                    <p class="text-xs uppercase tracking-wide text-mist/80">{{ $message->preferred_channel }}</p>
+                                @endif
+                            @else
+                                —
+                            @endif
+                        </td>
                         <td class="hidden px-4 py-3 text-mist md:table-cell">{{ $message->subject }}</td>
                         <td class="px-4 py-3 text-mist">{{ $message->created_at->format('d/m/Y H:i') }}</td>
                         <td class="px-4 py-3">
@@ -37,7 +48,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="4" class="px-4 py-8 text-center text-mist">Nenhuma mensagem recebida.</td>
+                        <td colspan="5" class="px-4 py-8 text-center text-mist">Nenhuma mensagem recebida.</td>
                     </tr>
                 @endforelse
             </tbody>

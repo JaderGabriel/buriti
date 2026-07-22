@@ -18,6 +18,46 @@ class HomePageTest extends TestCase
         $response->assertSee('BURI-TI', false);
         $response->assertSee('Tecnologia para Pessoas', false);
         $response->assertSee('Consultoria em TI', false);
+        $response->assertSee('Do contato à operação', false);
+        $response->assertSee('Área admin', false);
+        $response->assertSee('Quem é quem', false);
+        $response->assertSee('Jader Gabriel', false);
+        $response->assertSee('images/team/jader-gabriel.jpg', false);
+        $response->assertSee('Fundador', false);
+        $response->assertSee('/admin"', false);
+        $response->assertSee('Pronto para o próximo passo digital?', false);
+        $response->assertSee('Construa o futuro digital com a BURI-TI', false);
+        $response->assertSee('Ver trajetória completa', false);
+        $response->assertSee('O que chama atenção ao contratante', false);
+        $response->assertSee('Como o resultado é produzido', false);
+        $response->assertSee('Processo de desenvolvimento', false);
+        $response->assertSee('Moodle', false);
+        $response->assertSee('WordPress', false);
+        $response->assertSee('Tecnologias, sistemas e operação', false);
+        $response->assertSee('cPanel', false);
+        $response->assertSee('Experiência direta', false);
+        $response->assertSee('cdn.jsdelivr.net/npm/simple-icons@14/icons/laravel.svg', false);
+        $response->assertSee('images/tech/ieducar-icon.png', false);
+        $response->assertSee('images/tech/power-bi.svg', false);
+        $response->assertSee('Operacional', false);
+    }
+
+    public function test_career_modal_is_closed_by_default(): void
+    {
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('Ver trajetória completa', $html);
+        $this->assertStringContainsString('careerModal', $html);
+        $this->assertStringContainsString('@click.prevent="show()"', $html);
+        $this->assertStringContainsString('x-show="open"', $html);
+        $this->assertStringContainsString('x-cloak', $html);
+        $this->assertStringContainsString('aria-label="Fechar trajetória"', $html);
+        $this->assertStringNotContainsString('x-teleport="body"', $html);
+        // Botão "Fechar" de texto no rodapé do modal removido; só permanece o X no topo.
+        $this->assertDoesNotMatchRegularExpression(
+            '/border-t border-line pt-5[\s\S]*?>\s*Fechar\s*</',
+            $html
+        );
     }
 
     public function test_home_page_shows_public_projects_only(): void
@@ -32,6 +72,26 @@ class HomePageTest extends TestCase
         $response->assertDontSee('Projeto Privado BURITI', false);
     }
 
+    public function test_home_page_shows_private_repo_cases_without_links(): void
+    {
+        $private = Project::factory()->privateRepo()->create([
+            'name' => 'Case NDA Municipal',
+            'github_url' => 'https://github.com/JaderGabriel/secret-repo',
+            'website_url' => 'https://internal.example/secret',
+            'information' => 'Entrega confidencial de BI municipal.',
+        ]);
+
+        $response = $this->get(route('home'));
+
+        $response->assertOk();
+        $response->assertSee('Case NDA Municipal', false);
+        $response->assertSee('Repositórios privados', false);
+        $response->assertSee('Código sob NDA', false);
+        $response->assertDontSee('https://github.com/JaderGabriel/secret-repo', false);
+        $response->assertDontSee('https://internal.example/secret', false);
+        $this->assertTrue($private->fresh()->repo_is_private);
+    }
+
     public function test_home_page_shows_configured_contact_channels(): void
     {
         $response = $this->get(route('home'));
@@ -39,7 +99,7 @@ class HomePageTest extends TestCase
         $response->assertOk();
         $response->assertSee('jadergabriel8@gmail.com', false);
         $response->assertSee('@JaderGabriel', false);
-        $response->assertSee('+55 38991758416', false);
+        $response->assertSee('+55 38 99175-8416', false);
     }
 
     public function test_home_page_shows_expertise_and_portfolio_signals(): void
@@ -57,5 +117,24 @@ class HomePageTest extends TestCase
         $response->assertSee('Power BI', false);
         $response->assertSee('Servlitcys Destaque', false);
         $response->assertSee('BI &amp; Painéis', false);
+        $response->assertSee('LMS, CMS e conteúdo', false);
+    }
+
+    public function test_home_page_lists_odin_as_private_portfolio_without_github_link(): void
+    {
+        Project::factory()->privateRepo()->create([
+            'name' => 'Odin',
+            'category' => 'LMS / Moodle',
+            'information' => 'Sistema de gestão para ambiente Moodle.',
+            'github_url' => 'https://github.com/JaderGabriel/Odin',
+            'stack' => ['PHP', 'Moodle'],
+        ]);
+
+        $response = $this->get(route('home'));
+
+        $response->assertOk();
+        $response->assertSee('Odin', false);
+        $response->assertSee('Moodle', false);
+        $response->assertDontSee('https://github.com/JaderGabriel/Odin', false);
     }
 }

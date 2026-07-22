@@ -1,5 +1,5 @@
 <section id="expertise" class="section-shell">
-    <div class="mx-auto max-w-6xl px-4 sm:px-5">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="max-w-3xl">
             <p class="section-kicker">Expertise</p>
             <h2 class="section-title">Modelagem gerencial e técnica</h2>

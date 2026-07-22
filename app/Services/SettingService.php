@@ -20,6 +20,14 @@ class SettingService
         'telegram_handle',
         'google_calendar_embed',
         'google_calendar_url',
+        'google_calendar_id',
+        'google_auto_sync',
+        'trello_board_id',
+        'trello_board_url',
+        'trello_list_todo_id',
+        'notion_database_id',
+        'notion_workspace_url',
+        'notion_default_page_url',
     ];
 
     /** @return array<string, string|null> */
@@ -83,7 +91,20 @@ class SettingService
             'telegram_handle' => $contact['telegram_handle'] ?? null,
             'google_calendar_embed' => null,
             'google_calendar_url' => config('buriti.google_calendar_url'),
+            'google_calendar_id' => 'primary',
+            'google_auto_sync' => '0',
+            'trello_board_id' => null,
+            'trello_board_url' => null,
+            'trello_list_todo_id' => null,
+            'notion_database_id' => null,
+            'notion_workspace_url' => null,
+            'notion_default_page_url' => null,
         ];
+    }
+
+    public function autoSyncEnabled(): bool
+    {
+        return in_array($this->get('google_auto_sync'), ['1', 'true', 'on', 'yes'], true);
     }
 
     public function calendarSrc(): ?string

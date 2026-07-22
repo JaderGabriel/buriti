@@ -6,10 +6,12 @@
         <p class="mt-1 text-mist">Visão rápida da operação BURI-TI</p>
     </div>
 
-    <div class="grid gap-4 grid-cols-2 xl:grid-cols-4">
+    <div class="grid gap-4 grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         @foreach ([
             ['Mensagens novas', $unreadMessages, route('admin.messages.index')],
             ['Total mensagens', $totalMessages, route('admin.messages.index')],
+            ['Contatos CRM', $contactsCount, route('admin.contacts.index')],
+            ['Oportunidades abertas', $openOpportunities, route('admin.opportunities.index')],
             ['Projetos', $projectsCount, route('admin.projects.index')],
             ['Tarefas abertas', $openTasks, route('admin.tasks.index')],
         ] as [$label, $value, $href])
@@ -20,7 +22,7 @@
         @endforeach
     </div>
 
-    <div class="mt-8 grid gap-6 lg:grid-cols-2">
+    <div class="mt-8 grid gap-6 lg:grid-cols-3">
         <section class="rounded-2xl border border-line bg-panel p-5">
             <div class="mb-4 flex items-center justify-between gap-3">
                 <h2 class="font-display text-lg font-semibold">Mensagens recentes</h2>
@@ -39,6 +41,25 @@
                     </li>
                 @empty
                     <li class="text-sm text-mist">Nenhuma mensagem ainda.</li>
+                @endforelse
+            </ul>
+        </section>
+
+        <section class="rounded-2xl border border-line bg-panel p-5">
+            <div class="mb-4 flex items-center justify-between gap-3">
+                <h2 class="font-display text-lg font-semibold">Contatos recentes</h2>
+                <a href="{{ route('admin.contacts.index') }}" class="text-sm text-brand-bright">Contatos</a>
+            </div>
+            <ul class="space-y-3">
+                @forelse($recentContacts as $contact)
+                    <li>
+                        <a href="{{ route('admin.contacts.show', $contact) }}" class="block rounded-xl border border-transparent px-2 py-2 hover:border-line hover:bg-ink/40">
+                            <p class="font-medium text-snow">{{ $contact->name }}</p>
+                            <p class="truncate text-sm text-mist">{{ $contact->company ?: ($contact->email ?? $contact->status->label()) }}</p>
+                        </a>
+                    </li>
+                @empty
+                    <li class="text-sm text-mist">Nenhum contato ainda.</li>
                 @endforelse
             </ul>
         </section>

@@ -66,6 +66,7 @@ class AdminPanelTest extends TestCase
             'github_url' => 'https://github.com/JaderGabriel/exemplo',
             'status' => 'active',
             'is_public' => '1',
+            'repo_is_private' => '1',
             'sort_order' => 1,
             'logo' => UploadedFile::fake()->image('logo.png'),
         ]);
@@ -74,10 +75,12 @@ class AdminPanelTest extends TestCase
         $this->assertDatabaseHas('projects', [
             'name' => 'Novo Projeto',
             'is_public' => 1,
+            'repo_is_private' => 1,
         ]);
 
         $project = Project::query()->where('name', 'Novo Projeto')->first();
         $this->assertNotNull($project?->logo_path);
+        $this->assertFalse($project->exposesPublicLinks());
         Storage::disk('public')->assertExists($project->logo_path);
     }
 
@@ -103,9 +106,28 @@ class AdminPanelTest extends TestCase
             'status' => 'doing',
             'priority' => 'high',
             'due_at' => now()->addDays(2)->format('Y-m-d\TH:i'),
+            'meet_url' => 'https://meet.google.com/abc-defg-hij',
+            'want_meet' => '1',
         ])->assertRedirect(route('admin.tasks.index'));
 
-        $this->assertSame('doing', $task->fresh()->status->value);
+        $task->refresh();
+        $this->assertSame('doing', $task->status->value);
+        $this->assertSame('https://meet.google.com/abc-defg-hij', $task->meet_url);
+        $this->assertTrue($task->want_meet);
+    }
+
+    public function test_task_google_sync_redirects_to_calendar_when_api_missing(): void
+    {
+        $task = Task::factory()->create([
+            'title' => 'Kickoff Meet',
+            'want_meet' => true,
+            'due_at' => now()->addDay()->startOfHour(),
+        ]);
+
+        $response = $this->actingAs($this->admin)->post(route('admin.tasks.google', $task));
+
+        $response->assertRedirect();
+        $this->assertStringContainsString('calendar.google.com/calendar/render', $response->headers->get('Location'));
     }
 
     public function test_admin_can_update_settings(): void
@@ -120,6 +142,8 @@ class AdminPanelTest extends TestCase
             'telegram_handle' => '@JaderGabriel',
             'google_calendar_url' => 'https://calendar.google.com/calendar/u/0/r',
             'google_calendar_embed' => 'https://calendar.google.com/calendar/embed?src=example',
+            'google_calendar_id' => 'primary',
+            'google_auto_sync' => '1',
         ])->assertRedirect(route('admin.settings.edit'));
 
         $settings = app(SettingService::class)->all();
@@ -127,6 +151,8 @@ class AdminPanelTest extends TestCase
         $this->assertSame('jadergabriel8@gmail.com', $settings['contact_email']);
         $this->assertSame('+55 38991758416', $settings['contact_whatsapp']);
         $this->assertSame('@JaderGabriel', $settings['telegram_handle']);
+        $this->assertSame('primary', $settings['google_calendar_id']);
+        $this->assertSame('1', $settings['google_auto_sync']);
         $this->assertSame(
             'https://calendar.google.com/calendar/embed?src=example',
             app(SettingService::class)->calendarSrc()

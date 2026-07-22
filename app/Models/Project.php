@@ -6,6 +6,7 @@ use App\Enums\ProjectStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
 
@@ -24,6 +25,7 @@ class Project extends Model
         'contract_path',
         'status',
         'is_public',
+        'repo_is_private',
         'sort_order',
     ];
 
@@ -31,6 +33,7 @@ class Project extends Model
     {
         return [
             'is_public' => 'boolean',
+            'repo_is_private' => 'boolean',
             'status' => ProjectStatus::class,
             'stack' => 'array',
         ];
@@ -41,6 +44,16 @@ class Project extends Model
         return $this->hasMany(Task::class);
     }
 
+    public function contacts(): BelongsToMany
+    {
+        return $this->belongsToMany(Contact::class)->withTimestamps();
+    }
+
+    public function opportunities(): HasMany
+    {
+        return $this->hasMany(Opportunity::class);
+    }
+
     public function scopePublic(Builder $query): Builder
     {
         return $query->where('is_public', true);
@@ -49,6 +62,21 @@ class Project extends Model
     public function scopeOrdered(Builder $query): Builder
     {
         return $query->orderBy('sort_order')->orderByDesc('id');
+    }
+
+    public function scopeOpenSource(Builder $query): Builder
+    {
+        return $query->where('repo_is_private', false);
+    }
+
+    public function scopePrivateRepo(Builder $query): Builder
+    {
+        return $query->where('repo_is_private', true);
+    }
+
+    public function exposesPublicLinks(): bool
+    {
+        return ! $this->repo_is_private;
     }
 
     public function logoUrl(): ?string

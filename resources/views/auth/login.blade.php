@@ -14,21 +14,21 @@
         <form method="POST" action="{{ route('login') }}" class="space-y-4">
             @csrf
             <label class="block text-sm">
-                <span class="text-mist">E-mail</span>
-                <input type="email" name="email" value="{{ old('email') }}" required autofocus
+                <span class="text-mist">E-mail ou username</span>
+                <input type="text" name="login" value="{{ old('login') }}" required autofocus autocomplete="username"
                        class="mt-1.5 w-full rounded-xl border border-line bg-ink px-3 py-2.5 outline-none ring-brand-bright focus:ring-1">
-                @error('email') <span class="mt-1 block text-xs text-red-400">{{ $message }}</span> @enderror
+                @error('login') <span class="mt-1 block text-xs text-red-400">{{ $message }}</span> @enderror
             </label>
             <label class="block text-sm">
                 <span class="text-mist">Senha</span>
-                <input type="password" name="password" required
+                <input type="password" name="password" required autocomplete="current-password"
                        class="mt-1.5 w-full rounded-xl border border-line bg-ink px-3 py-2.5 outline-none ring-brand-bright focus:ring-1">
             </label>
             <label class="flex items-center gap-2 text-sm text-mist">
                 <input type="checkbox" name="remember" value="1" class="rounded border-line">
                 Lembrar-me
             </label>
-            <button class="w-full rounded-full bg-brand py-3 text-sm font-semibold text-white hover:bg-brand-bright">Entrar</button>
+            <button class="w-full rounded-sm bg-brand py-3 text-sm font-semibold text-white hover:bg-brand-bright">Entrar</button>
         </form>
     </div>
 </div>

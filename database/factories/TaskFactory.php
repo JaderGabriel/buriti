@@ -26,6 +26,8 @@ class TaskFactory extends Factory
             'priority' => TaskPriority::Medium,
             'due_at' => fake()->optional()->dateTimeBetween('now', '+2 weeks'),
             'google_event_id' => null,
+            'meet_url' => null,
+            'want_meet' => true,
         ];
     }
 

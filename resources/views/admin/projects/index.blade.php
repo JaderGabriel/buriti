@@ -4,7 +4,7 @@
     <div class="mb-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
         <div>
             <h1 class="font-display text-2xl font-bold sm:text-3xl">Projetos</h1>
-            <p class="mt-1 text-mist">Cadastro com links, GitHub, logo e contrato</p>
+            <p class="mt-1 text-mist">Portfólio público e repositórios privados (sem link no site)</p>
         </div>
         <x-ui.button :href="route('admin.projects.create')">Novo projeto</x-ui.button>
     </div>
@@ -23,7 +23,9 @@
                     <div class="min-w-0 flex-1">
                         <h2 class="truncate font-display text-lg font-semibold">{{ $project->name }}</h2>
                         <p class="text-xs uppercase tracking-wide text-mist">
-                            {{ $project->status->label() }}{{ $project->is_public ? ' · público' : '' }}
+                            {{ $project->status->label() }}
+                            @if($project->is_public) · no site @else · oculto @endif
+                            @if($project->repo_is_private) · repo privado @endif
                         </p>
                     </div>
                 </div>
@@ -33,7 +35,9 @@
                         <a href="{{ $project->website_url }}" target="_blank" rel="noopener" class="text-brand-bright">Site</a>
                     @endif
                     @if($project->github_url)
-                        <a href="{{ $project->github_url }}" target="_blank" rel="noopener" class="text-brand-bright">GitHub</a>
+                        <a href="{{ $project->github_url }}" target="_blank" rel="noopener" class="text-brand-bright" title="Visível só no admin se o repo for privado">GitHub</a>
+                    @elseif($project->repo_is_private)
+                        <span class="text-mist">Sem link público</span>
                     @endif
                     @if($project->contractUrl())
                         <a href="{{ $project->contractUrl() }}" target="_blank" rel="noopener" class="text-brand-bright">Contrato</a>

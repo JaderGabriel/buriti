@@ -1,16 +1,17 @@
 <section id="sobre" class="section-shell">
-    <div class="mx-auto grid max-w-6xl gap-10 px-4 sm:px-5 md:grid-cols-[1.1fr_0.9fr] md:items-center md:gap-12">
+    <div class="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 md:grid-cols-[1.1fr_0.9fr] md:items-center md:gap-12 lg:px-8">
         <div>
             <p class="section-kicker">Quem somos</p>
-            <h2 class="section-title">TI e dados que impulsiona negócios reais</h2>
+            <h2 class="section-title">TI e dados que impulsionam negócios reais</h2>
             <p class="mt-5 text-sm leading-relaxed text-mist sm:text-base">
                 Na <a href="https://buriti.dev.br" class="text-brand-bright hover:underline">buriti.dev.br</a>,
                 unimos engenharia, software e inteligência de negócio para entregar soluções personalizadas:
                 do diagnóstico à operação. Experiência forte em sistemas educacionais, i-Educar, BI, integrações e projetos Laravel.
             </p>
             <p class="mt-4 text-sm leading-relaxed text-mist sm:text-base">
-                Liderança de <strong class="text-snow">Jader Gabriel</strong> —
+                Liderança de <a href="#equipe" class="font-semibold text-snow hover:text-brand-bright">Jader Gabriel</a> —
                 Analista de Sistemas e Projetos, com foco em educação corporativa, gestão e entrega técnica.
+                Conheça o <a href="#equipe" class="text-brand-bright hover:underline">quem é quem</a>.
             </p>
         </div>
         <div class="relative overflow-hidden rounded-[1.5rem] border border-line bg-panel p-6 sm:rounded-[2rem] sm:p-8">

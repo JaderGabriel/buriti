@@ -25,11 +25,11 @@
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2">
-            <x-ui.input type="url" name="website_url" label="Link do site" :value="old('website_url', $project->website_url)" />
-            <x-ui.input type="url" name="github_url" label="GitHub" :value="old('github_url', $project->github_url)" />
+            <x-ui.input type="url" name="website_url" label="Link do site (público)" :value="old('website_url', $project->website_url)" />
+            <x-ui.input type="url" name="github_url" label="GitHub (interno se repo privado)" :value="old('github_url', $project->github_url)" />
         </div>
 
-        <div class="grid gap-4 sm:grid-cols-3">
+        <div class="grid gap-4 sm:grid-cols-2">
             <label class="block text-sm">
                 <span class="text-mist">Status</span>
                 <select name="status" class="mt-1.5 w-full rounded-xl border border-line bg-ink px-3 py-2.5">
@@ -38,10 +38,24 @@
                     @endforeach
                 </select>
             </label>
-            <x-ui.input type="number" name="sort_order" label="Ordem" :value="old('sort_order', $project->sort_order ?? 0)" min="0" />
-            <label class="mt-6 flex items-center gap-2 text-sm text-mist sm:mt-8">
-                <input type="checkbox" name="is_public" value="1" @checked(old('is_public', $project->is_public))>
-                Exibir no site público
+            <x-ui.input type="number" name="sort_order" label="Ordem no portfólio" :value="old('sort_order', $project->sort_order ?? 0)" min="0" />
+        </div>
+
+        <div class="rounded-2xl border border-line bg-ink/40 p-4 space-y-3">
+            <p class="text-sm font-semibold text-snow">Visibilidade no portfólio</p>
+            <label class="flex items-start gap-2 text-sm text-mist">
+                <input type="checkbox" name="is_public" value="1" class="mt-1" @checked(old('is_public', $project->is_public))>
+                <span>
+                    <strong class="text-snow">Exibir no site</strong>
+                    <span class="block text-xs">Aparece na seção Portfólio da landing.</span>
+                </span>
+            </label>
+            <label class="flex items-start gap-2 text-sm text-mist">
+                <input type="checkbox" name="repo_is_private" value="1" class="mt-1" @checked(old('repo_is_private', $project->repo_is_private))>
+                <span>
+                    <strong class="text-snow">Repositório privado</strong>
+                    <span class="block text-xs">Mostra nome, stack e descrição — sem links de Site/GitHub no site público.</span>
+                </span>
             </label>
         </div>
 

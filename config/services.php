@@ -35,4 +35,20 @@ return [
         ],
     ],
 
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'refresh_token' => env('GOOGLE_REFRESH_TOKEN'),
+        'redirect_uri' => env('GOOGLE_REDIRECT_URI'),
+    ],
+
+    'trello' => [
+        'api_key' => env('TRELLO_API_KEY'),
+        'token' => env('TRELLO_TOKEN'),
+    ],
+
+    'notion' => [
+        'token' => env('NOTION_TOKEN'),
+    ],
+
 ];

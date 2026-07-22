@@ -20,8 +20,19 @@ Stack: **Laravel 13**, **Blade**, **Vite**, **Tailwind CSS 4**, **Alpine.js**, M
 - Dashboard com resumo operacional
 - Mensagens do formulário (ler / marcar / apagar)
 - Projetos (nome, informações, links, GitHub, logo, contrato)
-- Planejamento de tarefas (kanban) + atalho Google Agenda
-- Configurações de contacto e embed da Google Agenda
+- Planejamento de tarefas (kanban) com ícones Meet/Agenda e sync Google
+- Usuários (criar/editar), foto de perfil, sessões e histórico de login
+- Configurações de contato e hub de integração Google (embed → API + Meet)
+
+## Segurança
+
+- Middleware `auth` no painel; apenas `is_admin` acessa o admin
+- Headers de segurança (CSP, X-Frame-Options, nosniff, Referrer-Policy)
+- Throttle no login (`5/min`) e no formulário público
+- Hash de senha, regeneração de sessão no login/logout
+- Histórico de tentativas de login e revogação de sessões (`SESSION_DRIVER=database`)
+- Senha mínima com letras e números (regra `Password::defaults`)
+- Honeypot no contato público
 
 ## Requisitos
 

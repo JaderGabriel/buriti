@@ -37,6 +37,17 @@ class DomainServicesTest extends TestCase
         $this->assertStringContainsString('action=TEMPLATE', $url);
         $this->assertStringContainsString('text=Reuni', $url);
         $this->assertStringContainsString('details=Alinhar', $url);
+        $this->assertStringContainsString('location=Google+Meet', $url);
+    }
+
+    public function test_google_calendar_service_reports_integration_levels(): void
+    {
+        $service = app(\App\Services\GoogleCalendarService::class);
+
+        $status = $service->integrationStatus();
+
+        $this->assertArrayHasKey('level', $status);
+        $this->assertSame('https://meet.google.com/new', $service->instantMeetUrl());
     }
 
     public function test_setting_service_normalizes_google_calendar_iframe(): void

@@ -27,6 +27,7 @@ class ProjectFactory extends Factory
             'contract_path' => null,
             'status' => ProjectStatus::Active,
             'is_public' => false,
+            'repo_is_private' => false,
             'sort_order' => 0,
         ];
     }
@@ -34,5 +35,15 @@ class ProjectFactory extends Factory
     public function public(): static
     {
         return $this->state(fn () => ['is_public' => true]);
+    }
+
+    public function privateRepo(): static
+    {
+        return $this->state(fn () => [
+            'is_public' => true,
+            'repo_is_private' => true,
+            'website_url' => null,
+            'github_url' => null,
+        ]);
     }
 }

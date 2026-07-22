@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateSettingsRequest extends FormRequest
 {
@@ -24,6 +25,8 @@ class UpdateSettingsRequest extends FormRequest
             'telegram_handle' => ['nullable', 'string', 'max:60'],
             'google_calendar_embed' => ['nullable', 'string', 'max:2000'],
             'google_calendar_url' => ['nullable', 'url', 'max:255'],
+            'google_calendar_id' => ['nullable', 'string', 'max:180'],
+            'google_auto_sync' => ['nullable', Rule::in(['0', '1'])],
         ];
     }
 }

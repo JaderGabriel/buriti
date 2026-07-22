@@ -1,48 +1,44 @@
-<section class="relative min-h-[100svh] overflow-hidden pt-20 sm:pt-24">
-    <div class="pointer-events-none absolute inset-0 grid-glow"></div>
-    <div class="pointer-events-none absolute -left-24 top-28 h-72 w-72 rounded-full bg-brand/20 blur-3xl logo-pulse"></div>
-    <div class="pointer-events-none absolute right-0 top-40 h-80 w-80 rounded-full bg-brand-bright/10 blur-3xl"></div>
+<section class="hero-band relative min-h-[88svh] overflow-hidden">
+    <div class="pointer-events-none absolute inset-0 grid-glow opacity-40"></div>
 
-    <div class="relative mx-auto grid min-h-[calc(100svh-5rem)] max-w-6xl items-center gap-10 px-4 pb-16 sm:px-5 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
-        <div class="reveal max-w-2xl">
-            <p class="section-kicker">BURI-TI · buriti.dev.br</p>
-            <h1 class="mt-4 font-display text-4xl font-extrabold tracking-[0.08em] text-snow sm:text-5xl md:text-6xl">
-                BURI-TI
+    <div class="relative mx-auto flex min-h-[calc(88svh-1rem)] max-w-7xl flex-col justify-center px-4 py-20 sm:px-6 lg:px-8">
+        <div class="reveal max-w-4xl">
+            <p class="section-kicker">Consultoria · Cloud apps · BI · Software</p>
+            <h1 class="mt-5 font-display text-4xl font-extrabold leading-[1.02] tracking-tight sm:text-5xl lg:text-6xl xl:text-[4.25rem]">
+                Infraestrutura de tecnologia com
+                <span class="text-brand-bright"> desempenho comercial</span>.
             </h1>
-            <p class="font-script reveal-delay-1 mt-2 text-2xl text-brand md:text-3xl">Tecnologia para Pessoas</p>
-            <p class="reveal-delay-2 mt-5 max-w-xl text-sm leading-relaxed text-mist sm:text-base md:text-lg">
-                Consultoria, software, BI e integrações que transformam dados e processos em decisão — com parceria próxima e entrega que gera valor.
+            <p class="mt-4 text-lg font-medium tracking-wide text-[#7eb6e8] sm:text-xl">BURI-TI — Tecnologia para Pessoas</p>
+            <p class="reveal-delay-1 mt-6 max-w-2xl text-base leading-relaxed text-mist sm:text-lg">
+                No espírito das grandes plataformas de TI: clareza de oferta, engenharia sólida e indicadores de negócio.
+                Da proposta à operação — software, Power BI e gestão de projetos.
             </p>
-            <div class="reveal-delay-3 mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-                <x-ui.button href="#contato">Solicitar proposta</x-ui.button>
-                <x-ui.button href="#expertise" variant="secondary">Ver expertise</x-ui.button>
+            <div class="reveal-delay-2 mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                <x-ui.button href="#contato" class="min-w-[11rem]">Pedir proposta</x-ui.button>
+                <x-ui.button href="#metodo" variant="secondary" class="min-w-[11rem] border-white/30 text-[#eef3f8] hover:border-white hover:text-white">Ver método</x-ui.button>
+                <a href="{{ route('admin.dashboard') }}" class="inline-flex items-center gap-2 px-2 text-sm font-semibold text-[#b8c7d8] transition hover:text-white">
+                    <x-ui.icon name="admin" class="h-4 w-4" />
+                    @auth Painel admin @else Área admin @endauth
+                </a>
             </div>
         </div>
 
-        <div class="reveal reveal-delay-2 relative mx-auto w-full max-w-md lg:max-w-none">
-            <div class="absolute -inset-4 rounded-[2rem] bg-brand/10 blur-2xl"></div>
-            <div class="relative overflow-hidden rounded-[1.75rem] border border-line bg-panel/80 p-8 text-center shadow-[0_30px_80px_rgba(5,7,11,0.25)]">
-                <img
-                    src="{{ asset('images/logo-buriti.png') }}"
-                    alt="BURI-TI"
-                    class="mx-auto h-28 w-28 object-contain drop-shadow-[0_0_40px_rgba(30,112,191,0.45)] md:h-36 md:w-36"
-                >
-                <p class="mt-6 text-xs font-semibold uppercase tracking-[0.2em] text-mist">Atuação</p>
-                <div class="mt-4 grid grid-cols-3 gap-3 text-center">
+        <div class="reveal-delay-3 mt-16 grid gap-6 border-t border-white/15 pt-8 sm:grid-cols-3">
+            @foreach ([
+                ['icon' => 'diagnose', 'label' => 'Diagnóstico', 'text' => 'Escopo e prioridades'],
+                ['icon' => 'code', 'label' => 'Engenharia', 'text' => 'Laravel, dados e integrações'],
+                ['icon' => 'bi', 'label' => 'BI & gestão', 'text' => 'Indicadores para decidir'],
+            ] as $item)
+                <div class="flex items-start gap-3">
+                    <span class="mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-sm border border-white/20 text-[#7eb6e8]">
+                        <x-ui.icon :name="$item['icon']" class="h-5 w-5" />
+                    </span>
                     <div>
-                        <p class="font-display text-2xl font-bold text-brand-bright">BI</p>
-                        <p class="mt-1 text-[11px] text-mist">Power BI & painéis</p>
-                    </div>
-                    <div>
-                        <p class="font-display text-2xl font-bold text-brand-bright">TI</p>
-                        <p class="mt-1 text-[11px] text-mist">Laravel & dados</p>
-                    </div>
-                    <div>
-                        <p class="font-display text-2xl font-bold text-brand-bright">GP</p>
-                        <p class="mt-1 text-[11px] text-mist">Projetos ágeis</p>
+                        <p class="font-display text-lg font-semibold text-[#eef3f8]">{{ $item['label'] }}</p>
+                        <p class="mt-1 text-sm text-[#b8c7d8]">{{ $item['text'] }}</p>
                     </div>
                 </div>
-            </div>
+            @endforeach
         </div>
     </div>
 </section>
