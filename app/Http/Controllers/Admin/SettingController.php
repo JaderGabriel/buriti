@@ -22,6 +22,11 @@ class SettingController extends Controller
             'settings' => $this->settings->all(),
             'googleIntegration' => $this->google->integrationStatus(),
             'googleApiReady' => $this->google->apiConfigured(),
+            'googleOauthAppReady' => $this->google->oauthAppConfigured(),
+            'googleHasClientSecret' => filled($this->google->clientSecret()),
+            'googleConnected' => filled($this->google->refreshToken()),
+            'googleRedirectUri' => $this->google->redirectUri(),
+            'googleClientIdValue' => $this->settings->get('google_client_id') ?: $this->google->clientId(),
         ]);
     }
 
@@ -30,10 +35,18 @@ class SettingController extends Controller
         $data = $request->validated();
         $data['google_auto_sync'] = $request->input('google_auto_sync', '0');
 
+        unset($data['google_client_secret']);
+
         $this->settings->putMany($data);
+
+        $secret = $request->input('google_client_secret');
+        if (is_string($secret) && trim($secret) !== '') {
+            $this->settings->putSecret('google_client_secret', trim($secret));
+        }
 
         return redirect()
             ->route('admin.settings.edit')
+            ->withFragment('google-integration')
             ->with('success', 'Configurações salvas.');
     }
 }

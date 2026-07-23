@@ -1,5 +1,5 @@
 <x-admin.inline-docs title="Passo a passo da integração Google" class="admin-docs--sticky">
-    <p>A integração tem <strong>3 níveis</strong>. Os campos à esquerda cobrem os níveis 1–2; o nível 3 usa o <code>.env</code>.</p>
+    <p>A integração tem <strong>3 níveis</strong>. Com o nível 3, criar eventos e Meet fica <strong>dentro do CRM</strong> — sem abrir o Google Agenda para terminar.</p>
 
     <details class="admin-docs__details" open>
         <summary>Nível 1 — URL da Agenda (atalhos)</summary>
@@ -8,7 +8,6 @@
             <li>Copie a URL principal, ex.: <code>https://calendar.google.com/calendar/u/0/r</code></li>
             <li>Cole em <strong>URL da agenda</strong> e salve.</li>
         </ol>
-        <p class="admin-docs__note">Resultado: botões “Google Agenda” / “Novo Meet” nas tarefas. Sem API, o sync abre um template no browser.</p>
     </details>
 
     <details class="admin-docs__details">
@@ -22,49 +21,36 @@
         </ol>
     </details>
 
-    <details class="admin-docs__details">
-        <summary>Nível 3 — API OAuth (sync + Meet)</summary>
-        <p>A app usa <strong>refresh token</strong> (ainda não há botão “Ligar com Google”).</p>
-        <p class="admin-docs__label">Variáveis no <code>.env</code></p>
-        <pre class="admin-docs__code">GOOGLE_CLIENT_ID=...apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=GOCSPX-...
-GOOGLE_REFRESH_TOKEN=1//...
-GOOGLE_REDIRECT_URI="${APP_URL}/admin/google/callback"</pre>
-        <p class="admin-docs__label">Cloud Console</p>
+    <details class="admin-docs__details" open>
+        <summary>Nível 3 — API OAuth (sync + Meet no CRM)</summary>
         <ol>
             <li>Em <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a>, crie/selecione um projeto.</li>
             <li>Ative <strong>Google Calendar API</strong>.</li>
-            <li>Tela de consentimento OAuth (Externo) com scopes:
-                <code>calendar</code> e <code>calendar.events</code>; em modo teste, adicione o seu Gmail.</li>
-            <li>Credenciais → cliente OAuth <strong>Aplicativo da Web</strong>, com URIs:
-                <code>https://developers.google.com/oauthplayground</code>
-                e <code>{{ rtrim(config('app.url'), '/') }}/admin/google/callback</code>.</li>
-            <li>Copie Client ID e Secret para o <code>.env</code>.</li>
+            <li>Tela de consentimento OAuth (Externo); em modo teste, adicione o seu Gmail em <strong>Utilizadores de teste</strong>.</li>
+            <li>Credenciais → cliente OAuth <strong>Aplicativo da Web</strong>.</li>
+            <li>Em <strong>URIs de redirecionamento autorizados</strong>, adicione exactamente:
+                <code class="break-all">{{ $googleRedirectUri ?? (rtrim(config('app.url'), '/').'/admin/google/callback') }}</code>
+            </li>
+            <li>Copie Client ID e Secret para os campos à esquerda (ou para o <code>.env</code>) e <strong>Salve</strong>.</li>
+            <li>Clique em <strong>Ligar conta Google</strong>, autorize Calendar, e o Google devolve ao CRM.</li>
+            <li>Preencha <strong>Calendar ID</strong> (<code>primary</code> ou o ID da agenda), marque <strong>Sincronizar automaticamente</strong> e salve.</li>
         </ol>
-        <p class="admin-docs__label">Refresh token (Playground)</p>
-        <ol>
-            <li>Abra <a href="https://developers.google.com/oauthplayground/" target="_blank" rel="noopener">OAuth 2.0 Playground</a>.</li>
-            <li>Engrenagem → “Use your own OAuth credentials” → cole ID e Secret.</li>
-            <li>Step 1 → Calendar API → scopes <code>calendar</code> / <code>calendar.events</code> → Authorize.</li>
-            <li>Step 2 → Exchange → copie o <strong>Refresh token</strong> para o <code>.env</code>.</li>
-            <li>Rode <code>php artisan config:clear</code>.</li>
-        </ol>
-        <p class="admin-docs__label">Calendar ID + auto-sync</p>
-        <ol>
-            <li>Agenda → Integrar calendário → copie o <strong>ID</strong> (<code>primary</code> ou e-mail da agenda).</li>
-            <li>Cole em <strong>Calendar ID (API)</strong>.</li>
-            <li>Marque <strong>Sincronizar automaticamente</strong> e salve.</li>
-        </ol>
-        <p class="admin-docs__note">Fuso dos eventos: <code>APP_TIMEZONE=America/Sao_Paulo</code> (GMT-3).</p>
+        <p class="admin-docs__note">
+            Depois disso, ao criar uma tarefa com Meet, o CRM cria o evento pela API, gera o link Meet e guarda em <code>meet_url</code> — sem sair do site.
+        </p>
+        <p class="admin-docs__note">
+            Se aparecer <strong>Erro 400: redirect_uri_mismatch</strong>, a URI no Console tem de coincidir com a mostrada acima (incluindo <code>/public</code> se estiver no APP_URL).
+        </p>
+        <p class="admin-docs__note">Fuso dos eventos: <code>APP_TIMEZONE=America/Sao_Paulo</code>.</p>
     </details>
 
     <details class="admin-docs__details">
         <summary>Checklist rápido (nível 3)</summary>
         <ul class="admin-docs__checklist">
             <li>Calendar API ativa</li>
-            <li>OAuth Client + Secret no <code>.env</code></li>
-            <li>Refresh token com scope calendar</li>
-            <li><code>php artisan config:clear</code></li>
+            <li>URI de callback registada no Cloud Console</li>
+            <li>Client ID + Secret salvos</li>
+            <li>Conta Google ligada (botão no painel)</li>
             <li>Calendar ID preenchido</li>
             <li>Auto-sync ligado</li>
             <li>Painel mostra “API pronta: sim”</li>

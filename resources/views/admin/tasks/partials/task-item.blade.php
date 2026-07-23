@@ -50,9 +50,14 @@
                     <x-ui.icon name="meet" class="h-3.5 w-3.5" /> Meet
                 </a>
             @elseif($task->want_meet)
-                <a href="{{ $task->meetActionUrl() }}" target="_blank" rel="noopener" class="task-action" title="Criar Meet">
-                    <x-ui.icon name="meet" class="h-3.5 w-3.5" /> Meet
-                </a>
+                <form method="POST" action="{{ route('admin.tasks.google', $task) }}" class="inline">
+                    @csrf
+                    <input type="hidden" name="return_view" value="{{ $view }}">
+                    @if($month)<input type="hidden" name="return_month" value="{{ $month }}">@endif
+                    <button type="submit" class="task-action" title="Gerar Meet via API no CRM">
+                        <x-ui.icon name="meet" class="h-3.5 w-3.5" /> Gerar Meet
+                    </button>
+                </form>
             @endif
 
             <form method="POST" action="{{ route('admin.tasks.google', $task) }}" class="inline">
@@ -105,7 +110,7 @@
             <label class="flex items-center gap-2 text-xs text-mist">
                 <input type="hidden" name="want_meet" value="0">
                 <input type="checkbox" name="want_meet" value="1" @checked($task->want_meet) class="rounded border-line">
-                Incluir Google Meet ao sincronizar
+                Incluir Google Meet (gera e guarda o link no CRM ao sincronizar)
             </label>
             <button class="rounded-sm bg-brand px-3 py-1.5 text-sm text-white">Salvar</button>
         </form>

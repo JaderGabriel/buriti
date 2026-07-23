@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\OpportunityController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\ProjectController;
 use App\Http\Controllers\Admin\ProjectStepController;
+use App\Http\Controllers\Admin\GoogleOAuthController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\TaskController;
 use App\Http\Controllers\Admin\UserController;
@@ -162,4 +163,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
 
     Route::get('/configuracoes', [SettingController::class, 'edit'])->name('settings.edit');
     Route::put('/configuracoes', [SettingController::class, 'update'])->name('settings.update');
+
+    Route::get('/google/connect', [GoogleOAuthController::class, 'redirect'])->name('google.connect');
+    Route::get('/google/callback', [GoogleOAuthController::class, 'callback'])->name('google.callback');
+    Route::post('/google/disconnect', [GoogleOAuthController::class, 'disconnect'])->name('google.disconnect');
 });

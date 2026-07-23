@@ -101,7 +101,7 @@
             <label class="flex items-center gap-2 text-sm text-mist">
                 <input type="hidden" name="want_meet" value="0">
                 <input type="checkbox" name="want_meet" value="1" checked class="rounded border-line">
-                Preparar com Google Meet
+                Criar com Google Meet (link gerado no CRM se a API estiver ligada)
             </label>
 
             <div class="flex flex-wrap items-center justify-end gap-2 pt-1">

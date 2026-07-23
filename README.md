@@ -126,17 +126,23 @@ Resumo dos níveis:
 |------|-------------|-----------------|
 | **1 — Básico** | Botão “Google Agenda” e atalho para criar evento/Meet | Admin → URL da agenda |
 | **2 — Operacional** | Agenda embutida no painel de atividades | Admin → Embed |
-| **3 — Total** | API cria/atualiza eventos e Meet automaticamente | `.env` + Calendar ID + auto-sync |
+| **3 — Total** | API cria eventos + Meet **no CRM** (sem abrir a Agenda) | Client ID/Secret + **Ligar conta Google** + Calendar ID + auto-sync |
 
 Status: o painel mostra o nível em **Configurações** e em **Agenda**.
 
 <details>
-<summary>Referência rápida (README) — nível 3 no .env</summary>
+<summary>Referência rápida (README) — nível 3</summary>
+
+1. Registe no Cloud Console a URI: `${APP_URL}/admin/google/callback`
+2. Cole Client ID/Secret em **Configurações** (ou no `.env`) e salve
+3. Clique em **Ligar conta Google** (autorização única; o refresh token fica no CRM)
+4. Calendar ID + auto-sync
 
 ```env
 GOOGLE_CLIENT_ID=xxxxx.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=GOCSPX-xxxxx
-GOOGLE_REFRESH_TOKEN=1//xxxxx
+# Opcional se já ligou a conta pelo painel:
+# GOOGLE_REFRESH_TOKEN=1//xxxxx
 GOOGLE_REDIRECT_URI="${APP_URL}/admin/google/callback"
 ```
 

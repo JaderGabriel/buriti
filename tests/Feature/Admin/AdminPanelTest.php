@@ -225,7 +225,7 @@ class AdminPanelTest extends TestCase
             'google_calendar_embed' => 'https://calendar.google.com/calendar/embed?src=example',
             'google_calendar_id' => 'primary',
             'google_auto_sync' => '1',
-        ])->assertRedirect(route('admin.settings.edit'));
+        ])->assertRedirect(route('admin.settings.edit').'#google-integration');
 
         $settings = app(SettingService::class)->all();
 

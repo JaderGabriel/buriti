@@ -39,7 +39,7 @@ return [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'refresh_token' => env('GOOGLE_REFRESH_TOKEN'),
-        'redirect_uri' => env('GOOGLE_REDIRECT_URI'),
+        'redirect_uri' => env('GOOGLE_REDIRECT_URI') ?: (rtrim((string) env('APP_URL', ''), '/').'/admin/google/callback'),
     ],
 
     'trello' => [

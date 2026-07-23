@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\Setting;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Crypt;
+use Throwable;
 
 class SettingService
 {
@@ -22,6 +24,7 @@ class SettingService
         'google_calendar_url',
         'google_calendar_id',
         'google_auto_sync',
+        'google_client_id',
         'trello_board_id',
         'trello_board_url',
         'trello_list_todo_id',
@@ -30,6 +33,12 @@ class SettingService
         'notion_default_page_url',
         'telegram_allowed_chat_ids',
         'telegram_notify_chat_id',
+    ];
+
+    /** @var list<string> */
+    public const SECRET_KEYS = [
+        'google_client_secret',
+        'google_refresh_token',
     ];
 
     /** @return array<string, string|null> */
@@ -95,6 +104,7 @@ class SettingService
             'google_calendar_url' => config('buriti.google_calendar_url'),
             'google_calendar_id' => 'primary',
             'google_auto_sync' => '0',
+            'google_client_id' => null,
             'trello_board_id' => null,
             'trello_board_url' => null,
             'trello_list_todo_id' => null,
@@ -109,6 +119,65 @@ class SettingService
     public function autoSyncEnabled(): bool
     {
         return in_array($this->get('google_auto_sync'), ['1', 'true', 'on', 'yes'], true);
+    }
+
+    public function getSecret(string $key): ?string
+    {
+        if (! in_array($key, self::SECRET_KEYS, true)) {
+            return null;
+        }
+
+        try {
+            $value = Setting::query()->where('key', $key)->value('value');
+        } catch (Throwable) {
+            return null;
+        }
+
+        if (! is_string($value) || $value === '') {
+            return null;
+        }
+
+        try {
+            return Crypt::decryptString($value);
+        } catch (Throwable) {
+            // Legacy plaintext fallback (e.g. manually inserted values).
+            return $value;
+        }
+    }
+
+    public function putSecret(string $key, ?string $value): void
+    {
+        if (! in_array($key, self::SECRET_KEYS, true)) {
+            return;
+        }
+
+        if ($value === null || $value === '') {
+            $this->forgetSecret($key);
+
+            return;
+        }
+
+        Setting::query()->updateOrCreate(
+            ['key' => $key],
+            ['value' => Crypt::encryptString($value)]
+        );
+
+        Cache::forget(self::CACHE_KEY);
+    }
+
+    public function forgetSecret(string $key): void
+    {
+        if (! in_array($key, self::SECRET_KEYS, true)) {
+            return;
+        }
+
+        Setting::query()->where('key', $key)->delete();
+        Cache::forget(self::CACHE_KEY);
+    }
+
+    public function hasSecret(string $key): bool
+    {
+        return filled($this->getSecret($key));
     }
 
     public function calendarSrc(): ?string

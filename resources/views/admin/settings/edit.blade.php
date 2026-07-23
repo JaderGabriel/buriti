@@ -44,11 +44,11 @@
                         <ol class="mt-4 space-y-2 text-sm text-mist">
                             <li><strong class="text-snow">Nível 1 —</strong> URL da Agenda + atalhos Meet nas tarefas.</li>
                             <li><strong class="text-snow">Nível 2 —</strong> Embed público da Agenda no painel de tarefas.</li>
-                            <li><strong class="text-snow">Nível 3 —</strong> API OAuth no <code class="text-brand-bright">.env</code> para criar eventos e Meet automaticamente.</li>
+                            <li><strong class="text-snow">Nível 3 —</strong> OAuth + API: criar eventos e Meet <em>dentro do CRM</em>, sem abrir o Google Agenda.</li>
                         </ol>
                         <p class="mt-2 text-xs text-mist">
                             API pronta neste ambiente:
-                            <span class="{{ $googleApiReady ? 'text-brand-bright' : 'text-mist' }}">{{ $googleApiReady ? 'sim (credenciais detetadas)' : 'não — preencha GOOGLE_CLIENT_ID / SECRET / REFRESH_TOKEN' }}</span>
+                            <span class="{{ $googleApiReady ? 'text-brand-bright' : 'text-mist' }}">{{ $googleApiReady ? 'sim — sync e Meet automáticos' : 'não — complete Client ID/Secret e ligue a conta' }}</span>
                         </p>
                     </div>
 
@@ -66,11 +66,65 @@
                         Sincronizar automaticamente ao criar/editar tarefa (requer API nível 3)
                     </label>
 
+                    <div class="mt-6 space-y-3 rounded-2xl border border-line bg-ink/40 p-4">
+                        <h3 class="font-display text-base font-semibold">API OAuth (nível 3)</h3>
+                        <p class="text-sm text-mist">
+                            Preencha as credenciais do Cloud Console (ou deixe no <code>.env</code>). Depois ligue a conta — o Google pede autorização uma vez e devolve ao CRM.
+                        </p>
+                        <x-ui.input
+                            name="google_client_id"
+                            label="Client ID"
+                            :value="old('google_client_id', $googleClientIdValue)"
+                            class="mt-2"
+                            placeholder="....apps.googleusercontent.com"
+                        />
+                        <label class="mt-3 block text-sm">
+                            <span class="text-mist">Client Secret {{ $googleHasClientSecret ? '(já definido — deixe em branco para manter)' : '' }}</span>
+                            <input
+                                type="password"
+                                name="google_client_secret"
+                                value=""
+                                autocomplete="new-password"
+                                class="mt-1.5 w-full rounded-xl border border-line bg-ink px-3 py-2.5 text-sm"
+                                placeholder="{{ $googleHasClientSecret ? '••••••••••••' : 'GOCSPX-...' }}"
+                            >
+                        </label>
+                        <p class="text-xs text-mist">
+                            URI de redirecionamento a registar no Google Cloud:
+                            <code class="break-all text-brand-bright">{{ $googleRedirectUri }}</code>
+                        </p>
+                        <div class="flex flex-wrap items-center gap-2 pt-1">
+                            @if($googleConnected)
+                                <span class="rounded-full bg-brand/15 px-3 py-1 text-xs font-semibold text-brand-bright">Conta Google ligada</span>
+                                <button
+                                    type="submit"
+                                    form="google-disconnect-form"
+                                    class="rounded-full border border-red-500/40 px-4 py-2 text-xs font-semibold text-red-300 hover:bg-red-500/10"
+                                >
+                                    Desligar conta
+                                </button>
+                            @elseif($googleOauthAppReady)
+                                <a
+                                    href="{{ route('admin.google.connect') }}"
+                                    class="inline-flex rounded-full bg-brand px-4 py-2 text-xs font-semibold text-white hover:bg-brand-bright"
+                                >
+                                    Ligar conta Google
+                                </a>
+                            @else
+                                <span class="text-xs text-mist">Salve Client ID e Secret para ativar «Ligar conta Google».</span>
+                            @endif
+                        </div>
+                    </div>
+
                     <x-ui.button type="submit" class="mt-2">Salvar configurações</x-ui.button>
                 </div>
 
                 @include('admin.settings.partials.google-docs')
             </div>
         </section>
+    </form>
+
+    <form id="google-disconnect-form" method="POST" action="{{ route('admin.google.disconnect') }}" class="hidden">
+        @csrf
     </form>
 @endsection

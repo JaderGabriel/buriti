@@ -143,14 +143,14 @@ class TaskController extends Controller
         $this->audit->record('task.created', $task, ['summary' => $task->title]);
 
         if ($this->shouldAutoSync()) {
-            $result = $this->google->syncTask($task);
+            $result = $this->google->syncTask($task->fresh());
 
-            if (($result['mode'] ?? null) === 'redirect' && ! empty($result['url'])) {
-                return redirect()->away($result['url']);
-            }
+            return $this->syncFlashRedirect($result, 'Tarefa criada.');
+        }
 
+        if ($this->settings->autoSyncEnabled() && ! $this->google->apiConfigured()) {
             return $this->tasksRedirect()
-                ->with('success', 'Tarefa criada. '.($result['message'] ?? ''));
+                ->with('warning', 'Tarefa criada no CRM. Para sync + Meet automático, ligue a conta Google em Configurações.');
         }
 
         return $this->tasksRedirect()->with('success', 'Tarefa criada.');
@@ -168,11 +168,10 @@ class TaskController extends Controller
 
         $this->audit->record('task.updated', $task, ['summary' => $task->title]);
 
-        if ($this->shouldAutoSync() && $task->want_meet) {
+        if ($this->shouldAutoSync()) {
             $result = $this->google->syncTask($task->fresh());
 
-            return $this->tasksRedirect()
-                ->with('success', 'Tarefa atualizada. '.($result['message'] ?? ''));
+            return $this->syncFlashRedirect($result, 'Tarefa atualizada.');
         }
 
         return $this->tasksRedirect()->with('success', 'Tarefa atualizada.');
@@ -197,12 +196,25 @@ class TaskController extends Controller
     {
         $result = $this->google->syncTask($task);
 
-        if (($result['mode'] ?? null) === 'redirect' && ! empty($result['url'])) {
-            return redirect()->away($result['url']);
+        return $this->syncFlashRedirect($result, 'Sincronização Google.');
+    }
+
+    /**
+     * @param  array{mode: string, url?: string, event_id?: string, meet_url?: string, message: string}  $result
+     */
+    private function syncFlashRedirect(array $result, string $prefix): RedirectResponse
+    {
+        $message = trim($prefix.' '.($result['message'] ?? ''));
+
+        if (($result['mode'] ?? null) === 'api') {
+            if (! empty($result['meet_url'])) {
+                $message .= ' Meet: '.$result['meet_url'];
+            }
+
+            return $this->tasksRedirect()->with('success', $message);
         }
 
-        return $this->tasksRedirect()
-            ->with('success', $result['message'] ?? 'Sincronizado com Google.');
+        return $this->tasksRedirect()->with('error', $message);
     }
 
     private function shouldAutoSync(): bool

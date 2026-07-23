@@ -27,6 +27,8 @@ class UpdateSettingsRequest extends FormRequest
             'google_calendar_url' => ['nullable', 'url', 'max:255'],
             'google_calendar_id' => ['nullable', 'string', 'max:180'],
             'google_auto_sync' => ['nullable', Rule::in(['0', '1'])],
+            'google_client_id' => ['nullable', 'string', 'max:255'],
+            'google_client_secret' => ['nullable', 'string', 'max:255'],
         ];
     }
 }
