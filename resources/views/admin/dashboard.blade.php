@@ -189,6 +189,13 @@
                                     <span class="dash-tag dash-tag--prio dash-tag--prio-{{ $task->priority->value }}">{{ $task->priority->label() }}</span>
                                 </div>
                                 <p class="dash-feed__subject">{{ $task->project?->name ?? 'Sem projeto' }}</p>
+                                @php $latestActivity = $task->activities->first(); @endphp
+                                @if($latestActivity)
+                                    <p class="dash-feed__preview">
+                                        {{ $latestActivity->type->label() }} ·
+                                        {{ \Illuminate\Support\Str::limit(strip_tags((string) ($latestActivity->body ?: $latestActivity->subject)), 70) }}
+                                    </p>
+                                @endif
                                 <div class="dash-feed__tags">
                                     <span class="dash-tag dash-tag--urgency dash-tag--urgency-{{ $urgency }}">{{ $task->dueLabel() }}</span>
                                     <span class="dash-tag">{{ $task->status->label() }}</span>
@@ -203,6 +210,103 @@
                     </li>
                 @endforelse
             </ul>
+        </section>
+
+        <section class="dash-panel dash-panel--conduct">
+            <header class="dash-panel__head">
+                <div class="dash-panel__title-wrap">
+                    <span class="dash-panel__icon" aria-hidden="true"><x-ui.icon name="journey" class="h-5 w-5" /></span>
+                    <div>
+                        <p class="dash-panel__eyebrow">Condução</p>
+                        <h2 class="dash-panel__title">Atividades dos contatos</h2>
+                        <p class="dash-panel__lead">Chamadas, reuniões, e-mails e notas registadas nas fichas.</p>
+                    </div>
+                </div>
+                <div class="dash-panel__meta">
+                    <span class="dash-panel__pill">{{ $recentActivities->count() }} recente{{ $recentActivities->count() === 1 ? '' : 's' }}</span>
+                    <button type="button" class="dash-panel__action" data-bulk-activity-open>
+                        <x-ui.icon name="task" class="h-3.5 w-3.5" />
+                        Registar atividade
+                    </button>
+                    <a href="{{ route('admin.contacts.index') }}" class="dash-panel__link">Contatos</a>
+                </div>
+            </header>
+
+            <ol class="dash-conduct">
+                @forelse($recentActivities as $activity)
+                    @php
+                        $contact = $activity->contact;
+                        $tone = $activity->type->tone();
+                        $initials = $contact
+                            ? collect(preg_split('/\s+/', trim($contact->name)) ?: [])
+                                ->filter()
+                                ->take(2)
+                                ->map(fn ($p) => mb_strtoupper(mb_substr($p, 0, 1)))
+                                ->implode('')
+                            : '?';
+                        $when = $activity->happened_at ?? $activity->created_at;
+                        $subject = filled($activity->subject) ? $activity->subject : $activity->type->label();
+                        $body = trim((string) ($activity->body ?? ''));
+                        $href = $contact
+                            ? route('admin.contacts.show', $contact).'#conducao'
+                            : route('admin.contacts.index');
+                    @endphp
+                    <li class="dash-conduct__item dash-conduct__item--{{ $tone }}">
+                        <a href="{{ $href }}" class="dash-conduct__card">
+                            <span class="dash-conduct__rail" aria-hidden="true"></span>
+                            <span class="dash-conduct__type" title="{{ $activity->type->label() }}">
+                                <x-ui.icon :name="$activity->type->icon()" class="h-4 w-4" />
+                            </span>
+                            <div class="dash-conduct__main">
+                                <div class="dash-conduct__top">
+                                    <span class="dash-conduct__badge">{{ $activity->type->label() }}</span>
+                                    <time class="dash-conduct__when" datetime="{{ $when?->toIso8601String() }}">
+                                        {{ $when?->format('d/m H:i') ?? '—' }}
+                                        <span>· {{ $when?->diffForHumans() }}</span>
+                                    </time>
+                                </div>
+                                <p class="dash-conduct__subject">{{ $subject }}</p>
+                                @if($body !== '')
+                                    <p class="dash-conduct__body">{{ \Illuminate\Support\Str::limit($body, 180) }}</p>
+                                @endif
+                                <div class="dash-conduct__foot">
+                                    @if($contact)
+                                        <span class="dash-conduct__contact">
+                                            <span class="dash-conduct__avatar" data-tone="{{ $contact->status->tone() }}">{{ $initials ?: '?' }}</span>
+                                            <span>
+                                                <strong>{{ $contact->name }}</strong>
+                                                @if($contact->companyLabel())
+                                                    <small>{{ $contact->companyLabel() }}</small>
+                                                @endif
+                                            </span>
+                                        </span>
+                                    @endif
+                                    <span class="dash-conduct__meta">
+                                        @if($activity->user)
+                                            {{ $activity->user->name }}
+                                        @endif
+                                        @if($activity->opportunity)
+                                            · {{ $activity->opportunity->title }}
+                                        @endif
+                                        @if($activity->task)
+                                            · agenda: {{ $activity->task->title }}
+                                        @endif
+                                    </span>
+                                </div>
+                            </div>
+                        </a>
+                    </li>
+                @empty
+                    <li class="dash-feed__empty">
+                        <p>Nenhuma atividade registada ainda.</p>
+                        <p class="dash-feed__empty-hint">Registe a primeira chamada, reunião ou nota para começar a condução.</p>
+                        <button type="button" class="dash-panel__action dash-panel__action--primary mt-3" data-bulk-activity-open>
+                            <x-ui.icon name="task" class="h-3.5 w-3.5" />
+                            Registar atividade
+                        </button>
+                    </li>
+                @endforelse
+            </ol>
         </section>
     </div>
 
@@ -240,4 +344,10 @@
     <div class="mt-8">
         <x-admin.calendar-embed :src="$googleCalendarSrc" />
     </div>
+
+    @include('admin.contacts.partials.bulk-activity-dialog', [
+        'pickerContacts' => $pickerContacts,
+        'activityTypes' => $activityTypes,
+        'openTasks' => $openTasks,
+    ])
 @endsection

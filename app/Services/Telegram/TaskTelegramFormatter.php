@@ -3,21 +3,25 @@
 namespace App\Services\Telegram;
 
 use App\Enums\GoogleEventColor;
+use App\Models\Contact;
 use App\Models\Task;
+use App\Support\PhoneNumber;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 
 class TaskTelegramFormatter
 {
     /**
-     * Card rico de agenda para detalhe / criação / actualização.
+     * Card rico de agenda para detalhe / criação / actualização / lembrete.
      */
     public function card(Task $task, ?string $headline = null): string
     {
-        $task->loadMissing(['project', 'contact']);
+        $task->loadMissing(['project', 'contact', 'activities.contact', 'activities.user']);
 
         $color = $task->googleColor();
-        $colorMark = $color?->telegramEmoji() ?? '📅';
+        $isDone = $task->status->isDone();
+        $statusMark = $task->status->telegramMark();
+        $colorMark = $isDone ? '✅' : ($color?->telegramEmoji() ?? '📅');
         $timezone = config('app.timezone', 'America/Sao_Paulo');
         $due = $task->due_at?->timezone($timezone);
         $url = route('admin.tasks.index', array_filter([
@@ -26,19 +30,26 @@ class TaskTelegramFormatter
             'focus' => $task->id,
         ])).($task->id ? '#task-'.$task->id : '');
 
+        $defaultHeadline = $isDone
+            ? '✅ <b>Compromisso concluído</b>'
+            : ($colorMark.' <b>Compromisso na agenda</b>');
+
         $lines = [
-            $headline ?: ($colorMark.' <b>Compromisso na agenda</b>'),
+            $headline ?: $defaultHeadline,
             '──────────────',
-            $colorMark.' <b>#'.$task->id.' · '.$this->escape($task->title).'</b>',
+            $statusMark.' <b>#'.$task->id.' · '.$this->escape($task->title).'</b>',
         ];
 
+        if ($isDone) {
+            $lines[] = '🟢 <b>Êxito · '.$this->escape($task->status->label()).'</b>';
+        }
+
         $lines[] = '';
-        $lines[] = $this->scheduleBlock($due, $color);
+        $lines[] = $this->scheduleBlock($due, $color, $isDone);
 
         $meta = array_values(array_filter([
             $task->project ? '📁 '.$this->escape($task->project->name) : null,
-            $task->contact ? '👤 '.$this->escape($task->contact->name) : null,
-            '📌 '.$this->escape($task->status->label()).' · '.$this->escape($task->priority->label()),
+            $statusMark.' '.$this->escape($task->status->label()).' · '.$this->escape($task->priority->label()),
         ]));
 
         if ($meta !== []) {
@@ -46,24 +57,25 @@ class TaskTelegramFormatter
             array_push($lines, ...$meta);
         }
 
-        if ($task->want_meet || filled($task->meet_url)) {
+        $contactBlock = $this->contactActionsBlock($task->contact);
+        if ($contactBlock !== null) {
             $lines[] = '';
-            if (filled($task->meet_url)) {
-                $lines[] = '🎥 <a href="'.$this->escape($task->meet_url).'">Abrir Google Meet</a>';
-            } else {
-                $lines[] = '🎥 Meet previsto ao sincronizar';
-            }
+            $lines[] = $contactBlock;
+        }
+
+        $meetBlock = $this->meetAndInviteBlock($task, $due);
+        if ($meetBlock !== null) {
+            $lines[] = '';
+            $lines[] = $meetBlock;
         }
 
         if ($task->isSyncedWithGoogle()) {
+            $lines[] = '';
             $lines[] = '☁️ Sincronizado com Google Agenda';
         }
 
-        $description = trim((string) $task->description);
-        if ($description !== '') {
-            $lines[] = '';
-            $lines[] = '📝 '.$this->escape(Str::limit($description, 320));
-        }
+        $lines[] = '';
+        $lines[] = $this->activitiesBlock($task);
 
         $lines[] = '';
         $lines[] = '🔗 <a href="'.$this->escape($url).'">Abrir na agenda do CRM</a>';
@@ -74,8 +86,11 @@ class TaskTelegramFormatter
     /** Linha compacta para listagens. */
     public function listLine(Task $task): string
     {
+        $task->loadMissing(['activities']);
+
         $color = $task->googleColor();
-        $mark = $color?->telegramEmoji() ?? '•';
+        $isDone = $task->status->isDone();
+        $mark = $isDone ? '✅' : ($color?->telegramEmoji() ?? $task->status->telegramMark());
         $timezone = config('app.timezone', 'America/Sao_Paulo');
         $due = $task->due_at?->timezone($timezone);
         $when = $due
@@ -86,11 +101,17 @@ class TaskTelegramFormatter
             $mark.' <b>#'.$task->id.'</b>',
             $this->escape($task->title),
             '🕐 '.$when,
-            $this->escape($task->status->label()),
+            $isDone ? '<b>Concluída</b>' : $this->escape($task->status->label()),
         ];
 
-        if ($color) {
+        if ($color && ! $isDone) {
             $bits[] = $color->label();
+        }
+
+        $latest = $task->activities->first();
+        if ($latest) {
+            $preview = trim((string) ($latest->body ?: $latest->subject ?: $latest->type->label()));
+            $bits[] = '🗂 '.$this->escape($latest->type->label()).': '.$this->escape(Str::limit($preview, 48));
         }
 
         return implode(' · ', $bits);
@@ -102,7 +123,9 @@ class TaskTelegramFormatter
         $due = $task->due_at?->timezone($timezone);
         $minutes = $due ? (int) round($now->copy()->timezone($timezone)->diffInMinutes($due, false)) : 0;
         $color = $task->googleColor();
-        $mark = $color?->telegramEmoji() ?? '⏰';
+        $mark = $task->status->isDone()
+            ? '✅'
+            : ($color?->telegramEmoji() ?? '⏰');
 
         $whenLabel = match (true) {
             $due === null => 'sem horário',
@@ -115,7 +138,6 @@ class TaskTelegramFormatter
 
         $card = $this->card($task, $headline);
 
-        // Inject timing emphasis near the top after headline separator.
         return preg_replace(
             '/──────────────\n/',
             "──────────────\n⏱ <b>".$this->escape($whenLabel)."</b>\n",
@@ -124,7 +146,44 @@ class TaskTelegramFormatter
         ) ?? $card;
     }
 
-    private function scheduleBlock(?Carbon $due, ?GoogleEventColor $color): string
+    private function activitiesBlock(Task $task): string
+    {
+        $activities = $task->activities->take(5);
+
+        if ($activities->isEmpty()) {
+            $hint = $task->contact
+                ? 'Sem atividades ligadas. Registe na ficha do contato e vincule esta tarefa.'
+                : 'Sem atividades. Associe um contato e registe na ficha CRM.';
+
+            return '🗂 <b>Atividades do contato</b>'."\n".'<i>'.$this->escape($hint).'</i>';
+        }
+
+        $lines = ['🗂 <b>Atividades do contato</b> ('.$activities->count().')'];
+
+        foreach ($activities as $activity) {
+            $when = optional($activity->happened_at ?? $activity->created_at)->format('d/m H:i') ?? '—';
+            $title = filled($activity->subject) ? (string) $activity->subject : $activity->type->label();
+            $body = trim((string) ($activity->body ?? ''));
+            $lines[] = '';
+            $lines[] = '• <b>'.$this->escape($activity->type->label()).'</b> · '.$when;
+            $lines[] = $this->escape($title);
+            if ($body !== '' && $body !== $title) {
+                $lines[] = $this->escape(Str::limit($body, 400));
+            }
+            if ($activity->contact?->name) {
+                $lines[] = '👤 '.$this->escape($activity->contact->name);
+            }
+        }
+
+        if ($task->contact) {
+            $lines[] = '';
+            $lines[] = '<a href="'.$this->escape(route('admin.contacts.show', $task->contact).'#conducao').'">Abrir condução do contato</a>';
+        }
+
+        return implode("\n", $lines);
+    }
+
+    private function scheduleBlock(?Carbon $due, ?GoogleEventColor $color, bool $isDone = false): string
     {
         if ($due === null) {
             return '🕐 <i>Sem data/hora na agenda</i>';
@@ -137,9 +196,122 @@ class TaskTelegramFormatter
             ? "\n🎨 ".$color->telegramEmoji().' '.$this->escape($color->label()).' · <code>'.$color->background().'</code>'
             : '';
 
-        return '🕐 <b>'.$this->escape($day).'</b> · <b>'.$time.'</b>'
+        $prefix = $isDone ? '✅' : '🕐';
+
+        return $prefix.' <b>'.$this->escape($day).'</b> · <b>'.$time.'</b>'
             ."\n⏳ ".$this->escape($relative)
             .$colorLine;
+    }
+
+    private function contactActionsBlock(?Contact $contact): ?string
+    {
+        if ($contact === null) {
+            return null;
+        }
+
+        $lines = [
+            '👤 <b>'.$this->escape($contact->name).'</b>',
+        ];
+
+        $phoneLabel = PhoneNumber::format($contact->phone);
+        if ($phoneLabel) {
+            $lines[] = '📞 '.$this->escape($phoneLabel);
+        }
+
+        $actions = [];
+        $tel = $contact->telUrl();
+        if ($tel) {
+            $actions[] = '<a href="'.$this->escape($tel).'">Ligar</a>';
+        }
+
+        $whatsapp = $contact->whatsappUrl();
+        if ($whatsapp) {
+            $actions[] = '<a href="'.$this->escape($whatsapp).'">WhatsApp</a>';
+        }
+
+        if ($actions !== []) {
+            $lines[] = '📲 '.implode(' · ', $actions);
+        }
+
+        return implode("\n", $lines);
+    }
+
+    private function meetAndInviteBlock(Task $task, ?Carbon $due): ?string
+    {
+        if (! $task->want_meet && blank($task->meet_url)) {
+            return null;
+        }
+
+        $lines = [];
+
+        if (filled($task->meet_url)) {
+            $meetUrl = (string) $task->meet_url;
+            $lines[] = '🎥 <a href="'.$this->escape($meetUrl).'">Abrir Google Meet</a>';
+
+            $inviteText = $this->invitePlainText($task, $due, $meetUrl);
+            $lines[] = '';
+            $lines[] = '📩 <b>Convite para encaminhar</b>';
+            $lines[] = '<pre>'.$this->escape($inviteText).'</pre>';
+
+            $shareLinks = [];
+            $contactWhatsapp = $task->contact?->whatsappUrl();
+            if ($contactWhatsapp) {
+                $shareLinks[] = '<a href="'.$this->escape($this->whatsappShareUrl($contactWhatsapp, $inviteText)).'">Enviar convite no WhatsApp</a>';
+            }
+
+            $shareLinks[] = '<a href="'.$this->escape($this->whatsappShareUrl('https://wa.me/', $inviteText)).'">Encaminhar noutro WhatsApp</a>';
+            $lines[] = implode(' · ', $shareLinks);
+        } else {
+            $lines[] = '🎥 Meet previsto ao sincronizar com a Agenda';
+        }
+
+        return implode("\n", $lines);
+    }
+
+    private function invitePlainText(Task $task, ?Carbon $due, string $meetUrl): string
+    {
+        $timezone = config('app.timezone', 'America/Sao_Paulo');
+        $when = $due
+            ? Str::ucfirst($due->copy()->timezone($timezone)->translatedFormat('l, d/m/Y')).' às '.$due->format('H:i')
+            : 'horário a confirmar';
+
+        $lines = [
+            'Olá'.($task->contact?->name ? ', '.$task->contact->name : '').'!',
+            '',
+            'Segue o convite para o nosso compromisso:',
+            '',
+            '📌 '.$task->title,
+            '🕐 '.$when,
+            '🎥 Meet: '.$meetUrl,
+        ];
+
+        if ($task->project?->name) {
+            $lines[] = '📁 '.$task->project->name;
+        }
+
+        $description = trim((string) $task->description);
+        if ($description !== '') {
+            $lines[] = '';
+            $lines[] = Str::limit($description, 180);
+        }
+
+        $lines[] = '';
+        $lines[] = 'Até lá!';
+
+        return implode("\n", $lines);
+    }
+
+    private function whatsappShareUrl(string $baseOrContactUrl, string $text): string
+    {
+        $query = http_build_query(['text' => $text], '', '&', PHP_QUERY_RFC3986);
+
+        if (str_starts_with($baseOrContactUrl, 'https://wa.me/') && $baseOrContactUrl !== 'https://wa.me/') {
+            $separator = str_contains($baseOrContactUrl, '?') ? '&' : '?';
+
+            return $baseOrContactUrl.$separator.$query;
+        }
+
+        return 'https://wa.me/?'.$query;
     }
 
     private function escape(string $value): string

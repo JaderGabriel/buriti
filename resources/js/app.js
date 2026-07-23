@@ -916,6 +916,102 @@ function initIdeaPostitColors() {
     });
 }
 
+function initProjectCardMinimize() {
+    const board = document.querySelector('[data-project-board]');
+    if (! board) {
+        return;
+    }
+
+    const STORAGE_KEY = 'buriti.pm-card.minimized';
+
+    const readIds = () => {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            const parsed = raw ? JSON.parse(raw) : [];
+            return new Set(Array.isArray(parsed) ? parsed.map(String) : []);
+        } catch {
+            return new Set();
+        }
+    };
+
+    const writeIds = (ids) => {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify([...ids]));
+        } catch {
+            // ignore quota / private mode
+        }
+    };
+
+    const applyCard = (card, minimized) => {
+        card.classList.toggle('is-minimized', minimized);
+        const btn = card.querySelector('[data-pm-minimize]');
+        if (btn instanceof HTMLButtonElement) {
+            btn.setAttribute('aria-expanded', minimized ? 'false' : 'true');
+            btn.title = minimized ? 'Expandir card' : 'Minimizar card';
+            const name = card.querySelector('.pm-card__title')?.textContent?.trim() || 'projeto';
+            btn.setAttribute('aria-label', `${minimized ? 'Expandir' : 'Minimizar'} ${name}`);
+        }
+        const compact = card.querySelector('.pm-card__compact');
+        if (compact) {
+            compact.setAttribute('aria-hidden', minimized ? 'false' : 'true');
+        }
+    };
+
+    let minimized = readIds();
+
+    board.querySelectorAll('[data-pm-card][data-project-id]').forEach((card) => {
+        const id = String(card.dataset.projectId || '');
+        applyCard(card, minimized.has(id));
+    });
+
+    board.addEventListener('click', (event) => {
+        const btn = event.target.closest?.('[data-pm-minimize]');
+        if (! btn || ! board.contains(btn)) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+
+        const card = btn.closest?.('[data-pm-card][data-project-id]');
+        if (! (card instanceof HTMLElement)) {
+            return;
+        }
+
+        const id = String(card.dataset.projectId || '');
+        if (! id) {
+            return;
+        }
+
+        const next = ! card.classList.contains('is-minimized');
+        if (next) {
+            minimized.add(id);
+        } else {
+            minimized.delete(id);
+        }
+        writeIds(minimized);
+        applyCard(card, next);
+    });
+
+    document.querySelector('[data-pm-minimize-all]')?.addEventListener('click', () => {
+        board.querySelectorAll('[data-pm-card][data-project-id]').forEach((card) => {
+            const id = String(card.dataset.projectId || '');
+            if (id) {
+                minimized.add(id);
+            }
+            applyCard(card, true);
+        });
+        writeIds(minimized);
+    });
+
+    document.querySelector('[data-pm-expand-all]')?.addEventListener('click', () => {
+        minimized.clear();
+        board.querySelectorAll('[data-pm-card][data-project-id]').forEach((card) => {
+            applyCard(card, false);
+        });
+        writeIds(minimized);
+    });
+}
+
 function initProjectBoard() {
     const board = document.querySelector('[data-project-board]');
     if (! board || board.dataset.dndBound === '1') {
@@ -1292,6 +1388,226 @@ function initOpportunityBoard() {
     });
 }
 
+function initBulkActivityDialog() {
+    const dialog = document.getElementById('bulk-activity-dialog');
+    if (! dialog) {
+        return;
+    }
+
+    if (dialog.parentElement !== document.body) {
+        document.body.appendChild(dialog);
+    }
+
+    const form = dialog.querySelector('[data-bulk-activity-form]');
+    const idsBox = dialog.querySelector('[data-bulk-activity-ids]');
+    const countEl = dialog.querySelector('[data-bulk-activity-count]');
+    const flashEl = dialog.querySelector('[data-bulk-activity-flash]');
+    const filterInput = dialog.querySelector('[data-bulk-activity-filter]');
+    const allToggle = dialog.querySelector('[data-bulk-activity-all]');
+    const picks = () => [...dialog.querySelectorAll('[data-bulk-activity-pick]')];
+
+    const selected = new Set();
+
+    const syncCount = () => {
+        if (countEl) {
+            countEl.textContent = `${selected.size} selecionado(s)`;
+        }
+        if (allToggle) {
+            const visible = picks().filter((el) => el.closest('[data-bulk-activity-item]')?.style.display !== 'none');
+            allToggle.checked = visible.length > 0 && visible.every((el) => selected.has(Number(el.value)));
+            allToggle.indeterminate = visible.some((el) => selected.has(Number(el.value))) && ! allToggle.checked;
+        }
+    };
+
+    const syncHiddenInputs = () => {
+        if (! idsBox) {
+            return;
+        }
+        idsBox.innerHTML = '';
+        selected.forEach((id) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'contact_ids[]';
+            input.value = String(id);
+            idsBox.appendChild(input);
+        });
+    };
+
+    const setFlash = (message) => {
+        if (! flashEl) {
+            return;
+        }
+        if (! message) {
+            flashEl.hidden = true;
+            flashEl.textContent = '';
+            return;
+        }
+        flashEl.hidden = false;
+        flashEl.textContent = message;
+    };
+
+    const applySelection = (ids) => {
+        selected.clear();
+        (ids || []).forEach((id) => {
+            const n = Number(id);
+            if (Number.isFinite(n) && n > 0) {
+                selected.add(n);
+            }
+        });
+        picks().forEach((el) => {
+            el.checked = selected.has(Number(el.value));
+        });
+        syncHiddenInputs();
+        syncCount();
+        setFlash('');
+    };
+
+    const openDialog = (ids = null) => {
+        let next = ids;
+        if (! Array.isArray(next) || next.length === 0) {
+            try {
+                next = JSON.parse(dialog.dataset.preselected || '[]');
+            } catch {
+                next = [];
+            }
+        }
+        applySelection(next);
+        if (filterInput) {
+            filterInput.value = '';
+            dialog.querySelectorAll('[data-bulk-activity-item]').forEach((item) => {
+                item.style.display = '';
+            });
+        }
+        dialog.hidden = false;
+        dialog.classList.add('is-open');
+        document.documentElement.classList.add('overflow-hidden');
+    };
+
+    const closeDialog = () => {
+        dialog.hidden = true;
+        dialog.classList.remove('is-open');
+        document.documentElement.classList.remove('overflow-hidden');
+        setFlash('');
+    };
+
+    dialog.querySelectorAll('[data-bulk-activity-close]').forEach((el) => {
+        el.addEventListener('click', closeDialog);
+    });
+
+    dialog.addEventListener('change', (event) => {
+        const pick = event.target.closest?.('[data-bulk-activity-pick]');
+        if (pick) {
+            const id = Number(pick.value);
+            if (pick.checked) {
+                selected.add(id);
+            } else {
+                selected.delete(id);
+            }
+            syncHiddenInputs();
+            syncCount();
+            setFlash('');
+            return;
+        }
+
+        if (event.target === allToggle) {
+            const visible = picks().filter((el) => el.closest('[data-bulk-activity-item]')?.style.display !== 'none');
+            visible.forEach((el) => {
+                el.checked = allToggle.checked;
+                const id = Number(el.value);
+                if (allToggle.checked) {
+                    selected.add(id);
+                } else {
+                    selected.delete(id);
+                }
+            });
+            syncHiddenInputs();
+            syncCount();
+            setFlash('');
+        }
+    });
+
+    filterInput?.addEventListener('input', () => {
+        const q = filterInput.value.trim().toLowerCase();
+        dialog.querySelectorAll('[data-bulk-activity-item]').forEach((item) => {
+            const name = item.dataset.name || '';
+            item.style.display = q === '' || name.includes(q) ? '' : 'none';
+        });
+        syncCount();
+    });
+
+    form?.addEventListener('submit', (event) => {
+        syncHiddenInputs();
+        if (selected.size === 0) {
+            event.preventDefault();
+            setFlash('Selecione pelo menos um contato.');
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && dialog.classList.contains('is-open')) {
+            closeDialog();
+        }
+    });
+
+    document.addEventListener('click', (event) => {
+        const trigger = event.target.closest?.('[data-bulk-activity-open]');
+        if (! trigger) {
+            return;
+        }
+        event.preventDefault();
+
+        let ids = null;
+        if (trigger.hasAttribute('data-bulk-activity-from-selection')) {
+            ids = [...document.querySelectorAll('[data-phonebook-pick]:checked')].map((el) => Number(el.value));
+        } else {
+            const raw = trigger.getAttribute('data-bulk-activity-ids');
+            if (raw) {
+                ids = raw.split(',').map((x) => Number(x.trim())).filter((n) => Number.isFinite(n) && n > 0);
+            }
+        }
+        openDialog(ids);
+    });
+
+    window.buritiOpenBulkActivity = openDialog;
+}
+
+function initPhonebookSelection() {
+    const root = document.querySelector('[data-phonebook-select]');
+    if (! root) {
+        return;
+    }
+
+    const bar = root.querySelector('[data-phonebook-selection]');
+    const countEl = root.querySelector('[data-phonebook-selection-count]');
+    const clearBtn = root.querySelector('[data-phonebook-selection-clear]');
+
+    const sync = () => {
+        const checked = root.querySelectorAll('[data-phonebook-pick]:checked');
+        const n = checked.length;
+        if (bar) {
+            bar.hidden = n === 0;
+        }
+        if (countEl) {
+            countEl.textContent = n === 1 ? '1 selecionado' : `${n} selecionados`;
+        }
+    };
+
+    root.addEventListener('change', (event) => {
+        if (event.target.matches?.('[data-phonebook-pick]')) {
+            sync();
+        }
+    });
+
+    clearBtn?.addEventListener('click', () => {
+        root.querySelectorAll('[data-phonebook-pick]:checked').forEach((el) => {
+            el.checked = false;
+        });
+        sync();
+    });
+
+    sync();
+}
+
 window.buritiPhoneCountryField = buritiPhoneCountryField;
 window.taskDayCreate = taskDayCreate;
 
@@ -1411,8 +1727,11 @@ initPasswordFields();
 initPasswordGenerators();
 initTelegramLogin();
 initTaskCreateDialog();
+initBulkActivityDialog();
+initPhonebookSelection();
 initTaskDayCreateFallback();
 initProjectBoard();
+initProjectCardMinimize();
 initOpportunityBoard();
 initIdeaPostitColors();
 

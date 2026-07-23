@@ -17,6 +17,21 @@ enum TaskStatus: string
         };
     }
 
+    public function isDone(): bool
+    {
+        return $this === self::Done;
+    }
+
+    /** Emoji curto para Telegram / listagens. */
+    public function telegramMark(): string
+    {
+        return match ($this) {
+            self::Done => '✅',
+            self::Doing => '🔵',
+            self::Todo => '⬜',
+        };
+    }
+
     /** @return array<string, string> */
     public static function options(): array
     {

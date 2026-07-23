@@ -55,17 +55,26 @@
             >Lista</a>
         </div>
 
-        <div class="pm-filters">
-            <a
-                href="{{ route('admin.projects.index', ['view' => $view]) }}"
-                @class(['pm-chip', 'is-active' => $statusFilter === null])
-            >Todos</a>
-            @foreach($statusLabels as $value => $label)
+        <div class="pm-toolbar__end">
+            <div class="pm-filters">
                 <a
-                    href="{{ route('admin.projects.index', ['view' => $view, 'status' => $value]) }}"
-                    @class(['pm-chip', 'pm-chip--'.$value, 'is-active' => $statusFilter === $value])
-                >{{ $label }}</a>
-            @endforeach
+                    href="{{ route('admin.projects.index', ['view' => $view]) }}"
+                    @class(['pm-chip', 'is-active' => $statusFilter === null])
+                >Todos</a>
+                @foreach($statusLabels as $value => $label)
+                    <a
+                        href="{{ route('admin.projects.index', ['view' => $view, 'status' => $value]) }}"
+                        @class(['pm-chip', 'pm-chip--'.$value, 'is-active' => $statusFilter === $value])
+                    >{{ $label }}</a>
+                @endforeach
+            </div>
+
+            @if($view === 'board')
+                <div class="pm-density" data-pm-density>
+                    <button type="button" class="pm-chip" data-pm-minimize-all title="Só visual — não altera dados">Minimizar todos</button>
+                    <button type="button" class="pm-chip" data-pm-expand-all title="Só visual — não altera dados">Expandir todos</button>
+                </div>
+            @endif
         </div>
     </div>
 

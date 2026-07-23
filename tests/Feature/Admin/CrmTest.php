@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Enums\TaskStatus;
 use App\Models\Company;
 use App\Models\Contact;
 use App\Models\ContactMessage;
@@ -220,6 +221,90 @@ class CrmTest extends TestCase
         $this->assertFalse($contact->fresh()->projects->contains($project));
     }
 
+    public function test_registering_activity_with_task_marks_task_as_done(): void
+    {
+        $contact = Contact::factory()->create();
+        $task = Task::factory()->create([
+            'title' => 'Ligar ao lead',
+            'status' => TaskStatus::Todo,
+            'contact_id' => $contact->id,
+            'project_id' => null,
+        ]);
+
+        $this->actingAs($this->admin)->post(route('admin.contacts.activities.store', $contact), [
+            'type' => 'call',
+            'subject' => 'Ligação feita',
+            'body' => 'Cliente atendeu',
+            'task_id' => $task->id,
+            'happened_at' => now()->format('Y-m-d\TH:i'),
+        ])->assertRedirect()
+            ->assertSessionHas('success', 'Atividade registada e tarefa marcada como concluída.');
+
+        $this->assertDatabaseHas('crm_activities', [
+            'contact_id' => $contact->id,
+            'task_id' => $task->id,
+            'subject' => 'Ligação feita',
+        ]);
+
+        $this->assertSame(TaskStatus::Done, $task->fresh()->status);
+    }
+
+    public function test_admin_can_register_bulk_activity_for_multiple_contacts(): void
+    {
+        $contactA = Contact::factory()->create(['name' => 'Ana Bulk']);
+        $contactB = Contact::factory()->create(['name' => 'Bruno Bulk']);
+        $task = Task::factory()->create([
+            'title' => 'Follow-up conjunto',
+            'status' => TaskStatus::Todo,
+            'contact_id' => null,
+            'project_id' => null,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->from(route('admin.contacts.index'))
+            ->post(route('admin.contacts.activities.bulk'), [
+                'contact_ids' => [$contactA->id, $contactB->id],
+                'type' => 'meeting',
+                'subject' => 'Kickoff conjunto',
+                'body' => 'Reunião com ambos',
+                'task_id' => $task->id,
+                'happened_at' => now()->format('Y-m-d\TH:i'),
+            ])
+            ->assertRedirect(route('admin.contacts.index'))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('crm_activities', [
+            'contact_id' => $contactA->id,
+            'type' => 'meeting',
+            'subject' => 'Kickoff conjunto',
+            'task_id' => $task->id,
+            'user_id' => $this->admin->id,
+        ]);
+
+        $this->assertDatabaseHas('crm_activities', [
+            'contact_id' => $contactB->id,
+            'type' => 'meeting',
+            'subject' => 'Kickoff conjunto',
+            'task_id' => $task->id,
+            'user_id' => $this->admin->id,
+        ]);
+
+        $this->assertSame(TaskStatus::Done, $task->fresh()->status);
+    }
+
+    public function test_bulk_activity_requires_at_least_one_contact(): void
+    {
+        $this->actingAs($this->admin)
+            ->from(route('admin.contacts.index'))
+            ->post(route('admin.contacts.activities.bulk'), [
+                'contact_ids' => [],
+                'type' => 'note',
+                'subject' => 'Sem contatos',
+            ])
+            ->assertRedirect(route('admin.contacts.index'))
+            ->assertSessionHasErrors('contact_ids');
+    }
+
     public function test_admin_can_link_message_to_contact(): void
     {
         $message = ContactMessage::factory()->create([
@@ -278,6 +363,8 @@ class CrmTest extends TestCase
             ->assertSee('dash-panel--messages', false)
             ->assertSee('dash-panel--contacts', false)
             ->assertSee('dash-panel--tasks', false)
+            ->assertSee('dash-panel--conduct', false)
+            ->assertSee('Atividades dos contatos', false)
             ->assertSee('>Agenda</a>', false)
             ->assertSee('Comercial', false)
             ->assertSee('Entrega', false)

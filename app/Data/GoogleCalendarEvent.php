@@ -63,7 +63,7 @@ class GoogleCalendarEvent
             htmlLink: is_string($payload['htmlLink'] ?? null) ? $payload['htmlLink'] : null,
             colorId: isset($payload['colorId']) ? (string) $payload['colorId'] : null,
             meetUrl: $meetUrl,
-            description: isset($payload['description']) ? Str::limit(strip_tags((string) $payload['description']), 240) : null,
+            description: isset($payload['description']) ? Str::limit(strip_tags((string) $payload['description']), 4000) : null,
         );
     }
 

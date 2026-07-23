@@ -96,7 +96,7 @@
                 </label>
             </div>
 
-            <textarea name="description" rows="2" placeholder="Notas (opcional)" class="w-full rounded-sm border border-line bg-ink px-3 py-2.5 text-snow"></textarea>
+            <textarea name="description" rows="2" placeholder="Nota técnica (opcional)" class="w-full rounded-sm border border-line bg-ink px-3 py-2.5 text-snow"></textarea>
 
             <label class="flex items-center gap-2 text-sm text-mist">
                 <input type="hidden" name="want_meet" value="0">

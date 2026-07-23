@@ -36,11 +36,19 @@ class TaskTelegramReminderTest extends TestCase
             'telegram_chat_id' => '424242',
         ])->save();
 
+        $contact = \App\Models\Contact::factory()->create([
+            'name' => 'Ana Cliente',
+            'phone' => '+55 11 98888-7777',
+        ]);
+
         $task = Task::factory()->create([
             'title' => 'Reunião com cliente',
             'status' => TaskStatus::Todo,
             'due_at' => now()->addMinutes(8),
             'project_id' => null,
+            'contact_id' => $contact->id,
+            'want_meet' => true,
+            'meet_url' => 'https://meet.google.com/abc-defg-hij',
         ]);
         $task->forceFill(['user_id' => $user->id])->save();
 
@@ -57,6 +65,12 @@ class TaskTelegramReminderTest extends TestCase
                 && ($data['chat_id'] ?? null) == '424242'
                 && str_contains($text, 'Lembrete de agenda')
                 && str_contains($text, 'Reunião com cliente')
+                && str_contains($text, 'Ana Cliente')
+                && str_contains($text, 'Ligar')
+                && str_contains($text, 'WhatsApp')
+                && str_contains($text, 'Convite para encaminhar')
+                && str_contains($text, 'meet.google.com/abc-defg-hij')
+                && str_contains($text, 'Enviar convite no WhatsApp')
                 && str_contains($text, 'Abrir na agenda do CRM');
         });
     }

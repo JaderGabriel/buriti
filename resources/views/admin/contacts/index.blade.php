@@ -13,6 +13,10 @@
             <p class="crm-workspace__lead">Agenda telefónica em ordem alfabética — ligue, mande WhatsApp ou abra a ficha.</p>
         </div>
         <div class="crm-workspace__actions">
+            <button type="button" class="pm-btn pm-btn--ghost" data-bulk-activity-open>
+                <x-ui.icon name="task" class="h-4 w-4" />
+                Registar atividade
+            </button>
             <a href="{{ route('admin.companies.index') }}" class="pm-btn pm-btn--ghost">
                 <x-ui.icon name="company" class="h-4 w-4" />
                 Empresas
@@ -125,7 +129,15 @@
                 Nenhum contato nesta seleção.
             </div>
         @else
-            <div class="phonebook mt-5">
+            <div class="phonebook mt-5" data-phonebook-select>
+                <div class="phonebook-selection" data-phonebook-selection hidden>
+                    <span data-phonebook-selection-count>0 selecionados</span>
+                    <button type="button" class="pm-btn pm-btn--primary" data-bulk-activity-open data-bulk-activity-from-selection>
+                        <x-ui.icon name="task" class="h-4 w-4" />
+                        Registar atividade nos selecionados
+                    </button>
+                    <button type="button" class="phonebook-selection__clear" data-phonebook-selection-clear>Limpar seleção</button>
+                </div>
                 @foreach($groups as $groupLetter => $items)
                     <section class="phonebook__group" id="letra-{{ $groupLetter === '#' ? 'outros' : $groupLetter }}">
                         <header class="phonebook__header">
@@ -145,6 +157,10 @@
                                         ->implode('');
                                 @endphp
                                 <li class="phonebook__row">
+                                    <label class="phonebook__select" title="Selecionar para atividade">
+                                        <input type="checkbox" value="{{ $contact->id }}" data-phonebook-pick>
+                                        <span class="sr-only">Selecionar {{ $contact->name }}</span>
+                                    </label>
                                     <a href="{{ route('admin.contacts.show', $contact) }}" class="phonebook__identity">
                                         <span class="phonebook__avatar">{{ $initials ?: '?' }}</span>
                                         <span class="phonebook__meta">
@@ -170,9 +186,28 @@
                                                         <x-ui.icon name="whatsapp" class="h-4 w-4" />
                                                     </a>
                                                 @endif
+                                                <button
+                                                    type="button"
+                                                    class="phonebook__action"
+                                                    title="Registar atividade"
+                                                    aria-label="Registar atividade para {{ $contact->name }}"
+                                                    data-bulk-activity-open
+                                                    data-bulk-activity-ids="{{ $contact->id }}"
+                                                >
+                                                    <x-ui.icon name="task" class="h-4 w-4" />
+                                                </button>
                                             </div>
                                         @else
                                             <span class="phonebook__empty">Sem telefone</span>
+                                            <button
+                                                type="button"
+                                                class="phonebook__action"
+                                                title="Registar atividade"
+                                                data-bulk-activity-open
+                                                data-bulk-activity-ids="{{ $contact->id }}"
+                                            >
+                                                <x-ui.icon name="task" class="h-4 w-4" />
+                                            </button>
                                         @endif
                                     </div>
 
@@ -243,4 +278,10 @@
         @endif
     @endif
 </div>
+
+@include('admin.contacts.partials.bulk-activity-dialog', [
+    'pickerContacts' => $pickerContacts,
+    'activityTypes' => $activityTypes,
+    'openTasks' => $openTasks,
+])
 @endsection

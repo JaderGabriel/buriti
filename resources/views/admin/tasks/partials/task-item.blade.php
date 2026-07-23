@@ -7,11 +7,17 @@
     $view = $view ?? 'calendar';
     $month = $month ?? null;
     $compact = (bool) ($compact ?? false);
+    $isDone = $task?->status?->isDone() ?? false;
+    $activities = $task?->activities ?? collect();
+    $latestActivity = $activities->first();
+    $activityPreview = $latestActivity
+        ? trim((string) ($latestActivity->body ?: $latestActivity->subject ?: $latestActivity->type->label()))
+        : '';
 
     $summaryParts = array_values(array_filter([
         $task?->project?->name,
         $task?->contact?->name,
-        $task?->status?->label(),
+        $isDone ? null : $task?->status?->label(),
     ]));
     $summary = implode(' · ', $summaryParts);
     $time = $task?->due_at?->format('H:i');
@@ -19,7 +25,8 @@
 
 @if($task)
 <article
-    class="task-event {{ $compact ? 'task-event--compact' : 'task-event--agenda' }} task-event--{{ $task->status->value }} {{ $task->googleColor() ? 'task-event--gcal task-event--gcal-'.$task->googleColor()->value : '' }}"
+    id="task-{{ $task->id }}"
+    class="task-event {{ $compact ? 'task-event--compact' : 'task-event--agenda' }} task-event--{{ $task->status->value }} {{ $isDone ? 'task-event--success' : '' }} {{ $task->googleColor() ? 'task-event--gcal task-event--gcal-'.$task->googleColor()->value : '' }}"
     data-task-event
     @if($task->googleColor())
         style="--gcal-bg: {{ $task->googleColor()->background() }}; --gcal-fg: {{ $task->googleColor()->foreground() }};"
@@ -33,20 +40,74 @@
         :aria-expanded="open.toString()"
         title="{{ $task->title }}"
     >
+        @if($isDone)
+            <span class="task-event__check" aria-hidden="true" title="Concluída">✓</span>
+        @endif
         @if($time)
-            <span class="task-event__time">{{ $time }}</span>
+            <span class="task-event__time {{ $isDone ? 'task-event__time--done' : '' }}">{{ $time }}</span>
         @endif
         <span class="task-event__main">
-            <span class="task-event__title">{{ $task->title }}</span>
+            <span class="task-event__title">
+                @if($isDone)
+                    <span class="task-event__done-badge">Concluída</span>
+                @endif
+                {{ $task->title }}
+            </span>
             @if($summary !== '')
                 <span class="task-event__summary">{{ $summary }}</span>
-            @elseif($task->description)
-                <span class="task-event__summary">{{ \Illuminate\Support\Str::limit($task->description, $compact ? 42 : 80) }}</span>
+            @endif
+            @if($activityPreview !== '')
+                <span class="task-event__notes-preview">
+                    {{ $latestActivity->type->label() }} · {{ \Illuminate\Support\Str::limit($activityPreview, $compact ? 40 : 80) }}
+                </span>
+            @elseif($activities->isNotEmpty())
+                <span class="task-event__notes-preview">{{ $activities->count() }} atividade{{ $activities->count() === 1 ? '' : 's' }}</span>
             @endif
         </span>
     </button>
 
     <div x-cloak x-show="open" class="task-event__editor" @click.stop>
+        <div class="task-event__notes-panel task-event__activities-panel">
+            <div class="task-event__notes-head">
+                <p class="task-event__notes-label">Atividades do contato</p>
+                @if($task->contact)
+                    <a href="{{ route('admin.contacts.show', $task->contact) }}#conducao" class="task-event__notes-link" draggable="false">
+                        Ver ficha
+                    </a>
+                @endif
+            </div>
+
+            @forelse($activities as $activity)
+                <article class="task-activity task-activity--{{ $activity->type->tone() }}">
+                    <span class="task-activity__icon" aria-hidden="true">
+                        <x-ui.icon :name="$activity->type->icon()" class="h-3.5 w-3.5" />
+                    </span>
+                    <div class="min-w-0">
+                        <div class="task-activity__top">
+                            <span class="task-activity__type">{{ $activity->type->label() }}</span>
+                            <time>{{ optional($activity->happened_at ?? $activity->created_at)->format('d/m H:i') }}</time>
+                        </div>
+                        <p class="task-activity__subject">{{ $activity->subject ?: $activity->type->label() }}</p>
+                        @if(filled($activity->body))
+                            <p class="task-activity__body">{{ \Illuminate\Support\Str::limit($activity->body, 220) }}</p>
+                        @endif
+                        <p class="task-activity__meta">
+                            @if($activity->contact) {{ $activity->contact->name }} @endif
+                            @if($activity->user) · {{ $activity->user->name }} @endif
+                        </p>
+                    </div>
+                </article>
+            @empty
+                <p class="task-event__notes-empty">
+                    @if($task->contact)
+                        Sem atividades ligadas a este compromisso. Registe na ficha de {{ $task->contact->name }} e vincule esta tarefa.
+                    @else
+                        Sem atividades. Associe um contato e registe a atividade na ficha CRM.
+                    @endif
+                </p>
+            @endforelse
+        </div>
+
         <div class="task-event__toolbar">
             @if($task->hasMeet())
                 <a href="{{ $task->meet_url }}" target="_blank" rel="noopener" class="task-action" title="Abrir Meet">
@@ -75,6 +136,9 @@
             @if($task->isSyncedWithGoogle())
                 <span class="task-item__sync">Sync</span>
             @endif
+            @if($isDone)
+                <span class="task-event__done-pill">✓ Concluída</span>
+            @endif
         </div>
 
         <form method="POST" action="{{ route('admin.tasks.update', $task) }}" class="space-y-2">
@@ -83,7 +147,10 @@
             <input type="hidden" name="return_view" value="{{ $view }}">
             @if($month)<input type="hidden" name="return_month" value="{{ $month }}">@endif
             <input name="title" value="{{ $task->title }}" class="w-full rounded-sm border border-line bg-panel px-2 py-1.5 text-sm">
-            <textarea name="description" rows="2" class="w-full rounded-sm border border-line bg-panel px-2 py-1.5 text-sm">{{ $task->description }}</textarea>
+            <label class="block text-xs text-mist">
+                Nota técnica (opcional)
+                <textarea name="description" rows="2" class="mt-1 w-full rounded-sm border border-line bg-panel px-2 py-1.5 text-sm" placeholder="Detalhe interno do compromisso…">{{ $task->description }}</textarea>
+            </label>
             <select name="project_id" class="w-full rounded-sm border border-line bg-panel px-2 py-1.5 text-sm">
                 <option value="">Sem projeto</option>
                 @foreach($projects as $project)

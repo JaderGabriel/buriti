@@ -39,7 +39,13 @@ class TaskController extends Controller
         $cursor = $this->resolveMonth($request->query('month'));
 
         $tasks = Task::query()
-            ->with(['project', 'contact', 'attachments', 'trashedAttachments.deleter'])
+            ->with([
+                'project',
+                'contact',
+                'attachments',
+                'trashedAttachments.deleter',
+                'activities' => fn ($q) => $q->with(['contact', 'user'])->limit(6),
+            ])
             ->boardOrdered()
             ->get();
 

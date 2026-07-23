@@ -21,6 +21,28 @@ enum CrmActivityType: string
         };
     }
 
+    public function icon(): string
+    {
+        return match ($this) {
+            self::Note => 'message',
+            self::Call => 'phone',
+            self::Meeting => 'meet',
+            self::Email => 'mail',
+            self::Other => 'task',
+        };
+    }
+
+    public function tone(): string
+    {
+        return match ($this) {
+            self::Note => 'slate',
+            self::Call => 'green',
+            self::Meeting => 'blue',
+            self::Email => 'amber',
+            self::Other => 'brand',
+        };
+    }
+
     /** @return array<string, string> */
     public static function options(): array
     {

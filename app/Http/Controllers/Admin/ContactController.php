@@ -6,8 +6,10 @@ use App\Enums\ContactSource;
 use App\Enums\ContactStatus;
 use App\Enums\CrmActivityType;
 use App\Enums\OpportunityStage;
+use App\Enums\TaskStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AttachProjectToContactRequest;
+use App\Http\Requests\Admin\BulkCrmActivityRequest;
 use App\Http\Requests\Admin\ContactRequest;
 use App\Http\Requests\Admin\CrmActivityRequest;
 use App\Models\Company;
@@ -94,6 +96,19 @@ class ContactController extends Controller
                 'phone' => 'Telefone',
                 'whatsapp' => 'WhatsApp',
             ],
+            'activityTypes' => CrmActivityType::options(),
+            'activityTypeMeta' => collect(CrmActivityType::cases())
+                ->mapWithKeys(fn (CrmActivityType $type) => [$type->value => [
+                    'label' => $type->label(),
+                    'icon' => $type->icon(),
+                    'tone' => $type->tone(),
+                ]])
+                ->all(),
+            'openTasks' => Task::query()->open()->orderBy('title')->limit(80)->get(),
+            'pickerContacts' => Contact::query()
+                ->with('clientCompany:id,name')
+                ->orderBy('name')
+                ->get(['id', 'name', 'company', 'company_id', 'phone', 'email', 'status']),
         ]);
     }
 
@@ -170,8 +185,19 @@ class ContactController extends Controller
             'sources' => ContactSource::options(),
             'stages' => OpportunityStage::options(),
             'activityTypes' => CrmActivityType::options(),
+            'activityTypeMeta' => collect(CrmActivityType::cases())
+                ->mapWithKeys(fn (CrmActivityType $type) => [$type->value => [
+                    'label' => $type->label(),
+                    'icon' => $type->icon(),
+                    'tone' => $type->tone(),
+                ]])
+                ->all(),
             'allProjects' => Project::query()->orderBy('name')->get(),
             'openTasks' => Task::query()->open()->orderBy('title')->get(),
+            'pickerContacts' => Contact::query()
+                ->with('clientCompany:id,name')
+                ->orderBy('name')
+                ->get(['id', 'name', 'company', 'company_id', 'phone', 'email', 'status']),
         ]);
     }
 
@@ -229,13 +255,71 @@ class ContactController extends Controller
             }
         }
 
+        $task = null;
+        if (! empty($data['task_id'])) {
+            $task = Task::query()->find($data['task_id']);
+            if (! $task) {
+                return back()->withErrors(['task_id' => 'Tarefa inválida.']);
+            }
+        }
+
         CrmActivity::query()->create([
             ...$data,
             'contact_id' => $contact->id,
             'user_id' => $request->user()->id,
         ]);
 
-        return back()->with('success', 'Atividade registada.');
+        $message = 'Atividade registada.';
+        if ($task) {
+            $task->forceFill([
+                'status' => TaskStatus::Done,
+            ])->save();
+            $message = 'Atividade registada e tarefa marcada como concluída.';
+        }
+
+        return back()->with('success', $message);
+    }
+
+    public function storeBulkActivity(BulkCrmActivityRequest $request): RedirectResponse
+    {
+        $data = $request->validated();
+        $contactIds = $data['contact_ids'];
+        unset($data['contact_ids']);
+
+        $task = null;
+        if (! empty($data['task_id'])) {
+            $task = Task::query()->find($data['task_id']);
+            if (! $task) {
+                return back()->withErrors(['task_id' => 'Tarefa inválida.']);
+            }
+        }
+
+        $created = 0;
+        foreach ($contactIds as $contactId) {
+            CrmActivity::query()->create([
+                ...$data,
+                'contact_id' => $contactId,
+                'opportunity_id' => null,
+                'user_id' => $request->user()->id,
+            ]);
+            $created++;
+        }
+
+        if ($task) {
+            $task->forceFill([
+                'status' => TaskStatus::Done,
+            ])->save();
+        }
+
+        $message = $created === 1
+            ? 'Atividade registada em 1 contato.'
+            : "Atividade registada em {$created} contatos.";
+
+        if ($task) {
+            $message .= ' Tarefa marcada como concluída.';
+        }
+
+        return back()->with('success', $message);
     }
 
     public function destroyActivity(Contact $contact, CrmActivity $activity): RedirectResponse

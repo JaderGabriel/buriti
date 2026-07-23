@@ -102,6 +102,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::post('/empresas/{company}/contatos', [CompanyController::class, 'storeContact'])
         ->name('companies.contacts.store');
 
+    Route::post('/contatos/atividades/lote', [AdminContactController::class, 'storeBulkActivity'])
+        ->name('contacts.activities.bulk');
     Route::resource('contatos', AdminContactController::class)
         ->parameters(['contatos' => 'contact'])
         ->names('contacts');
