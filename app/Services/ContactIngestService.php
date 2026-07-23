@@ -5,12 +5,15 @@ namespace App\Services;
 use App\Enums\ContactSource;
 use App\Enums\ContactStatus;
 use App\Enums\CrmActivityType;
+use App\Enums\OpportunityStage;
 use App\Models\Contact;
 use App\Models\ContactMessage;
 use App\Models\CrmActivity;
+use App\Models\Opportunity;
 use App\Services\Telegram\TelegramBotService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class ContactIngestService
 {
@@ -52,8 +55,11 @@ class ContactIngestService
                 'message' => $payload['message'],
             ]);
 
+            $opportunity = $this->ensureLeadOpportunity($contact, $payload);
+
             CrmActivity::query()->create([
                 'contact_id' => $contact->id,
+                'opportunity_id' => $opportunity->id,
                 'type' => CrmActivityType::Email,
                 'subject' => $payload['subject'],
                 'body' => $payload['message'],
@@ -100,7 +106,44 @@ class ContactIngestService
 
             $message->update(['contact_id' => $contact->id]);
 
+            $this->ensureLeadOpportunity($contact, [
+                'subject' => $message->subject,
+                'message' => $message->message,
+                'name' => $message->name,
+            ]);
+
             return $contact;
         });
+    }
+
+    /**
+     * Garante um card Lead no pipeline (reutiliza oportunidade aberta do contato).
+     *
+     * @param  array{subject?: ?string, message?: ?string, name?: ?string}  $payload
+     */
+    private function ensureLeadOpportunity(Contact $contact, array $payload): Opportunity
+    {
+        $existing = Opportunity::query()
+            ->where('contact_id', $contact->id)
+            ->open()
+            ->latest('id')
+            ->first();
+
+        if ($existing) {
+            return $existing;
+        }
+
+        $subject = trim((string) ($payload['subject'] ?? ''));
+        $body = trim((string) ($payload['message'] ?? ''));
+        $name = trim((string) ($payload['name'] ?? $contact->name));
+
+        return Opportunity::query()->create([
+            'contact_id' => $contact->id,
+            'title' => $subject !== ''
+                ? Str::limit($subject, 160)
+                : 'Lead do site — '.Str::limit($name, 120),
+            'description' => $body !== '' ? Str::limit($body, 5000) : null,
+            'stage' => OpportunityStage::Lead,
+        ]);
     }
 }

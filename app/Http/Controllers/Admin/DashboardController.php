@@ -30,14 +30,21 @@ class DashboardController extends Controller
                 ->selectRaw('stage, count(*) as total')
                 ->groupBy('stage')
                 ->pluck('total', 'stage'),
-            'recentMessages' => ContactMessage::query()->latest()->take(5)->get(),
-            'recentContacts' => Contact::query()->with('clientCompany')->latest()->take(5)->get(),
+            'recentMessages' => ContactMessage::query()->latest()->take(6)->get(),
+            'recentContacts' => Contact::query()->with('clientCompany')->latest()->take(6)->get(),
             'upcomingTasks' => Task::query()
                 ->with('project')
                 ->open()
-                ->boardOrdered()
-                ->take(5)
+                ->orderByRaw('due_at is null')
+                ->orderBy('due_at')
+                ->take(6)
                 ->get(),
+            'leadsCount' => Contact::query()->leads()->count(),
+            'tasksDueSoon' => Task::query()
+                ->open()
+                ->whereNotNull('due_at')
+                ->where('due_at', '<=', now()->addDay())
+                ->count(),
             'ideaNotes' => IdeaNote::query()
                 ->with('user')
                 ->orderByDesc('sort_order')

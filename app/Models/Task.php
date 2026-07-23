@@ -96,4 +96,40 @@ class Task extends Model
 
         return app(GoogleCalendarService::class)->instantMeetUrl();
     }
+
+    /** overdue|today|soon|later|none */
+    public function dueUrgency(): string
+    {
+        if ($this->due_at === null) {
+            return 'none';
+        }
+
+        if ($this->due_at->isPast()) {
+            return 'overdue';
+        }
+
+        if ($this->due_at->isToday()) {
+            return 'today';
+        }
+
+        if ($this->due_at->lte(now()->addDays(2))) {
+            return 'soon';
+        }
+
+        return 'later';
+    }
+
+    public function dueLabel(): string
+    {
+        if ($this->due_at === null) {
+            return 'Sem prazo';
+        }
+
+        return match ($this->dueUrgency()) {
+            'overdue' => 'Atrasada · '.$this->due_at->format('d/m H:i'),
+            'today' => 'Hoje · '.$this->due_at->format('H:i'),
+            'soon' => $this->due_at->diffForHumans().' · '.$this->due_at->format('d/m H:i'),
+            default => $this->due_at->format('d/m/Y H:i'),
+        };
+    }
 }

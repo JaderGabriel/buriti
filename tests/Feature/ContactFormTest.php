@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Contact;
 use App\Models\ContactMessage;
 use App\Models\CrmActivity;
+use App\Models\Opportunity;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -63,6 +64,20 @@ class ContactFormTest extends TestCase
             'type' => 'email',
             'subject' => 'Proposta de TI',
         ]);
+
+        $this->assertDatabaseHas('opportunities', [
+            'contact_id' => $contact->id,
+            'title' => 'Proposta de TI',
+            'stage' => 'lead',
+        ]);
+
+        $opportunity = Opportunity::query()->where('contact_id', $contact->id)->first();
+        $this->assertNotNull($opportunity);
+        $this->assertDatabaseHas('crm_activities', [
+            'contact_id' => $contact->id,
+            'opportunity_id' => $opportunity->id,
+            'subject' => 'Proposta de TI',
+        ]);
     }
 
     public function test_contact_form_updates_existing_contact_by_email(): void
@@ -95,6 +110,23 @@ class ContactFormTest extends TestCase
 
         $this->assertDatabaseHas('companies', ['name' => 'Empresa Nova']);
         $this->assertNotNull($contact->fresh()->company_id);
+
+        $this->assertSame(1, Opportunity::query()->where('contact_id', $contact->id)->open()->count());
+
+        $this->from(route('home'))->post(route('contact.store'), [
+            'name' => 'Nome Novo',
+            'email' => 'cliente@empresa.com',
+            'phone_country' => 'BR',
+            'phone_number' => '38991758416',
+            'preferred_channel' => 'whatsapp',
+            'company' => 'Empresa Nova',
+            'subject' => 'Terceira mensagem',
+            'message' => 'Ainda no mesmo lead',
+            'privacy_consent' => '1',
+        ])->assertSessionHas('contact_success');
+
+        $this->assertSame(1, Opportunity::query()->where('contact_id', $contact->id)->open()->count());
+        $this->assertSame(2, ContactMessage::query()->where('email', 'cliente@empresa.com')->count());
     }
 
     public function test_contact_form_accepts_foreign_country_dial_code(): void

@@ -275,7 +275,10 @@ class CrmTest extends TestCase
             ->assertOk()
             ->assertSee('Contatos CRM', false)
             ->assertSee('Oportunidades abertas', false)
-            ->assertSee('>Contatos</a>', false)
+            ->assertSee('dash-panel--messages', false)
+            ->assertSee('dash-panel--contacts', false)
+            ->assertSee('dash-panel--tasks', false)
+            ->assertSee('>Agenda</a>', false)
             ->assertSee('Comercial', false)
             ->assertSee('Entrega', false)
             ->assertSee('Sistema', false);
