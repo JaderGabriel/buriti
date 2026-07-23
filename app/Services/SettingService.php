@@ -28,6 +28,8 @@ class SettingService
         'notion_database_id',
         'notion_workspace_url',
         'notion_default_page_url',
+        'telegram_allowed_chat_ids',
+        'telegram_notify_chat_id',
     ];
 
     /** @return array<string, string|null> */
@@ -99,6 +101,8 @@ class SettingService
             'notion_database_id' => null,
             'notion_workspace_url' => null,
             'notion_default_page_url' => null,
+            'telegram_allowed_chat_ids' => null,
+            'telegram_notify_chat_id' => null,
         ];
     }
 

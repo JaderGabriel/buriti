@@ -5,14 +5,18 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 
 class Attachment extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'attachable_type',
         'attachable_id',
         'uploaded_by',
+        'deleted_by',
         'disk',
         'path',
         'original_name',
@@ -26,6 +30,7 @@ class Attachment extends Model
     {
         return [
             'size' => 'integer',
+            'deleted_at' => 'datetime',
         ];
     }
 
@@ -37,6 +42,11 @@ class Attachment extends Model
     public function uploader(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uploaded_by');
+    }
+
+    public function deleter(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'deleted_by');
     }
 
     public function url(): string

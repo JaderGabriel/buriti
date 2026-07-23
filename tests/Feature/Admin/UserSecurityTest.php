@@ -242,6 +242,70 @@ class UserSecurityTest extends TestCase
             ->assertSee('Histórico de login', false);
     }
 
+    public function test_users_index_shows_system_login_logs(): void
+    {
+        $other = User::factory()->create(['name' => 'Maria Ops', 'email' => 'maria@buriti.dev.br']);
+
+        LoginActivity::query()->create([
+            'user_id' => $other->id,
+            'email' => $other->email,
+            'successful' => true,
+            'ip_address' => '10.0.0.8',
+            'user_agent' => 'Mozilla/5.0',
+            'created_at' => now(),
+        ]);
+
+        LoginActivity::query()->create([
+            'user_id' => null,
+            'email' => 'falha@buriti.dev.br',
+            'successful' => false,
+            'ip_address' => '10.0.0.9',
+            'user_agent' => 'curl',
+            'created_at' => now()->subMinute(),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.users.index'))
+            ->assertOk()
+            ->assertSee('Logs de acesso do sistema', false)
+            ->assertSee('Maria Ops', false)
+            ->assertSee('falha@buriti.dev.br', false)
+            ->assertSee('10.0.0.8', false)
+            ->assertSee('Sucesso', false)
+            ->assertSee('Falha', false);
+    }
+
+    public function test_user_edit_shows_only_that_users_login_logs(): void
+    {
+        $target = User::factory()->create(['name' => 'Alvo Logs', 'email' => 'alvo@buriti.dev.br']);
+        $other = User::factory()->create(['email' => 'outro-logs@buriti.dev.br']);
+
+        LoginActivity::query()->create([
+            'user_id' => $target->id,
+            'email' => $target->email,
+            'successful' => true,
+            'ip_address' => '192.168.1.10',
+            'user_agent' => 'TargetAgent',
+            'created_at' => now(),
+        ]);
+
+        LoginActivity::query()->create([
+            'user_id' => $other->id,
+            'email' => $other->email,
+            'successful' => true,
+            'ip_address' => '192.168.1.99',
+            'user_agent' => 'OtherAgent',
+            'created_at' => now(),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.users.edit', $target))
+            ->assertOk()
+            ->assertSee('Log deste usuário', false)
+            ->assertSee('192.168.1.10', false)
+            ->assertDontSee('192.168.1.99', false);
+    }
+
     public function test_security_headers_are_present(): void
     {
         $response = $this->get(route('home'));

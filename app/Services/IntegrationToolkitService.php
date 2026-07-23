@@ -67,6 +67,56 @@ class IntegrationToolkitService
     }
 
     /**
+     * @return array{
+     *     configured: bool,
+     *     level: int,
+     *     label: string,
+     *     next_step: string,
+     *     token_set: bool,
+     *     webhook_secret_set: bool,
+     *     allowed_chats_set: bool,
+     *     notify_chat_set: bool,
+     *     webhook_url: ?string
+     * }
+     */
+    public function telegramStatus(): array
+    {
+        $token = filled(config('services.telegram.bot_token'));
+        $secret = filled(config('services.telegram.webhook_secret'));
+        $allowed = filled($this->settings->get('telegram_allowed_chat_ids'));
+        $notify = filled($this->settings->get('telegram_notify_chat_id'));
+        $level = ($token ? 1 : 0) + ($secret ? 1 : 0) + ($allowed ? 1 : 0);
+
+        $webhookUrl = null;
+        if ($secret) {
+            $webhookUrl = rtrim((string) config('app.url'), '/').'/webhooks/telegram/'.config('services.telegram.webhook_secret');
+        }
+
+        return [
+            'configured' => $level >= 2,
+            'level' => $level,
+            'label' => match ($level) {
+                3 => 'Telegram pronto (bot + webhook + chats)',
+                2 => $allowed ? 'Bot e chats OK — falta webhook secret' : 'Bot OK — autorize os chats',
+                1 => $token ? 'Token do bot definido' : 'Segredo do webhook definido',
+                default => 'Telegram por configurar',
+            },
+            'next_step' => match (true) {
+                $level >= 3 => 'Use /ajuda no bot. Mensagens do site chegam ao chat de notificação.',
+                ! $token => 'Crie o bot no @BotFather e defina TELEGRAM_BOT_TOKEN no .env.',
+                ! $secret => 'Defina TELEGRAM_WEBHOOK_SECRET e rode php artisan telegram:set-webhook.',
+                ! $allowed => 'Envie /id no bot e cole o Chat ID em “Chats autorizados”.',
+                default => 'Complete token, secret e chats autorizados.',
+            },
+            'token_set' => $token,
+            'webhook_secret_set' => $secret,
+            'allowed_chats_set' => $allowed,
+            'notify_chat_set' => $notify,
+            'webhook_url' => $webhookUrl,
+        ];
+    }
+
+    /**
      * Roadmap sugerido de uso das ferramentas com o site BURI-TI.
      *
      * @return list<array{phase: string, title: string, tools: list<string>, items: list<string>}>
@@ -77,20 +127,20 @@ class IntegrationToolkitService
             [
                 'phase' => '1',
                 'title' => 'Captura e qualificação',
-                'tools' => ['Site', 'CRM', 'Notion'],
+                'tools' => ['Site', 'CRM', 'Telegram', 'Notion'],
                 'items' => [
-                    'Formulário de contato cria lead no CRM e atividade automática.',
+                    'Formulário de contato cria lead no CRM, atividade automática e avisa o bot Telegram.',
+                    'No Telegram, use /contato e /oportunidade para registar leads em movimento.',
                     'No Notion, abra uma página “Brief do lead” com contexto e perguntas de discovery.',
-                    'Marque o estágio da oportunidade no CRM (lead → qualified).',
                 ],
             ],
             [
                 'phase' => '2',
                 'title' => 'Planejamento da entrega',
-                'tools' => ['Trello', 'Tarefas', 'Google Agenda'],
+                'tools' => ['Trello', 'Tarefas', 'Telegram', 'Google Agenda'],
                 'items' => [
                     'Crie um cartão no Trello por oportunidade (lista: Discovery / Proposta / Execução).',
-                    'Espelhe marcos em Tarefas do admin e sincronize com Google Agenda/Meet.',
+                    'Espelhe marcos com /tarefa no bot ou no kanban do admin; sincronize com Google Agenda/Meet.',
                     'Vincule o contato CRM à tarefa para manter “quem” ligado ao “quando”.',
                 ],
             ],
@@ -99,7 +149,7 @@ class IntegrationToolkitService
                 'title' => 'Execução e produtos',
                 'tools' => ['Projetos', 'Trello', 'Notion'],
                 'items' => [
-                    'Cadastre o produto/case em Projetos (público ou repo privado).',
+                    'Cadastre o produto/case em Projetos (público ou repo privado) — também via /projeto.',
                     'No Trello, mova cartões conforme o kanban interno (To do / Doing / Done).',
                     'Documente decisões e handoff no Notion; ligue a URL na oportunidade ou notas do contato.',
                 ],
@@ -107,7 +157,7 @@ class IntegrationToolkitService
             [
                 'phase' => '4',
                 'title' => 'Pós-venda e operação',
-                'tools' => ['CRM', 'Mensagens', 'Agenda'],
+                'tools' => ['CRM', 'Mensagens', 'Telegram', 'Agenda'],
                 'items' => [
                     'Registe chamadas/reuniões como atividades no contato.',
                     'Use oportunidades won/lost para medir conversão.',
@@ -119,7 +169,7 @@ class IntegrationToolkitService
                 'title' => 'Melhoria contínua',
                 'tools' => ['Integrações', 'Configurações'],
                 'items' => [
-                    'Eleve o nível Trello/Notion (API + board/base) para automação futura.',
+                    'Eleve o nível Trello/Notion/Telegram (API + board/base + chats) para automação.',
                     'Revise o roadmap trimestralmente: o que vira checklist padrão da BURI-TI.',
                     'Mantenha canais do site (WhatsApp, e-mail, Telegram) alinhados nas Configurações.',
                 ],

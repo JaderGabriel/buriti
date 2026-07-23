@@ -24,6 +24,7 @@ class IntegrationController extends Controller
             'settings' => $this->settings->all(),
             'trello' => $this->integrations->trelloStatus(),
             'notion' => $this->integrations->notionStatus(),
+            'telegram' => $this->integrations->telegramStatus(),
             'google' => $this->google->integrationStatus(),
             'roadmap' => $this->integrations->roadmap(),
         ]);

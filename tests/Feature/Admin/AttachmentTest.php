@@ -122,7 +122,7 @@ class AttachmentTest extends TestCase
             ->assertDontSee('contrato.pdf', false);
     }
 
-    public function test_admin_can_download_and_delete_attachment(): void
+    public function test_admin_can_download_soft_delete_restore_and_purge_attachment(): void
     {
         $contact = Contact::factory()->create();
 
@@ -133,18 +133,59 @@ class AttachmentTest extends TestCase
             ]);
 
         $attachment = Attachment::query()->firstOrFail();
+        $path = $attachment->path;
 
         $this->actingAs($this->admin)
             ->get(route('admin.attachments.download', $attachment))
             ->assertOk();
 
-        $path = $attachment->path;
-
         $this->actingAs($this->admin)
             ->delete(route('admin.attachments.destroy', $attachment))
             ->assertRedirect();
 
+        $this->assertSoftDeleted('attachments', ['id' => $attachment->id]);
+        Storage::disk('public')->assertExists($path);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'attachment.trashed']);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.attachments.download', $attachment))
+            ->assertNotFound();
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.attachments.restore', $attachment))
+            ->assertRedirect();
+
+        $this->assertNotSoftDeleted('attachments', ['id' => $attachment->id]);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'attachment.restored']);
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.attachments.destroy', $attachment->fresh()))
+            ->assertRedirect();
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.attachments.purge', $attachment->fresh()))
+            ->assertRedirect();
+
         $this->assertDatabaseMissing('attachments', ['id' => $attachment->id]);
         Storage::disk('public')->assertMissing($path);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'attachment.purged']);
+    }
+
+    public function test_attachment_create_writes_audit_log(): void
+    {
+        $contact = Contact::factory()->create();
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.attachments.store', ['type' => 'contacts', 'id' => $contact->id]), [
+                'file' => UploadedFile::fake()->create('brief.pdf', 20, 'application/pdf'),
+                'kind' => 'document',
+                'title' => 'Brief',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('audit_logs', [
+            'action' => 'attachment.created',
+            'user_id' => $this->admin->id,
+        ]);
     }
 }

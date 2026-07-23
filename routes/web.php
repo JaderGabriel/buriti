@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\SiteController;
+use App\Http\Controllers\TelegramWebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [SiteController::class, 'home'])->name('home');
@@ -23,6 +24,10 @@ Route::get('/cookies', [SiteController::class, 'cookies'])->name('cookies');
 Route::post('/contato', [ContactController::class, 'store'])
     ->middleware('throttle:5,1')
     ->name('contact.store');
+
+Route::post('/webhooks/telegram/{secret}', TelegramWebhookController::class)
+    ->middleware('throttle:120,1')
+    ->name('webhooks.telegram');
 
 Route::middleware('guest')->group(function () {
     Route::get('/admin/login', [LoginController::class, 'create'])->name('login');
@@ -104,6 +109,12 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
         ->name('attachments.download');
     Route::delete('/anexos/{attachment}', [AttachmentController::class, 'destroy'])
         ->name('attachments.destroy');
+    Route::post('/anexos/{attachment}/restaurar', [AttachmentController::class, 'restore'])
+        ->withTrashed()
+        ->name('attachments.restore');
+    Route::delete('/anexos/{attachment}/eliminar', [AttachmentController::class, 'purge'])
+        ->withTrashed()
+        ->name('attachments.purge');
 
     Route::get('/configuracoes', [SettingController::class, 'edit'])->name('settings.edit');
     Route::put('/configuracoes', [SettingController::class, 'update'])->name('settings.update');

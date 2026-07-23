@@ -46,11 +46,15 @@ class AdminPanelTest extends TestCase
         $this->actingAs($this->admin)
             ->get(route('admin.messages.index'))
             ->assertOk()
+            ->assertSee('Mensagens', false)
+            ->assertSee('Mensageria BURI-TI', false)
             ->assertSee('Assunto importante', false);
 
         $this->actingAs($this->admin)
             ->get(route('admin.messages.show', $message))
-            ->assertOk();
+            ->assertOk()
+            ->assertSee('Assunto importante', false)
+            ->assertSee('Responder por e-mail', false);
 
         $this->assertNotNull($message->fresh()->read_at);
     }

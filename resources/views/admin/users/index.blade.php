@@ -101,4 +101,21 @@
     </div>
 
     <div class="mt-4">{{ $users->links() }}</div>
+
+    <div class="mt-10">
+        <x-admin.login-activity-log
+            :activities="$loginActivities"
+            title="Logs de acesso do sistema"
+            description="Tentativas de login de todos os usuários do painel (sucesso e falha)."
+            :show-user="true"
+        />
+    </div>
+
+    <div class="mt-10">
+        <x-admin.audit-log
+            :logs="$auditLogs"
+            title="Auditoria do sistema"
+            description="Ações sensíveis: anexos, CRM, utilizadores e autenticação. Também gravadas em storage/logs/audit.log."
+        />
+    </div>
 @endsection

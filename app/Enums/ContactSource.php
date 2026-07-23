@@ -7,6 +7,7 @@ enum ContactSource: string
     case Website = 'website';
     case Manual = 'manual';
     case Referral = 'referral';
+    case Telegram = 'telegram';
     case Other = 'other';
 
     public function label(): string
@@ -15,6 +16,7 @@ enum ContactSource: string
             self::Website => 'Site',
             self::Manual => 'Manual',
             self::Referral => 'Indicação',
+            self::Telegram => 'Telegram',
             self::Other => 'Outro',
         };
     }

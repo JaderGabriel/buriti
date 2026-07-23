@@ -5,16 +5,17 @@
         <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand">Ferramentas</p>
         <h1 class="mt-2 font-display text-2xl font-bold sm:text-3xl">Integrações</h1>
         <p class="mt-1 max-w-2xl text-mist">
-            Trello, Notion e Google ligados ao fluxo do site — CRM, tarefas, projetos e contato.
+            Trello, Notion, Telegram e Google ligados ao fluxo do site — CRM, tarefas, projetos e contato.
         </p>
     </div>
 
-    <div class="grid gap-4 lg:grid-cols-3">
+    <div class="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
         @foreach ([
-            ['Trello', $trello, 'Kanban de entregas'],
-            ['Notion', $notion, 'Docs e briefs'],
-            ['Google', $google, 'Agenda e Meet'],
-        ] as [$name, $status, $hint])
+            ['Trello', $trello, 'Kanban de entregas', 2],
+            ['Notion', $notion, 'Docs e briefs', 2],
+            ['Telegram', $telegram, 'Bot CRM + inbox', 3],
+            ['Google', $google, 'Agenda e Meet', 3],
+        ] as [$name, $status, $hint, $maxLevel])
             <article class="rounded-sm border border-line bg-panel p-5">
                 <div class="flex items-start justify-between gap-3">
                     <div>
@@ -22,7 +23,7 @@
                         <h2 class="mt-1 font-display text-lg font-semibold text-snow">{{ $name }}</h2>
                     </div>
                     <span class="rounded-sm bg-brand/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-brand-bright">
-                        Nível {{ $status['level'] }}/{{ $name === 'Google' ? 3 : 2 }}
+                        Nível {{ $status['level'] }}/{{ $maxLevel }}
                     </span>
                 </div>
                 <p class="mt-3 text-sm font-medium text-snow">{{ $status['label'] }}</p>
@@ -92,6 +93,61 @@
                     </span>
                 </p>
                 <p class="mt-1">Crie uma integração em <a href="https://www.notion.so/my-integrations" target="_blank" rel="noopener" class="text-brand-bright hover:underline">Notion → My integrations</a> e partilhe a base com ela.</p>
+            </div>
+        </section>
+
+        <section id="telegram" class="rounded-sm border border-line bg-panel p-5 sm:p-6">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h2 class="font-display text-xl font-semibold">Telegram Bot</h2>
+                    <p class="mt-1 text-sm text-mist">
+                        Comandos no app para criar contato, oportunidade, projeto e tarefa — e receber mensagens do formulário.
+                    </p>
+                </div>
+                <a href="https://t.me/BotFather" target="_blank" rel="noopener" class="text-sm font-semibold text-brand-bright hover:underline">Abrir BotFather →</a>
+            </div>
+
+            <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                <x-ui.input
+                    name="telegram_allowed_chat_ids"
+                    label="Chats autorizados (IDs)"
+                    :value="$settings['telegram_allowed_chat_ids'] ?? ''"
+                    placeholder="ex.: 123456789, -100987654321"
+                />
+                <x-ui.input
+                    name="telegram_notify_chat_id"
+                    label="Chat para notificações do site"
+                    :value="$settings['telegram_notify_chat_id'] ?? ''"
+                    placeholder="Mesmo ID ou outro chat/grupo"
+                />
+            </div>
+
+            <div class="mt-4 space-y-2 rounded-sm border border-line bg-ink/30 px-4 py-3 text-xs text-mist">
+                <p class="font-semibold text-snow">Como ativar</p>
+                <ol class="list-decimal space-y-1 pl-4">
+                    <li>Crie o bot no @BotFather e copie o token.</li>
+                    <li>No <code class="text-snow">.env</code>: <code class="text-snow">TELEGRAM_BOT_TOKEN</code> e <code class="text-snow">TELEGRAM_WEBHOOK_SECRET</code> (string aleatória).</li>
+                    <li>Rode <code class="text-snow">php artisan telegram:set-webhook</code> (APP_URL público com HTTPS).</li>
+                    <li>Fale com o bot, envie <code class="text-snow">/id</code> e cole o Chat ID acima.</li>
+                    <li>Comandos: <code class="text-snow">/ajuda</code>, <code class="text-snow">/contato</code>, <code class="text-snow">/oportunidade</code>, <code class="text-snow">/projeto</code>, <code class="text-snow">/tarefa</code>.</li>
+                </ol>
+                <p class="mt-2">
+                    Token:
+                    <span class="{{ $telegram['token_set'] ? 'text-brand-bright' : 'text-mist' }}">
+                        {{ $telegram['token_set'] ? 'sim' : 'não' }}
+                    </span>
+                    · Webhook secret:
+                    <span class="{{ $telegram['webhook_secret_set'] ? 'text-brand-bright' : 'text-mist' }}">
+                        {{ $telegram['webhook_secret_set'] ? 'sim' : 'não' }}
+                    </span>
+                    · Chats:
+                    <span class="{{ $telegram['allowed_chats_set'] ? 'text-brand-bright' : 'text-mist' }}">
+                        {{ $telegram['allowed_chats_set'] ? 'autorizados' : 'pendente' }}
+                    </span>
+                </p>
+                @if(! empty($telegram['webhook_url']))
+                    <p class="mt-1 break-all">URL do webhook: <code class="text-snow">{{ $telegram['webhook_url'] }}</code></p>
+                @endif
             </div>
         </section>
 

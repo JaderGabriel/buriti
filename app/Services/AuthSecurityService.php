@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\DB;
 
 class AuthSecurityService
 {
+    public function __construct(private AuditLogger $audit) {}
+
     public function recordLoginAttempt(Request $request, ?User $user, bool $successful): void
     {
         LoginActivity::query()->create([
@@ -19,6 +21,17 @@ class AuthSecurityService
             'user_agent' => (string) $request->userAgent(),
             'created_at' => now(),
         ]);
+
+        $this->audit->record(
+            $successful ? 'auth.login.success' : 'auth.login.failed',
+            $user,
+            [
+                'summary' => $user?->email ?? $request->input('login', $request->input('email')),
+                'email' => $user?->email ?? $request->input('login', $request->input('email')),
+            ],
+            $request,
+            $user?->id,
+        );
     }
 
     public function markSuccessfulLogin(User $user, Request $request): void
@@ -59,10 +72,19 @@ class AuthSecurityService
             return false;
         }
 
-        return DB::table('sessions')
+        $deleted = DB::table('sessions')
             ->where('user_id', $user->id)
             ->where('id', $sessionId)
             ->delete() > 0;
+
+        if ($deleted) {
+            $this->audit->record('auth.session.destroy', $user, [
+                'summary' => 'Sessão '.$sessionId,
+                'session_id' => $sessionId,
+            ]);
+        }
+
+        return $deleted;
     }
 
     public function destroyOtherSessions(User $user, string $currentSessionId): int
@@ -71,10 +93,19 @@ class AuthSecurityService
             return 0;
         }
 
-        return DB::table('sessions')
+        $count = DB::table('sessions')
             ->where('user_id', $user->id)
             ->where('id', '!=', $currentSessionId)
             ->delete();
+
+        if ($count > 0) {
+            $this->audit->record('auth.session.destroy_others', $user, [
+                'summary' => "{$count} sessão(ões)",
+                'count' => $count,
+            ]);
+        }
+
+        return $count;
     }
 
     public function adminCount(): int
@@ -83,5 +114,13 @@ class AuthSecurityService
             ->where('is_admin', true)
             ->where('is_active', true)
             ->count();
+    }
+
+    public function recordLogout(User $user, Request $request): void
+    {
+        $this->audit->record('auth.logout', $user, [
+            'summary' => $user->email,
+            'email' => $user->email,
+        ], $request, $user->id);
     }
 }

@@ -35,18 +35,37 @@ class AttachmentController extends Controller
             $request->validated('title'),
         );
 
-        return back()->with('success', 'Ficheiro adicionado.');
+        return back()->with('success', 'Arquivo enviado.');
     }
 
     public function destroy(Attachment $attachment): RedirectResponse
     {
-        $this->attachments->delete($attachment);
+        $this->attachments->delete($attachment, auth()->id());
 
-        return back()->with('success', 'Ficheiro removido.');
+        return back()->with('success', 'Arquivo movido para a lixeira. Pode recuperá-lo quando quiser.');
+    }
+
+    public function restore(Attachment $attachment): RedirectResponse
+    {
+        abort_unless($attachment->trashed(), 404);
+
+        $this->attachments->restore($attachment);
+
+        return back()->with('success', 'Arquivo recuperado.');
+    }
+
+    public function purge(Attachment $attachment): RedirectResponse
+    {
+        abort_unless($attachment->trashed(), 404);
+
+        $this->attachments->purge($attachment);
+
+        return back()->with('success', 'Arquivo excluído definitivamente.');
     }
 
     public function download(Attachment $attachment): StreamedResponse
     {
+        abort_if($attachment->trashed(), 404);
         abort_unless($attachment->existsOnDisk(), 404);
 
         return Storage::disk($attachment->disk)->download(

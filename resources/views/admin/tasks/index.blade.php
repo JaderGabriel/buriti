@@ -139,9 +139,10 @@
                                         :attachable="$task"
                                         type="tasks"
                                         :kinds="['document']"
-                                        title="Documentos"
-                                        description="PDFs e ficheiros desta tarefa."
-                                        class="!border-0 !bg-transparent !p-0"
+                                        layout="folder"
+                                        title="Pasta de arquivos"
+                                        description="Anexos desta tarefa."
+                                        class="!border-0 !bg-transparent"
                                     />
                                 </div>
                                 <form method="POST" action="{{ route('admin.tasks.destroy', $task) }}" data-confirm="Remover tarefa?">

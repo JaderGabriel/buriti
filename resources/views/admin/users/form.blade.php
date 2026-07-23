@@ -114,9 +114,23 @@
                 :attachable="$user"
                 type="users"
                 :kinds="['photo']"
-                title="Galeria de fotos"
-                description="Fotos adicionais do usuário (além da foto de perfil)."
+                layout="album"
+                title="Álbum de fotos"
+                description="Fotos adicionais deste usuário. A foto de perfil fica no bloco acima."
                 accept="image/*"
+            />
+
+            <x-admin.login-activity-log
+                :activities="$loginActivities"
+                title="Log deste usuário"
+                description="Histórico de tentativas de login desta conta."
+            />
+
+            <x-admin.audit-log
+                :logs="$auditLogs"
+                title="Auditoria deste usuário"
+                description="Ações feitas por ou sobre esta conta."
+                :show-user="true"
             />
         @endif
     </div>

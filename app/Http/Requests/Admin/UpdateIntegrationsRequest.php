@@ -21,6 +21,8 @@ class UpdateIntegrationsRequest extends FormRequest
             'notion_database_id' => ['nullable', 'string', 'max:80'],
             'notion_workspace_url' => ['nullable', 'url', 'max:255'],
             'notion_default_page_url' => ['nullable', 'url', 'max:255'],
+            'telegram_allowed_chat_ids' => ['nullable', 'string', 'max:255'],
+            'telegram_notify_chat_id' => ['nullable', 'string', 'max:80'],
         ];
     }
 }

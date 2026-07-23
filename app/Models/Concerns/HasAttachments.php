@@ -12,6 +12,11 @@ trait HasAttachments
         return $this->morphMany(Attachment::class, 'attachable')->latest();
     }
 
+    public function trashedAttachments(): MorphMany
+    {
+        return $this->morphMany(Attachment::class, 'attachable')->onlyTrashed()->latest('deleted_at');
+    }
+
     public function documentAttachments(): MorphMany
     {
         return $this->attachments()->where('kind', 'document');

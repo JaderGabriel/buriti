@@ -8,16 +8,20 @@ use App\Enums\CrmActivityType;
 use App\Models\Contact;
 use App\Models\ContactMessage;
 use App\Models\CrmActivity;
+use App\Services\Telegram\TelegramBotService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ContactIngestService
 {
+    public function __construct(private TelegramBotService $telegram) {}
+
     /**
      * @param  array{name: string, email: string, phone?: ?string, preferred_channel?: ?string, company?: ?string, subject: string, message: string}  $payload
      */
     public function ingestFromWebsiteMessage(array $payload): ContactMessage
     {
-        return DB::transaction(function () use ($payload) {
+        $message = DB::transaction(function () use ($payload) {
             $email = strtolower(trim($payload['email']));
 
             $contact = Contact::query()->updateOrCreate(
@@ -53,6 +57,17 @@ class ContactIngestService
 
             return $message;
         });
+
+        try {
+            $this->telegram->notifyContactMessage($message);
+        } catch (\Throwable $e) {
+            Log::warning('Falha ao notificar Telegram sobre mensagem do site', [
+                'message_id' => $message->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return $message;
     }
 
     public function linkOrCreateFromMessage(ContactMessage $message): Contact

@@ -6,8 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateAvatarRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
+use App\Models\AuditLog;
+use App\Models\LoginActivity;
 use App\Models\User;
 use App\Services\AttachmentService;
+use App\Services\AuditLogger;
 use App\Services\AuthSecurityService;
 use App\Services\AvatarService;
 use Illuminate\Http\RedirectResponse;
@@ -19,6 +22,7 @@ class UserController extends Controller
         private AvatarService $avatars,
         private AuthSecurityService $security,
         private AttachmentService $attachments,
+        private AuditLogger $audit,
     ) {}
 
     public function index(): View
@@ -26,7 +30,17 @@ class UserController extends Controller
         $this->authorizeAdmin();
 
         return view('admin.users.index', [
-            'users' => User::query()->orderBy('name')->paginate(12),
+            'users' => User::query()->orderBy('name')->paginate(12)->withQueryString(),
+            'loginActivities' => LoginActivity::query()
+                ->with('user:id,name,email,username')
+                ->orderByDesc('created_at')
+                ->paginate(20, ['*'], 'logs_page')
+                ->withQueryString(),
+            'auditLogs' => AuditLog::query()
+                ->with('user:id,name,email')
+                ->orderByDesc('created_at')
+                ->paginate(25, ['*'], 'audit_page')
+                ->withQueryString(),
         ]);
     }
 
@@ -36,6 +50,8 @@ class UserController extends Controller
 
         return view('admin.users.form', [
             'user' => new User(['is_admin' => true]),
+            'loginActivities' => collect(),
+            'auditLogs' => collect(),
         ]);
     }
 
@@ -47,7 +63,12 @@ class UserController extends Controller
         $data['avatar_path'] = $this->avatars->store($request->file('avatar'));
         $data['is_admin'] = $request->boolean('is_admin');
 
-        User::query()->create($data);
+        $user = User::query()->create($data);
+
+        $this->audit->record('user.created', $user, [
+            'summary' => $user->name,
+            'email' => $user->email,
+        ]);
 
         return redirect()
             ->route('admin.users.index')
@@ -57,10 +78,27 @@ class UserController extends Controller
     public function edit(User $user): View
     {
         $this->authorizeAdmin();
-        $user->load('attachments');
+        $user->load(['attachments', 'trashedAttachments.deleter']);
 
         return view('admin.users.form', [
             'user' => $user,
+            'loginActivities' => LoginActivity::query()
+                ->forUser($user)
+                ->orderByDesc('created_at')
+                ->limit(40)
+                ->get(),
+            'auditLogs' => AuditLog::query()
+                ->where(function ($q) use ($user) {
+                    $q->where('user_id', $user->id)
+                        ->orWhere(function ($inner) use ($user) {
+                            $inner->where('subject_type', $user->getMorphClass())
+                                ->where('subject_id', $user->id);
+                        });
+                })
+                ->with('user:id,name')
+                ->orderByDesc('created_at')
+                ->limit(40)
+                ->get(),
         ]);
     }
 
@@ -80,6 +118,11 @@ class UserController extends Controller
 
         $data['is_admin'] = $willBeAdmin;
         $user->update($data);
+
+        $this->audit->record('user.updated', $user, [
+            'summary' => $user->name,
+            'email' => $user->email,
+        ]);
 
         return redirect()
             ->route('admin.users.edit', $user)
@@ -120,8 +163,15 @@ class UserController extends Controller
         }
 
         $this->avatars->delete($user->avatar_path);
-        $this->attachments->deleteAllFor($user);
+        $this->attachments->deleteAllFor($user, auth()->id());
+        $summary = $user->name;
+        $userId = $user->id;
         $user->delete();
+
+        $this->audit->record('user.deleted', null, [
+            'summary' => $summary,
+            'user_id' => $userId,
+        ]);
 
         return redirect()
             ->route('admin.users.index')
@@ -141,6 +191,12 @@ class UserController extends Controller
         }
 
         $user->update(['is_active' => ! $user->is_active]);
+
+        $this->audit->record(
+            $user->is_active ? 'user.reactivated' : 'user.deactivated',
+            $user,
+            ['summary' => $user->name, 'email' => $user->email],
+        );
 
         return redirect()
             ->route('admin.users.index')

@@ -10,6 +10,7 @@ use App\Models\Contact;
 use App\Models\Project;
 use App\Models\Task;
 use App\Services\AttachmentService;
+use App\Services\AuditLogger;
 use App\Services\GoogleCalendarService;
 use App\Services\SettingService;
 use Illuminate\Http\RedirectResponse;
@@ -21,12 +22,13 @@ class TaskController extends Controller
         private SettingService $settings,
         private GoogleCalendarService $google,
         private AttachmentService $attachments,
+        private AuditLogger $audit,
     ) {}
 
     public function index(): View
     {
         $tasks = Task::query()
-            ->with(['project', 'contact', 'attachments'])
+            ->with(['project', 'contact', 'attachments', 'trashedAttachments.deleter'])
             ->boardOrdered()
             ->get()
             ->groupBy(fn (Task $task) => $task->status->value);
@@ -53,6 +55,8 @@ class TaskController extends Controller
     {
         $task = Task::query()->create($request->validated());
 
+        $this->audit->record('task.created', $task, ['summary' => $task->title]);
+
         if ($this->shouldAutoSync()) {
             $result = $this->google->syncTask($task);
 
@@ -74,6 +78,8 @@ class TaskController extends Controller
     {
         $task->update($request->validated());
 
+        $this->audit->record('task.updated', $task, ['summary' => $task->title]);
+
         if ($this->shouldAutoSync() && $task->want_meet) {
             $result = $this->google->syncTask($task->fresh());
 
@@ -89,9 +95,15 @@ class TaskController extends Controller
 
     public function destroy(Task $task): RedirectResponse
     {
+        $summary = $task->title;
         $this->google->deleteRemoteEvent($task);
-        $this->attachments->deleteAllFor($task);
+        $this->attachments->deleteAllFor($task, auth()->id());
         $task->delete();
+
+        $this->audit->record('task.deleted', null, [
+            'summary' => $summary,
+            'task_id' => $task->id,
+        ]);
 
         return redirect()
             ->route('admin.tasks.index')

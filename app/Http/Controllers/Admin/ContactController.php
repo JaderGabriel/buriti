@@ -14,13 +14,17 @@ use App\Models\CrmActivity;
 use App\Models\Project;
 use App\Models\Task;
 use App\Services\AttachmentService;
+use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class ContactController extends Controller
 {
-    public function __construct(private AttachmentService $attachments) {}
+    public function __construct(
+        private AttachmentService $attachments,
+        private AuditLogger $audit,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -61,6 +65,11 @@ class ContactController extends Controller
     {
         $contact = Contact::query()->create($request->validated());
 
+        $this->audit->record('contact.created', $contact, [
+            'summary' => $contact->name,
+            'email' => $contact->email,
+        ]);
+
         return redirect()
             ->route('admin.contacts.show', $contact)
             ->with('success', 'Contato criado.');
@@ -75,6 +84,7 @@ class ContactController extends Controller
             'tasks.project',
             'activities' => fn ($q) => $q->with(['user', 'opportunity', 'task'])->latest('happened_at')->limit(40),
             'attachments',
+            'trashedAttachments.deleter',
         ]);
 
         return view('admin.contacts.show', [
@@ -101,6 +111,11 @@ class ContactController extends Controller
     {
         $contact->update($request->validated());
 
+        $this->audit->record('contact.updated', $contact, [
+            'summary' => $contact->name,
+            'email' => $contact->email,
+        ]);
+
         return redirect()
             ->route('admin.contacts.show', $contact)
             ->with('success', 'Contato atualizado.');
@@ -108,8 +123,14 @@ class ContactController extends Controller
 
     public function destroy(Contact $contact): RedirectResponse
     {
-        $this->attachments->deleteAllFor($contact);
+        $summary = $contact->name;
+        $this->attachments->deleteAllFor($contact, auth()->id());
         $contact->delete();
+
+        $this->audit->record('contact.deleted', null, [
+            'summary' => $summary,
+            'contact_id' => $contact->id,
+        ]);
 
         return redirect()
             ->route('admin.contacts.index')

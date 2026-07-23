@@ -140,8 +140,9 @@
                 :attachable="$contact"
                 type="contacts"
                 :kinds="['document']"
-                title="Pasta de documentos"
-                description="Contratos, propostas e PDFs ligados a este contato."
+                layout="folder"
+                title="Pasta de arquivos"
+                description="Contratos, propostas e PDFs deste contato. Itens ocultos ficam na lixeira."
             />
         </div>
 

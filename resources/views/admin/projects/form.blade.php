@@ -85,8 +85,9 @@
                 :attachable="$project"
                 type="projects"
                 :kinds="['document', 'media', 'photo']"
-                title="Arquivos do projeto"
-                description="Documentos, mídias e fotos internas. Não alteram o que aparece no portfólio público."
+                layout="folder"
+                title="Pasta do projeto"
+                description="Documentos, mídias e fotos internas. Não alteram o portfólio público da home."
                 accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,image/*,video/*,audio/*"
             />
         </div>

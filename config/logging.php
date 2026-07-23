@@ -127,6 +127,18 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
+        /*
+        | Canal dedicado a auditoria (controlo). Também espelhado na tabela audit_logs.
+        | @see https://laravel.com/docs/logging#available-channel-drivers
+        */
+        'audit' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/audit.log'),
+            'level' => env('LOG_LEVEL', 'info'),
+            'days' => env('LOG_AUDIT_DAYS', 90),
+            'replace_placeholders' => true,
+        ],
+
     ],
 
 ];

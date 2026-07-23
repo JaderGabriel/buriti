@@ -28,12 +28,7 @@ class ProfileController extends Controller
             'sessions' => $this->security->sessionsFor($user, $request->session()->getId()),
             'sessionDriver' => config('session.driver'),
             'loginActivities' => LoginActivity::query()
-                ->where(function ($q) use ($user) {
-                    $q->where('user_id', $user->id)
-                        ->orWhere(function ($inner) use ($user) {
-                            $inner->whereNull('user_id')->where('email', $user->email);
-                        });
-                })
+                ->forUser($user)
                 ->orderByDesc('created_at')
                 ->limit(20)
                 ->get(),

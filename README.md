@@ -18,10 +18,12 @@ Stack: **Laravel 13**, **Blade**, **Vite**, **Tailwind CSS 4**, **Alpine.js**, M
 
 ### Painel admin (`/admin`)
 - Dashboard com resumo operacional
-- Mensagens do formulário (ler / marcar / apagar)
+- Mensagens do formulário (mensageria visual)
 - Projetos (nome, informações, links, GitHub, logo, contrato)
+- Anexos com soft delete (lixeira + recuperação) e auditoria
 - Planejamento de tarefas (kanban) com ícones Meet/Agenda e sync Google
-- Usuários (criar/editar), foto de perfil, sessões e histórico de login
+- Usuários (criar/editar), foto de perfil, sessões, login e auditoria
+- Integrações: Google, Trello, Notion, Telegram Bot
 - Configurações de contato e hub de integração Google (embed → API + Meet)
 
 ## Segurança
@@ -112,6 +114,22 @@ Definidos em `config/buriti.php` e editáveis em **Admin → Configurações**:
 - WhatsApp: `+55 38991758416`
 - Telegram: `@JaderGabriel` → https://t.me/JaderGabriel
 
+## Telegram Bot (CRM)
+
+Bot automatizado para criar registros e receber mensagens do formulário:
+
+1. Crie o bot no [@BotFather](https://t.me/BotFather)
+2. No `.env`:
+   ```env
+   TELEGRAM_BOT_TOKEN=...
+   TELEGRAM_WEBHOOK_SECRET=uma-string-aleatoria
+   ```
+3. Com `APP_URL` público (HTTPS): `php artisan telegram:set-webhook`
+4. Em **Admin → Integrações → Telegram**, cole o Chat ID (`/id` no bot)
+5. Comandos: `/ajuda`, `/contato`, `/oportunidade`, `/projeto`, `/tarefa`, `/status`
+
+Webhook: `POST /webhooks/telegram/{TELEGRAM_WEBHOOK_SECRET}`
+
 ## Arquitetura (MVC)
 
 ```
@@ -120,7 +138,7 @@ app/
   Http/Controllers/      # Controllers finos (web + admin)
   Http/Requests/         # Form Requests (validação)
   Models/                # Eloquent + scopes
-  Services/              # SettingService, ProjectFileService
+  Services/              # SettingService, TelegramBotService, ProjectFileService
   View/Composers/        # Dados do layout público
 config/buriti.php        # Conteúdo e defaults da marca
 resources/views/
@@ -157,7 +175,7 @@ Cobertura atual (20 testes):
 | `composer run serve` | Sobe o servidor HTTP |
 | `npm run dev` | Vite em modo desenvolvimento |
 | `npm run build` | Build de assets para produção |
-| `./bin/php artisan migrate --seed` | Migrations + dados iniciais |
+| `php artisan telegram:set-webhook` | Regista o webhook do bot Telegram |
 
 ## Deploy (checklist)
 

@@ -68,8 +68,9 @@
                 :attachable="$opportunity"
                 type="opportunities"
                 :kinds="['document']"
-                title="Pasta de documentos"
-                description="Propostas, contratos e PDFs desta oportunidade."
+                layout="folder"
+                title="Pasta de arquivos"
+                description="Propostas, contratos e anexos desta oportunidade."
             />
         </div>
 

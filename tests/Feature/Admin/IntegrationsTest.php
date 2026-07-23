@@ -26,6 +26,7 @@ class IntegrationsTest extends TestCase
             ->assertOk()
             ->assertSee('Trello', false)
             ->assertSee('Notion', false)
+            ->assertSee('Telegram', false)
             ->assertSee('Como usar as ferramentas com o site', false)
             ->assertSee('Captura e qualificação', false)
             ->assertSee('Planejamento da entrega', false);
@@ -40,6 +41,8 @@ class IntegrationsTest extends TestCase
             'notion_database_id' => 'db789',
             'notion_workspace_url' => 'https://www.notion.so/workspace',
             'notion_default_page_url' => 'https://www.notion.so/playbook',
+            'telegram_allowed_chat_ids' => '1001',
+            'telegram_notify_chat_id' => '1001',
         ])->assertRedirect(route('admin.integrations.edit'));
 
         $settings = app(SettingService::class)->all();
@@ -48,5 +51,6 @@ class IntegrationsTest extends TestCase
         $this->assertSame('https://trello.com/b/abc/buriti', $settings['trello_board_url']);
         $this->assertSame('db789', $settings['notion_database_id']);
         $this->assertSame('https://www.notion.so/playbook', $settings['notion_default_page_url']);
+        $this->assertSame('1001', $settings['telegram_allowed_chat_ids']);
     }
 }
