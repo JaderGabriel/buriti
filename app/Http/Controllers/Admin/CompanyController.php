@@ -60,7 +60,7 @@ class CompanyController extends Controller
 
     public function store(CompanyRequest $request): RedirectResponse
     {
-        $company = Company::query()->create($request->validated());
+        $company = Company::query()->create($request->companyData());
 
         $this->audit->record('company.created', $company, [
             'summary' => $company->name,
@@ -103,7 +103,7 @@ class CompanyController extends Controller
 
     public function update(CompanyRequest $request, Company $company): RedirectResponse
     {
-        $company->update($request->validated());
+        $company->update($request->companyData());
 
         Contact::query()
             ->where('company_id', $company->id)
@@ -153,10 +153,8 @@ class CompanyController extends Controller
 
     public function storeContact(StoreCompanyContactRequest $request, Company $company): RedirectResponse
     {
-        $validated = $request->validated();
-
         $contact = Contact::query()->create([
-            ...$validated,
+            ...$request->contactPayload(),
             'company_id' => $company->id,
             'company' => $company->name,
             'source' => ContactSource::Manual,

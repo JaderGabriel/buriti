@@ -4,7 +4,7 @@
     <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
             <a href="{{ route('admin.contacts.index') }}" class="text-sm text-mist hover:text-snow">← Contatos</a>
-            <h1 class="mt-2 font-display text-2xl font-bold sm:text-3xl">{{ $contact->name }}</h1>
+            <h1 class="crm-detail__title">{{ $contact->name }}</h1>
             <div class="mt-2 flex flex-wrap items-center gap-2 text-sm text-mist">
                 <x-admin.crm-badge :status="$contact->status" />
                 <span>· {{ $contact->source->label() }}</span>
@@ -31,7 +31,7 @@
     <div class="grid gap-6 xl:grid-cols-[1fr_1.1fr]">
         <div class="space-y-6">
             <article class="rounded-sm border border-line bg-panel p-5">
-                <h2 class="font-display text-lg font-semibold">Dados</h2>
+                <h2 class="crm-detail__section-title">Dados</h2>
                 <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                     <div>
                         <dt class="text-mist">E-mail</dt>
@@ -43,7 +43,7 @@
                     </div>
                     <div>
                         <dt class="text-mist">Telefone</dt>
-                        <dd class="mt-1">{{ $contact->phone ?? '—' }}</dd>
+                        <dd class="mt-1">{{ \App\Support\PhoneNumber::format($contact->phone) ?? '—' }}</dd>
                     </div>
                     <div>
                         <dt class="text-mist">Empresa</dt>
@@ -71,7 +71,7 @@
 
             <article class="rounded-sm border border-line bg-panel p-5">
                 <div class="flex items-center justify-between gap-3">
-                    <h2 class="font-display text-lg font-semibold">Oportunidades</h2>
+                    <h2 class="crm-detail__section-title">Oportunidades</h2>
                 </div>
                 <ul class="mt-4 space-y-3">
                     @forelse($contact->opportunities as $opportunity)
@@ -93,7 +93,7 @@
             </article>
 
             <article class="rounded-sm border border-line bg-panel p-5">
-                <h2 class="font-display text-lg font-semibold">Projetos / produtos</h2>
+                <h2 class="crm-detail__section-title">Projetos / produtos</h2>
                 <ul class="mt-4 space-y-2">
                     @forelse($contact->projects as $project)
                         <li class="flex items-center justify-between gap-3 text-sm">
@@ -121,7 +121,7 @@
             </article>
 
             <article class="rounded-sm border border-line bg-panel p-5">
-                <h2 class="font-display text-lg font-semibold">Mensagens do site</h2>
+                <h2 class="crm-detail__section-title">Mensagens do site</h2>
                 <ul class="mt-4 space-y-2">
                     @forelse($contact->messages as $message)
                         <li>
@@ -137,7 +137,7 @@
             </article>
 
             <article class="rounded-sm border border-line bg-panel p-5">
-                <h2 class="font-display text-lg font-semibold">Tarefas / agenda</h2>
+                <h2 class="crm-detail__section-title">Tarefas / agenda</h2>
                 <ul class="mt-4 space-y-2">
                     @forelse($contact->tasks as $task)
                         <li class="text-sm">
@@ -165,7 +165,7 @@
 
         <div class="space-y-6">
             <article class="rounded-sm border border-line bg-panel p-5">
-                <h2 class="font-display text-lg font-semibold">Registar atividade</h2>
+                <h2 class="crm-detail__section-title">Registar atividade</h2>
                 <form method="POST" action="{{ route('admin.contacts.activities.store', $contact) }}" class="mt-4 space-y-3">
                     @csrf
                     <label class="block text-sm">
@@ -205,7 +205,7 @@
             </article>
 
             <article class="rounded-sm border border-line bg-panel p-5">
-                <h2 class="font-display text-lg font-semibold">Histórico</h2>
+                <h2 class="crm-detail__section-title">Histórico</h2>
                 <ol class="mt-4 space-y-4 border-l border-line pl-4">
                     @forelse($contact->activities as $activity)
                         <li class="relative">

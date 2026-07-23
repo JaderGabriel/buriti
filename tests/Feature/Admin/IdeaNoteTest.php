@@ -74,4 +74,27 @@ class IdeaNoteTest extends TestCase
 
         $this->assertDatabaseMissing('idea_notes', ['id' => $note->id]);
     }
+
+    public function test_admin_can_change_idea_note_color_instantly(): void
+    {
+        $note = IdeaNote::factory()->create([
+            'user_id' => $this->admin->id,
+            'color' => 'amber',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->patchJson(route('admin.idea-notes.color', $note), [
+                'color' => 'mint',
+            ])
+            ->assertOk()
+            ->assertJson([
+                'ok' => true,
+                'color' => 'mint',
+            ]);
+
+        $this->assertDatabaseHas('idea_notes', [
+            'id' => $note->id,
+            'color' => 'mint',
+        ]);
+    }
 }

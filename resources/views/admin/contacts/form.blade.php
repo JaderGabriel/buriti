@@ -15,7 +15,7 @@
 
         <x-ui.input name="name" label="Nome" :value="old('name', $contact->name)" required />
         <x-ui.input type="email" name="email" label="E-mail" :value="old('email', $contact->email)" />
-        <x-ui.input name="phone" label="Telefone" :value="old('phone', $contact->phone)" />
+        <x-ui.phone-field :value="old('phone', $contact->phone)" />
 
         <label class="block text-sm">
             <span class="text-mist">Empresa (existente)</span>

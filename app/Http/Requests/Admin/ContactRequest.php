@@ -6,6 +6,7 @@ use App\Enums\ContactSource;
 use App\Enums\ContactStatus;
 use App\Models\Company;
 use App\Services\CompanyResolver;
+use App\Support\PhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -25,12 +26,15 @@ class ContactRequest extends FormRequest
         if ($this->input('company_id') === '' || $this->input('company_id') === null) {
             $this->merge(['company_id' => null]);
         }
+
+        $this->merge(PhoneNumber::normalizeInput($this->all()));
     }
 
     /** @return array<string, mixed> */
     public function rules(): array
     {
         $contactId = $this->route('contact')?->id;
+        $isos = PhoneNumber::countries()->pluck('iso')->all();
 
         return [
             'name' => ['required', 'string', 'max:180'],
@@ -40,6 +44,8 @@ class ContactRequest extends FormRequest
                 'max:180',
                 Rule::unique('contacts', 'email')->ignore($contactId),
             ],
+            'phone_country' => ['nullable', 'string', Rule::in($isos)],
+            'phone_number' => ['nullable', 'string', 'min:8', 'max:20', 'regex:/^[0-9]+$/'],
             'phone' => ['nullable', 'string', 'max:40'],
             'company_id' => ['nullable', 'exists:companies,id'],
             'company' => ['nullable', 'string', 'max:180'],
@@ -51,10 +57,21 @@ class ContactRequest extends FormRequest
         ];
     }
 
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            'phone_number.min' => 'Informe um telefone válido (DDD + número).',
+            'phone_number.regex' => 'Use apenas números no telefone (sem DDI).',
+            'phone_country.in' => 'País inválido.',
+        ];
+    }
+
     /** @return array<string, mixed> */
     public function contactData(CompanyResolver $resolver): array
     {
         $data = $this->validated();
+        unset($data['phone_country'], $data['phone_number']);
         $typedName = trim((string) ($data['company'] ?? ''));
 
         if ($typedName !== '') {

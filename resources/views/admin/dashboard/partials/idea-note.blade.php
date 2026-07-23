@@ -7,6 +7,9 @@
 <article
     id="ideia-{{ $note->id }}"
     class="idea-postit postit postit-{{ $color }} relative flex min-h-[14rem] flex-col p-4 pt-7 shadow-md {{ $tilt }}"
+    data-idea-note
+    data-idea-color="{{ $color }}"
+    data-color-url="{{ route('admin.idea-notes.color', $note) }}"
 >
     <span class="postit-pin" aria-hidden="true"></span>
 
@@ -31,14 +34,21 @@
         >{{ old('body', $note->body) }}</textarea>
 
         <div class="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-2">
-            <div class="idea-postit__colors" role="radiogroup" aria-label="Cor do post-it">
+            <div class="idea-postit__colors" role="radiogroup" aria-label="Cor do post-it" data-idea-colors>
                 @foreach($ideaColors as $value => $label)
-                    <label class="idea-postit__swatch idea-postit__swatch--{{ $value }}" title="{{ $label }}">
-                        <input type="radio" name="color" value="{{ $value }}" class="sr-only" @checked(old('color', $color) === $value)>
+                    <button
+                        type="button"
+                        class="idea-postit__swatch idea-postit__swatch--{{ $value }}{{ $color === $value ? ' is-active' : '' }}"
+                        title="{{ $label }}"
+                        aria-label="{{ $label }}"
+                        aria-pressed="{{ $color === $value ? 'true' : 'false' }}"
+                        data-idea-color-value="{{ $value }}"
+                    >
                         <span></span>
-                    </label>
+                    </button>
                 @endforeach
             </div>
+            <input type="hidden" name="color" value="{{ $color }}" data-idea-color-input>
             <button type="submit" class="rounded-sm border border-black/15 bg-white/50 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-inherit hover:bg-white/80">
                 Salvar
             </button>

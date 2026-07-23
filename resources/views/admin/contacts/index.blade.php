@@ -89,16 +89,16 @@
                         <x-admin.crm-badge :status="$contact->status" compact class="!normal-case" />
                     </div>
 
-                    <h2 class="postit-name mt-4 font-script text-2xl leading-tight">{{ $contact->name }}</h2>
+                    <h2 class="postit-name mt-4">{{ $contact->name }}</h2>
 
                     @if($contact->companyLabel())
-                        <p class="mt-1 text-sm font-medium opacity-80">{{ $contact->companyLabel() }}</p>
+                        <p class="postit-meta mt-1">{{ $contact->companyLabel() }}</p>
                     @endif
 
-                    <div class="mt-auto space-y-1 pt-4 text-xs opacity-75">
+                    <div class="postit-foot mt-auto pt-4">
                         <p class="truncate">{{ $contact->email ?? 'Sem e-mail' }}</p>
-                        <p class="truncate">{{ $contact->phone ?? 'Sem telefone' }}</p>
-                        <p class="pt-1 uppercase tracking-[0.12em]">
+                        <p class="truncate">{{ \App\Support\PhoneNumber::format($contact->phone) ?? 'Sem telefone' }}</p>
+                        <p class="postit-foot__source">
                             {{ $contact->source->label() }}
                             @if($contact->preferred_channel)
                                 · {{ $contact->preferred_channel }}

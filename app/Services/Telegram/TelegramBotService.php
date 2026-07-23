@@ -241,7 +241,7 @@ class TelegramBotService
             '/projetos' => $this->listProjects($argument),
             '/projeto' => $this->handleProject($argument),
             '/tarefas' => $this->listTasks($argument),
-            '/tarefa' => $this->handleTask($argument),
+            '/tarefa' => $this->handleTask($argument, $admin),
             '/mensagens' => $this->listMessages($argument),
             '/mensagem' => $this->handleMessage($argument),
             default => "Comando não reconhecido. Envie /ajuda para ver a lista.",
@@ -1012,7 +1012,7 @@ HTML;
     // Tarefas
     // -------------------------------------------------------------------------
 
-    private function handleTask(string $argument): string
+    private function handleTask(string $argument, ?User $admin): string
     {
         if ($argument === '') {
             return "Uso:\n<code>/tarefas</code>\n<code>/tarefa ID</code>\n<code>/tarefa add Título|projeto?|contato?|prio?|status?</code>\n<code>/tarefa set ID|Título|projeto|contato|prio|status</code>\n<code>/tarefa del ID ok</code>";
@@ -1022,14 +1022,14 @@ HTML;
 
         return match ($action) {
             'list', 'lista' => $this->listTasks($rest),
-            'add', 'novo', 'create', 'criar' => $this->createTask($rest),
+            'add', 'novo', 'create', 'criar' => $this->createTask($rest, $admin),
             'set', 'edit', 'update', 'editar' => $this->updateTask($rest),
             'del', 'delete', 'rm', 'apagar', 'remover' => $this->deleteTask($rest),
             'get', 'ver', 'show' => $this->showTask($rest),
             default => ctype_digit($action) && $rest === ''
                 ? $this->showTask($action)
                 : (str_contains($argument, '|')
-                    ? $this->createTask($argument)
+                    ? $this->createTask($argument, $admin)
                     : $this->showTask($argument)),
         };
     }
@@ -1078,7 +1078,7 @@ HTML;
         ]));
     }
 
-    private function createTask(string $argument): string
+    private function createTask(string $argument, ?User $admin): string
     {
         $fields = $this->splitArgs($argument, 5);
         if ($fields === [] || ! filled($fields[0] ?? null)) {
@@ -1106,7 +1106,7 @@ HTML;
         $status = TaskStatus::tryFrom(Str::lower(trim((string) ($statusRaw ?: 'todo'))))
             ?? TaskStatus::Todo;
 
-        $task = Task::query()->create([
+        $task = new Task([
             'title' => trim((string) $title),
             'project_id' => $projectId,
             'contact_id' => $contactId,
@@ -1114,6 +1114,10 @@ HTML;
             'status' => $status,
             'want_meet' => true,
         ]);
+        $task->forceFill([
+            'user_id' => $admin?->id,
+            'telegram_reminder_sent_at' => null,
+        ])->save();
 
         $url = route('admin.tasks.index');
 

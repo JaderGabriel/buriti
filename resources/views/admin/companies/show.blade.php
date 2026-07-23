@@ -4,7 +4,7 @@
     <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
             <a href="{{ route('admin.companies.index') }}" class="text-sm text-mist hover:text-snow">← Empresas</a>
-            <h1 class="mt-2 font-display text-2xl font-bold sm:text-3xl">{{ $company->displayName() }}</h1>
+            <h1 class="crm-detail__title">{{ $company->displayName() }}</h1>
             <div class="mt-2 flex flex-wrap items-center gap-2 text-sm text-mist">
                 <x-admin.crm-badge :status="$company->status" />
                 @if($company->trade_name && $company->trade_name !== $company->name)
@@ -31,22 +31,22 @@
     <div class="mb-6 grid gap-3 sm:grid-cols-3">
         <div class="rounded-sm border border-line bg-panel px-4 py-3">
             <p class="text-xs uppercase tracking-wide text-mist">Contatos</p>
-            <p class="mt-1 font-display text-2xl font-semibold">{{ $company->contacts_count }}</p>
+            <p class="crm-detail__stat mt-1">{{ $company->contacts_count }}</p>
         </div>
         <div class="rounded-sm border border-line bg-panel px-4 py-3">
             <p class="text-xs uppercase tracking-wide text-mist">Projetos</p>
-            <p class="mt-1 font-display text-2xl font-semibold">{{ $company->projects_count }}</p>
+            <p class="crm-detail__stat mt-1">{{ $company->projects_count }}</p>
         </div>
         <div class="rounded-sm border border-line bg-panel px-4 py-3">
             <p class="text-xs uppercase tracking-wide text-mist">Oportunidades</p>
-            <p class="mt-1 font-display text-2xl font-semibold">{{ $company->opportunities_count }}</p>
+            <p class="crm-detail__stat mt-1">{{ $company->opportunities_count }}</p>
         </div>
     </div>
 
     <div class="grid gap-6 xl:grid-cols-[1fr_1.15fr]">
         <div class="space-y-6">
             <article class="rounded-sm border border-line bg-panel p-5">
-                <h2 class="font-display text-lg font-semibold">Dados da empresa</h2>
+                <h2 class="crm-detail__section-title">Dados da empresa</h2>
                 <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                     <div>
                         <dt class="text-mist">E-mail</dt>
@@ -58,7 +58,7 @@
                     </div>
                     <div>
                         <dt class="text-mist">Telefone</dt>
-                        <dd class="mt-1">{{ $company->phone ?? '—' }}</dd>
+                        <dd class="mt-1">{{ \App\Support\PhoneNumber::format($company->phone) ?? '—' }}</dd>
                     </div>
                     <div>
                         <dt class="text-mist">Site</dt>
@@ -80,7 +80,7 @@
 
             <article class="rounded-sm border border-line bg-panel p-5">
                 <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
-                    <h2 class="font-display text-lg font-semibold">Contatos alocados</h2>
+                    <h2 class="crm-detail__section-title">Contatos alocados</h2>
                     <a href="{{ route('admin.contacts.create', ['company_id' => $company->id]) }}" class="text-sm text-brand-bright hover:underline">Adicionar</a>
                 </div>
                 <ul class="space-y-3">
@@ -112,7 +112,9 @@
                     <div class="grid gap-3 sm:grid-cols-2">
                         <x-ui.input name="name" label="Nome" :value="old('name')" required />
                         <x-ui.input type="email" name="email" label="E-mail" :value="old('email')" />
-                        <x-ui.input name="phone" label="Telefone" :value="old('phone')" />
+                        <div class="sm:col-span-2">
+                            <x-ui.phone-field :value="old('phone')" />
+                        </div>
                         <x-ui.input name="role" label="Cargo" :value="old('role')" />
                     </div>
                     <label class="block text-sm">
@@ -130,7 +132,7 @@
 
         <div class="space-y-6">
             <article class="rounded-sm border border-line bg-panel p-5">
-                <h2 class="font-display text-lg font-semibold">Oportunidades (via contatos)</h2>
+                <h2 class="crm-detail__section-title">Oportunidades (via contatos)</h2>
                 <p class="mt-1 text-xs text-mist">Podem envolver só alguns contatos da empresa — aqui aparece o conjunto.</p>
                 <ul class="mt-4 space-y-3">
                     @forelse($company->opportunities as $opportunity)
@@ -153,7 +155,7 @@
             </article>
 
             <article class="rounded-sm border border-line bg-panel p-5">
-                <h2 class="font-display text-lg font-semibold">Projetos da empresa</h2>
+                <h2 class="crm-detail__section-title">Projetos da empresa</h2>
                 <ul class="mt-4 space-y-3">
                     @forelse($company->projects as $project)
                         <li class="rounded-sm border border-line/70 px-3 py-2">

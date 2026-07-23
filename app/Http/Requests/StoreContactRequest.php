@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Support\PhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -14,33 +15,13 @@ class StoreContactRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $iso = strtoupper((string) $this->input('phone_country', 'BR'));
-        $countries = collect(config('countries', []))->keyBy('iso');
-        $country = $countries->get($iso) ?? $countries->get('BR');
-
-        $local = preg_replace('/\D+/', '', (string) $this->input('phone_number', ''));
-        // Remove leading zeros and accidental dial code duplication
-        $local = ltrim((string) $local, '0');
-        $dial = (string) ($country['dial'] ?? '55');
-        if (str_starts_with($local, $dial) && strlen($local) > strlen($dial) + 7) {
-            $local = substr($local, strlen($dial));
-        }
-
-        $phone = $local !== ''
-            ? '+'.$dial.' '.$local
-            : null;
-
-        $this->merge([
-            'phone_country' => $country['iso'] ?? 'BR',
-            'phone_number' => $local !== '' ? $local : null,
-            'phone' => $phone,
-        ]);
+        $this->merge(PhoneNumber::normalizeInput($this->all()));
     }
 
     /** @return array<string, mixed> */
     public function rules(): array
     {
-        $isos = collect(config('countries', []))->pluck('iso')->all();
+        $isos = PhoneNumber::countries()->pluck('iso')->all();
 
         return [
             'name' => ['required', 'string', 'max:120'],

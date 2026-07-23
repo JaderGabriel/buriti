@@ -33,6 +33,7 @@ class Task extends Model
     {
         return [
             'due_at' => 'datetime',
+            'telegram_reminder_sent_at' => 'datetime',
             'status' => TaskStatus::class,
             'priority' => TaskPriority::class,
             'want_meet' => 'boolean',
@@ -47,6 +48,16 @@ class Task extends Model
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->user();
     }
 
     public function scopeOpen(Builder $query): Builder

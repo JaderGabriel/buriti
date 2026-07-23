@@ -44,51 +44,13 @@
                     </div>
 
                     <div class="grid gap-4 sm:grid-cols-2">
-                        <div class="sm:col-span-2">
-                            <span class="block text-sm text-mist">Telefone / WhatsApp</span>
-                            <div
-                                class="mt-1.5 grid gap-2 sm:grid-cols-[minmax(0,14rem)_1fr]"
-                                x-data="buritiPhoneCountryField(@js(config('countries')), @js(old('phone_country', 'BR')))"
-                            >
-                                <label class="block text-sm">
-                                    <span class="sr-only">País (DDI)</span>
-                                    <select
-                                        name="phone_country"
-                                        required
-                                        x-model="iso"
-                                        class="w-full rounded-sm border border-line bg-ink px-3 py-2.5 text-snow outline-none ring-brand-bright focus:ring-1"
-                                    >
-                                        @foreach(config('countries') as $country)
-                                            <option value="{{ $country['iso'] }}" @selected(old('phone_country', 'BR') === $country['iso'])>
-                                                {{ $country['flag'] }} {{ $country['name'] }} (+{{ $country['dial'] }})
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </label>
-                                <label class="block text-sm">
-                                    <span class="sr-only">Número</span>
-                                    <div class="flex overflow-hidden rounded-sm border border-line bg-ink focus-within:ring-1 focus-within:ring-brand-bright">
-                                        <span class="inline-flex items-center gap-1.5 border-r border-line px-3 text-sm text-mist" x-text="dialLabel()"></span>
-                                        <input
-                                            type="tel"
-                                            name="phone_number"
-                                            value="{{ old('phone_number') }}"
-                                            required
-                                            inputmode="numeric"
-                                            autocomplete="tel-national"
-                                            placeholder="99999-9999"
-                                            class="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-snow outline-none"
-                                        >
-                                    </div>
-                                </label>
-                            </div>
-                            @if(isset($errors) && ($errors->has('phone') || $errors->has('phone_number') || $errors->has('phone_country')))
-                                <span class="mt-1 block text-xs text-red-400">
-                                    {{ $errors->first('phone_number') ?: ($errors->first('phone_country') ?: $errors->first('phone')) }}
-                                </span>
-                            @endif
-                            <p class="mt-1.5 text-xs text-mist">Escolha o país pela bandeira/nome. Digite só o DDD e o número, sem o DDI.</p>
-                        </div>
+                        <x-ui.phone-field
+                            class="sm:col-span-2"
+                            label="Telefone / WhatsApp"
+                            :value="old('phone')"
+                            required
+                            hint="Escolha o país pela bandeira/nome. Digite só o DDD e o número, sem o DDI."
+                        />
                         <x-ui.input name="company" label="Empresa" :value="old('company')" class="sm:col-span-2" />
                     </div>
 

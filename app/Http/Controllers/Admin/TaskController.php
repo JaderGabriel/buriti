@@ -134,7 +134,11 @@ class TaskController extends Controller
 
     public function store(TaskRequest $request): RedirectResponse
     {
-        $task = Task::query()->create($request->validated());
+        $task = new Task($request->validated());
+        $task->forceFill([
+            'user_id' => $request->user()->id,
+            'telegram_reminder_sent_at' => null,
+        ])->save();
 
         $this->audit->record('task.created', $task, ['summary' => $task->title]);
 
@@ -154,7 +158,13 @@ class TaskController extends Controller
 
     public function update(TaskRequest $request, Task $task): RedirectResponse
     {
-        $task->update($request->validated());
+        $task->fill($request->validated());
+
+        if ($task->isDirty('due_at')) {
+            $task->telegram_reminder_sent_at = null;
+        }
+
+        $task->save();
 
         $this->audit->record('task.updated', $task, ['summary' => $task->title]);
 

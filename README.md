@@ -277,6 +277,24 @@ Bot para **listar, ver, criar, editar e apagar** registos do CRM, e receber mens
 
 Apenas utilizadores com `is_admin=1` e conta ativa podem autenticar. A sessão do bot fica ligada ao `telegram_chat_id` do utilizador — necessário também para o login web via Telegram.
 
+### Lembretes de tarefas (Telegram)
+
+O scheduler confere **a cada 5 minutos** tarefas abertas (`todo` / `doing`) com `due_at` nos **próximos 10 minutos** (fuso `America/Sao_Paulo`, GMT-3) e envia uma notificação Telegram ao **utilizador que criou** a tarefa (precisa ter feito `/login` no bot).
+
+```bash
+# Manual
+php artisan tasks:telegram-reminders
+
+# Em produção: cron do Laravel (obrigatório — sem isto os lembretes não disparam)
+* * * * * cd /caminho/do/buriti && php artisan schedule:run >> /dev/null 2>&1
+```
+
+Notas:
+
+- Cada tarefa recebe o lembrete **uma vez** (`telegram_reminder_sent_at`)
+- Se o prazo (`due_at`) for alterado, o lembrete pode ser reenviado
+- Tarefas antigas sem criador (`user_id`) ou sem Telegram vinculado não recebem aviso
+
 Para o **widget** oficial do Telegram Login, no [@BotFather](https://t.me/BotFather) use `/setdomain` com o domínio do site (ex.: `buriti.dev.br`).
 
 Padrão de ações (campos separados por `|`; em `set` use `.` para manter; em `del` confirme com `ok`):
@@ -354,6 +372,8 @@ Cobertura atual (20 testes):
 | `npm run dev` | Vite em modo desenvolvimento |
 | `npm run build` | Build de assets para produção |
 | `php artisan telegram:set-webhook` | Regista o webhook do bot Telegram |
+| `php artisan tasks:telegram-reminders` | Envia lembretes de tarefas (~10 min antes) |
+| `php artisan schedule:run` | Dispara jobs agendados (cron a cada minuto) |
 
 ## Deploy (checklist)
 
@@ -363,8 +383,9 @@ Cobertura atual (20 testes):
 4. `php artisan migrate --force`
 5. `npm run build` e `php artisan storage:link`
 6. `php artisan config:cache && php artisan route:cache && php artisan view:cache`
-7. Web root apontando para `public/`
-8. Trocar senha do admin e proteger `/admin`
+7. Cron: `* * * * * cd /caminho && php artisan schedule:run`
+8. Web root apontando para `public/`
+9. Trocar senha do admin e proteger `/admin`
 
 ## Licença
 

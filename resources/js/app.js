@@ -299,6 +299,39 @@ function buritiPhoneCountryField(countries, iso) {
 
             return `${this.selected.flag || ''} +${this.selected.dial || ''}`.trim();
         },
+        formatNational(event) {
+            const input = event?.target;
+            if (! (input instanceof HTMLInputElement)) {
+                return;
+            }
+
+            let digits = String(input.value || '').replace(/\D+/g, '');
+            const dial = String(this.selected?.dial || '');
+            if (dial && digits.startsWith(dial) && digits.length > dial.length + 7) {
+                digits = digits.slice(dial.length);
+            }
+
+            if (this.iso === 'BR') {
+                if (digits.length > 11) {
+                    digits = digits.slice(0, 11);
+                }
+
+                if (digits.length > 6) {
+                    input.value = `${digits.slice(0, 2)} ${digits.slice(2, digits.length - 4)}-${digits.slice(-4)}`;
+                } else if (digits.length > 2) {
+                    input.value = `${digits.slice(0, 2)} ${digits.slice(2)}`;
+                } else {
+                    input.value = digits;
+                }
+
+                return;
+            }
+
+            if (digits.length > 15) {
+                digits = digits.slice(0, 15);
+            }
+            input.value = digits;
+        },
     };
 }
 
@@ -802,6 +835,87 @@ async function moveProjectCard(board, card, status, urlTemplate) {
     }
 }
 
+function initIdeaPostitColors() {
+    if (document.documentElement.dataset.ideaColorsBound === '1') {
+        return;
+    }
+    document.documentElement.dataset.ideaColorsBound = '1';
+
+    const tones = ['amber', 'blue', 'mint', 'rose', 'lilac', 'slate'];
+
+    const applyColor = (article, color) => {
+        if (! (article instanceof HTMLElement) || ! color) {
+            return;
+        }
+
+        tones.forEach((tone) => article.classList.remove(`postit-${tone}`));
+        article.classList.add(`postit-${color}`);
+        article.dataset.ideaColor = color;
+
+        const hidden = article.querySelector('[data-idea-color-input]');
+        if (hidden instanceof HTMLInputElement) {
+            hidden.value = color;
+        }
+
+        article.querySelectorAll('[data-idea-color-value]').forEach((button) => {
+            const active = button.getAttribute('data-idea-color-value') === color;
+            button.classList.toggle('is-active', active);
+            button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+    };
+
+    document.addEventListener('click', async (event) => {
+        const button = event.target.closest?.('[data-idea-color-value]');
+        if (! (button instanceof HTMLElement)) {
+            return;
+        }
+
+        const article = button.closest('[data-idea-note]');
+        if (! (article instanceof HTMLElement)) {
+            return;
+        }
+
+        const color = button.getAttribute('data-idea-color-value');
+        const url = article.dataset.colorUrl;
+        if (! color || ! url || article.dataset.ideaColor === color) {
+            return;
+        }
+
+        event.preventDefault();
+
+        const previous = article.dataset.ideaColor || 'amber';
+        applyColor(article, color);
+        article.classList.add('is-saving-color');
+
+        try {
+            const response = await fetch(url, {
+                method: 'PATCH',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    ...csrfHeaders(),
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ color }),
+            });
+
+            if (! response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const payload = await response.json().catch(() => ({}));
+            if (payload?.color) {
+                applyColor(article, payload.color);
+            }
+        } catch {
+            applyColor(article, previous);
+        } finally {
+            article.classList.remove('is-saving-color');
+        }
+    });
+}
+
 function initProjectBoard() {
     const board = document.querySelector('[data-project-board]');
     if (! board || board.dataset.dndBound === '1') {
@@ -1300,6 +1414,7 @@ initTaskCreateDialog();
 initTaskDayCreateFallback();
 initProjectBoard();
 initOpportunityBoard();
+initIdeaPostitColors();
 
 try {
     Alpine.start();

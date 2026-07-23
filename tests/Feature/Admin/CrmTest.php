@@ -30,7 +30,8 @@ class CrmTest extends TestCase
         $response = $this->actingAs($this->admin)->post(route('admin.contacts.store'), [
             'name' => 'Maria Cliente',
             'email' => 'maria@cliente.com',
-            'phone' => '+55 38999999999',
+            'phone_country' => 'BR',
+            'phone_number' => '38999999999',
             'company' => 'Cliente SA',
             'role' => 'Diretora',
             'preferred_channel' => 'email',
@@ -41,6 +42,7 @@ class CrmTest extends TestCase
 
         $contact = Contact::query()->where('email', 'maria@cliente.com')->first();
         $this->assertNotNull($contact);
+        $this->assertSame('+55 38 99999-9999', $contact->phone);
         $this->assertDatabaseHas('companies', ['name' => 'Cliente SA']);
         $this->assertNotNull($contact->company_id);
         $response->assertRedirect(route('admin.contacts.show', $contact));

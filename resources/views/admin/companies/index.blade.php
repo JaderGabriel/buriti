@@ -59,18 +59,20 @@
     @else
         <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             @foreach($companies as $company)
-                <a href="{{ route('admin.companies.show', $company) }}" class="rounded-sm border border-line bg-panel p-5 transition hover:border-brand-bright/40 hover:bg-ink/30">
+                <a href="{{ route('admin.companies.show', $company) }}" class="crm-card">
                     <div class="flex items-start justify-between gap-3">
-                        <span class="flex h-11 w-11 items-center justify-center rounded-sm bg-brand/15 text-sm font-semibold text-brand-bright">
+                        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm bg-brand/15 text-sm font-semibold text-brand-bright">
                             {{ $company->initials() ?: '?' }}
                         </span>
                         <x-admin.crm-badge :status="$company->status" compact />
                     </div>
-                    <h2 class="mt-4 font-display text-lg font-semibold">{{ $company->displayName() }}</h2>
-                    @if($company->trade_name && $company->trade_name !== $company->name)
-                        <p class="text-sm text-mist">{{ $company->name }}</p>
-                    @endif
-                    <div class="mt-4 flex flex-wrap gap-3 text-xs text-mist">
+                    <div>
+                        <h2 class="crm-card__title">{{ $company->displayName() }}</h2>
+                        @if($company->trade_name && $company->trade_name !== $company->name)
+                            <p class="crm-card__subtitle">{{ $company->name }}</p>
+                        @endif
+                    </div>
+                    <div class="crm-card__meta mt-auto">
                         <span>{{ $company->contacts_count }} contato{{ $company->contacts_count === 1 ? '' : 's' }}</span>
                         <span>·</span>
                         <span>{{ $company->projects_count }} projeto{{ $company->projects_count === 1 ? '' : 's' }}</span>

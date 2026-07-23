@@ -112,7 +112,7 @@
                                     @endif
                                     @if($selected->phone)
                                         @if($selected->preferred_channel) · @endif
-                                        Tel: {{ $selected->phone }}
+                        Tel: {{ \App\Support\PhoneNumber::format($selected->phone) }}
                                     @endif
                                 </p>
                             @endif

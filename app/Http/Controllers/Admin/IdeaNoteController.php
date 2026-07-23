@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\IdeaNoteColor;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\IdeaNoteRequest;
+use App\Http\Requests\Admin\UpdateIdeaNoteColorRequest;
 use App\Models\IdeaNote;
 use App\Services\AuditLogger;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 
 class IdeaNoteController extends Controller
@@ -44,6 +46,25 @@ class IdeaNoteController extends Controller
         return redirect()
             ->to(route('admin.dashboard').'#ideia-'.$ideaNote->id)
             ->with('success', 'Ideia atualizada.');
+    }
+
+    public function updateColor(UpdateIdeaNoteColorRequest $request, IdeaNote $ideaNote): JsonResponse
+    {
+        $color = IdeaNoteColor::from($request->validated('color'));
+        $from = $ideaNote->color?->value;
+        $ideaNote->update(['color' => $color]);
+
+        $this->audit->record('idea_note.color_changed', $ideaNote, [
+            'summary' => $ideaNote->displayTitle(),
+            'from' => $from,
+            'to' => $color->value,
+        ]);
+
+        return response()->json([
+            'ok' => true,
+            'id' => $ideaNote->id,
+            'color' => $color->value,
+        ]);
     }
 
     public function destroy(IdeaNote $ideaNote): RedirectResponse
