@@ -14,18 +14,21 @@
         class="mb-6"
     />
 
-    <div class="grid gap-4 grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+    <div class="dash-stats">
         @foreach ([
-            ['Mensagens novas', $unreadMessages, route('admin.messages.index')],
-            ['Total mensagens', $totalMessages, route('admin.messages.index')],
-            ['Contatos CRM', $contactsCount, route('admin.contacts.index')],
-            ['Oportunidades abertas', $openOpportunities, route('admin.opportunities.index')],
-            ['Projetos', $projectsCount, route('admin.projects.index')],
-            ['Tarefas abertas', $openTasks, route('admin.tasks.index')],
-        ] as [$label, $value, $href])
-            <a href="{{ $href }}" class="rounded-2xl border border-line bg-panel p-4 transition hover:border-brand/50 sm:p-5">
-                <p class="text-xs text-mist sm:text-sm">{{ $label }}</p>
-                <p class="mt-2 font-display text-2xl font-bold text-brand-bright sm:text-3xl">{{ $value }}</p>
+            ['Mensagens novas', $unreadMessages, route('admin.messages.index'), 'messages'],
+            ['Total mensagens', $totalMessages, route('admin.messages.index'), null],
+            ['Contatos CRM', $contactsCount, route('admin.contacts.index'), 'contacts'],
+            ['Oportunidades abertas', $openOpportunities, route('admin.opportunities.index'), 'opps'],
+            ['Projetos', $projectsCount, route('admin.projects.index'), 'projects'],
+            ['Tarefas abertas', $openTasksCount, route('admin.tasks.index'), 'tasks'],
+        ] as [$label, $value, $href, $tone])
+            <a
+                href="{{ $href }}"
+                @class(['dash-stat', $tone ? 'dash-stat--'.$tone : null])
+            >
+                <span class="dash-stat__value">{{ $value }}</span>
+                <span class="dash-stat__label">{{ $label }}</span>
             </a>
         @endforeach
     </div>
@@ -163,7 +166,7 @@
                     @if($tasksDueSoon > 0)
                         <span class="dash-panel__pill dash-panel__pill--warn">{{ $tasksDueSoon }} em 24h</span>
                     @else
-                        <span class="dash-panel__pill">{{ $openTasks }} aberta{{ $openTasks === 1 ? '' : 's' }}</span>
+                        <span class="dash-panel__pill">{{ $openTasksCount }} aberta{{ $openTasksCount === 1 ? '' : 's' }}</span>
                     @endif
                     <a href="{{ route('admin.tasks.index', ['view' => 'agenda']) }}" class="dash-panel__link">Planejar</a>
                 </div>

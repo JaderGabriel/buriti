@@ -6,7 +6,7 @@
         <div>
             <p class="pm-workspace__eyebrow">Gestão de projetos</p>
             <h1 class="pm-workspace__title">Portfólio operacional</h1>
-            <p class="pm-workspace__lead">Arraste cards entre colunas de status e acompanhe o % pelas etapas do projeto.</p>
+            <p class="pm-workspace__lead">Arraste cards entre colunas ou na vertical para ordenar, e acompanhe o % pelas etapas do projeto.</p>
         </div>
         <div class="pm-workspace__actions">
             <a href="{{ route('admin.tasks.index') }}" class="pm-btn pm-btn--ghost">

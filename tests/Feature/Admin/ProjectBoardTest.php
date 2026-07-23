@@ -36,6 +36,76 @@ class ProjectBoardTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_reorder_projects_within_column(): void
+    {
+        $first = Project::factory()->create([
+            'status' => 'active',
+            'name' => 'Primeiro',
+            'sort_order' => 10,
+        ]);
+        $second = Project::factory()->create([
+            'status' => 'active',
+            'name' => 'Segundo',
+            'sort_order' => 20,
+        ]);
+        $third = Project::factory()->create([
+            'status' => 'active',
+            'name' => 'Terceiro',
+            'sort_order' => 30,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->patchJson(route('admin.projects.status', $third), [
+                'status' => 'active',
+                'ordered_ids' => [$third->id, $first->id, $second->id],
+            ])
+            ->assertOk()
+            ->assertJsonPath('ok', true)
+            ->assertJsonPath('ordered_ids.0', $third->id);
+
+        $this->assertSame(10, (int) $third->fresh()->sort_order);
+        $this->assertSame(20, (int) $first->fresh()->sort_order);
+        $this->assertSame(30, (int) $second->fresh()->sort_order);
+
+        $ordered = Project::query()->where('status', 'active')->ordered()->pluck('id')->all();
+        $this->assertSame([$third->id, $first->id, $second->id], $ordered);
+    }
+
+    public function test_admin_can_move_project_and_place_in_column_order(): void
+    {
+        $activeA = Project::factory()->create([
+            'status' => 'active',
+            'name' => 'Ativo A',
+            'sort_order' => 10,
+        ]);
+        $activeB = Project::factory()->create([
+            'status' => 'active',
+            'name' => 'Ativo B',
+            'sort_order' => 20,
+        ]);
+        $paused = Project::factory()->create([
+            'status' => 'paused',
+            'name' => 'Pausado',
+            'sort_order' => 10,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->patchJson(route('admin.projects.status', $paused), [
+                'status' => 'active',
+                'ordered_ids' => [$activeA->id, $paused->id, $activeB->id],
+            ])
+            ->assertOk()
+            ->assertJsonPath('status', 'active');
+
+        $this->assertDatabaseHas('projects', [
+            'id' => $paused->id,
+            'status' => 'active',
+            'sort_order' => 20,
+        ]);
+        $this->assertSame(10, (int) $activeA->fresh()->sort_order);
+        $this->assertSame(30, (int) $activeB->fresh()->sort_order);
+    }
+
     public function test_project_steps_drive_completion_percent(): void
     {
         $project = Project::factory()->create(['name' => 'Com Etapas']);

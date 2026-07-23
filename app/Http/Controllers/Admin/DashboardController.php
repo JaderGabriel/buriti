@@ -26,7 +26,7 @@ class DashboardController extends Controller
             'unreadMessages' => ContactMessage::query()->unread()->count(),
             'totalMessages' => ContactMessage::query()->count(),
             'projectsCount' => Project::query()->count(),
-            'openTasks' => Task::query()->open()->count(),
+            'openTasksCount' => Task::query()->open()->count(),
             'contactsCount' => Contact::query()->count(),
             'openOpportunities' => Opportunity::query()->open()->count(),
             'opportunityStageCounts' => Opportunity::query()

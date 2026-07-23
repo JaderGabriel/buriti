@@ -159,15 +159,39 @@ class ProjectController extends Controller
 
     public function updateStatus(UpdateProjectStatusRequest $request, Project $project): JsonResponse
     {
-        $status = ProjectStatus::from($request->validated('status'));
+        $data = $request->validated();
+        $status = ProjectStatus::from($data['status']);
         $from = $project->status?->value;
+        $orderedIds = array_values(array_unique(array_map('intval', $data['ordered_ids'] ?? [])));
+
         $project->update(['status' => $status]);
 
-        $this->audit->record('project.status_moved', $project, [
-            'summary' => $project->name,
-            'from' => $from,
-            'to' => $status->value,
-        ]);
+        if ($orderedIds !== []) {
+            if (! in_array((int) $project->id, $orderedIds, true)) {
+                $orderedIds[] = (int) $project->id;
+            }
+
+            foreach ($orderedIds as $index => $id) {
+                Project::query()
+                    ->whereKey($id)
+                    ->where('status', $status)
+                    ->update(['sort_order' => ($index + 1) * 10]);
+            }
+        }
+
+        if ($from !== $status->value) {
+            $this->audit->record('project.status_moved', $project, [
+                'summary' => $project->name,
+                'from' => $from,
+                'to' => $status->value,
+            ]);
+        } elseif ($orderedIds !== []) {
+            $this->audit->record('project.reordered', $project, [
+                'summary' => $project->name,
+                'status' => $status->value,
+                'ordered_ids' => $orderedIds,
+            ]);
+        }
 
         $project->loadCount([
             'steps',
@@ -187,6 +211,8 @@ class ProjectController extends Controller
             'id' => $project->id,
             'status' => $project->status->value,
             'label' => $project->status->label(),
+            'sort_order' => (int) $project->fresh()->sort_order,
+            'ordered_ids' => $orderedIds,
             'progress' => $progress,
         ]);
     }

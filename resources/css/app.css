@@ -3115,6 +3115,10 @@ button.task-agenda__date:hover {
     box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-brand-bright) 35%, transparent);
 }
 
+.pm-card.is-drop-slot {
+    box-shadow: 0 -2px 0 0 color-mix(in oklab, var(--color-brand-bright) 80%, transparent);
+}
+
 .pm-card.is-dragging {
     opacity: 0.35;
     cursor: grabbing;
@@ -5909,6 +5913,79 @@ button.task-agenda__date:hover {
 .phonebook__email:hover {
     color: var(--color-brand-bright);
 }
+
+/* —— Dashboard KPI stats —— */
+.dash-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+}
+
+@media (min-width: 640px) {
+    .dash-stats {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1100px) {
+    .dash-stats {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+}
+
+.dash-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+    border: 1px solid var(--color-line);
+    border-radius: 2px;
+    background: var(--color-panel);
+    padding: 0.75rem 0.85rem;
+    color: inherit;
+    text-decoration: none;
+    overflow: hidden;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.dash-stat:hover {
+    border-color: color-mix(in oklab, var(--color-brand-bright) 45%, var(--color-line));
+    background: color-mix(in oklab, var(--color-brand) 8%, var(--color-panel));
+}
+
+.dash-stat__value {
+    display: block;
+    font-family: var(--font-display);
+    font-size: clamp(1.25rem, 0.6vw + 1.1rem, 1.55rem);
+    font-weight: 700;
+    color: var(--color-snow);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.dash-stat__label {
+    display: block;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-mist);
+    line-height: 1.35;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dash-stat--messages { box-shadow: inset 3px 0 0 #3b82c4; }
+.dash-stat--contacts { box-shadow: inset 3px 0 0 #3d9b6e; }
+.dash-stat--opps { box-shadow: inset 3px 0 0 #8b5cf6; }
+.dash-stat--projects { box-shadow: inset 3px 0 0 #2f7ec4; }
+.dash-stat--tasks { box-shadow: inset 3px 0 0 #c4a035; }
+
+.dash-stat--messages .dash-stat__value { color: #7eb6e8; }
+.dash-stat--contacts .dash-stat__value { color: #7dcca5; }
+.dash-stat--opps .dash-stat__value { color: #c4b5fd; }
+.dash-stat--projects .dash-stat__value { color: #7eb6e8; }
+.dash-stat--tasks .dash-stat__value { color: #e2b45c; }
 
 /* —— Dashboard feed panels —— */
 .dash-panels {

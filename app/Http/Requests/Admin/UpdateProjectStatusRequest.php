@@ -18,6 +18,8 @@ class UpdateProjectStatusRequest extends FormRequest
     {
         return [
             'status' => ['required', Rule::enum(ProjectStatus::class)],
+            'ordered_ids' => ['nullable', 'array'],
+            'ordered_ids.*' => ['integer', 'exists:projects,id'],
         ];
     }
 }

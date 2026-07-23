@@ -774,22 +774,78 @@ function refreshProjectBoardCounts(board) {
     });
 }
 
-async function moveProjectCard(board, card, status, urlTemplate) {
-    const id = card.dataset.projectId;
-    const fromStatus = card.dataset.status;
-    if (! id || ! status || fromStatus === status || ! urlTemplate) {
-        return;
+function projectColumnCardIds(list) {
+    return [...list.querySelectorAll('[data-project-id]')]
+        .map((el) => String(el.dataset.projectId || ''))
+        .filter(Boolean);
+}
+
+function projectCardInsertBefore(list, clientY, draggedCard) {
+    const cards = [...list.querySelectorAll('[data-project-id]')].filter((el) => el !== draggedCard);
+    for (const card of cards) {
+        const rect = card.getBoundingClientRect();
+        if (clientY < rect.top + rect.height / 2) {
+            return card;
+        }
     }
 
-    const column = board.querySelector(`.pm-board__column[data-status="${CSS.escape(status)}"]`);
-    if (! column) {
-        return;
-    }
+    return null;
+}
 
-    const fromColumn = card.closest('.pm-board__column');
+function placeProjectCardInColumn(column, card, clientY) {
     const list = column.querySelector('[data-column-list]');
-    list?.querySelector('[data-empty]')?.remove();
-    list?.appendChild(card);
+    if (! list) {
+        return [];
+    }
+
+    list.querySelector('[data-empty]')?.remove();
+    const before = projectCardInsertBefore(list, clientY, card);
+    if (before) {
+        list.insertBefore(card, before);
+    } else {
+        list.appendChild(card);
+    }
+
+    return projectColumnCardIds(list);
+}
+
+function restoreProjectCardPosition(card, originList, originNextSibling, originStatus) {
+    if (! originList) {
+        return;
+    }
+
+    originList.querySelector('[data-empty]')?.remove();
+    if (originNextSibling && originNextSibling.parentElement === originList) {
+        originList.insertBefore(card, originNextSibling);
+    } else {
+        originList.appendChild(card);
+    }
+
+    if (originStatus) {
+        card.dataset.status = originStatus;
+        card.className = card.className.replace(/pm-card--\w+/g, `pm-card--${originStatus}`);
+        const label = card.querySelector('[data-status-label]');
+        if (label) {
+            label.className = `pm-status pm-status--${originStatus}`;
+        }
+    }
+}
+
+async function moveProjectCard(board, card, status, urlTemplate, orderedIds, origin) {
+    const id = card.dataset.projectId;
+    if (! id || ! status || ! urlTemplate) {
+        return;
+    }
+
+    const fromStatus = origin?.status || card.dataset.status;
+    const ids = Array.isArray(orderedIds)
+        ? orderedIds.map(String).filter(Boolean)
+        : projectColumnCardIds(card.closest('[data-column-list]') || document.createElement('div'));
+
+    if (! ids.includes(String(id))) {
+        ids.push(String(id));
+    }
+
     card.dataset.status = status;
     card.className = card.className.replace(/pm-card--\w+/g, `pm-card--${status}`);
     const label = card.querySelector('[data-status-label]');
@@ -808,7 +864,10 @@ async function moveProjectCard(board, card, status, urlTemplate) {
                 ...csrfHeaders(),
             },
             credentials: 'same-origin',
-            body: JSON.stringify({ status }),
+            body: JSON.stringify({
+                status,
+                ordered_ids: ids.map((value) => Number(value)).filter((value) => Number.isFinite(value) && value > 0),
+            }),
         });
 
         if (! response.ok) {
@@ -821,17 +880,8 @@ async function moveProjectCard(board, card, status, urlTemplate) {
         }
     } catch (error) {
         console.error(error);
-        if (fromColumn) {
-            const fromList = fromColumn.querySelector('[data-column-list]');
-            fromList?.querySelector('[data-empty]')?.remove();
-            fromList?.appendChild(card);
-            card.dataset.status = fromStatus;
-            card.className = card.className.replace(/pm-card--\w+/g, `pm-card--${fromStatus}`);
-            if (label) {
-                label.className = `pm-status pm-status--${fromStatus}`;
-            }
-            refreshProjectBoardCounts(board);
-        }
+        restoreProjectCardPosition(card, origin?.list, origin?.nextSibling, fromStatus);
+        refreshProjectBoardCounts(board);
     }
 }
 
@@ -1032,11 +1082,19 @@ function initProjectBoard() {
      *   offsetY: number,
      *   moved: boolean,
      *   ghost: HTMLElement | null,
+     *   originList: HTMLElement | null,
+     *   originNextSibling: Element | null,
+     *   originOrder: string,
+     *   lastColumn: HTMLElement | null,
+     *   lastBefore: Element | null,
+     *   orderedIds: string[],
      * }} */
     let drag = null;
 
     const clearDropTargets = () => {
-        board.querySelectorAll('.is-drop-target').forEach((el) => el.classList.remove('is-drop-target'));
+        board.querySelectorAll('.is-drop-target, .is-drop-slot').forEach((el) => {
+            el.classList.remove('is-drop-target', 'is-drop-slot');
+        });
     };
 
     const cleanup = () => {
@@ -1077,6 +1135,7 @@ function initProjectBoard() {
         }
 
         const rect = card.getBoundingClientRect();
+        const originList = card.closest('[data-column-list]');
         drag = {
             card,
             id: String(card.dataset.projectId || ''),
@@ -1088,6 +1147,12 @@ function initProjectBoard() {
             offsetY: event.clientY - rect.top,
             moved: false,
             ghost: null,
+            originList: originList instanceof HTMLElement ? originList : null,
+            originNextSibling: card.nextElementSibling,
+            originOrder: originList instanceof HTMLElement ? projectColumnCardIds(originList).join(',') : '',
+            lastColumn: null,
+            lastBefore: null,
+            orderedIds: [],
         };
     });
 
@@ -1131,7 +1196,22 @@ function initProjectBoard() {
         }
 
         clearDropTargets();
-        columnFromPoint(event.clientX, event.clientY)?.classList.add('is-drop-target');
+        const column = columnFromPoint(event.clientX, event.clientY);
+        if (! column) {
+            return;
+        }
+
+        column.classList.add('is-drop-target');
+        const list = column.querySelector('[data-column-list]');
+        const before = list ? projectCardInsertBefore(list, event.clientY, drag.card) : null;
+        before?.classList.add('is-drop-slot');
+
+        if (drag.lastColumn !== column || drag.lastBefore !== before) {
+            drag.lastColumn = column;
+            drag.lastBefore = before;
+            drag.orderedIds = placeProjectCardInColumn(column, drag.card, event.clientY);
+            refreshProjectBoardCounts(board);
+        }
     });
 
     const finish = (event) => {
@@ -1142,19 +1222,53 @@ function initProjectBoard() {
         const current = drag;
         const column = current.moved ? columnFromPoint(event.clientX, event.clientY) : null;
         const status = column?.dataset?.status || '';
+        let orderedIds = current.orderedIds;
+
+        if (current.moved && column) {
+            orderedIds = placeProjectCardInColumn(column, current.card, event.clientY);
+        }
+
+        const origin = {
+            status: current.fromStatus,
+            list: current.originList,
+            nextSibling: current.originNextSibling,
+        };
+
         cleanup();
 
-        if (! current.moved || ! status) {
+        if (! current.moved) {
             return;
         }
 
-        void moveProjectCard(board, current.card, status, urlTemplate);
+        if (! status || ! column) {
+            restoreProjectCardPosition(current.card, origin.list, origin.nextSibling, origin.status);
+            refreshProjectBoardCounts(board);
+            return;
+        }
+
+        const nextOrder = orderedIds.join(',');
+        if (status === current.fromStatus && nextOrder === current.originOrder) {
+            return;
+        }
+
+        void moveProjectCard(board, current.card, status, urlTemplate, orderedIds, origin);
     };
 
     board.addEventListener('pointerup', finish);
     board.addEventListener('pointercancel', (event) => {
-        if (drag && event.pointerId === drag.pointerId) {
-            cleanup();
+        if (! drag || event.pointerId !== drag.pointerId) {
+            return;
+        }
+        const current = drag;
+        const origin = {
+            status: current.fromStatus,
+            list: current.originList,
+            nextSibling: current.originNextSibling,
+        };
+        cleanup();
+        if (current.moved) {
+            restoreProjectCardPosition(current.card, origin.list, origin.nextSibling, origin.status);
+            refreshProjectBoardCounts(board);
         }
     });
 }
