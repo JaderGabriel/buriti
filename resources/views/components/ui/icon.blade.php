@@ -43,6 +43,7 @@
         'download' => 'M12 3v12m0 0 4-4m-4 4-4-4M5 21h14',
         'upload' => 'M12 21V9m0 0 4 4m-4-4-4 4M5 3h14',
         'restore' => 'M3 12a9 9 0 1 0 3-6.7M3 4v5h5',
+        'arrow-up' => 'M12 19V5m0 0-7 7m7-7 7 7',
     ];
     $d = $paths[$name] ?? $paths['code'];
 @endphp

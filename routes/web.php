@@ -33,6 +33,18 @@ Route::middleware('guest')->group(function () {
     Route::get('/admin/login', [LoginController::class, 'create'])->name('login');
     Route::post('/admin/login', [LoginController::class, 'store'])
         ->middleware('throttle:5,1');
+    Route::post('/admin/login/telegram/start', [LoginController::class, 'startTelegram'])
+        ->middleware('throttle:10,1')
+        ->name('login.telegram.start');
+    Route::get('/admin/login/telegram/status/{token}', [LoginController::class, 'telegramStatus'])
+        ->middleware('throttle:60,1')
+        ->name('login.telegram.status');
+    Route::get('/admin/login/telegram/complete/{token}', [LoginController::class, 'completeTelegram'])
+        ->middleware('throttle:20,1')
+        ->name('login.telegram.complete');
+    Route::get('/admin/login/telegram/callback', [LoginController::class, 'telegramWidget'])
+        ->middleware('throttle:20,1')
+        ->name('login.telegram.callback');
 });
 
 Route::post('/admin/logout', [LoginController::class, 'destroy'])

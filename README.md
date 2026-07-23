@@ -266,14 +266,18 @@ Bot para **listar, ver, criar, editar e apagar** registos do CRM, e receber mens
 2. No `.env`:
    ```env
    TELEGRAM_BOT_TOKEN=...
+   TELEGRAM_BOT_USERNAME=SeuBotSemArroba   # opcional; senão a app resolve via getMe
    TELEGRAM_WEBHOOK_SECRET=uma-string-aleatoria
    ```
 3. Com `APP_URL` público (HTTPS), ex.: `https://buriti.dev.br/public`: `php artisan telegram:configure`
 4. Fale com o bot e faça login de **admin**: `/login email_ou_usuario | senha` (a mensagem com senha é apagada automaticamente)
-5. Use `/logout` para sair
-6. Comandos: `/ajuda`, `/status`, `/contatos`, CRUD com `add`/`set`/`del`, etc.
+5. No site, em `/admin/login`, use **Continuar com Telegram** (abre o bot e confirma o pedido) ou o widget oficial
+6. Use `/logout` para sair do bot
+7. Comandos: `/ajuda`, `/status`, `/contatos`, CRUD com `add`/`set`/`del`, etc.
 
-Apenas utilizadores com `is_admin=1` e conta ativa podem autenticar. A sessão fica ligada ao `telegram_chat_id` do utilizador.
+Apenas utilizadores com `is_admin=1` e conta ativa podem autenticar. A sessão do bot fica ligada ao `telegram_chat_id` do utilizador — necessário também para o login web via Telegram.
+
+Para o **widget** oficial do Telegram Login, no [@BotFather](https://t.me/BotFather) use `/setdomain` com o domínio do site (ex.: `buriti.dev.br`).
 
 Padrão de ações (campos separados por `|`; em `set` use `.` para manter; em `del` confirme com `ok`):
 
@@ -286,6 +290,17 @@ Padrão de ações (campos separados por `|`; em `set` use `.` para manter; em `
 ```
 
 O mesmo padrão vale para `/oportunidade`, `/projeto`, `/tarefa` e `/mensagem` (`lida` / `del`).
+
+### Card para clientes
+
+Com sessão admin ativa:
+
+```text
+/card
+/card Acme Educacional
+```
+
+O bot envia uma imagem + legenda + botões (Site, WhatsApp, Pedir proposta, LinkedIn). Encaminhe a mensagem ao cliente no Telegram.
 
 Webhook: `POST {APP_URL}/webhooks/telegram/{TELEGRAM_WEBHOOK_SECRET}`
 

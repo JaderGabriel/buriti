@@ -35,6 +35,8 @@ class TelegramBotService
         private TelegramApiClient $api,
         private SettingService $settings,
         private AuditLogger $audit,
+        private TelegramWebAuthService $webAuth,
+        private TelegramShareCardService $shareCard,
     ) {}
 
     public function configured(): bool
@@ -185,11 +187,13 @@ class TelegramBotService
         $command = Str::before($command, '@');
 
         return match ($command) {
-            '/start', '/ajuda', '/help' => $this->helpText($admin),
+            '/start' => $this->handleStart($chatId, $argument, $admin),
+            '/ajuda', '/help' => $this->helpText($admin),
             '/id' => "🆔 <b>Chat ID:</b> <code>{$chatId}</code>",
             '/login' => $this->login($chatId, $argument),
             '/logout' => $this->logout($chatId, $admin),
             '/eu', '/quem' => $this->whoAmI($admin),
+            '/card' => $this->shareClientCard($chatId, $argument),
             '/status' => $this->statusSummary(),
             '/contatos' => $this->listContacts($argument),
             '/contato' => $this->handleContact($argument),
@@ -205,6 +209,52 @@ class TelegramBotService
         };
     }
 
+    private function handleStart(string $chatId, string $argument, ?User $admin): string
+    {
+        if (Str::startsWith($argument, 'weblogin_')) {
+            return $this->confirmWebLogin($chatId, Str::after($argument, 'weblogin_'), $admin);
+        }
+
+        return $this->helpText($admin);
+    }
+
+    private function confirmWebLogin(string $chatId, string $token, ?User $admin): string
+    {
+        $token = trim($token);
+
+        if ($token === '' || strlen($token) < 20) {
+            return '❌ Pedido de login web inválido. Volte ao site e tente de novo.';
+        }
+
+        $status = $this->webAuth->status($token);
+        if (($status['status'] ?? '') === 'expired') {
+            return '⏳ Este pedido de login expirou. Volte ao site e clique em <b>Entrar com Telegram</b> outra vez.';
+        }
+
+        if (! $admin) {
+            $this->webAuth->deny($token, 'unlinked');
+
+            return "🔐 Para liberar o painel web, faça primeiro o login neste chat:\n".
+                "<code>/login email_ou_usuario | senha</code>\n\n".
+                'Depois volte ao site e clique novamente em <b>Entrar com Telegram</b>.';
+        }
+
+        if (! $this->webAuth->approve($token, $admin)) {
+            return '❌ Não foi possível confirmar o login web (pedido já usado ou expirado).';
+        }
+
+        $completeUrl = route('login.telegram.complete', ['token' => $token]);
+
+        $this->audit->record('auth.telegram.web.approved', $admin, [
+            'summary' => $admin->email,
+            'chat_id' => $chatId,
+        ], null, $admin->id);
+
+        return "✅ Login web confirmado, <b>{$this->escape($admin->name)}</b>.\n\n".
+            "Volte ao navegador — o painel deve abrir sozinho.\n".
+            'Se não abrir: <a href="'.$this->escape($completeUrl).'">concluir acesso</a>';
+    }
+
     private function helpText(?User $admin): string
     {
         if ($admin) {
@@ -213,7 +263,8 @@ class TelegramBotService
         } else {
             $authBlock = "🔐 <b>Sem sessão</b> — só administradores\n".
                 "<code>/login email_ou_usuario | senha</code>\n".
-                "<i>A mensagem do login (com senha) é apagada automaticamente.</i>";
+                "<i>A mensagem do login (com senha) é apagada automaticamente.</i>\n".
+                '<i>Depois pode entrar no painel web com “Entrar com Telegram”.</i>';
         }
 
         return <<<HTML
@@ -232,11 +283,40 @@ Em <code>set</code>, use <code>.</code> para manter o valor.
 Em <code>del</code>, confirme com <code>ok</code>.
 
 <b>Atalhos</b>
+<code>/card</code> · <code>/card Nome do cliente</code> — card para encaminhar
 <code>/oportunidade</code> · <code>/projeto</code> · <code>/tarefa</code> · <code>/mensagem</code>
 <code>/mensagem lida ID</code> · <code>/id</code>
 
 Campos separados por <code>|</code>.
 HTML;
+    }
+
+    private function shareClientCard(string $chatId, string $argument): string
+    {
+        try {
+            $card = $this->shareCard->build($argument !== '' ? $argument : null);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return '❌ Não foi possível gerar o card. Tente de novo em instantes.';
+        }
+
+        $sent = $this->api->sendPhoto(
+            $chatId,
+            $card['path'],
+            $card['caption'],
+            $card['reply_markup'],
+        );
+
+        if (($card['delete_after_send'] ?? false) && is_file($card['path'])) {
+            @unlink($card['path']);
+        }
+
+        if (! $sent) {
+            return '❌ Falha ao enviar o card no Telegram. Verifique o token do bot e tente novamente.';
+        }
+
+        return '📤 Card pronto. <b>Encaminhe</b> a imagem acima ao cliente (toque e segure → Encaminhar).';
     }
 
     private function shouldScrubLoginMessage(string $text): bool

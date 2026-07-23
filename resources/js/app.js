@@ -78,6 +78,96 @@ function initSiteNav() {
     });
 }
 
+/**
+ * Saltos #âncora na mesma página: instantâneos, com offset do header sticky.
+ * Evita scroll-behavior:smooth lento e reload desnecessário em links absolutos para a home.
+ */
+function initInPageAnchors() {
+    const closeMobileNav = () => {
+        const header = document.querySelector('[data-site-header]');
+        const toggle = header?.querySelector('[data-nav-toggle]');
+        const panel = header?.querySelector('[data-nav-panel]');
+        if (! header || ! toggle || ! panel) {
+            return;
+        }
+        panel.classList.add('hidden');
+        panel.setAttribute('hidden', '');
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.setAttribute('aria-label', 'Abrir menu');
+        header.querySelector('[data-nav-icon="open"]')?.classList.remove('hidden');
+        header.querySelector('[data-nav-icon="close"]')?.classList.add('hidden');
+    };
+
+    const jumpToHash = (hash, { updateHistory = true } = {}) => {
+        if (! hash || hash === '#') {
+            return false;
+        }
+
+        let target = null;
+        try {
+            target = document.querySelector(hash);
+        } catch {
+            return false;
+        }
+
+        if (! target) {
+            return false;
+        }
+
+        closeMobileNav();
+
+        if (updateHistory && window.location.hash !== hash) {
+            history.pushState(null, '', hash);
+        }
+
+        target.scrollIntoView({ behavior: 'auto', block: 'start' });
+
+        return true;
+    };
+
+    document.addEventListener('click', (event) => {
+        const link = event.target.closest?.('a[href]');
+        if (! link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+            return;
+        }
+
+        const rawHref = link.getAttribute('href');
+        if (! rawHref || rawHref.startsWith('mailto:') || rawHref.startsWith('tel:')) {
+            return;
+        }
+
+        let url;
+        try {
+            url = new URL(rawHref, window.location.href);
+        } catch {
+            return;
+        }
+
+        if (url.origin !== window.location.origin || ! url.hash || url.hash === '#') {
+            return;
+        }
+
+        const currentPath = window.location.pathname.replace(/\/$/, '') || '/';
+        const targetPath = url.pathname.replace(/\/$/, '') || '/';
+        if (currentPath !== targetPath) {
+            return;
+        }
+
+        if (! document.querySelector(url.hash)) {
+            return;
+        }
+
+        event.preventDefault();
+        jumpToHash(url.hash);
+    });
+
+    if (window.location.hash) {
+        requestAnimationFrame(() => {
+            jumpToHash(window.location.hash, { updateHistory: false });
+        });
+    }
+}
+
 function initCookieBanner() {
     const banner = document.getElementById('cookie-banner');
     if (! banner) {
@@ -441,6 +531,131 @@ function initAvatarPreviews() {
     });
 }
 
+function initTelegramLogin() {
+    const root = document.querySelector('[data-telegram-login]');
+    const startBtn = root?.querySelector('[data-telegram-start]');
+    if (! root || ! startBtn) {
+        return;
+    }
+
+    const waitBox = root.querySelector('[data-telegram-wait]');
+    const openLink = root.querySelector('[data-telegram-open]');
+    const label = root.querySelector('[data-telegram-label]');
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        || document.querySelector('input[name="_token"]')?.value
+        || '';
+
+    let pollTimer = null;
+
+    const setWaiting = (waiting, deepLink = '#') => {
+        startBtn.disabled = waiting;
+        if (label) {
+            label.textContent = waiting ? 'Aguardando Telegram…' : 'Continuar com Telegram';
+        }
+        if (waitBox) {
+            waitBox.classList.toggle('hidden', ! waiting);
+            waitBox.toggleAttribute('hidden', ! waiting);
+        }
+        if (openLink && deepLink) {
+            openLink.setAttribute('href', deepLink);
+        }
+    };
+
+    const stopPolling = () => {
+        if (pollTimer) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+        }
+    };
+
+    const pollStatus = (statusUrl, completeUrl) => {
+        stopPolling();
+        pollTimer = window.setInterval(async () => {
+            try {
+                const response = await fetch(statusUrl, {
+                    headers: { Accept: 'application/json' },
+                    credentials: 'same-origin',
+                });
+                if (! response.ok) {
+                    return;
+                }
+                const data = await response.json();
+                if (data.status === 'ready') {
+                    stopPolling();
+                    window.location.href = data.complete_url || completeUrl;
+                    return;
+                }
+                if (data.status === 'expired' || data.status === 'unlinked' || data.status === 'denied') {
+                    stopPolling();
+                    setWaiting(false);
+                    if (data.status === 'unlinked') {
+                        window.alert('Vincule a conta no bot com /login email | senha e tente de novo.');
+                    } else {
+                        window.alert('Pedido de login Telegram expirou ou foi recusado. Tente novamente.');
+                    }
+                }
+            } catch {
+                // ignore transient network errors while polling
+            }
+        }, 1800);
+    };
+
+    startBtn.addEventListener('click', async () => {
+        const startUrl = startBtn.getAttribute('data-start-url');
+        if (! startUrl) {
+            return;
+        }
+
+        setWaiting(true);
+        try {
+            const response = await fetch(startUrl, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': csrf,
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin',
+                body: '{}',
+            });
+            const data = await response.json();
+            if (! response.ok || ! data.ok) {
+                throw new Error(data.message || 'Falha ao iniciar login Telegram');
+            }
+
+            setWaiting(true, data.deep_link);
+            window.open(data.deep_link, '_blank', 'noopener');
+            pollStatus(data.status_url, data.complete_url);
+        } catch (error) {
+            setWaiting(false);
+            window.alert(error instanceof Error ? error.message : 'Não foi possível iniciar o login Telegram.');
+        }
+    });
+}
+
+function initBackToTop() {
+    const button = document.querySelector('[data-back-to-top]');
+    if (! (button instanceof HTMLElement)) {
+        return;
+    }
+
+    const threshold = 420;
+
+    const sync = () => {
+        const visible = window.scrollY > threshold;
+        button.classList.toggle('is-visible', visible);
+        button.toggleAttribute('hidden', ! visible);
+    };
+
+    button.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'auto' });
+    });
+
+    window.addEventListener('scroll', sync, { passive: true });
+    sync();
+}
+
 window.buritiPhoneCountryField = buritiPhoneCountryField;
 
 document.addEventListener('alpine:init', () => {
@@ -453,11 +668,14 @@ window.Alpine = Alpine;
 initDialogs();
 syncThemeToggleButtons();
 initSiteNav();
+initInPageAnchors();
 initCookieBanner();
+initBackToTop();
 initAdminShell();
 initAvatarPreviews();
 initPasswordFields();
 initPasswordGenerators();
+initTelegramLogin();
 
 try {
     Alpine.start();

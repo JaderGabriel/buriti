@@ -48,6 +48,7 @@ class TelegramConfigureCommand extends Command
                 ['command' => 'login', 'description' => 'Login admin: email|senha'],
                 ['command' => 'logout', 'description' => 'Encerrar sessão do bot'],
                 ['command' => 'eu', 'description' => 'Mostra a sessão atual'],
+                ['command' => 'card', 'description' => 'Gera card BURI-TI para partilhar com clientes'],
                 ['command' => 'id', 'description' => 'Mostra o Chat ID deste chat'],
                 ['command' => 'status', 'description' => 'Resumo operacional do CRM'],
                 ['command' => 'contatos', 'description' => 'Listar contatos'],

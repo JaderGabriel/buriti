@@ -312,4 +312,28 @@ class TelegramBotTest extends TestCase
             ->assertSee('Telegram Bot', false)
             ->assertSee('/login', false);
     }
+
+    public function test_admin_can_generate_share_card(): void
+    {
+        $this->loginAdmin();
+
+        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+            'message' => [
+                'chat' => ['id' => 999001],
+                'text' => '/card Acme Educacional',
+            ],
+        ])->assertOk();
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'sendPhoto'));
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'sendMessage')
+            && str_contains((string) ($request->data()['text'] ?? ''), 'Card pronto'));
+
+        $card = app(\App\Services\Telegram\TelegramShareCardService::class)->build('Acme Educacional');
+        $this->assertFileExists($card['path']);
+        $this->assertStringContainsString('Acme Educacional', $card['caption']);
+        $this->assertStringContainsString('BURI-TI', $card['caption']);
+        $this->assertNotEmpty($card['reply_markup']['inline_keyboard'] ?? []);
+        @unlink($card['path']);
+    }
 }

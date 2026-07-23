@@ -1,12 +1,17 @@
 @extends('layouts.app')
 
 @section('body')
+@php
+    $sectionHref = static fn (string $id): string => request()->routeIs('home')
+        ? '#'.$id
+        : route('home').'#'.$id;
+@endphp
     <div class="oracle-topbar hidden border-b border-line bg-panel text-xs text-mist sm:block">
         <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-2 sm:px-6 lg:px-8">
             <div class="flex flex-wrap gap-4">
-                <a href="{{ route('home') }}#servicos" class="hover:text-snow">Produtos e serviços</a>
-                <a href="{{ route('home') }}#projetos" class="hover:text-snow">Portfólio</a>
-                <a href="{{ route('home') }}#contato" class="hover:text-snow">Contato</a>
+                <a href="{{ $sectionHref('servicos') }}" class="hover:text-snow">Produtos e serviços</a>
+                <a href="{{ $sectionHref('projetos') }}" class="hover:text-snow">Portfólio</a>
+                <a href="{{ $sectionHref('contato') }}" class="hover:text-snow">Contato</a>
             </div>
             <x-site.admin-link class="inline-flex items-center gap-1.5 font-semibold text-brand-bright hover:text-snow">
                 <x-ui.icon name="admin" class="h-3.5 w-3.5" />
@@ -26,12 +31,12 @@
             </a>
 
             <nav class="hidden items-center gap-6 text-sm font-medium text-mist xl:flex">
-                <a href="{{ route('home') }}#metodo" class="transition hover:text-snow">Método</a>
-                <a href="{{ route('home') }}#servicos" class="transition hover:text-snow">Serviços</a>
-                <a href="{{ route('home') }}#expertise" class="transition hover:text-snow">Expertise</a>
-                <a href="{{ route('home') }}#projetos" class="transition hover:text-snow">Portfólio</a>
-                <a href="{{ route('home') }}#equipe" class="transition hover:text-snow">Quem é quem</a>
-                <a href="{{ route('home') }}#contato" class="transition hover:text-snow">Contato</a>
+                <a href="{{ $sectionHref('metodo') }}" class="transition hover:text-snow">Método</a>
+                <a href="{{ $sectionHref('servicos') }}" class="transition hover:text-snow">Serviços</a>
+                <a href="{{ $sectionHref('expertise') }}" class="transition hover:text-snow">Expertise</a>
+                <a href="{{ $sectionHref('projetos') }}" class="transition hover:text-snow">Portfólio</a>
+                <a href="{{ $sectionHref('equipe') }}" class="transition hover:text-snow">Quem é quem</a>
+                <a href="{{ $sectionHref('contato') }}" class="transition hover:text-snow">Contato</a>
             </nav>
 
             <div class="flex items-center gap-2">
@@ -48,7 +53,7 @@
                 </button>
 
                 <a
-                    href="{{ route('home') }}#contato"
+                    href="{{ $sectionHref('contato') }}"
                     class="hidden items-center justify-center rounded-sm bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-bright xl:inline-flex"
                 >Pedir proposta</a>
 
@@ -61,19 +66,19 @@
                     aria-label="Abrir menu"
                 >
                     <svg data-nav-icon="open" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 7h16M4 12h16M4 17h16"/></svg>
-                    <svg data-nav-icon="close" class="hidden h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 6l12 12M18 6L6 18"/></svg>
+                    <svg data-nav-icon="close" class="hidden h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 6L12 12M18 6L6 18"/></svg>
                 </button>
             </div>
         </div>
 
         <div id="mobile-nav" class="hidden border-t border-line bg-panel xl:hidden" data-nav-panel hidden>
             <nav class="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-4 text-sm sm:px-6">
-                <a href="{{ route('home') }}#metodo" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Método</a>
-                <a href="{{ route('home') }}#servicos" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Serviços</a>
-                <a href="{{ route('home') }}#expertise" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Expertise</a>
-                <a href="{{ route('home') }}#projetos" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Portfólio</a>
-                <a href="{{ route('home') }}#equipe" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Quem é quem</a>
-                <a href="{{ route('home') }}#contato" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Contato</a>
+                <a href="{{ $sectionHref('metodo') }}" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Método</a>
+                <a href="{{ $sectionHref('servicos') }}" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Serviços</a>
+                <a href="{{ $sectionHref('expertise') }}" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Expertise</a>
+                <a href="{{ $sectionHref('projetos') }}" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Portfólio</a>
+                <a href="{{ $sectionHref('equipe') }}" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Quem é quem</a>
+                <a href="{{ $sectionHref('contato') }}" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Contato</a>
                 <x-site.admin-link class="rounded-sm px-3 py-3 font-semibold text-brand-bright" data-nav-close>
                     @auth Painel admin @else Área admin @endauth
                 </x-site.admin-link>
@@ -86,7 +91,7 @@
     </main>
 
     <a
-        href="{{ route('home') }}#contato"
+        href="{{ $sectionHref('contato') }}"
         class="mobile-proposal-fab inline-flex xl:!hidden"
         aria-label="Pedir proposta"
         data-mobile-proposal-fab
@@ -95,7 +100,18 @@
         <span>Pedir proposta</span>
     </a>
 
-    <footer class="border-t border-line bg-panel">
+    <button
+        type="button"
+        class="back-to-top"
+        data-back-to-top
+        aria-label="Voltar ao topo"
+        title="Voltar ao topo"
+        hidden
+    >
+        <x-ui.icon name="arrow-up" class="h-5 w-5" />
+    </button>
+
+    <footer class="site-footer border-t border-line bg-panel">
         <div class="mx-auto grid max-w-7xl grid-cols-2 gap-8 px-4 py-12 sm:gap-10 sm:px-6 md:grid-cols-3 lg:px-8">
             <div class="col-span-2 md:col-span-1">
                 <div class="flex items-center gap-3">
@@ -107,9 +123,9 @@
             <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.16em] text-mist">Navegação</p>
                 <div class="mt-3 flex flex-col gap-2 text-sm text-mist">
-                    <a href="{{ route('home') }}#servicos" class="hover:text-snow">Serviços</a>
-                    <a href="{{ route('home') }}#projetos" class="hover:text-snow">Portfólio</a>
-                    <a href="{{ route('home') }}#contato" class="hover:text-snow">Contato</a>
+                    <a href="{{ $sectionHref('servicos') }}" class="hover:text-snow">Serviços</a>
+                    <a href="{{ $sectionHref('projetos') }}" class="hover:text-snow">Portfólio</a>
+                    <a href="{{ $sectionHref('contato') }}" class="hover:text-snow">Contato</a>
                     <a href="{{ route('privacy') }}" class="hover:text-snow">Privacidade</a>
                     <a href="{{ route('cookies') }}" class="hover:text-snow">Cookies</a>
                 </div>
@@ -129,8 +145,8 @@
                 </div>
             </div>
         </div>
-        <div class="border-t border-line px-4 py-5 text-center text-xs text-mist/80 sm:px-6">
-            <p>© {{ date('Y') }} BURI-TI — Tecnologia para Pessoas. Todos os direitos reservados.</p>
+        <div class="site-footer__legal border-t border-line px-4 py-5 text-center text-xs text-mist/80 sm:px-6">
+            <p>© {{ date('Y') }} BURI-TI — Tecnologia para Pessoas</p>
             <p class="mt-1.5">
                 Desenvolvido e mantido por <span class="text-snow">BURI-TI</span>
                 ·

@@ -15,7 +15,7 @@ class LegalPagesTest extends TestCase
             ->assertOk()
             ->assertSee('Política de Privacidade', false)
             ->assertSee('LGPD', false)
-            ->assertSee('Todos os direitos reservados', false);
+            ->assertSee('©', false);
 
         $this->get(route('cookies'))
             ->assertOk()
@@ -28,7 +28,7 @@ class LegalPagesTest extends TestCase
     {
         $this->get(route('home'))
             ->assertOk()
-            ->assertSee('Todos os direitos reservados', false)
+            ->assertSee('©', false)
             ->assertSee('Desenvolvido e mantido por', false)
             ->assertSee('Política de Privacidade', false)
             ->assertSee('Política de Cookies', false)

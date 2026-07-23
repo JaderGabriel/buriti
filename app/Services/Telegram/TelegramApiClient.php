@@ -84,6 +84,47 @@ class TelegramApiClient
         }
     }
 
+    /**
+     * @param  array{inline_keyboard: list<list<array{text: string, url: string}>>}|null  $replyMarkup
+     */
+    public function sendPhoto(string|int $chatId, string $absolutePath, string $caption = '', ?array $replyMarkup = null): bool
+    {
+        if (! $this->configured() || ! is_file($absolutePath)) {
+            return false;
+        }
+
+        try {
+            $payload = [
+                'chat_id' => (string) $chatId,
+                'caption' => $caption,
+                'parse_mode' => 'HTML',
+            ];
+
+            if ($replyMarkup !== null) {
+                $payload['reply_markup'] = json_encode($replyMarkup, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+            }
+
+            $response = Http::timeout(30)
+                ->attach('photo', file_get_contents($absolutePath), basename($absolutePath))
+                ->post($this->endpoint('sendPhoto'), $payload);
+
+            if (! $response->successful() || ! ($response->json('ok') ?? false)) {
+                Log::warning('Telegram sendPhoto failed', [
+                    'status' => $response->status(),
+                    'body' => $response->json(),
+                ]);
+
+                return false;
+            }
+
+            return true;
+        } catch (\Throwable $e) {
+            Log::warning('Telegram sendPhoto exception', ['message' => $e->getMessage()]);
+
+            return false;
+        }
+    }
+
     /** @return array{ok: bool, description?: string, result?: mixed} */
     public function setWebhook(string $url, ?string $secretToken = null): array
     {
