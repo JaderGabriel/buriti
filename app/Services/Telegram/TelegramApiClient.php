@@ -51,6 +51,39 @@ class TelegramApiClient
         }
     }
 
+    public function deleteMessage(string|int $chatId, int $messageId): bool
+    {
+        if (! $this->configured() || $messageId <= 0) {
+            return false;
+        }
+
+        try {
+            $response = Http::timeout(12)
+                ->asJson()
+                ->post($this->endpoint('deleteMessage'), [
+                    'chat_id' => $chatId,
+                    'message_id' => $messageId,
+                ]);
+
+            if (! $response->successful() || ! ($response->json('ok') ?? false)) {
+                Log::warning('Telegram deleteMessage failed', [
+                    'status' => $response->status(),
+                    'body' => $response->json(),
+                    'chat_id' => $chatId,
+                    'message_id' => $messageId,
+                ]);
+
+                return false;
+            }
+
+            return true;
+        } catch (\Throwable $e) {
+            Log::warning('Telegram deleteMessage exception', ['message' => $e->getMessage()]);
+
+            return false;
+        }
+    }
+
     /** @return array{ok: bool, description?: string, result?: mixed} */
     public function setWebhook(string $url, ?string $secretToken = null): array
     {

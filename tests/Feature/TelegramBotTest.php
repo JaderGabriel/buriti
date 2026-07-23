@@ -55,12 +55,16 @@ class TelegramBotTest extends TestCase
     {
         $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
             'message' => [
+                'message_id' => 1001,
                 'chat' => ['id' => (int) $chatId],
                 'text' => '/login admin@buriti.test | password',
             ],
         ])->assertOk();
 
         $this->assertSame($chatId, $this->admin->fresh()->telegram_chat_id);
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'deleteMessage')
+            && ($request->data()['message_id'] ?? null) == 1001);
     }
 
     public function test_webhook_rejects_invalid_secret(): void
@@ -92,6 +96,7 @@ class TelegramBotTest extends TestCase
 
         $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
             'message' => [
+                'message_id' => 2002,
                 'chat' => ['id' => 555],
                 'text' => '/login user@buriti.test | password',
             ],
@@ -101,6 +106,9 @@ class TelegramBotTest extends TestCase
             'email' => 'user@buriti.test',
             'telegram_chat_id' => '555',
         ]);
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'deleteMessage')
+            && ($request->data()['message_id'] ?? null) == 2002);
     }
 
     public function test_admin_can_login_and_use_crm(): void

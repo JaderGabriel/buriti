@@ -269,8 +269,8 @@ Bot para **listar, ver, criar, editar e apagar** registos do CRM, e receber mens
    TELEGRAM_WEBHOOK_SECRET=uma-string-aleatoria
    ```
 3. Com `APP_URL` público (HTTPS), ex.: `https://buriti.dev.br/public`: `php artisan telegram:configure`
-4. Fale com o bot e faça login de **admin**: `/login email_ou_usuario | senha`
-5. Apague a mensagem do login; use `/logout` para sair
+4. Fale com o bot e faça login de **admin**: `/login email_ou_usuario | senha` (a mensagem com senha é apagada automaticamente)
+5. Use `/logout` para sair
 6. Comandos: `/ajuda`, `/status`, `/contatos`, CRUD com `add`/`set`/`del`, etc.
 
 Apenas utilizadores com `is_admin=1` e conta ativa podem autenticar. A sessão fica ligada ao `telegram_chat_id` do utilizador.

@@ -131,8 +131,8 @@
                     <li>Crie o bot no @BotFather e copie o token.</li>
                     <li>No <code class="text-snow">.env</code>: <code class="text-snow">TELEGRAM_BOT_TOKEN</code> e <code class="text-snow">TELEGRAM_WEBHOOK_SECRET</code>.</li>
                     <li>Rode <code class="text-snow">php artisan telegram:configure</code> (APP_URL com <code class="text-snow">/public</code> em produção).</li>
-                    <li>No bot: <code class="text-snow">/login email_ou_usuario | senha</code> — <strong class="text-snow">apenas contas admin</strong>.</li>
-                    <li>Apague a mensagem do login (contém a senha). Use <code class="text-snow">/logout</code> para encerrar.</li>
+                    <li>No bot: <code class="text-snow">/login email_ou_usuario | senha</code> — <strong class="text-snow">apenas contas admin</strong>. A mensagem com senha é apagada automaticamente.</li>
+                    <li>Use <code class="text-snow">/logout</code> para encerrar a sessão.</li>
                     <li>Comandos CRM: <code class="text-snow">/ajuda</code>, listas e <code class="text-snow">add</code>/<code class="text-snow">set</code>/<code class="text-snow">del</code>.</li>
                 </ol>
                 <p class="mt-2">

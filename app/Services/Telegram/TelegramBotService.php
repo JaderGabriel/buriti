@@ -57,6 +57,7 @@ class TelegramBotService
 
         $chatId = (string) data_get($message, 'chat.id', '');
         $text = trim((string) ($message['text'] ?? ''));
+        $messageId = (int) data_get($message, 'message_id', 0);
 
         if ($chatId === '' || $text === '') {
             return;
@@ -68,14 +69,19 @@ class TelegramBotService
             $this->api->sendMessage(
                 $chatId,
                 "🔐 Acesso restrito a <b>administradores</b>.\n\n".
-                "Faça login:\n<code>/login email_ou_usuario | senha</code>\n\n".
-                "Depois apague a mensagem com a senha no Telegram."
+                "Entre com:\n<code>/login email_ou_usuario | senha</code>\n\n".
+                "A mensagem com a senha é apagada automaticamente após o login."
             );
 
             return;
         }
 
         $reply = $this->dispatch($text, $chatId, $admin);
+
+        if ($this->shouldScrubLoginMessage($text) && $messageId > 0) {
+            $this->api->deleteMessage($chatId, $messageId);
+        }
+
         if ($reply !== null) {
             $this->api->sendMessage($chatId, $reply);
         }
@@ -201,32 +207,50 @@ class TelegramBotService
 
     private function helpText(?User $admin): string
     {
-        $auth = $admin
-            ? "✅ Sessão: <b>{$this->escape($admin->name)}</b> (admin)\n<code>/logout</code> · <code>/eu</code>"
-            : "🔐 Sem sessão. Login (apenas admin):\n<code>/login email_ou_usuario | senha</code>\nApague a mensagem da senha depois.";
+        if ($admin) {
+            $authBlock = "✅ <b>Sessão ativa</b> — {$this->escape($admin->name)} (admin)\n".
+                "<code>/eu</code> ver sessão · <code>/logout</code> sair · <code>/status</code> resumo";
+        } else {
+            $authBlock = "🔐 <b>Sem sessão</b> — só administradores\n".
+                "<code>/login email_ou_usuario | senha</code>\n".
+                "<i>A mensagem do login (com senha) é apagada automaticamente.</i>";
+        }
 
         return <<<HTML
-🤖 <b>Bot BURI-TI — CRM</b>
+🤖 <b>BURI-TI CRM</b>
 
-{$auth}
+{$authBlock}
 
-Ações: <code>add</code> · <code>set</code> · <code>del</code>
-Listas: plural (<code>/contatos</code>). Detalhe: <code>/contato 12</code>
-Em <code>set</code>, use <code>.</code> para manter o valor atual.
-Em <code>del</code>, confirme com <code>ok</code> no fim.
+<b>Como usar</b>
+• Listar: <code>/contatos</code> <code>/oportunidades</code> <code>/projetos</code> <code>/tarefas</code> <code>/mensagens</code>
+• Ver: <code>/contato 12</code> (idem para as outras entidades)
+• Criar: <code>/contato add Nome|email|tel?|empresa?|status?</code>
+• Editar: <code>/contato set 12|Nome|email|tel|empresa|status</code>
+• Apagar: <code>/contato del 12 ok</code>
 
-<b>Contatos</b>
-<code>/contatos</code> · <code>/contato ID</code>
-<code>/contato add Nome|email|tel?|empresa?|status?</code>
-<code>/contato set ID|Nome|email|tel|empresa|status</code>
-<code>/contato del ID ok</code>
+Em <code>set</code>, use <code>.</code> para manter o valor.
+Em <code>del</code>, confirme com <code>ok</code>.
 
-<b>Oportunidades / Projetos / Tarefas / Mensagens</b>
-Mesmo padrão: <code>/oportunidades</code>, <code>/projetos</code>, <code>/tarefas</code>, <code>/mensagens</code>
-<code>/mensagem lida ID</code>
+<b>Atalhos</b>
+<code>/oportunidade</code> · <code>/projeto</code> · <code>/tarefa</code> · <code>/mensagem</code>
+<code>/mensagem lida ID</code> · <code>/id</code>
 
-<code>/status</code> · <code>/id</code>
+Campos separados por <code>|</code>.
 HTML;
+    }
+
+    private function shouldScrubLoginMessage(string $text): bool
+    {
+        $parts = preg_split('/\s+/', trim($text), 2) ?: [];
+        $command = Str::before(Str::lower((string) ($parts[0] ?? '')), '@');
+
+        if ($command !== '/login') {
+            return false;
+        }
+
+        $argument = trim((string) ($parts[1] ?? ''));
+
+        return count($this->splitArgs($argument, 2)) >= 2;
     }
 
     private function login(string $chatId, string $argument): string
@@ -237,7 +261,7 @@ HTML;
 
         $fields = $this->splitArgs($argument, 2);
         if (count($fields) < 2) {
-            return "Uso: <code>/login email_ou_usuario | senha</code>\n\nApenas contas <b>admin</b> ativas. Apague a mensagem com a senha em seguida.";
+            return "Uso: <code>/login email_ou_usuario | senha</code>\n\nApenas contas <b>admin</b> ativas.\nA mensagem com senha será apagada automaticamente quando enviar as credenciais.";
         }
 
         [$login, $password] = $fields;
@@ -254,21 +278,21 @@ HTML;
             $this->hitLoginFailure($chatId);
             $this->recordTelegramLoginAttempt($user, $login, false);
 
-            return '❌ Credenciais inválidas.';
+            return '❌ Credenciais inválidas. A mensagem com a senha foi removida do chat.';
         }
 
         if (! $user->is_active) {
             $this->hitLoginFailure($chatId);
             $this->recordTelegramLoginAttempt($user, $login, false);
 
-            return '⛔ Conta inativa.';
+            return '⛔ Conta inativa. A mensagem com a senha foi removida do chat.';
         }
 
         if (! $user->is_admin) {
             $this->hitLoginFailure($chatId);
             $this->recordTelegramLoginAttempt($user, $login, false);
 
-            return '⛔ Apenas administradores podem usar o bot.';
+            return '⛔ Apenas administradores podem usar o bot. A mensagem com a senha foi removida do chat.';
         }
 
         $user->linkTelegramChat($chatId);
@@ -281,8 +305,8 @@ HTML;
         $this->recordTelegramLoginAttempt($user, $login, true);
 
         return "✅ Login OK, <b>{$this->escape($user->name)}</b>.\n\n".
-            "Pode usar o CRM. Envie /ajuda.\n".
-            "<i>Apague a mensagem /login com a senha por segurança.</i>";
+            "Credenciais removidas do chat automaticamente.\n".
+            "Envie /ajuda para ver os comandos.";
     }
 
     private function logout(string $chatId, ?User $admin): string
