@@ -23,14 +23,14 @@
             value="{{ old('title', $note->title) }}"
             placeholder="Título (opcional)"
             maxlength="180"
-            class="idea-postit__title w-full border-0 bg-transparent font-script text-xl leading-tight text-inherit placeholder:opacity-50 focus:outline-none focus:ring-0"
+            class="idea-postit__title w-full border-0 bg-transparent text-inherit focus:outline-none focus:ring-0"
         >
 
         <textarea
             name="body"
             rows="5"
             placeholder="Escreva a ideia, rascunho ou lembrete…"
-            class="idea-postit__body w-full flex-1 resize-none border-0 bg-transparent text-sm leading-relaxed text-inherit placeholder:opacity-50 focus:outline-none focus:ring-0"
+            class="idea-postit__body w-full flex-1 resize-none border-0 bg-transparent text-inherit focus:outline-none focus:ring-0"
         >{{ old('body', $note->body) }}</textarea>
 
         <div class="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-2">

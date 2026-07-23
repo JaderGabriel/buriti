@@ -5,12 +5,14 @@ namespace App\Models;
 use App\Enums\ContactSource;
 use App\Enums\ContactStatus;
 use App\Models\Concerns\HasAttachments;
+use App\Support\PhoneNumber;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Contact extends Model
 {
@@ -83,5 +85,32 @@ class Contact extends Model
     public function scopeLeads(Builder $query): Builder
     {
         return $query->where('status', ContactStatus::Lead);
+    }
+
+    public function alphabetLetter(): string
+    {
+        return self::letterFromName($this->name);
+    }
+
+    public static function letterFromName(?string $name): string
+    {
+        $normalized = Str::upper(Str::ascii(trim((string) $name)));
+        $letter = mb_substr($normalized, 0, 1);
+
+        return preg_match('/^[A-Z]$/', $letter) === 1 ? $letter : '#';
+    }
+
+    public function whatsappUrl(): ?string
+    {
+        $digits = PhoneNumber::digits($this->phone);
+
+        return $digits ? 'https://wa.me/'.$digits : null;
+    }
+
+    public function telUrl(): ?string
+    {
+        $digits = PhoneNumber::digits($this->phone);
+
+        return $digits ? 'tel:+'.$digits : null;
     }
 }

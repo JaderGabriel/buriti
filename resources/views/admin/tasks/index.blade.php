@@ -75,6 +75,13 @@
                     <a href="{{ route('admin.settings.edit') }}#google-integration" class="mt-2 inline-flex text-sm font-semibold text-brand-bright hover:underline">Configurar integração →</a>
                 </div>
             @endif
+            <x-admin.inline-docs title="Agenda + lembretes Telegram" class="mt-3">
+                <p>Configure URL/embed/API em <a href="{{ route('admin.settings.edit') }}#google-integration">Configurações → Google</a> (documentação ao lado dos campos).</p>
+                <p class="admin-docs__note mb-0">
+                    Tarefas com prazo recebem aviso no Telegram ~10 min antes para quem as criou.
+                    Bot + cron: ver <a href="{{ route('admin.integrations.edit') }}#telegram">Integrações → Telegram</a>.
+                </p>
+            </x-admin.inline-docs>
         </div>
     </div>
 

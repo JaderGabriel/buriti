@@ -664,9 +664,47 @@ html.dark .postit-lilac {
 .idea-postit__swatch--lilac span { background: #b8a0e8; }
 .idea-postit__swatch--slate span { background: #a8b0bc; }
 
-.idea-postit__title,
-.idea-postit__body {
+.idea-postit__title {
+    font-family: var(--font-display);
+    font-size: clamp(1.05rem, 0.7vw + 0.92rem, 1.3rem);
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
     color: inherit;
+    word-break: break-word;
+}
+
+.idea-postit__body {
+    font-family: var(--font-sans);
+    font-size: clamp(0.8125rem, 0.25vw + 0.78rem, 0.9375rem);
+    font-weight: 500;
+    line-height: 1.5;
+    color: inherit;
+    word-break: break-word;
+}
+
+.idea-postit__title::placeholder,
+.idea-postit__body::placeholder {
+    opacity: 0.5;
+    font-weight: 500;
+}
+
+@media (max-width: 639px) {
+    .idea-postit {
+        min-height: 12.5rem;
+        padding: 1rem 0.9rem 0.9rem;
+        padding-top: 1.6rem;
+    }
+
+    .idea-postit__title {
+        font-size: clamp(1rem, 2.8vw + 0.75rem, 1.15rem);
+        line-height: 1.3;
+    }
+
+    .idea-postit__body {
+        font-size: 0.8125rem;
+        line-height: 1.45;
+    }
 }
 
 .postit-pin {
@@ -3813,4 +3851,465 @@ button.task-agenda__date:hover {
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border: 0;
+}
+
+/* —— Inline docs (config / integrações) —— */
+.admin-docs {
+    border: 1px solid var(--color-line);
+    background: color-mix(in oklab, var(--color-ink) 55%, var(--color-panel));
+    padding: 1.1rem 1.15rem 1.25rem;
+    color: var(--color-mist);
+    font-size: 0.8125rem;
+    line-height: 1.55;
+}
+
+.admin-docs--sticky {
+    position: sticky;
+    top: 1rem;
+}
+
+.admin-docs__eyebrow {
+    margin: 0;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-brand-bright);
+}
+
+.admin-docs__title {
+    margin: 0.35rem 0 0.85rem;
+    font-family: var(--font-display), sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--color-snow);
+    line-height: 1.3;
+}
+
+.admin-docs__body > p {
+    margin: 0 0 0.75rem;
+}
+
+.admin-docs__body strong {
+    color: var(--color-snow);
+    font-weight: 600;
+}
+
+.admin-docs__body a {
+    color: var(--color-brand-bright);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.admin-docs__body code {
+    font-size: 0.75rem;
+    color: var(--color-snow);
+    word-break: break-word;
+}
+
+.admin-docs__details {
+    border-top: 1px solid color-mix(in oklab, var(--color-line) 80%, transparent);
+    padding: 0.55rem 0;
+}
+
+.admin-docs__details:first-of-type {
+    border-top: 0;
+    padding-top: 0;
+}
+
+.admin-docs__details summary {
+    cursor: pointer;
+    list-style: none;
+    font-weight: 600;
+    color: var(--color-snow);
+    padding: 0.2rem 0;
+}
+
+.admin-docs__details summary::-webkit-details-marker {
+    display: none;
+}
+
+.admin-docs__details summary::before {
+    content: '+';
+    display: inline-block;
+    width: 1rem;
+    color: var(--color-brand-bright);
+    font-weight: 700;
+}
+
+.admin-docs__details[open] summary::before {
+    content: '−';
+}
+
+.admin-docs__details ol,
+.admin-docs__details ul {
+    margin: 0.5rem 0 0.35rem;
+    padding-left: 1.15rem;
+}
+
+.admin-docs__details li + li {
+    margin-top: 0.35rem;
+}
+
+.admin-docs__note {
+    margin: 0.5rem 0 0;
+    font-size: 0.75rem;
+    opacity: 0.9;
+}
+
+.admin-docs__label {
+    margin: 0.65rem 0 0.35rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-snow);
+}
+
+.admin-docs__code {
+    margin: 0.35rem 0 0.65rem;
+    padding: 0.65rem 0.75rem;
+    overflow-x: auto;
+    border: 1px solid var(--color-line);
+    background: color-mix(in oklab, var(--color-ink) 80%, black);
+    color: var(--color-snow);
+    font-size: 0.7rem;
+    line-height: 1.45;
+    white-space: pre;
+}
+
+.admin-docs__checklist {
+    list-style: none;
+    margin: 0.5rem 0 0;
+    padding: 0;
+}
+
+.admin-docs__checklist li {
+    position: relative;
+    padding-left: 1.25rem;
+}
+
+.admin-docs__checklist li::before {
+    content: '☐';
+    position: absolute;
+    left: 0;
+    color: var(--color-brand-bright);
+}
+
+.settings-google-layout {
+    display: grid;
+    gap: 1.25rem;
+}
+
+@media (min-width: 1100px) {
+    .settings-google-layout {
+        grid-template-columns: minmax(0, 1fr) minmax(20rem, 26rem);
+        align-items: start;
+    }
+}
+
+.integration-section-layout {
+    display: grid;
+    gap: 1rem;
+}
+
+@media (min-width: 960px) {
+    .integration-section-layout {
+        grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+        align-items: start;
+    }
+}
+
+/* —— Agenda telefónica de contatos —— */
+.phonebook-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+@media (min-width: 900px) {
+    .phonebook-toolbar {
+        flex-direction: row;
+        align-items: flex-start;
+        justify-content: space-between;
+    }
+}
+
+.phonebook-views {
+    display: inline-flex;
+    border: 1px solid var(--color-line);
+    background: var(--color-panel);
+}
+
+.phonebook-views__btn {
+    padding: 0.45rem 0.9rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-mist);
+}
+
+.phonebook-views__btn.is-active,
+.phonebook-views__btn:hover {
+    color: var(--color-snow);
+    background: color-mix(in oklab, var(--color-brand) 18%, transparent);
+}
+
+.phonebook-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    flex: 1;
+    justify-content: flex-end;
+}
+
+.phonebook-filters__search,
+.phonebook-filters__select {
+    border: 1px solid var(--color-line);
+    background: color-mix(in oklab, var(--color-ink) 40%, transparent);
+    color: var(--color-snow);
+    padding: 0.45rem 0.7rem;
+    font-size: 0.8125rem;
+    min-width: 0;
+}
+
+.phonebook-filters__search {
+    flex: 1 1 12rem;
+    min-width: 10rem;
+}
+
+.phonebook-filters__select {
+    flex: 0 1 auto;
+}
+
+.phonebook-filters__submit,
+.phonebook-filters__clear {
+    border: 1px solid var(--color-line);
+    padding: 0.45rem 0.85rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--color-snow);
+}
+
+.phonebook-filters__submit:hover,
+.phonebook-filters__clear:hover {
+    border-color: color-mix(in oklab, var(--color-brand-bright) 50%, var(--color-line));
+}
+
+.phonebook-filters__clear {
+    color: var(--color-mist);
+}
+
+.phonebook-alphabet {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-top: 0.25rem;
+}
+
+.phonebook-alphabet__item {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    min-height: 2.35rem;
+    padding: 0.2rem 0.35rem;
+    border: 1px solid var(--color-line);
+    background: var(--color-panel);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-snow);
+    line-height: 1.1;
+}
+
+.phonebook-alphabet__item span {
+    margin-top: 0.1rem;
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: var(--color-mist);
+}
+
+.phonebook-alphabet__item.is-active {
+    border-color: color-mix(in oklab, var(--color-brand-bright) 55%, var(--color-line));
+    background: color-mix(in oklab, var(--color-brand) 20%, transparent);
+    color: var(--color-brand-bright);
+}
+
+.phonebook-alphabet__item.is-empty {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.phonebook {
+    display: grid;
+    gap: 1.25rem;
+}
+
+.phonebook__group {
+    border: 1px solid var(--color-line);
+    background: var(--color-panel);
+}
+
+.phonebook__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid var(--color-line);
+    background: color-mix(in oklab, var(--color-ink) 35%, transparent);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.phonebook__header h2 {
+    margin: 0;
+    font-family: var(--font-display), sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-brand-bright);
+}
+
+.phonebook__header span {
+    font-size: 0.75rem;
+    color: var(--color-mist);
+}
+
+.phonebook__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.phonebook__row {
+    display: grid;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border-top: 1px solid color-mix(in oklab, var(--color-line) 70%, transparent);
+    align-items: center;
+}
+
+.phonebook__row:first-child {
+    border-top: 0;
+}
+
+@media (min-width: 840px) {
+    .phonebook__row {
+        grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 0.9fr);
+    }
+}
+
+.phonebook__identity {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+    color: inherit;
+}
+
+.phonebook__avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    flex-shrink: 0;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--color-brand) 22%, transparent);
+    color: var(--color-brand-bright);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.phonebook__meta {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.phonebook__meta strong {
+    font-size: 0.95rem;
+    color: var(--color-snow);
+}
+
+.phonebook__meta small {
+    font-size: 0.75rem;
+    color: var(--color-mist);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.phonebook__phone {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+}
+
+.phonebook__number {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-snow);
+    font-variant-numeric: tabular-nums;
+}
+
+.phonebook__empty {
+    font-size: 0.8rem;
+    color: var(--color-mist);
+}
+
+.phonebook__actions {
+    display: inline-flex;
+    gap: 0.35rem;
+}
+
+.phonebook__action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid var(--color-line);
+    color: var(--color-brand-bright);
+}
+
+.phonebook__action:hover {
+    border-color: color-mix(in oklab, var(--color-brand-bright) 50%, var(--color-line));
+    background: color-mix(in oklab, var(--color-brand) 15%, transparent);
+}
+
+.phonebook__action--wa {
+    color: #5dce8a;
+}
+
+.phonebook__side {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: flex-start;
+    min-width: 0;
+}
+
+@media (min-width: 840px) {
+    .phonebook__side {
+        justify-content: flex-end;
+    }
+}
+
+.phonebook__email {
+    font-size: 0.75rem;
+    color: var(--color-mist);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 14rem;
+}
+
+.phonebook__email:hover {
+    color: var(--color-brand-bright);
 }

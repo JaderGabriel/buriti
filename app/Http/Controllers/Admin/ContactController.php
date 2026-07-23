@@ -32,10 +32,16 @@ class ContactController extends Controller
 
     public function index(Request $request): View
     {
-        $contacts = Contact::query()
+        $view = $this->resolveContactsView($request->query('view'));
+        $letter = $this->resolveAlphabetLetter($request->query('letter'));
+
+        $baseQuery = Contact::query()
             ->with('clientCompany')
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
             ->when($request->filled('company_id'), fn ($q) => $q->where('company_id', $request->integer('company_id')))
+            ->when($request->filled('channel'), fn ($q) => $q->where('preferred_channel', $request->string('channel')))
+            ->when($request->string('phone') === 'with', fn ($q) => $q->whereNotNull('phone')->where('phone', '!=', ''))
+            ->when($request->string('phone') === 'without', fn ($q) => $q->where(fn ($inner) => $inner->whereNull('phone')->orWhere('phone', '')))
             ->when($request->filled('q'), function ($q) use ($request) {
                 $term = '%'.$request->string('q').'%';
                 $q->where(function ($inner) use ($term) {
@@ -45,19 +51,70 @@ class ContactController extends Controller
                         ->orWhere('phone', 'like', $term)
                         ->orWhereHas('clientCompany', fn ($company) => $company->where('name', 'like', $term));
                 });
-            })
-            ->latest()
-            ->paginate(15)
-            ->withQueryString();
+            });
+
+        $letterCounts = (clone $baseQuery)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (Contact $contact) => $contact->alphabetLetter())
+            ->countBy()
+            ->all();
+
+        if ($view === 'cards' && $letter === null) {
+            $contacts = (clone $baseQuery)
+                ->orderBy('name')
+                ->paginate(24)
+                ->withQueryString();
+            $groups = collect();
+        } else {
+            $contacts = (clone $baseQuery)
+                ->orderBy('name')
+                ->get()
+                ->when($letter !== null, fn ($items) => $items->filter(
+                    fn (Contact $contact) => $contact->alphabetLetter() === $letter
+                )->values());
+            $groups = $contacts->groupBy(fn (Contact $contact) => $contact->alphabetLetter());
+        }
 
         return view('admin.contacts.index', [
+            'view' => $view,
+            'letter' => $letter,
             'contacts' => $contacts,
+            'groups' => $groups,
+            'letterCounts' => $letterCounts,
+            'alphabet' => array_merge(range('A', 'Z'), ['#']),
             'statuses' => ContactStatus::options(),
             'statusCounts' => Contact::query()
                 ->selectRaw('status, count(*) as total')
                 ->groupBy('status')
                 ->pluck('total', 'status'),
+            'companies' => Company::query()->orderBy('name')->get(),
+            'channels' => [
+                'email' => 'E-mail',
+                'phone' => 'Telefone',
+                'whatsapp' => 'WhatsApp',
+            ],
         ]);
+    }
+
+    private function resolveContactsView(?string $view): string
+    {
+        return in_array($view, ['phonebook', 'cards'], true) ? $view : 'phonebook';
+    }
+
+    private function resolveAlphabetLetter(mixed $letter): ?string
+    {
+        $letter = strtoupper(trim((string) $letter));
+
+        if ($letter === '' || $letter === 'ALL') {
+            return null;
+        }
+
+        if ($letter === '#') {
+            return '#';
+        }
+
+        return preg_match('/^[A-Z]$/', $letter) === 1 ? $letter : null;
     }
 
     public function create(Request $request): View

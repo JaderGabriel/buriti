@@ -53,6 +53,19 @@ class CrmTest extends TestCase
             ->assertSee('Maria Cliente', false)
             ->assertSee('Interessada em BI', false)
             ->assertSee('Cliente SA', false);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.contacts.index', ['view' => 'phonebook']))
+            ->assertOk()
+            ->assertSee('Agenda', false)
+            ->assertSee('phonebook', false)
+            ->assertSee('Maria Cliente', false)
+            ->assertSee('+55 38 99999-9999', false);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.contacts.index', ['view' => 'phonebook', 'letter' => 'M']))
+            ->assertOk()
+            ->assertSee('Maria Cliente', false);
     }
 
     public function test_admin_can_manage_company_with_contacts_projects_and_opportunities(): void
