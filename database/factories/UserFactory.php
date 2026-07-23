@@ -32,11 +32,19 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
             'avatar_path' => null,
-            'is_admin' => true,
-            'is_active' => true,
-            'last_login_at' => null,
-            'last_login_ip' => null,
         ];
+    }
+
+    public function configure(): static
+    {
+        return $this->afterMaking(function (User $user) {
+            if (! array_key_exists('is_admin', $user->getAttributes())) {
+                $user->forceFill(['is_admin' => true]);
+            }
+            if (! array_key_exists('is_active', $user->getAttributes())) {
+                $user->forceFill(['is_active' => true]);
+            }
+        });
     }
 
     public function unverified(): static
@@ -48,11 +56,15 @@ class UserFactory extends Factory
 
     public function withoutAdminAccess(): static
     {
-        return $this->state(fn () => ['is_admin' => false]);
+        return $this->afterMaking(function (User $user) {
+            $user->forceFill(['is_admin' => false]);
+        });
     }
 
     public function inactive(): static
     {
-        return $this->state(fn () => ['is_active' => false]);
+        return $this->afterMaking(function (User $user) {
+            $user->forceFill(['is_active' => false]);
+        });
     }
 }

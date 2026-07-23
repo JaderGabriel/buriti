@@ -12,9 +12,32 @@ enum ContactStatus: string
     {
         return match ($this) {
             self::Lead => 'Lead',
-            self::Active => 'Ativo',
+            self::Active => 'Cliente',
             self::Inactive => 'Inativo',
         };
+    }
+
+    public function description(): string
+    {
+        return match ($this) {
+            self::Lead => 'Pessoa em prospecção / entrada',
+            self::Active => 'Cliente ou conta ativa no CRM',
+            self::Inactive => 'Contato arquivado ou sem movimento',
+        };
+    }
+
+    public function icon(): string
+    {
+        return match ($this) {
+            self::Lead => 'lead',
+            self::Active => 'contact',
+            self::Inactive => 'lost',
+        };
+    }
+
+    public function tone(): string
+    {
+        return $this->value;
     }
 
     /** @return array<string, string> */

@@ -24,6 +24,7 @@ class AttachmentTest extends TestCase
         parent::setUp();
         $this->admin = User::factory()->create();
         Storage::fake('public');
+        Storage::fake('local');
     }
 
     public function test_admin_can_attach_document_to_contact(): void
@@ -42,8 +43,9 @@ class AttachmentTest extends TestCase
         $attachment = Attachment::query()->first();
         $this->assertNotNull($attachment);
         $this->assertSame('Proposta comercial', $attachment->title);
+        $this->assertSame('local', $attachment->disk);
         $this->assertTrue($attachment->attachable->is($contact));
-        Storage::disk('public')->assertExists($attachment->path);
+        Storage::disk('local')->assertExists($attachment->path);
     }
 
     public function test_admin_can_attach_document_to_opportunity_and_task(): void
@@ -144,7 +146,7 @@ class AttachmentTest extends TestCase
             ->assertRedirect();
 
         $this->assertSoftDeleted('attachments', ['id' => $attachment->id]);
-        Storage::disk('public')->assertExists($path);
+        Storage::disk('local')->assertExists($path);
         $this->assertDatabaseHas('audit_logs', ['action' => 'attachment.trashed']);
 
         $this->actingAs($this->admin)
@@ -167,7 +169,7 @@ class AttachmentTest extends TestCase
             ->assertRedirect();
 
         $this->assertDatabaseMissing('attachments', ['id' => $attachment->id]);
-        Storage::disk('public')->assertMissing($path);
+        Storage::disk('local')->assertMissing($path);
         $this->assertDatabaseHas('audit_logs', ['action' => 'attachment.purged']);
     }
 

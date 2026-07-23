@@ -16,8 +16,10 @@ class TelegramWebhookController extends Controller
             abort(404);
         }
 
+        // Exige o header oficial do Telegram (secret_token do setWebhook).
+        // O secret na URL sozinho não basta — evita abuso se o path vazar em logs.
         $headerSecret = (string) $request->header('X-Telegram-Bot-Api-Secret-Token', '');
-        if ($expected !== '' && $headerSecret !== '' && ! hash_equals($expected, $headerSecret)) {
+        if ($headerSecret === '' || ! hash_equals($expected, $headerSecret)) {
             abort(403);
         }
 

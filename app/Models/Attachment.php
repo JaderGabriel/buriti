@@ -51,7 +51,14 @@ class Attachment extends Model
 
     public function url(): string
     {
-        return Storage::disk($this->disk ?: 'public')->url($this->path);
+        $disk = $this->disk ?: 'public';
+
+        // Disco privado / documentos: só via download autenticado.
+        if ($disk !== 'public' || $this->kind === 'document') {
+            return route('admin.attachments.download', $this);
+        }
+
+        return Storage::disk($disk)->url($this->path);
     }
 
     public function isImage(): bool

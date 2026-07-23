@@ -14,7 +14,10 @@ use Illuminate\Support\Facades\Log;
 
 class ContactIngestService
 {
-    public function __construct(private TelegramBotService $telegram) {}
+    public function __construct(
+        private TelegramBotService $telegram,
+        private CompanyResolver $companies,
+    ) {}
 
     /**
      * @param  array{name: string, email: string, phone?: ?string, preferred_channel?: ?string, company?: ?string, subject: string, message: string}  $payload
@@ -23,13 +26,15 @@ class ContactIngestService
     {
         $message = DB::transaction(function () use ($payload) {
             $email = strtolower(trim($payload['email']));
+            $company = $this->companies->findOrCreateByName($payload['company'] ?? null);
 
             $contact = Contact::query()->updateOrCreate(
                 ['email' => $email],
                 [
                     'name' => $payload['name'],
                     'phone' => $payload['phone'] ?? null,
-                    'company' => $payload['company'] ?? null,
+                    'company' => $company?->name,
+                    'company_id' => $company?->id,
                     'preferred_channel' => $payload['preferred_channel'] ?? null,
                     'status' => ContactStatus::Lead,
                     'source' => ContactSource::Website,
@@ -78,13 +83,15 @@ class ContactIngestService
             }
 
             $email = strtolower(trim($message->email));
+            $company = $this->companies->findOrCreateByName($message->company);
 
             $contact = Contact::query()->updateOrCreate(
                 ['email' => $email],
                 [
                     'name' => $message->name,
                     'phone' => $message->phone,
-                    'company' => $message->company,
+                    'company' => $company?->name ?? $message->company,
+                    'company_id' => $company?->id,
                     'preferred_channel' => $message->preferred_channel,
                     'status' => ContactStatus::Lead,
                     'source' => ContactSource::Website,

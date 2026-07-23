@@ -5,17 +5,22 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\OpportunityStage;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\OpportunityRequest;
+use App\Http\Requests\Admin\UpdateOpportunityStageRequest;
 use App\Models\Contact;
 use App\Models\Opportunity;
 use App\Models\Project;
 use App\Services\AttachmentService;
 use App\Services\AuditLogger;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class OpportunityController extends Controller
 {
+    /** @var list<string> */
+    private const VIEWS = ['board', 'list'];
+
     public function __construct(
         private AttachmentService $attachments,
         private AuditLogger $audit,
@@ -23,16 +28,57 @@ class OpportunityController extends Controller
 
     public function index(Request $request): View
     {
-        $opportunities = Opportunity::query()
+        $view = in_array($request->query('view'), self::VIEWS, true)
+            ? (string) $request->query('view')
+            : 'board';
+
+        $stageFilter = in_array($request->query('stage'), OpportunityStage::boardOrder(), true)
+            ? (string) $request->query('stage')
+            : null;
+
+        $counts = Opportunity::query()
+            ->selectRaw('stage, count(*) as total')
+            ->groupBy('stage')
+            ->pluck('total', 'stage');
+
+        $query = Opportunity::query()
             ->with(['contact', 'project'])
-            ->when($request->filled('stage'), fn ($q) => $q->where('stage', $request->string('stage')))
-            ->latest()
-            ->paginate(15)
-            ->withQueryString();
+            ->when($stageFilter, fn ($q) => $q->where('stage', $stageFilter))
+            ->latest();
+
+        $columns = [];
+        $opportunities = null;
+
+        if ($view === 'board') {
+            $grouped = (clone $query)->get()->groupBy(fn (Opportunity $item) => $item->stage->value);
+            foreach (OpportunityStage::boardOrder() as $stage) {
+                $columns[$stage] = $grouped->get($stage, collect());
+            }
+        } else {
+            $opportunities = (clone $query)->paginate(20)->withQueryString();
+        }
+
+        $stats = [
+            'total' => (int) $counts->sum(),
+            'open' => (int) collect(OpportunityStage::cases())
+                ->filter(fn (OpportunityStage $stage) => $stage->isOpen())
+                ->sum(fn (OpportunityStage $stage) => (int) ($counts[$stage->value] ?? 0)),
+            'won' => (int) ($counts[OpportunityStage::Won->value] ?? 0),
+            'lost' => (int) ($counts[OpportunityStage::Lost->value] ?? 0),
+            'pipeline_value' => (float) Opportunity::query()->open()->sum('value'),
+            'won_value' => (float) Opportunity::query()->where('stage', OpportunityStage::Won)->sum('value'),
+        ];
 
         return view('admin.opportunities.index', [
-            'opportunities' => $opportunities,
+            'view' => $view,
+            'stageFilter' => $stageFilter,
             'stages' => OpportunityStage::options(),
+            'stageMeta' => OpportunityStage::pipelineMeta(),
+            'counts' => $counts,
+            'columns' => $columns,
+            'opportunities' => $opportunities,
+            'stats' => $stats,
+            'stageMoveUrlTemplate' => url('/admin/oportunidades/__ID__/stage'),
         ]);
     }
 
@@ -46,6 +92,7 @@ class OpportunityController extends Controller
             'contacts' => Contact::query()->orderBy('name')->get(),
             'projects' => Project::query()->orderBy('name')->get(),
             'stages' => OpportunityStage::options(),
+            'stageMeta' => OpportunityStage::pipelineMeta(),
         ]);
     }
 
@@ -72,6 +119,7 @@ class OpportunityController extends Controller
             'contacts' => Contact::query()->orderBy('name')->get(),
             'projects' => Project::query()->orderBy('name')->get(),
             'stages' => OpportunityStage::options(),
+            'stageMeta' => OpportunityStage::pipelineMeta(),
         ]);
     }
 
@@ -84,8 +132,30 @@ class OpportunityController extends Controller
         ]);
 
         return redirect()
-            ->route('admin.opportunities.index')
+            ->route('admin.opportunities.index', ['view' => 'board'])
             ->with('success', 'Oportunidade atualizada.');
+    }
+
+    public function updateStage(UpdateOpportunityStageRequest $request, Opportunity $opportunity): JsonResponse
+    {
+        $stage = OpportunityStage::from($request->validated('stage'));
+        $from = $opportunity->stage?->value;
+        $opportunity->update(['stage' => $stage]);
+
+        $this->audit->record('opportunity.stage_moved', $opportunity, [
+            'summary' => $opportunity->title,
+            'from' => $from,
+            'to' => $stage->value,
+        ]);
+
+        return response()->json([
+            'ok' => true,
+            'id' => $opportunity->id,
+            'stage' => $opportunity->stage->value,
+            'label' => $opportunity->stage->label(),
+            'tone' => $opportunity->stage->tone(),
+            'icon' => $opportunity->stage->icon(),
+        ]);
     }
 
     public function destroy(Opportunity $opportunity): RedirectResponse

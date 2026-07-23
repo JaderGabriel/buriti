@@ -12,7 +12,9 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
 
-#[Fillable(['name', 'username', 'email', 'password', 'avatar_path', 'is_admin', 'is_active', 'last_login_at', 'last_login_ip', 'telegram_chat_id'])]
+// Campos privilegiados (is_admin, is_active, telegram_chat_id, last_login_*)
+// só via forceFill em paths controlados — nunca mass assignment.
+#[Fillable(['name', 'username', 'email', 'password', 'avatar_path'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {

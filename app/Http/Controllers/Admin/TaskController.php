@@ -13,9 +13,11 @@ use App\Services\AttachmentService;
 use App\Services\AuditLogger;
 use App\Services\GoogleCalendarService;
 use App\Services\SettingService;
+use App\Services\TaskIcsExporter;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\View\View;
 
 class TaskController extends Controller
@@ -28,6 +30,7 @@ class TaskController extends Controller
         private GoogleCalendarService $google,
         private AttachmentService $attachments,
         private AuditLogger $audit,
+        private TaskIcsExporter $icsExporter,
     ) {}
 
     public function index(Request $request): View
@@ -48,7 +51,9 @@ class TaskController extends Controller
 
         $byDate = $tasks
             ->filter(fn (Task $task) => $task->due_at !== null)
-            ->groupBy(fn (Task $task) => $task->due_at->format('Y-m-d'));
+            ->sortBy(fn (Task $task) => $task->due_at->timestamp)
+            ->groupBy(fn (Task $task) => $task->due_at->format('Y-m-d'))
+            ->map(fn ($dayTasks) => $dayTasks->values());
 
         $gridStart = $cursor->copy()->startOfMonth()->startOfWeek(Carbon::SUNDAY);
         $gridEnd = $cursor->copy()->endOfMonth()->endOfWeek(Carbon::SATURDAY);
@@ -68,10 +73,7 @@ class TaskController extends Controller
 
         $undatedTasks = $tasks->filter(fn (Task $task) => $task->due_at === null)->values();
 
-        $agendaGroups = $tasks
-            ->filter(fn (Task $task) => $task->due_at !== null)
-            ->sortBy('due_at')
-            ->groupBy(fn (Task $task) => $task->due_at->format('Y-m-d'));
+        $agendaGroups = $byDate;
 
         return view('admin.tasks.index', [
             'view' => $view,
@@ -101,6 +103,32 @@ class TaskController extends Controller
                 )->count(),
                 'undated' => $undatedTasks->count(),
             ],
+        ]);
+    }
+
+    public function export(Request $request): Response
+    {
+        $cursor = $this->resolveMonth($request->query('month'));
+
+        $tasks = Task::query()
+            ->whereNotNull('due_at')
+            ->whereBetween('due_at', [
+                $cursor->copy()->startOfMonth()->startOfDay(),
+                $cursor->copy()->endOfMonth()->endOfDay(),
+            ])
+            ->orderBy('due_at')
+            ->get();
+
+        $ics = $this->icsExporter->export(
+            $tasks,
+            'BURI-TI Agenda '.$cursor->translatedFormat('F Y')
+        );
+
+        $filename = 'buriti-agenda-'.$cursor->format('Y-m').'.ics';
+
+        return response($ics, 200, [
+            'Content-Type' => 'text/calendar; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 

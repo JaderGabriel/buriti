@@ -16,7 +16,21 @@
         <x-ui.input name="name" label="Nome" :value="old('name', $contact->name)" required />
         <x-ui.input type="email" name="email" label="E-mail" :value="old('email', $contact->email)" />
         <x-ui.input name="phone" label="Telefone" :value="old('phone', $contact->phone)" />
-        <x-ui.input name="company" label="Empresa" :value="old('company', $contact->company)" />
+
+        <label class="block text-sm">
+            <span class="text-mist">Empresa (existente)</span>
+            <select name="company_id" class="mt-1.5 w-full rounded-sm border border-line bg-ink/40 px-3 py-2 text-snow">
+                <option value="">— Sem empresa —</option>
+                @foreach($companies as $company)
+                    <option value="{{ $company->id }}" @selected((string) old('company_id', $contact->company_id) === (string) $company->id)>
+                        {{ $company->displayName() }}
+                    </option>
+                @endforeach
+            </select>
+        </label>
+        <x-ui.input name="company" label="Ou digite uma nova empresa" :value="old('company')" placeholder="Cria/associa pelo nome se preenchido" />
+        <p class="-mt-2 text-xs text-mist">Se digitar um nome novo, ele tem prioridade sobre a seleção acima.</p>
+
         <x-ui.input name="role" label="Cargo / papel" :value="old('role', $contact->role)" />
 
         <label class="block text-sm">

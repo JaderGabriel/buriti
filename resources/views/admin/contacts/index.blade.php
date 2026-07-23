@@ -1,16 +1,52 @@
 @extends('layouts.admin')
 
 @section('content')
-    <div class="mb-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+<div class="crm-workspace">
+    <div class="crm-workspace__header">
         <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand">CRM</p>
-            <h1 class="mt-2 font-display text-2xl font-bold sm:text-3xl">Contatos</h1>
-            <p class="mt-1 text-mist">Mural de pessoas — leads, clientes e histórico</p>
+            <p class="crm-workspace__eyebrow">CRM comercial</p>
+            <h1 class="crm-workspace__title">Contatos</h1>
+            <p class="crm-workspace__lead">Pessoas no funil — do lead ao cliente ativo, com status colorido e rastreável.</p>
         </div>
-        <x-ui.button :href="route('admin.contacts.create')">Novo contato</x-ui.button>
+        <div class="crm-workspace__actions">
+            <a href="{{ route('admin.companies.index') }}" class="pm-btn pm-btn--ghost">
+                <x-ui.icon name="company" class="h-4 w-4" />
+                Empresas
+            </a>
+            <a href="{{ route('admin.opportunities.index') }}" class="pm-btn pm-btn--ghost">
+                <x-ui.icon name="opportunity" class="h-4 w-4" />
+                Pipeline
+            </a>
+            <a href="{{ route('admin.contacts.create') }}" class="pm-btn pm-btn--primary">
+                <x-ui.icon name="contact" class="h-4 w-4" />
+                Novo contato
+            </a>
+        </div>
     </div>
 
-    <form method="GET" class="mb-8 flex flex-wrap gap-3">
+    <x-admin.crm-journey current="contact" class="mb-5" />
+
+    <div class="crm-status-strip mb-5">
+        @foreach([
+            \App\Enums\ContactStatus::Lead,
+            \App\Enums\ContactStatus::Active,
+            \App\Enums\ContactStatus::Inactive,
+        ] as $status)
+            <a
+                href="{{ route('admin.contacts.index', ['status' => $status->value, 'q' => request('q')]) }}"
+                @class(['crm-status-strip__item', 'crm-status-strip__item--'.$status->tone(), 'is-active' => request('status') === $status->value])
+            >
+                <span class="crm-status-strip__icon"><x-ui.icon :name="$status->icon()" class="h-4 w-4" /></span>
+                <span>
+                    <strong>{{ $status->label() }}</strong>
+                    <small>{{ $status->description() }}</small>
+                </span>
+                <em>{{ (int) ($statusCounts[$status->value] ?? 0) }}</em>
+            </a>
+        @endforeach
+    </div>
+
+    <form method="GET" class="mb-6 flex flex-wrap gap-3">
         <input type="search" name="q" value="{{ request('q') }}" placeholder="Buscar nome, e-mail, empresa…" class="min-w-[14rem] flex-1 rounded-sm border border-line bg-ink/40 px-3 py-2 text-sm text-snow">
         <select name="status" class="rounded-sm border border-line bg-ink/40 px-3 py-2 text-sm text-snow">
             <option value="">Todos os status</option>
@@ -50,13 +86,13 @@
 
                     <div class="flex items-start justify-between gap-3">
                         <span class="postit-avatar">{{ $initials ?: '?' }}</span>
-                        <span class="postit-badge">{{ $contact->status->label() }}</span>
+                        <x-admin.crm-badge :status="$contact->status" compact class="!normal-case" />
                     </div>
 
                     <h2 class="postit-name mt-4 font-script text-2xl leading-tight">{{ $contact->name }}</h2>
 
-                    @if($contact->company)
-                        <p class="mt-1 text-sm font-medium opacity-80">{{ $contact->company }}</p>
+                    @if($contact->companyLabel())
+                        <p class="mt-1 text-sm font-medium opacity-80">{{ $contact->companyLabel() }}</p>
                     @endif
 
                     <div class="mt-auto space-y-1 pt-4 text-xs opacity-75">
@@ -75,4 +111,5 @@
     @endif
 
     <div class="mt-8">{{ $contacts->links() }}</div>
+</div>
 @endsection

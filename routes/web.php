@@ -1,13 +1,16 @@
 <?php
 
 use App\Http\Controllers\Admin\AttachmentController;
+use App\Http\Controllers\Admin\CompanyController;
 use App\Http\Controllers\Admin\ContactController as AdminContactController;
 use App\Http\Controllers\Admin\ContactMessageController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\IdeaNoteController;
 use App\Http\Controllers\Admin\IntegrationController;
 use App\Http\Controllers\Admin\OpportunityController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\ProjectController;
+use App\Http\Controllers\Admin\ProjectStepController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\TaskController;
 use App\Http\Controllers\Admin\UserController;
@@ -51,8 +54,11 @@ Route::post('/admin/logout', [LoginController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
 
-Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
+Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard');
+    Route::post('/ideias', [IdeaNoteController::class, 'store'])->name('idea-notes.store');
+    Route::put('/ideias/{ideaNote}', [IdeaNoteController::class, 'update'])->name('idea-notes.update');
+    Route::delete('/ideias/{ideaNote}', [IdeaNoteController::class, 'destroy'])->name('idea-notes.destroy');
 
     Route::get('/perfil', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/perfil', [ProfileController::class, 'update'])
@@ -84,6 +90,16 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
         ->name('messages.link-contact');
     Route::delete('/mensagens/{message}', [ContactMessageController::class, 'destroy'])->name('messages.destroy');
 
+    Route::resource('empresas', CompanyController::class)
+        ->parameters(['empresas' => 'company'])
+        ->names('companies');
+    Route::post('/empresas/{company}/projetos', [CompanyController::class, 'attachProject'])
+        ->name('companies.projects.attach');
+    Route::delete('/empresas/{company}/projetos/{project}', [CompanyController::class, 'detachProject'])
+        ->name('companies.projects.detach');
+    Route::post('/empresas/{company}/contatos', [CompanyController::class, 'storeContact'])
+        ->name('companies.contacts.store');
+
     Route::resource('contatos', AdminContactController::class)
         ->parameters(['contatos' => 'contact'])
         ->names('contacts');
@@ -100,13 +116,28 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
         ->parameters(['oportunidades' => 'opportunity'])
         ->except(['show'])
         ->names('opportunities');
+    Route::patch('/oportunidades/{opportunity}/stage', [OpportunityController::class, 'updateStage'])
+        ->name('opportunities.stage');
 
     Route::resource('projetos', ProjectController::class)
         ->parameters(['projetos' => 'project'])
         ->except(['show'])
         ->names('projects');
+    Route::patch('/projetos/{project}/status', [ProjectController::class, 'updateStatus'])
+        ->name('projects.status');
+    Route::get('/projetos/{project}/contrato', [ProjectController::class, 'downloadContract'])
+        ->name('projects.contract');
+    Route::post('/projetos/{project}/etapas', [ProjectStepController::class, 'store'])
+        ->name('projects.steps.store');
+    Route::put('/projetos/{project}/etapas/{step}', [ProjectStepController::class, 'update'])
+        ->name('projects.steps.update');
+    Route::patch('/projetos/{project}/etapas/{step}/toggle', [ProjectStepController::class, 'toggle'])
+        ->name('projects.steps.toggle');
+    Route::delete('/projetos/{project}/etapas/{step}', [ProjectStepController::class, 'destroy'])
+        ->name('projects.steps.destroy');
 
     Route::get('/tarefas', [TaskController::class, 'index'])->name('tasks.index');
+    Route::get('/tarefas/exportar.ics', [TaskController::class, 'export'])->name('tasks.export');
     Route::post('/tarefas', [TaskController::class, 'store'])->name('tasks.store');
     Route::put('/tarefas/{task}', [TaskController::class, 'update'])->name('tasks.update');
     Route::post('/tarefas/{task}/google', [TaskController::class, 'syncGoogle'])->name('tasks.google');

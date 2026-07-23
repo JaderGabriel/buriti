@@ -34,6 +34,14 @@
                     'active' => 'bg-amber-500/20 text-amber-200 ring-1 ring-amber-400/35',
                 ],
                 [
+                    'route' => 'admin.companies.index',
+                    'label' => 'Empresas',
+                    'pattern' => 'admin.companies.*',
+                    'icon' => 'company',
+                    'tone' => 'text-violet-300 bg-violet-500/15',
+                    'active' => 'bg-violet-500/20 text-violet-200 ring-1 ring-violet-400/35',
+                ],
+                [
                     'route' => 'admin.contacts.index',
                     'label' => 'Contatos',
                     'pattern' => 'admin.contacts.*',
@@ -129,7 +137,7 @@
             <button type="button" class="rounded-sm border border-line p-2 text-mist lg:hidden" data-admin-close aria-label="Fechar menu">✕</button>
         </div>
 
-        <div class="mx-3 mb-3 grid grid-cols-3 gap-2">
+        <div class="mx-3 mb-3 grid grid-cols-4 gap-2">
             <a
                 href="{{ route('home') }}"
                 class="inline-flex h-10 items-center justify-center rounded-sm border border-line text-sky-300 transition hover:border-sky-400/40 hover:bg-sky-500/10 hover:text-sky-200"
@@ -137,6 +145,16 @@
                 aria-label="Ver site"
             >
                 <x-ui.icon name="external" class="h-4 w-4" />
+            </a>
+            <a
+                href="{{ $instantMeetUrl ?? 'https://meet.google.com/new' }}"
+                target="_blank"
+                rel="noopener"
+                class="admin-meet-btn inline-flex h-10 items-center justify-center rounded-sm border border-[#00897b]/50 bg-[#00897b]/20 text-[#5eead4] transition hover:border-[#14b8a6] hover:bg-[#00897b]/35 hover:text-white"
+                title="Novo Meet"
+                aria-label="Novo Meet"
+            >
+                <x-ui.icon name="meet" class="h-5 w-5" />
             </a>
             <button
                 type="button"
@@ -212,6 +230,16 @@
             <div class="flex items-center gap-2">
                 <a href="{{ route('home') }}" class="inline-flex h-9 w-9 items-center justify-center rounded-sm border border-line text-sky-300" aria-label="Ver site" title="Ver site">
                     <x-ui.icon name="external" class="h-4 w-4" />
+                </a>
+                <a
+                    href="{{ $instantMeetUrl ?? 'https://meet.google.com/new' }}"
+                    target="_blank"
+                    rel="noopener"
+                    class="admin-meet-btn inline-flex h-9 w-9 items-center justify-center rounded-sm border border-[#00897b]/50 bg-[#00897b]/20 text-[#5eead4]"
+                    aria-label="Novo Meet"
+                    title="Novo Meet"
+                >
+                    <x-ui.icon name="meet" class="h-5 w-5" />
                 </a>
                 <button
                     type="button"

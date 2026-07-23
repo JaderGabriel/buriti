@@ -24,6 +24,7 @@ class ProjectRequest extends FormRequest
             'website_url' => ['nullable', 'url', 'max:255'],
             'github_url' => ['nullable', 'url', 'max:255'],
             'status' => ['required', Rule::enum(ProjectStatus::class)],
+            'company_id' => ['nullable', 'exists:companies,id'],
             'is_public' => ['sometimes', 'boolean'],
             'repo_is_private' => ['sometimes', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
@@ -37,6 +38,7 @@ class ProjectRequest extends FormRequest
     {
         return [
             'name' => $this->string('name')->toString(),
+            'company_id' => $this->filled('company_id') ? $this->integer('company_id') : null,
             'information' => $this->input('information'),
             'category' => $this->input('category'),
             'stack' => $this->stackList(),

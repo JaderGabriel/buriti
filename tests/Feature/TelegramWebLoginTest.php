@@ -29,14 +29,26 @@ class TelegramWebLoginTest extends TestCase
             'email' => 'admin@buriti.test',
             'username' => 'adminbot',
             'password' => 'password',
+        ]);
+        $this->admin->forceFill([
             'is_admin' => true,
             'is_active' => true,
             'telegram_chat_id' => '999001',
-        ]);
+        ])->save();
 
         Http::fake([
             'api.telegram.org/*' => Http::response(['ok' => true, 'result' => true]),
         ]);
+    }
+
+    /** @param  array<string, mixed>  $payload */
+    private function postWebhook(array $payload)
+    {
+        return $this->postJson(
+            route('webhooks.telegram', ['secret' => 'secret-test']),
+            $payload,
+            ['X-Telegram-Bot-Api-Secret-Token' => 'secret-test'],
+        );
     }
 
     public function test_login_page_shows_telegram_when_configured(): void
@@ -62,7 +74,7 @@ class TelegramWebLoginTest extends TestCase
     {
         $challenge = app(TelegramWebAuthService::class)->createChallenge();
 
-        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+        $this->postWebhook([
             'message' => [
                 'chat' => ['id' => 999001],
                 'text' => '/start weblogin_'.$challenge['token'],
@@ -81,7 +93,7 @@ class TelegramWebLoginTest extends TestCase
     {
         $challenge = app(TelegramWebAuthService::class)->createChallenge();
 
-        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+        $this->postWebhook([
             'message' => [
                 'chat' => ['id' => 555],
                 'text' => '/start weblogin_'.$challenge['token'],

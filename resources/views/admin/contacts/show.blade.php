@@ -5,10 +5,15 @@
         <div>
             <a href="{{ route('admin.contacts.index') }}" class="text-sm text-mist hover:text-snow">← Contatos</a>
             <h1 class="mt-2 font-display text-2xl font-bold sm:text-3xl">{{ $contact->name }}</h1>
-            <p class="mt-1 text-sm text-mist">
-                {{ $contact->status->label() }} · {{ $contact->source->label() }}
-                @if($contact->company) · {{ $contact->company }} @endif
-            </p>
+            <div class="mt-2 flex flex-wrap items-center gap-2 text-sm text-mist">
+                <x-admin.crm-badge :status="$contact->status" />
+                <span>· {{ $contact->source->label() }}</span>
+                @if($contact->clientCompany)
+                    <span>· <a href="{{ route('admin.companies.show', $contact->clientCompany) }}" class="text-brand-bright hover:underline">{{ $contact->clientCompany->displayName() }}</a></span>
+                @elseif($contact->companyLabel())
+                    <span>· {{ $contact->companyLabel() }}</span>
+                @endif
+            </div>
         </div>
         <div class="flex flex-wrap gap-2">
             <a href="{{ route('admin.contacts.edit', $contact) }}" class="rounded-sm border border-line px-4 py-2 text-sm hover:border-brand-bright/50">Editar</a>
@@ -20,6 +25,8 @@
             </form>
         </div>
     </div>
+
+    <x-admin.crm-journey current="contact" class="mb-6" />
 
     <div class="grid gap-6 xl:grid-cols-[1fr_1.1fr]">
         <div class="space-y-6">
@@ -37,6 +44,16 @@
                     <div>
                         <dt class="text-mist">Telefone</dt>
                         <dd class="mt-1">{{ $contact->phone ?? '—' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-mist">Empresa</dt>
+                        <dd class="mt-1">
+                            @if($contact->clientCompany)
+                                <a href="{{ route('admin.companies.show', $contact->clientCompany) }}" class="text-brand-bright hover:underline">{{ $contact->clientCompany->displayName() }}</a>
+                            @else
+                                {{ $contact->companyLabel() ?? '—' }}
+                            @endif
+                        </dd>
                     </div>
                     <div>
                         <dt class="text-mist">Cargo</dt>
@@ -61,7 +78,7 @@
                         <li class="rounded-sm border border-line/70 px-3 py-2">
                             <div class="flex flex-wrap items-center justify-between gap-2">
                                 <p class="font-medium">{{ $opportunity->title }}</p>
-                                <span class="text-xs text-mist">{{ $opportunity->stage->label() }}</span>
+                                <x-admin.crm-badge :stage="$opportunity->stage" compact />
                             </div>
                             <p class="text-xs text-mist">
                                 {{ $opportunity->project?->name ?? 'Sem projeto' }}

@@ -51,9 +51,19 @@ class TelegramBotTest extends TestCase
         ]);
     }
 
+    /** @param  array<string, mixed>  $payload */
+    private function postWebhook(array $payload, string $secret = 'secret-test')
+    {
+        return $this->postJson(
+            route('webhooks.telegram', ['secret' => $secret]),
+            $payload,
+            ['X-Telegram-Bot-Api-Secret-Token' => 'secret-test'],
+        );
+    }
+
     private function loginAdmin(string $chatId = '999001'): void
     {
-        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+        $this->postWebhook([
             'message' => [
                 'message_id' => 1001,
                 'chat' => ['id' => (int) $chatId],
@@ -64,19 +74,28 @@ class TelegramBotTest extends TestCase
         $this->assertSame($chatId, $this->admin->fresh()->telegram_chat_id);
 
         Http::assertSent(fn ($request) => str_contains($request->url(), 'deleteMessage')
-            && ($request->data()['message_id'] ?? null) == 1001);
+            && ($request['message_id'] ?? $request->data()['message_id'] ?? null) == 1001);
     }
 
     public function test_webhook_rejects_invalid_secret(): void
     {
         $this->postJson('/webhooks/telegram/wrong-secret', [
             'message' => ['chat' => ['id' => 999001], 'text' => '/ajuda'],
+        ], [
+            'X-Telegram-Bot-Api-Secret-Token' => 'secret-test',
         ])->assertNotFound();
+    }
+
+    public function test_webhook_rejects_missing_secret_header(): void
+    {
+        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+            'message' => ['chat' => ['id' => 999001], 'text' => '/ajuda'],
+        ])->assertForbidden();
     }
 
     public function test_unauthenticated_chat_cannot_run_crm_commands(): void
     {
-        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+        $this->postWebhook([
             'message' => [
                 'chat' => ['id' => 999001],
                 'text' => '/contato Intruso | hack@x.com',
@@ -94,7 +113,7 @@ class TelegramBotTest extends TestCase
             'password' => 'password',
         ]);
 
-        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+        $this->postWebhook([
             'message' => [
                 'message_id' => 2002,
                 'chat' => ['id' => 555],
@@ -115,7 +134,7 @@ class TelegramBotTest extends TestCase
     {
         $this->loginAdmin();
 
-        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+        $this->postWebhook([
             'message' => [
                 'chat' => ['id' => 999001],
                 'text' => '/contato Ana Silva | ana@empresa.com | 11999990000 | Acme',
@@ -127,7 +146,7 @@ class TelegramBotTest extends TestCase
         $this->assertSame(ContactSource::Telegram, $contact->source);
         $this->assertSame('Ana Silva', $contact->name);
 
-        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+        $this->postWebhook([
             'message' => [
                 'chat' => ['id' => 999001],
                 'text' => '/oportunidade ana@empresa.com | Site institucional | qualified | 15000',
@@ -139,7 +158,7 @@ class TelegramBotTest extends TestCase
         $this->assertSame(OpportunityStage::Qualified, $opportunity->stage);
         $this->assertSame($contact->id, $opportunity->contact_id);
 
-        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+        $this->postWebhook([
             'message' => [
                 'chat' => ['id' => 999001],
                 'text' => '/projeto Portal Acme | Redesign completo | Web',
@@ -150,7 +169,7 @@ class TelegramBotTest extends TestCase
         $this->assertNotNull($project);
         $this->assertSame(ProjectStatus::Active, $project->status);
 
-        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+        $this->postWebhook([
             'message' => [
                 'chat' => ['id' => 999001],
                 'text' => "/tarefa Kickoff | {$project->id} | ana@empresa.com | high | todo",
@@ -167,7 +186,7 @@ class TelegramBotTest extends TestCase
     {
         $this->loginAdmin();
 
-        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+        $this->postWebhook([
             'message' => [
                 'chat' => ['id' => 999001],
                 'text' => '/logout',
@@ -176,7 +195,7 @@ class TelegramBotTest extends TestCase
 
         $this->assertNull($this->admin->fresh()->telegram_chat_id);
 
-        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+        $this->postWebhook([
             'message' => [
                 'chat' => ['id' => 999001],
                 'text' => '/contatos',
@@ -249,11 +268,11 @@ class TelegramBotTest extends TestCase
             'read_at' => null,
         ]);
 
-        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+        $this->postWebhook([
             'message' => ['chat' => ['id' => 999001], 'text' => '/contatos'],
         ])->assertOk();
 
-        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+        $this->postWebhook([
             'message' => [
                 'chat' => ['id' => 999001],
                 'text' => "/contato set {$contact->id} | Ana Atualizada | . | . | . | active",
@@ -261,7 +280,7 @@ class TelegramBotTest extends TestCase
         ])->assertOk();
         $this->assertSame('Ana Atualizada', $contact->fresh()->name);
 
-        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+        $this->postWebhook([
             'message' => [
                 'chat' => ['id' => 999001],
                 'text' => "/tarefa set {$task->id} | Kickoff OK | . | . | high | doing",
@@ -271,7 +290,7 @@ class TelegramBotTest extends TestCase
         $this->assertSame('Kickoff OK', $task->title);
         $this->assertSame(TaskPriority::High, $task->priority);
 
-        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+        $this->postWebhook([
             'message' => [
                 'chat' => ['id' => 999001],
                 'text' => "/oportunidade set {$opportunity->id} | . | Site Plus | qualified | 20000",
@@ -279,17 +298,17 @@ class TelegramBotTest extends TestCase
         ])->assertOk();
         $this->assertSame('Site Plus', $opportunity->fresh()->title);
 
-        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+        $this->postWebhook([
             'message' => ['chat' => ['id' => 999001], 'text' => "/mensagem lida {$message->id}"],
         ])->assertOk();
         $this->assertNotNull($message->fresh()->read_at);
 
-        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+        $this->postWebhook([
             'message' => ['chat' => ['id' => 999001], 'text' => "/projeto del {$project->id} ok"],
         ])->assertOk();
         $this->assertDatabaseMissing('projects', ['id' => $project->id]);
 
-        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+        $this->postWebhook([
             'message' => ['chat' => ['id' => 999001], 'text' => "/tarefa del {$task->id} ok"],
         ])->assertOk();
         $this->assertDatabaseMissing('tasks', ['id' => $task->id]);
@@ -317,7 +336,7 @@ class TelegramBotTest extends TestCase
     {
         $this->loginAdmin();
 
-        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+        $this->postWebhook([
             'message' => [
                 'chat' => ['id' => 999001],
                 'text' => '/card Acme Educacional',

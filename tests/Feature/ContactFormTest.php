@@ -47,10 +47,15 @@ class ContactFormTest extends TestCase
             'status' => 'lead',
         ]);
 
+        $this->assertDatabaseHas('companies', [
+            'name' => 'Empresa X',
+        ]);
+
         $contact = Contact::query()->where('email', 'cliente@empresa.com')->first();
         $message = ContactMessage::query()->where('email', 'cliente@empresa.com')->first();
 
         $this->assertNotNull($contact);
+        $this->assertNotNull($contact->company_id);
         $this->assertNotNull($message);
         $this->assertSame($contact->id, $message->contact_id);
         $this->assertDatabaseHas('crm_activities', [
@@ -87,6 +92,9 @@ class ContactFormTest extends TestCase
             'phone' => '+55 38991758416',
             'company' => 'Empresa Nova',
         ]);
+
+        $this->assertDatabaseHas('companies', ['name' => 'Empresa Nova']);
+        $this->assertNotNull($contact->fresh()->company_id);
     }
 
     public function test_contact_form_accepts_foreign_country_dial_code(): void

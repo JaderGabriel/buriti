@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Enums\OpportunityStage;
 use App\Enums\ProjectStatus;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
@@ -21,6 +22,10 @@ class DomainServicesTest extends TestCase
         $this->assertSame('Alta', TaskPriority::High->label());
         $this->assertArrayHasKey('active', ProjectStatus::options());
         $this->assertSame(['todo', 'doing', 'done'], TaskStatus::boardOrder());
+        $this->assertSame('Contrato', OpportunityStage::Won->label());
+        $this->assertSame('Negociação', OpportunityStage::Negotiation->label());
+        $this->assertSame('contract', OpportunityStage::Won->icon());
+        $this->assertContains('negotiation', OpportunityStage::boardOrder());
     }
 
     public function test_task_builds_google_calendar_url(): void

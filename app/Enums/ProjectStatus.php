@@ -24,4 +24,19 @@ enum ProjectStatus: string
             ->mapWithKeys(fn (self $case) => [$case->value => $case->label()])
             ->all();
     }
+
+    /** @return list<string> */
+    public static function boardOrder(): array
+    {
+        return [self::Active->value, self::Paused->value, self::Done->value];
+    }
+
+    public function tone(): string
+    {
+        return match ($this) {
+            self::Active => 'active',
+            self::Paused => 'paused',
+            self::Done => 'done',
+        };
+    }
 }

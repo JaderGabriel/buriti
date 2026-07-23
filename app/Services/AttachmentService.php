@@ -25,14 +25,15 @@ class AttachmentService
             $attachable->getKey()
         );
 
-        $path = $file->store($folder, 'public');
+        $disk = $kind === 'document' ? 'local' : 'public';
+        $path = $file->store($folder, $disk);
 
         $attachment = $attachable->attachments()->create([
             'uploaded_by' => $uploadedBy,
-            'disk' => 'public',
+            'disk' => $disk,
             'path' => $path,
             'original_name' => $file->getClientOriginalName(),
-            'mime_type' => $file->getClientMimeType() ?: $file->getMimeType(),
+            'mime_type' => $file->getMimeType() ?: $file->getClientMimeType(),
             'size' => $file->getSize() ?: 0,
             'kind' => $kind,
             'title' => $title,

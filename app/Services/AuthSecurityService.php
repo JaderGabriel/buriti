@@ -108,6 +108,26 @@ class AuthSecurityService
         return $count;
     }
 
+    public function destroyAllSessions(User $user): int
+    {
+        if (config('session.driver') !== 'database') {
+            return 0;
+        }
+
+        $count = DB::table('sessions')
+            ->where('user_id', $user->id)
+            ->delete();
+
+        if ($count > 0) {
+            $this->audit->record('auth.session.destroy_all', $user, [
+                'summary' => "{$count} sessão(ões)",
+                'count' => $count,
+            ]);
+        }
+
+        return $count;
+    }
+
     public function adminCount(): int
     {
         return User::query()

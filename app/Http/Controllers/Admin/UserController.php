@@ -58,12 +58,15 @@ class UserController extends Controller
     public function store(StoreUserRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        unset($data['avatar'], $data['password_confirmation']);
+        unset($data['avatar'], $data['password_confirmation'], $data['is_admin']);
 
         $data['avatar_path'] = $this->avatars->store($request->file('avatar'));
-        $data['is_admin'] = $request->boolean('is_admin');
 
-        $user = User::query()->create($data);
+        $user = new User($data);
+        $user->forceFill([
+            'is_admin' => $request->boolean('is_admin'),
+            'is_active' => true,
+        ])->save();
 
         $this->audit->record('user.created', $user, [
             'summary' => $user->name,
@@ -105,7 +108,7 @@ class UserController extends Controller
     public function update(UpdateUserRequest $request, User $user): RedirectResponse
     {
         $data = $request->validated();
-        unset($data['password_confirmation']);
+        unset($data['password_confirmation'], $data['is_admin']);
 
         if (blank($data['password'] ?? null)) {
             unset($data['password']);
@@ -116,8 +119,8 @@ class UserController extends Controller
             return back()->withErrors(['is_admin' => 'Não é possível remover o último administrador.']);
         }
 
-        $data['is_admin'] = $willBeAdmin;
-        $user->update($data);
+        $user->fill($data);
+        $user->forceFill(['is_admin' => $willBeAdmin])->save();
 
         $this->audit->record('user.updated', $user, [
             'summary' => $user->name,
@@ -190,7 +193,12 @@ class UserController extends Controller
             return back()->withErrors(['user' => 'Não é possível desativar o último administrador ativo.']);
         }
 
-        $user->update(['is_active' => ! $user->is_active]);
+        $willBeActive = ! $user->is_active;
+        $user->forceFill(['is_active' => $willBeActive])->save();
+
+        if (! $willBeActive) {
+            $this->security->destroyAllSessions($user);
+        }
 
         $this->audit->record(
             $user->is_active ? 'user.reactivated' : 'user.deactivated',

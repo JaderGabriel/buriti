@@ -86,6 +86,28 @@ class AuthTest extends TestCase
             ->assertOk();
     }
 
+    public function test_non_admin_session_is_rejected_from_admin(): void
+    {
+        $user = User::factory()->withoutAdminAccess()->create();
+
+        $this->actingAs($user)
+            ->get(route('admin.dashboard'))
+            ->assertRedirect(route('login'));
+
+        $this->assertGuest();
+    }
+
+    public function test_inactive_admin_session_is_rejected_from_admin(): void
+    {
+        $user = User::factory()->inactive()->create();
+
+        $this->actingAs($user)
+            ->get(route('admin.dashboard'))
+            ->assertRedirect(route('login'));
+
+        $this->assertGuest();
+    }
+
     public function test_home_admin_links_point_to_protected_dashboard(): void
     {
         $response = $this->get(route('home'));

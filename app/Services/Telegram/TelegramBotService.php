@@ -16,6 +16,7 @@ use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
 use App\Services\AuditLogger;
+use App\Services\CompanyResolver;
 use App\Services\SettingService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
@@ -37,6 +38,7 @@ class TelegramBotService
         private AuditLogger $audit,
         private TelegramWebAuthService $webAuth,
         private TelegramShareCardService $shareCard,
+        private CompanyResolver $companies,
     ) {}
 
     public function configured(): bool
@@ -62,6 +64,15 @@ class TelegramBotService
         $messageId = (int) data_get($message, 'message_id', 0);
 
         if ($chatId === '' || $text === '') {
+            return;
+        }
+
+        if (! $this->chatPassesAllowlist($chatId)) {
+            $this->api->sendMessage(
+                $chatId,
+                '🚫 Este chat não está na lista de IDs autorizados do bot.'
+            );
+
             return;
         }
 
@@ -168,7 +179,35 @@ class TelegramBotService
 
     public function isAllowedChat(string $chatId): bool
     {
-        return $this->adminSessionForChat($chatId) !== null;
+        return $this->chatPassesAllowlist($chatId)
+            && $this->adminSessionForChat($chatId) !== null;
+    }
+
+    /** @return list<string> */
+    private function configuredAllowedChatIds(): array
+    {
+        $raw = trim((string) ($this->settings->get('telegram_allowed_chat_ids') ?? ''));
+        if ($raw === '') {
+            return [];
+        }
+
+        return collect(preg_split('/[\s,;]+/', $raw) ?: [])
+            ->map(fn ($id) => trim((string) $id))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    private function chatPassesAllowlist(string $chatId): bool
+    {
+        $allowed = $this->configuredAllowedChatIds();
+
+        // Sem allowlist configurada: mantém comportamento atual (login por senha disponível).
+        if ($allowed === []) {
+            return true;
+        }
+
+        return in_array($chatId, $allowed, true);
     }
 
     private function isPublicCommand(string $text): bool
@@ -522,7 +561,7 @@ HTML;
             '<b>Nome:</b> '.$this->escape($contact->name),
             '<b>E-mail:</b> '.$this->escape($contact->email),
             $contact->phone ? '<b>Telefone:</b> '.$this->escape($contact->phone) : null,
-            $contact->company ? '<b>Empresa:</b> '.$this->escape($contact->company) : null,
+            $contact->companyLabel() ? '<b>Empresa:</b> '.$this->escape($contact->companyLabel()) : null,
             '<b>Status:</b> '.($contact->status?->value ?? '—'),
             '<b>Origem:</b> '.($contact->source?->value ?? '—'),
             "🔗 <a href=\"{$this->escape($url)}\">Abrir no admin</a>",
@@ -546,12 +585,17 @@ HTML;
         $status = ContactStatus::tryFrom(Str::lower(trim((string) ($statusRaw ?: 'lead'))))
             ?? ContactStatus::Lead;
 
+        $resolvedCompany = $this->companies->findOrCreateByName(
+            filled($company) ? trim((string) $company) : null
+        );
+
         $contact = Contact::query()->updateOrCreate(
             ['email' => $email],
             [
                 'name' => trim((string) $name),
                 'phone' => filled($phone) ? trim((string) $phone) : null,
-                'company' => filled($company) ? trim((string) $company) : null,
+                'company' => $resolvedCompany?->name,
+                'company_id' => $resolvedCompany?->id,
                 'status' => $status,
                 'source' => ContactSource::Telegram,
             ]
@@ -590,7 +634,11 @@ HTML;
             $data['phone'] = filled($phone) ? trim((string) $phone) : null;
         }
         if (! $this->keep($company)) {
-            $data['company'] = filled($company) ? trim((string) $company) : null;
+            $resolvedCompany = $this->companies->findOrCreateByName(
+                filled($company) ? trim((string) $company) : null
+            );
+            $data['company'] = $resolvedCompany?->name;
+            $data['company_id'] = $resolvedCompany?->id;
         }
         if (! $this->keep($statusRaw) && filled($statusRaw)) {
             $status = ContactStatus::tryFrom(Str::lower(trim((string) $statusRaw)));

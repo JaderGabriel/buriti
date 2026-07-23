@@ -185,7 +185,9 @@ class UserSecurityTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('admin.users.index'))
-            ->assertForbidden();
+            ->assertRedirect(route('login'));
+
+        $this->assertGuest();
     }
 
     public function test_non_admin_cannot_login_to_panel(): void

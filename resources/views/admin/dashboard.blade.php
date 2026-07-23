@@ -6,6 +6,14 @@
         <p class="mt-1 text-mist">Visão rápida da operação BURI-TI</p>
     </div>
 
+    <x-admin.crm-journey class="mb-5" />
+
+    <x-admin.crm-funnel
+        :counts="$opportunityStageCounts"
+        :filter-base="route('admin.opportunities.index', ['view' => 'board'])"
+        class="mb-6"
+    />
+
     <div class="grid gap-4 grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         @foreach ([
             ['Mensagens novas', $unreadMessages, route('admin.messages.index')],
@@ -55,7 +63,7 @@
                     <li>
                         <a href="{{ route('admin.contacts.show', $contact) }}" class="block rounded-xl border border-transparent px-2 py-2 hover:border-line hover:bg-ink/40">
                             <p class="font-medium text-snow">{{ $contact->name }}</p>
-                            <p class="truncate text-sm text-mist">{{ $contact->company ?: ($contact->email ?? $contact->status->label()) }}</p>
+                            <p class="truncate text-sm text-mist">{{ $contact->companyLabel() ?: ($contact->email ?? $contact->status->label()) }}</p>
                         </a>
                     </li>
                 @empty
@@ -83,6 +91,37 @@
                 @endforelse
             </ul>
         </section>
+    </div>
+
+    <div class="mt-8">
+        <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand-bright">Espaço livre</p>
+                <h2 class="font-display text-xl font-semibold sm:text-2xl">Ideias & rascunhos</h2>
+                <p class="mt-1 text-sm text-mist">Post-its para anotar ideias — nenhum campo é obrigatório.</p>
+            </div>
+            <form method="POST" action="{{ route('admin.idea-notes.store') }}">
+                @csrf
+                <input type="hidden" name="color" value="amber">
+                <button type="submit" class="inline-flex items-center gap-2 rounded-sm bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-bright">
+                    + Novo post-it
+                </button>
+            </form>
+        </div>
+
+        <div class="postit-board idea-board grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            @forelse($ideaNotes as $index => $note)
+                @include('admin.dashboard.partials.idea-note', [
+                    'note' => $note,
+                    'index' => $index,
+                    'ideaColors' => $ideaColors,
+                ])
+            @empty
+                <div class="col-span-full rounded-sm border border-dashed border-line px-6 py-12 text-center text-sm text-mist">
+                    <p>Nenhuma ideia ainda. Crie um post-it e use como quiser.</p>
+                </div>
+            @endforelse
+        </div>
     </div>
 
     <div class="mt-8">

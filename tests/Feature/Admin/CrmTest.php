@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\Company;
 use App\Models\Contact;
 use App\Models\ContactMessage;
 use App\Models\CrmActivity;
@@ -40,13 +41,98 @@ class CrmTest extends TestCase
 
         $contact = Contact::query()->where('email', 'maria@cliente.com')->first();
         $this->assertNotNull($contact);
+        $this->assertDatabaseHas('companies', ['name' => 'Cliente SA']);
+        $this->assertNotNull($contact->company_id);
         $response->assertRedirect(route('admin.contacts.show', $contact));
 
         $this->actingAs($this->admin)
             ->get(route('admin.contacts.show', $contact))
             ->assertOk()
             ->assertSee('Maria Cliente', false)
-            ->assertSee('Interessada em BI', false);
+            ->assertSee('Interessada em BI', false)
+            ->assertSee('Cliente SA', false);
+    }
+
+    public function test_admin_can_manage_company_with_contacts_projects_and_opportunities(): void
+    {
+        $company = Company::factory()->create(['name' => 'Prefeitura Alpha']);
+        $contactA = Contact::factory()->create([
+            'name' => 'Ana Alpha',
+            'company_id' => $company->id,
+            'company' => $company->name,
+        ]);
+        $contactB = Contact::factory()->create([
+            'name' => 'Bruno Alpha',
+            'company_id' => $company->id,
+            'company' => $company->name,
+        ]);
+        $project = Project::factory()->create([
+            'name' => 'GIDE Alpha',
+            'company_id' => $company->id,
+        ]);
+        $contactA->projects()->attach($project->id);
+
+        Opportunity::factory()->create([
+            'contact_id' => $contactA->id,
+            'project_id' => $project->id,
+            'title' => 'Opp só da Ana',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.companies.show', $company))
+            ->assertOk()
+            ->assertSee('Prefeitura Alpha', false)
+            ->assertSee('Ana Alpha', false)
+            ->assertSee('Bruno Alpha', false)
+            ->assertSee('GIDE Alpha', false)
+            ->assertSee('Opp só da Ana', false);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.contacts.show', $contactA))
+            ->assertOk()
+            ->assertSee(route('admin.companies.show', $company), false);
+    }
+
+    public function test_admin_can_update_opportunity_stage_via_form_and_patch(): void
+    {
+        $contact = Contact::factory()->create();
+        $opportunity = Opportunity::factory()->create([
+            'contact_id' => $contact->id,
+            'title' => 'Negócio funil',
+            'stage' => 'lead',
+        ]);
+
+        $this->actingAs($this->admin)->put(route('admin.opportunities.update', $opportunity), [
+            'contact_id' => $contact->id,
+            'title' => 'Negócio funil',
+            'description' => 'Atualizado',
+            'stage' => 'negotiation',
+            'value' => '9000',
+            'expected_close_at' => now()->addWeeks(2)->toDateString(),
+        ])->assertRedirect(route('admin.opportunities.index', ['view' => 'board']));
+
+        $this->assertDatabaseHas('opportunities', [
+            'id' => $opportunity->id,
+            'stage' => 'negotiation',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->patchJson(route('admin.opportunities.stage', $opportunity), ['stage' => 'proposal'])
+            ->assertOk()
+            ->assertJsonPath('stage', 'proposal')
+            ->assertJsonPath('ok', true);
+
+        $this->assertDatabaseHas('opportunities', [
+            'id' => $opportunity->id,
+            'stage' => 'proposal',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.opportunities.index'))
+            ->assertOk()
+            ->assertSee('data-opportunity-board', false)
+            ->assertSee('data-stage-url-template', false)
+            ->assertSee('Solte aqui para mover', false);
     }
 
     public function test_admin_can_create_opportunity_linked_to_contact_and_project(): void
@@ -74,8 +160,11 @@ class CrmTest extends TestCase
         $this->actingAs($this->admin)
             ->get(route('admin.opportunities.index'))
             ->assertOk()
+            ->assertSee('Pipeline de oportunidades', false)
+            ->assertSee('Lead → Contrato', false)
             ->assertSee('Pacote BI municipal', false)
-            ->assertSee('Servlitcys CRM', false);
+            ->assertSee('Servlitcys CRM', false)
+            ->assertSee('crm-board', false);
     }
 
     public function test_admin_can_register_activity_and_attach_project(): void

@@ -8,6 +8,7 @@ use App\Models\Concerns\HasAttachments;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -21,6 +22,7 @@ class Contact extends Model
         'email',
         'phone',
         'company',
+        'company_id',
         'role',
         'preferred_channel',
         'status',
@@ -34,6 +36,18 @@ class Contact extends Model
             'status' => ContactStatus::class,
             'source' => ContactSource::class,
         ];
+    }
+
+    public function clientCompany(): BelongsTo
+    {
+        return $this->belongsTo(Company::class, 'company_id');
+    }
+
+    public function companyLabel(): ?string
+    {
+        $label = $this->clientCompany?->name ?: $this->company;
+
+        return filled($label) ? (string) $label : null;
     }
 
     public function messages(): HasMany

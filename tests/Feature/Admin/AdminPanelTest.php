@@ -86,6 +86,19 @@ class AdminPanelTest extends TestCase
         $this->assertNotNull($project?->logo_path);
         $this->assertFalse($project->exposesPublicLinks());
         Storage::disk('public')->assertExists($project->logo_path);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.projects.index'))
+            ->assertOk()
+            ->assertSee('Portfólio operacional', false)
+            ->assertSee('pm-board', false)
+            ->assertSee('Novo Projeto', false);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.projects.index', ['view' => 'list']))
+            ->assertOk()
+            ->assertSee('pm-table', false)
+            ->assertSee('Novo Projeto', false);
     }
 
     public function test_admin_can_create_and_update_task(): void
@@ -132,7 +145,14 @@ class AdminPanelTest extends TestCase
             ->assertOk()
             ->assertSee('Calendário de atividades', false)
             ->assertSee('task-calendar', false)
+            ->assertSee('Exportar agenda', false)
             ->assertSee('Reunião de escopo', false);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('Novo Meet', false)
+            ->assertSee('meet.google.com/new', false);
 
         $this->actingAs($this->admin)
             ->get(route('admin.tasks.index', ['view' => 'board']))
@@ -163,6 +183,32 @@ class AdminPanelTest extends TestCase
 
         $response->assertRedirect();
         $this->assertStringContainsString('calendar.google.com/calendar/render', $response->headers->get('Location'));
+    }
+
+    public function test_admin_can_export_month_agenda_as_ics(): void
+    {
+        $due = now()->startOfMonth()->addDays(2)->setTime(10, 30);
+
+        Task::factory()->create([
+            'title' => 'Exportável ICS',
+            'due_at' => $due,
+            'meet_url' => 'https://meet.google.com/abc-defg-hij',
+        ]);
+
+        Task::factory()->create([
+            'title' => 'Fora do mês',
+            'due_at' => $due->copy()->addMonths(2),
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->get(route('admin.tasks.export', ['month' => $due->format('Y-m')]));
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'text/calendar; charset=utf-8');
+        $response->assertSee('BEGIN:VCALENDAR', false);
+        $response->assertSee('Exportável ICS', false);
+        $response->assertDontSee('Fora do mês', false);
+        $response->assertSee('meet.google.com/abc-defg-hij', false);
     }
 
     public function test_admin_can_update_settings(): void

@@ -1,80 +1,74 @@
-@props([
-    'task',
-    'statusLabels',
-    'priorityLabels',
-    'projects',
-    'contacts',
-    'view' => 'calendar',
-    'month' => null,
-    'compact' => false,
-])
-
 @php
-    $priorityTone = match ($task->priority->value) {
-        'high' => 'task-chip--high',
-        'low' => 'task-chip--low',
-        default => 'task-chip--medium',
-    };
-    $statusTone = match ($task->status->value) {
-        'doing' => 'task-chip--doing',
-        'done' => 'task-chip--done',
-        default => 'task-chip--todo',
-    };
+    $task = $task ?? null;
+    $statusLabels = $statusLabels ?? [];
+    $priorityLabels = $priorityLabels ?? [];
+    $projects = $projects ?? collect();
+    $contacts = $contacts ?? collect();
+    $view = $view ?? 'calendar';
+    $month = $month ?? null;
+    $compact = (bool) ($compact ?? false);
+
+    $summaryParts = array_values(array_filter([
+        $task?->project?->name,
+        $task?->contact?->name,
+        $task?->status?->label(),
+    ]));
+    $summary = implode(' · ', $summaryParts);
+    $time = $task?->due_at?->format('H:i');
 @endphp
 
-<article class="task-item {{ $compact ? 'task-item--compact' : '' }}" x-data="{ open: false }">
-    <div class="task-item__head">
-        <button type="button" class="task-item__toggle" @click="open = !open" :aria-expanded="open.toString()">
-            <span class="task-item__title">{{ $task->title }}</span>
-            <span class="task-item__meta">
-                <span class="task-chip {{ $statusTone }}">{{ $task->status->label() }}</span>
-                <span class="task-chip {{ $priorityTone }}">{{ $task->priority->label() }}</span>
-                @if($task->due_at)
-                    <span class="task-item__time">{{ $task->due_at->format('H:i') }}</span>
-                @endif
-            </span>
-        </button>
-    </div>
-
-    @unless($compact)
-        <p class="task-item__sub">
-            {{ $task->project?->name ?? 'Sem projeto' }}
-            @if($task->contact) · {{ $task->contact->name }} @endif
-            @if($task->due_at) · {{ $task->due_at->format('d/m/Y H:i') }} @endif
-        </p>
-    @endunless
-
-    <div class="task-item__actions">
-        @if($task->hasMeet())
-            <a href="{{ $task->meet_url }}" target="_blank" rel="noopener" class="task-action" title="Abrir Meet">
-                <x-ui.icon name="meet" class="h-3.5 w-3.5" /> Meet
-            </a>
-        @elseif($task->want_meet)
-            <a href="{{ $task->meetActionUrl() }}" target="_blank" rel="noopener" class="task-action" title="Criar Meet">
-                <x-ui.icon name="meet" class="h-3.5 w-3.5" /> Meet
-            </a>
+@if($task)
+<article
+    class="task-event {{ $compact ? 'task-event--compact' : 'task-event--agenda' }} task-event--{{ $task->status->value }}"
+    data-task-event
+    x-data="{ open: false }"
+>
+    <button
+        type="button"
+        class="task-event__hit"
+        @click="open = !open"
+        :aria-expanded="open.toString()"
+        title="{{ $task->title }}"
+    >
+        @if($time)
+            <span class="task-event__time">{{ $time }}</span>
         @endif
+        <span class="task-event__main">
+            <span class="task-event__title">{{ $task->title }}</span>
+            @if($summary !== '')
+                <span class="task-event__summary">{{ $summary }}</span>
+            @elseif($task->description)
+                <span class="task-event__summary">{{ \Illuminate\Support\Str::limit($task->description, $compact ? 42 : 80) }}</span>
+            @endif
+        </span>
+    </button>
 
-        <form method="POST" action="{{ route('admin.tasks.google', $task) }}" class="inline">
-            @csrf
-            <input type="hidden" name="return_view" value="{{ $view }}">
-            @if($month)<input type="hidden" name="return_month" value="{{ $month }}">@endif
-            <button type="submit" class="task-action" title="Sincronizar Agenda">
-                <x-ui.icon name="calendar" class="h-3.5 w-3.5" /> Agenda
-            </button>
-        </form>
+    <div x-cloak x-show="open" class="task-event__editor" @click.stop>
+        <div class="task-event__toolbar">
+            @if($task->hasMeet())
+                <a href="{{ $task->meet_url }}" target="_blank" rel="noopener" class="task-action" title="Abrir Meet">
+                    <x-ui.icon name="meet" class="h-3.5 w-3.5" /> Meet
+                </a>
+            @elseif($task->want_meet)
+                <a href="{{ $task->meetActionUrl() }}" target="_blank" rel="noopener" class="task-action" title="Criar Meet">
+                    <x-ui.icon name="meet" class="h-3.5 w-3.5" /> Meet
+                </a>
+            @endif
 
-        @if($task->isSyncedWithGoogle())
-            <span class="task-item__sync">Sync</span>
-        @endif
+            <form method="POST" action="{{ route('admin.tasks.google', $task) }}" class="inline">
+                @csrf
+                <input type="hidden" name="return_view" value="{{ $view }}">
+                @if($month)<input type="hidden" name="return_month" value="{{ $month }}">@endif
+                <button type="submit" class="task-action" title="Sincronizar Agenda">
+                    <x-ui.icon name="calendar" class="h-3.5 w-3.5" /> Agenda
+                </button>
+            </form>
 
-        <button type="button" class="task-action" @click="open = !open">{{ $compact ? 'Detalhe' : 'Editar' }}</button>
-    </div>
+            @if($task->isSyncedWithGoogle())
+                <span class="task-item__sync">Sync</span>
+            @endif
+        </div>
 
-    <div x-cloak x-show="open" class="task-item__editor">
-        @if($task->description)
-            <p class="mb-3 text-xs text-mist">{{ $task->description }}</p>
-        @endif
         <form method="POST" action="{{ route('admin.tasks.update', $task) }}" class="space-y-2">
             @csrf
             @method('PUT')
@@ -115,17 +109,6 @@
             </label>
             <button class="rounded-sm bg-brand px-3 py-1.5 text-sm text-white">Salvar</button>
         </form>
-        <div class="mt-3 border-t border-line pt-3">
-            <x-admin.attachments-panel
-                :attachable="$task"
-                type="tasks"
-                :kinds="['document']"
-                layout="folder"
-                title="Pasta de arquivos"
-                description="Anexos desta tarefa."
-                class="!border-0 !bg-transparent"
-            />
-        </div>
         <form method="POST" action="{{ route('admin.tasks.destroy', $task) }}" class="mt-3" data-confirm="Remover tarefa?">
             @csrf
             @method('DELETE')
@@ -135,3 +118,4 @@
         </form>
     </div>
 </article>
+@endif

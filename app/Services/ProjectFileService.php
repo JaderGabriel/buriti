@@ -7,30 +7,36 @@ use Illuminate\Support\Facades\Storage;
 
 class ProjectFileService
 {
-    public function store(?UploadedFile $file, string $directory): ?string
+    public function store(?UploadedFile $file, string $directory, string $disk = 'public'): ?string
     {
         if (! $file) {
             return null;
         }
 
-        return $file->store($directory, 'public');
+        return $file->store($directory, $disk);
     }
 
-    public function replace(?string $currentPath, ?UploadedFile $file, string $directory): ?string
+    public function replace(?string $currentPath, ?UploadedFile $file, string $directory, string $disk = 'public'): ?string
     {
         if (! $file) {
             return $currentPath;
         }
 
-        $this->delete($currentPath);
+        if ($currentPath) {
+            Storage::disk($disk)->delete($currentPath);
+            // Contratos antigos podiam estar no disco público.
+            if ($disk === 'local' && str_contains($directory, 'contracts')) {
+                Storage::disk('public')->delete($currentPath);
+            }
+        }
 
-        return $this->store($file, $directory);
+        return $this->store($file, $directory, $disk);
     }
 
-    public function delete(?string $path): void
+    public function delete(?string $path, string $disk = 'public'): void
     {
         if ($path) {
-            Storage::disk('public')->delete($path);
+            Storage::disk($disk)->delete($path);
         }
     }
 }

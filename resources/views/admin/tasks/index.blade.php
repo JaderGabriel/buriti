@@ -1,22 +1,43 @@
 @extends('layouts.admin')
 
 @section('content')
+@php
+    $defaultDay = now()->format('Y-m-d');
+    $defaultDueAt = now()->setTime(9, 0)->format('Y-m-d\TH:i');
+@endphp
+<div data-task-shell>
     <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
             <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand-bright">Agenda operacional</p>
             <h1 class="font-display text-2xl font-bold sm:text-3xl">Calendário de atividades</h1>
-            <p class="mt-1 text-mist">Planeje entregas por data, prioridade e status — com Meet e Google Agenda.</p>
+            <p class="mt-1 text-mist">Clique num dia para criar um compromisso — no estilo da Google Agenda.</p>
         </div>
         <div class="flex flex-wrap gap-2">
-            <a href="{{ $instantMeetUrl }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-sm border border-line px-4 py-2 text-sm font-semibold text-snow transition hover:border-brand-bright/50">
-                <x-ui.icon name="meet" class="h-4 w-4 text-brand-bright" />
-                Novo Meet
+            <button
+                type="button"
+                class="inline-flex items-center gap-2 rounded-sm bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-bright"
+                data-task-day="{{ $defaultDay }}"
+                data-task-create
+            >
+                <x-ui.icon name="task" class="h-4 w-4" />
+                Nova tarefa
+            </button>
+            <a
+                href="{{ route('admin.tasks.export', ['month' => $month, 'view' => $view]) }}"
+                class="inline-flex items-center gap-2 rounded-sm border border-line px-4 py-2 text-sm font-semibold text-snow transition hover:border-brand-bright/50"
+            >
+                <x-ui.icon name="download" class="h-4 w-4 text-brand-bright" />
+                Exportar agenda
             </a>
-            <a href="{{ $googleCalendarUrl }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-sm border border-line px-4 py-2 text-sm font-semibold text-snow transition hover:border-brand-bright/50">
+            <a
+                href="{{ $googleCalendarUrl }}"
+                target="_blank"
+                rel="noopener"
+                class="inline-flex items-center gap-2 rounded-sm border border-line px-4 py-2 text-sm font-semibold text-snow transition hover:border-brand-bright/50"
+            >
                 <x-ui.icon name="calendar" class="h-4 w-4 text-brand-bright" />
-                Google Agenda
+                Abrir Google
             </a>
-            <x-ui.button href="#nova-tarefa">Nova atividade</x-ui.button>
         </div>
     </div>
 
@@ -67,52 +88,14 @@
         @include('admin.tasks.partials.list')
     @endif
 
-    <section id="nova-tarefa" class="mt-10 max-w-2xl rounded-sm border border-line bg-panel p-5 sm:p-6">
-        <h2 class="font-display text-xl font-semibold">Nova atividade</h2>
-        <p class="mt-1 text-sm text-mist">Defina data/hora para aparecer no calendário e na agenda.</p>
-        <form method="POST" action="{{ route('admin.tasks.store') }}" class="mt-4 space-y-3">
-            @csrf
-            <input type="hidden" name="return_view" value="{{ $view }}">
-            <input type="hidden" name="return_month" value="{{ $month }}">
-            <input name="title" required placeholder="Título da atividade" class="w-full rounded-sm border border-line bg-ink px-3 py-2.5">
-            <textarea name="description" rows="3" placeholder="Descrição" class="w-full rounded-sm border border-line bg-ink px-3 py-2.5"></textarea>
-            <div class="grid gap-3 sm:grid-cols-2">
-                <select name="project_id" class="rounded-sm border border-line bg-ink px-3 py-2.5">
-                    <option value="">Sem projeto</option>
-                    @foreach($projects as $project)
-                        <option value="{{ $project->id }}">{{ $project->name }}</option>
-                    @endforeach
-                </select>
-                <select name="contact_id" class="rounded-sm border border-line bg-ink px-3 py-2.5">
-                    <option value="">Sem contato CRM</option>
-                    @foreach($contacts as $contact)
-                        <option value="{{ $contact->id }}">{{ $contact->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <label class="block text-sm text-mist">
-                Data e hora
-                <input type="datetime-local" name="due_at" class="mt-1.5 w-full rounded-sm border border-line bg-ink px-3 py-2.5 text-snow">
-            </label>
-            <div class="grid gap-3 sm:grid-cols-2">
-                <select name="status" class="rounded-sm border border-line bg-ink px-3 py-2.5">
-                    @foreach($statusLabels as $value => $label)
-                        <option value="{{ $value }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-                <select name="priority" class="rounded-sm border border-line bg-ink px-3 py-2.5">
-                    @foreach($priorityLabels as $value => $label)
-                        <option value="{{ $value }}" @selected($value === 'medium')>{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <input type="url" name="meet_url" placeholder="URL do Google Meet (opcional)" class="w-full rounded-sm border border-line bg-ink px-3 py-2.5">
-            <label class="flex items-center gap-2 text-sm text-mist">
-                <input type="hidden" name="want_meet" value="0">
-                <input type="checkbox" name="want_meet" value="1" checked class="rounded border-line">
-                Preparar com Google Meet (ícone Meet + sync Agenda)
-            </label>
-            <x-ui.button type="submit">Criar atividade</x-ui.button>
-        </form>
-    </section>
+    @include('admin.tasks.partials.create-dialog', [
+        'view' => $view,
+        'month' => $month,
+        'projects' => $projects,
+        'contacts' => $contacts,
+        'statusLabels' => $statusLabels,
+        'priorityLabels' => $priorityLabels,
+        'defaultDueAt' => $defaultDueAt,
+    ])
+</div>
 @endsection
