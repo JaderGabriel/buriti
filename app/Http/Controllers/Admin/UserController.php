@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateAvatarRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Models\User;
+use App\Services\AttachmentService;
 use App\Services\AuthSecurityService;
 use App\Services\AvatarService;
 use Illuminate\Http\RedirectResponse;
@@ -17,6 +18,7 @@ class UserController extends Controller
     public function __construct(
         private AvatarService $avatars,
         private AuthSecurityService $security,
+        private AttachmentService $attachments,
     ) {}
 
     public function index(): View
@@ -55,6 +57,7 @@ class UserController extends Controller
     public function edit(User $user): View
     {
         $this->authorizeAdmin();
+        $user->load('attachments');
 
         return view('admin.users.form', [
             'user' => $user,
@@ -117,6 +120,7 @@ class UserController extends Controller
         }
 
         $this->avatars->delete($user->avatar_path);
+        $this->attachments->deleteAllFor($user);
         $user->delete();
 
         return redirect()

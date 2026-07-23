@@ -6,13 +6,17 @@ use App\Enums\ProjectStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ProjectRequest;
 use App\Models\Project;
+use App\Services\AttachmentService;
 use App\Services\ProjectFileService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 class ProjectController extends Controller
 {
-    public function __construct(private ProjectFileService $files) {}
+    public function __construct(
+        private ProjectFileService $files,
+        private AttachmentService $attachments,
+    ) {}
 
     public function index(): View
     {
@@ -44,6 +48,8 @@ class ProjectController extends Controller
 
     public function edit(Project $project): View
     {
+        $project->load('attachments');
+
         return view('admin.projects.form', [
             'project' => $project,
             'statuses' => ProjectStatus::options(),
@@ -67,6 +73,7 @@ class ProjectController extends Controller
     {
         $this->files->delete($project->logo_path);
         $this->files->delete($project->contract_path);
+        $this->attachments->deleteAllFor($project);
         $project->delete();
 
         return redirect()

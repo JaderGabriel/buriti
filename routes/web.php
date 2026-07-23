@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AttachmentController;
 use App\Http\Controllers\Admin\ContactController as AdminContactController;
 use App\Http\Controllers\Admin\ContactMessageController;
 use App\Http\Controllers\Admin\DashboardController;
@@ -93,6 +94,16 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::put('/tarefas/{task}', [TaskController::class, 'update'])->name('tasks.update');
     Route::post('/tarefas/{task}/google', [TaskController::class, 'syncGoogle'])->name('tasks.google');
     Route::delete('/tarefas/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
+
+    Route::post('/anexos/{type}/{id}', [AttachmentController::class, 'store'])
+        ->whereIn('type', ['contacts', 'opportunities', 'tasks', 'projects', 'users'])
+        ->whereNumber('id')
+        ->middleware('throttle:30,1')
+        ->name('attachments.store');
+    Route::get('/anexos/{attachment}/download', [AttachmentController::class, 'download'])
+        ->name('attachments.download');
+    Route::delete('/anexos/{attachment}', [AttachmentController::class, 'destroy'])
+        ->name('attachments.destroy');
 
     Route::get('/configuracoes', [SettingController::class, 'edit'])->name('settings.edit');
     Route::put('/configuracoes', [SettingController::class, 'update'])->name('settings.update');

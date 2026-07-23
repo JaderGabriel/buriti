@@ -63,6 +63,16 @@
     </form>
 
     @if($editing)
+        <div class="mt-6 max-w-2xl">
+            <x-admin.attachments-panel
+                :attachable="$opportunity"
+                type="opportunities"
+                :kinds="['document']"
+                title="Pasta de documentos"
+                description="Propostas, contratos e PDFs desta oportunidade."
+            />
+        </div>
+
         <form method="POST" action="{{ route('admin.opportunities.destroy', $opportunity) }}" class="mt-4 max-w-2xl" data-confirm="Remover oportunidade?">
             @csrf
             @method('DELETE')

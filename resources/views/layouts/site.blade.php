@@ -47,7 +47,7 @@
                     <svg class="block h-4 w-4 dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 14.3A8.1 8.1 0 1 1 9.7 3 6.5 6.5 0 0 0 21 14.3z"/></svg>
                 </button>
 
-                <x-ui.button href="{{ route('home') }}#contato" class="hidden px-4 py-2 lg:inline-flex">Pedir proposta</x-ui.button>
+                <x-ui.button href="{{ route('home') }}#contato" class="hidden px-4 py-2 xl:inline-flex">Pedir proposta</x-ui.button>
 
                 <button
                     type="button"
@@ -74,7 +74,6 @@
                 <x-site.admin-link class="rounded-sm px-3 py-3 font-semibold text-brand-bright" data-nav-close>
                     @auth Painel admin @else Área admin @endauth
                 </x-site.admin-link>
-                <x-ui.button href="{{ route('home') }}#contato" class="mt-2 w-full" data-nav-close>Pedir proposta</x-ui.button>
             </nav>
         </div>
     </header>
@@ -83,9 +82,18 @@
         @yield('content')
     </main>
 
+    <a
+        href="{{ route('home') }}#contato"
+        class="mobile-proposal-fab xl:hidden"
+        aria-label="Pedir proposta"
+    >
+        <x-ui.icon name="message" class="h-5 w-5" />
+        <span>Pedir proposta</span>
+    </a>
+
     <footer class="border-t border-line bg-panel">
-        <div class="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-3 lg:px-8">
-            <div>
+        <div class="mx-auto grid max-w-7xl grid-cols-2 gap-8 px-4 py-12 sm:gap-10 sm:px-6 md:grid-cols-3 lg:px-8">
+            <div class="col-span-2 md:col-span-1">
                 <div class="flex items-center gap-3">
                     <img src="{{ asset('images/logo-buriti.png') }}" alt="" class="h-9 w-9 object-contain">
                     <span class="font-display text-lg font-bold tracking-wide">BURI-TI</span>

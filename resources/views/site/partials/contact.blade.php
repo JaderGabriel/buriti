@@ -25,15 +25,7 @@
                         :github="$githubUrl ?? null"
                         :telegram="$telegramUrl ?? null"
                         :telegram-handle="$telegramHandle ?? null"
-                    >
-                        <a
-                            href="{{ route('admin.dashboard') }}"
-                            class="inline-flex h-11 items-center gap-2 rounded-sm border border-line px-3 text-sm font-semibold text-brand-bright transition hover:border-brand-bright/50 hover:bg-ink/40 hover:text-snow"
-                        >
-                            <x-ui.icon name="admin" class="h-5 w-5" />
-                            @auth Painel admin @else Área admin @endauth
-                        </a>
-                    </x-site.contact-icons>
+                    />
                 </div>
             </div>
 

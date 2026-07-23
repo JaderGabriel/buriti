@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\TaskRequest;
 use App\Models\Contact;
 use App\Models\Project;
 use App\Models\Task;
+use App\Services\AttachmentService;
 use App\Services\GoogleCalendarService;
 use App\Services\SettingService;
 use Illuminate\Http\RedirectResponse;
@@ -19,12 +20,13 @@ class TaskController extends Controller
     public function __construct(
         private SettingService $settings,
         private GoogleCalendarService $google,
+        private AttachmentService $attachments,
     ) {}
 
     public function index(): View
     {
         $tasks = Task::query()
-            ->with(['project', 'contact'])
+            ->with(['project', 'contact', 'attachments'])
             ->boardOrdered()
             ->get()
             ->groupBy(fn (Task $task) => $task->status->value);
@@ -88,6 +90,7 @@ class TaskController extends Controller
     public function destroy(Task $task): RedirectResponse
     {
         $this->google->deleteRemoteEvent($task);
+        $this->attachments->deleteAllFor($task);
         $task->delete();
 
         return redirect()

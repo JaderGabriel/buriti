@@ -78,4 +78,17 @@
 
         <x-ui.button type="submit">{{ $editing ? 'Salvar alterações' : 'Cadastrar projeto' }}</x-ui.button>
     </form>
+
+    @if($editing)
+        <div class="mt-6 max-w-3xl">
+            <x-admin.attachments-panel
+                :attachable="$project"
+                type="projects"
+                :kinds="['document', 'media', 'photo']"
+                title="Arquivos do projeto"
+                description="Documentos, mídias e fotos internas. Não alteram o que aparece no portfólio público."
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,image/*,video/*,audio/*"
+            />
+        </div>
+    @endif
 @endsection

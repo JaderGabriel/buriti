@@ -8,22 +8,26 @@
             </p>
         </div>
 
-        <div class="method-flow mt-12">
+        <ol class="method-flow mt-12">
             @foreach($method as $index => $step)
-                <div class="method-step">
-                    <div class="method-node">
-                        <span class="method-index">{{ str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT) }}</span>
+                @php $stepNumber = str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT); @endphp
+                <li class="method-step">
+                    <div class="method-rail" aria-hidden="true">
+                        <span class="method-index method-index--rail">{{ $stepNumber }}</span>
                         <span class="method-icon">
                             <x-ui.icon :name="$step['icon']" class="h-6 w-6" />
                         </span>
+                        @unless($loop->last)
+                            <span class="method-connector"></span>
+                        @endunless
                     </div>
-                    @if(! $loop->last)
-                        <div class="method-connector" aria-hidden="true"></div>
-                    @endif
-                    <h3 class="mt-4 font-display text-lg font-semibold text-snow">{{ $step['title'] }}</h3>
-                    <p class="mt-2 text-sm leading-relaxed text-mist">{{ $step['description'] }}</p>
-                </div>
+                    <div class="method-copy">
+                        <span class="method-index method-index--mobile">{{ $stepNumber }}</span>
+                        <h3 class="method-title">{{ $step['title'] }}</h3>
+                        <p class="method-description">{{ $step['description'] }}</p>
+                    </div>
+                </li>
             @endforeach
-        </div>
+        </ol>
     </div>
 </section>

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ContactSource;
 use App\Enums\ContactStatus;
+use App\Models\Concerns\HasAttachments;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Contact extends Model
 {
     /** @use HasFactory<\Database\Factories\ContactFactory> */
-    use HasFactory;
+    use HasAttachments, HasFactory;
 
     protected $fillable = [
         'name',

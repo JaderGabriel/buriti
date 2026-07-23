@@ -134,6 +134,16 @@
                                     </label>
                                     <button class="rounded-full bg-brand px-3 py-1.5 text-sm text-white">Salvar</button>
                                 </form>
+                                <div class="border-t border-line pt-3">
+                                    <x-admin.attachments-panel
+                                        :attachable="$task"
+                                        type="tasks"
+                                        :kinds="['document']"
+                                        title="Documentos"
+                                        description="PDFs e ficheiros desta tarefa."
+                                        class="!border-0 !bg-transparent !p-0"
+                                    />
+                                </div>
                                 <form method="POST" action="{{ route('admin.tasks.destroy', $task) }}" data-confirm="Remover tarefa?">
                                     @csrf
                                     @method('DELETE')

@@ -1,0 +1,150 @@
+<?php
+
+namespace Tests\Feature\Admin;
+
+use App\Models\Attachment;
+use App\Models\Contact;
+use App\Models\Opportunity;
+use App\Models\Project;
+use App\Models\Task;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Tests\TestCase;
+
+class AttachmentTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private User $admin;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->admin = User::factory()->create();
+        Storage::fake('public');
+    }
+
+    public function test_admin_can_attach_document_to_contact(): void
+    {
+        $contact = Contact::factory()->create();
+        $file = UploadedFile::fake()->create('proposta.pdf', 120, 'application/pdf');
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.attachments.store', ['type' => 'contacts', 'id' => $contact->id]), [
+                'file' => $file,
+                'kind' => 'document',
+                'title' => 'Proposta comercial',
+            ])
+            ->assertRedirect();
+
+        $attachment = Attachment::query()->first();
+        $this->assertNotNull($attachment);
+        $this->assertSame('Proposta comercial', $attachment->title);
+        $this->assertTrue($attachment->attachable->is($contact));
+        Storage::disk('public')->assertExists($attachment->path);
+    }
+
+    public function test_admin_can_attach_document_to_opportunity_and_task(): void
+    {
+        $opportunity = Opportunity::factory()->create();
+        $task = Task::factory()->create();
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.attachments.store', ['type' => 'opportunities', 'id' => $opportunity->id]), [
+                'file' => UploadedFile::fake()->create('brief.pdf', 80, 'application/pdf'),
+                'kind' => 'document',
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.attachments.store', ['type' => 'tasks', 'id' => $task->id]), [
+                'file' => UploadedFile::fake()->create('checklist.pdf', 40, 'application/pdf'),
+                'kind' => 'document',
+            ])
+            ->assertRedirect();
+
+        $this->assertSame(1, $opportunity->attachments()->count());
+        $this->assertSame(1, $task->attachments()->count());
+    }
+
+    public function test_user_only_accepts_photos(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.attachments.store', ['type' => 'users', 'id' => $user->id]), [
+                'file' => UploadedFile::fake()->create('cv.pdf', 50, 'application/pdf'),
+                'kind' => 'document',
+            ])
+            ->assertStatus(422);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.attachments.store', ['type' => 'users', 'id' => $user->id]), [
+                'file' => UploadedFile::fake()->image('retrato.jpg'),
+                'kind' => 'photo',
+            ])
+            ->assertRedirect();
+
+        $this->assertSame(1, $user->attachments()->count());
+    }
+
+    public function test_project_accepts_documents_and_media_without_changing_home_fields(): void
+    {
+        $project = Project::factory()->create([
+            'is_public' => true,
+            'name' => 'Portfólio Visível',
+            'logo_path' => null,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.attachments.store', ['type' => 'projects', 'id' => $project->id]), [
+                'file' => UploadedFile::fake()->create('contrato.pdf', 100, 'application/pdf'),
+                'kind' => 'document',
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.attachments.store', ['type' => 'projects', 'id' => $project->id]), [
+                'file' => UploadedFile::fake()->image('mockup.png'),
+                'kind' => 'media',
+            ])
+            ->assertRedirect();
+
+        $project->refresh();
+        $this->assertSame(2, $project->attachments()->count());
+        $this->assertNull($project->logo_path);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Portfólio Visível', false)
+            ->assertDontSee('contrato.pdf', false);
+    }
+
+    public function test_admin_can_download_and_delete_attachment(): void
+    {
+        $contact = Contact::factory()->create();
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.attachments.store', ['type' => 'contacts', 'id' => $contact->id]), [
+                'file' => UploadedFile::fake()->create('nota.pdf', 30, 'application/pdf'),
+                'kind' => 'document',
+            ]);
+
+        $attachment = Attachment::query()->firstOrFail();
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.attachments.download', $attachment))
+            ->assertOk();
+
+        $path = $attachment->path;
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.attachments.destroy', $attachment))
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('attachments', ['id' => $attachment->id]);
+        Storage::disk('public')->assertMissing($path);
+    }
+}

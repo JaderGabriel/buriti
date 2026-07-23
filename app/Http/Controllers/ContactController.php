@@ -22,6 +22,6 @@ class ContactController extends Controller
 
         return redirect()
             ->to(url()->previous().'#contato')
-            ->with('contact_success', 'Mensagem enviada. A BURI-TI responde em breve.');
+            ->with('contact_success', 'Mensagem enviada. A BURI-TI responderá em breve.');
     }
 }

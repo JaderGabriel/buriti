@@ -135,6 +135,14 @@
                     @endforelse
                 </ul>
             </article>
+
+            <x-admin.attachments-panel
+                :attachable="$contact"
+                type="contacts"
+                :kinds="['document']"
+                title="Pasta de documentos"
+                description="Contratos, propostas e PDFs ligados a este contato."
+            />
         </div>
 
         <div class="space-y-6">

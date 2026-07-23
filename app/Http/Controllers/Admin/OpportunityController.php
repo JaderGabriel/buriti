@@ -8,12 +8,15 @@ use App\Http\Requests\Admin\OpportunityRequest;
 use App\Models\Contact;
 use App\Models\Opportunity;
 use App\Models\Project;
+use App\Services\AttachmentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class OpportunityController extends Controller
 {
+    public function __construct(private AttachmentService $attachments) {}
+
     public function index(Request $request): View
     {
         $opportunities = Opportunity::query()
@@ -53,6 +56,8 @@ class OpportunityController extends Controller
 
     public function edit(Opportunity $opportunity): View
     {
+        $opportunity->load('attachments');
+
         return view('admin.opportunities.form', [
             'opportunity' => $opportunity,
             'contacts' => Contact::query()->orderBy('name')->get(),
@@ -73,6 +78,7 @@ class OpportunityController extends Controller
     public function destroy(Opportunity $opportunity): RedirectResponse
     {
         $contactId = $opportunity->contact_id;
+        $this->attachments->deleteAllFor($opportunity);
         $opportunity->delete();
 
         return redirect()

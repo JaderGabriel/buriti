@@ -108,5 +108,16 @@
                 <x-ui.button type="submit">{{ $editing ? 'Salvar dados da conta' : 'Criar usuário' }}</x-ui.button>
             </div>
         </form>
+
+        @if($editing)
+            <x-admin.attachments-panel
+                :attachable="$user"
+                type="users"
+                :kinds="['photo']"
+                title="Galeria de fotos"
+                description="Fotos adicionais do usuário (além da foto de perfil)."
+                accept="image/*"
+            />
+        @endif
     </div>
 @endsection

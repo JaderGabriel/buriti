@@ -13,12 +13,15 @@ use App\Models\Contact;
 use App\Models\CrmActivity;
 use App\Models\Project;
 use App\Models\Task;
+use App\Services\AttachmentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class ContactController extends Controller
 {
+    public function __construct(private AttachmentService $attachments) {}
+
     public function index(Request $request): View
     {
         $contacts = Contact::query()
@@ -71,6 +74,7 @@ class ContactController extends Controller
             'messages' => fn ($q) => $q->latest()->limit(20),
             'tasks.project',
             'activities' => fn ($q) => $q->with(['user', 'opportunity', 'task'])->latest('happened_at')->limit(40),
+            'attachments',
         ]);
 
         return view('admin.contacts.show', [
@@ -104,6 +108,7 @@ class ContactController extends Controller
 
     public function destroy(Contact $contact): RedirectResponse
     {
+        $this->attachments->deleteAllFor($contact);
         $contact->delete();
 
         return redirect()
