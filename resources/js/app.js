@@ -1914,12 +1914,14 @@ function initDriveViewer() {
         const openTrigger = event.target.closest?.('[data-drive-open]');
         if (openTrigger) {
             event.preventDefault();
+            event.stopPropagation();
             openViewer(openTrigger);
             return;
         }
 
         const closeTrigger = event.target.closest?.('[data-drive-close]');
         if (closeTrigger) {
+            event.preventDefault();
             const viewer = closeTrigger.closest('[data-drive-viewer]');
             if (viewer) {
                 closeViewer(viewer);
