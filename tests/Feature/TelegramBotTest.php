@@ -180,6 +180,14 @@ class TelegramBotTest extends TestCase
         $this->assertNotNull($task);
         $this->assertSame(TaskPriority::High, $task->priority);
         $this->assertSame(TaskStatus::Todo, $task->status);
+
+        Http::assertSent(function ($request) {
+            $text = (string) ($request->data()['text'] ?? '');
+
+            return str_contains($text, 'Tarefa criada na agenda')
+                && str_contains($text, 'Kickoff')
+                && str_contains($text, 'Abrir na agenda do CRM');
+        });
     }
 
     public function test_admin_can_logout(): void

@@ -91,4 +91,14 @@ class GoogleOAuthController extends Controller
             ->withFragment('google-integration')
             ->with('success', 'Conta Google desligada. O sync automático pela API fica inativo.');
     }
+
+    public function test(): RedirectResponse
+    {
+        $result = $this->google->testConnection();
+
+        return redirect()
+            ->route('admin.settings.edit')
+            ->withFragment('google-integration')
+            ->with($result['ok'] ? 'success' : 'error', $result['message']);
+    }
 }

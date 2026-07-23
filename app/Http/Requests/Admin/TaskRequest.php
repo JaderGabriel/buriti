@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Enums\GoogleEventColor;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use Illuminate\Foundation\Http\FormRequest;
@@ -21,6 +22,7 @@ class TaskRequest extends FormRequest
             'meet_url' => $this->filled('meet_url') ? $this->input('meet_url') : null,
             'project_id' => $this->filled('project_id') ? $this->input('project_id') : null,
             'contact_id' => $this->filled('contact_id') ? $this->input('contact_id') : null,
+            'google_color_id' => $this->filled('google_color_id') ? (string) $this->input('google_color_id') : null,
         ]);
     }
 
@@ -37,6 +39,7 @@ class TaskRequest extends FormRequest
             'due_at' => ['nullable', 'date'],
             'meet_url' => ['nullable', 'url', 'max:255'],
             'want_meet' => ['sometimes', 'boolean'],
+            'google_color_id' => ['nullable', Rule::enum(GoogleEventColor::class)],
         ];
     }
 }

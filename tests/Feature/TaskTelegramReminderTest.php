@@ -51,11 +51,13 @@ class TaskTelegramReminderTest extends TestCase
 
         Http::assertSent(function ($request) {
             $data = $request->data();
+            $text = (string) ($data['text'] ?? '');
 
             return str_contains($request->url(), 'sendMessage')
                 && ($data['chat_id'] ?? null) == '424242'
-                && str_contains((string) ($data['text'] ?? ''), 'Lembrete de tarefa')
-                && str_contains((string) ($data['text'] ?? ''), 'Reunião com cliente');
+                && str_contains($text, 'Lembrete de agenda')
+                && str_contains($text, 'Reunião com cliente')
+                && str_contains($text, 'Abrir na agenda do CRM');
         });
     }
 

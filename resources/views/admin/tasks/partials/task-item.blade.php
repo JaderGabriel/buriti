@@ -19,8 +19,11 @@
 
 @if($task)
 <article
-    class="task-event {{ $compact ? 'task-event--compact' : 'task-event--agenda' }} task-event--{{ $task->status->value }}"
+    class="task-event {{ $compact ? 'task-event--compact' : 'task-event--agenda' }} task-event--{{ $task->status->value }} {{ $task->googleColor() ? 'task-event--gcal task-event--gcal-'.$task->googleColor()->value : '' }}"
     data-task-event
+    @if($task->googleColor())
+        style="--gcal-bg: {{ $task->googleColor()->background() }}; --gcal-fg: {{ $task->googleColor()->foreground() }};"
+    @endif
     x-data="{ open: false }"
 >
     <button
@@ -107,6 +110,7 @@
             </div>
             <input type="datetime-local" name="due_at" value="{{ optional($task->due_at)->format('Y-m-d\TH:i') }}" class="w-full rounded-sm border border-line bg-panel px-2 py-1.5 text-sm">
             <input type="url" name="meet_url" value="{{ $task->meet_url }}" placeholder="URL do Google Meet" class="w-full rounded-sm border border-line bg-panel px-2 py-1.5 text-sm">
+            @include('admin.tasks.partials.google-color-picker', ['task' => $task, 'compact' => true, 'googleEventColors' => $googleEventColors ?? null])
             <label class="flex items-center gap-2 text-xs text-mist">
                 <input type="hidden" name="want_meet" value="0">
                 <input type="checkbox" name="want_meet" value="1" @checked($task->want_meet) class="rounded border-line">

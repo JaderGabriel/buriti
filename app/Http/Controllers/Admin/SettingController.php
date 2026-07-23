@@ -18,15 +18,21 @@ class SettingController extends Controller
 
     public function edit(): View
     {
+        $connection = $this->google->connectionStatus();
+
         return view('admin.settings.edit', [
             'settings' => $this->settings->all(),
             'googleIntegration' => $this->google->integrationStatus(),
             'googleApiReady' => $this->google->apiConfigured(),
             'googleOauthAppReady' => $this->google->oauthAppConfigured(),
-            'googleHasClientSecret' => filled($this->google->clientSecret()),
-            'googleConnected' => filled($this->google->refreshToken()),
+            'googleHasClientSecret' => $connection['has_secret'],
+            'googleConnected' => $connection['has_refresh'],
+            'googleConnection' => $connection,
             'googleRedirectUri' => $this->google->redirectUri(),
-            'googleClientIdValue' => $this->settings->get('google_client_id') ?: $this->google->clientId(),
+            'googleClientIdValue' => $this->google->clientId(),
+            'googleCalendars' => $this->google->listWritableCalendars(),
+            'googleResolvedCalendarId' => $this->google->resolvedCalendarId(),
+            'googleEventColors' => \App\Enums\GoogleEventColor::palette(),
         ]);
     }
 

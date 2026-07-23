@@ -73,7 +73,31 @@ class TaskController extends Controller
 
         $undatedTasks = $tasks->filter(fn (Task $task) => $task->due_at === null)->values();
 
+        $excludeGoogleIds = $tasks
+            ->pluck('google_event_id')
+            ->filter()
+            ->values()
+            ->all();
+
+        $googlePull = $this->google->listEvents(
+            $gridStart->copy()->startOfDay(),
+            $gridEnd->copy()->endOfDay(),
+            $excludeGoogleIds
+        );
+
+        /** @var \Illuminate\Support\Collection<string, \Illuminate\Support\Collection<int, \App\Data\GoogleCalendarEvent>> $googleEventsByDate */
+        $googleEventsByDate = $googlePull['events']
+            ->groupBy(fn (\App\Data\GoogleCalendarEvent $event) => $event->dateKey())
+            ->map(fn ($dayEvents) => $dayEvents->values());
+
+        $calendarDays = $calendarDays->map(function (array $day) use ($googleEventsByDate) {
+            $day['google_events'] = $googleEventsByDate->get($day['date'], collect());
+
+            return $day;
+        });
+
         $agendaGroups = $byDate;
+        $agendaGoogleGroups = $googleEventsByDate;
 
         return view('admin.tasks.index', [
             'view' => $view,
@@ -83,6 +107,7 @@ class TaskController extends Controller
             'nextMonth' => $cursor->copy()->addMonth()->format('Y-m'),
             'calendarDays' => $calendarDays,
             'agendaGroups' => $agendaGroups,
+            'agendaGoogleGroups' => $agendaGoogleGroups,
             'undatedTasks' => $undatedTasks,
             'tasks' => $tasks,
             'columns' => $columns,
@@ -94,6 +119,10 @@ class TaskController extends Controller
             'googleCalendarUrl' => $this->google->calendarHomeUrl(),
             'googleIntegration' => $this->google->integrationStatus(),
             'instantMeetUrl' => $this->google->instantMeetUrl(),
+            'googleEventColors' => \App\Enums\GoogleEventColor::palette(),
+            'googleEventsCount' => $googlePull['events']->count(),
+            'googleEventsError' => $googlePull['error'],
+            'googleApiReady' => $this->google->apiConfigured(),
             'stats' => [
                 'total' => $tasks->count(),
                 'open' => $tasks->filter(fn (Task $task) => in_array($task->status, [TaskStatus::Todo, TaskStatus::Doing], true))->count(),
@@ -102,6 +131,9 @@ class TaskController extends Controller
                         && $task->due_at->isSameMonth($cursor)
                 )->count(),
                 'undated' => $undatedTasks->count(),
+                'google_month' => $googlePull['events']->filter(
+                    fn (\App\Data\GoogleCalendarEvent $event) => $event->start?->isSameMonth($cursor)
+                )->count(),
             ],
         ]);
     }

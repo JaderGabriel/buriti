@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\GoogleEventColor;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Models\Concerns\HasAttachments;
@@ -27,6 +28,8 @@ class Task extends Model
         'google_event_id',
         'meet_url',
         'want_meet',
+        'google_color_id',
+        'google_calendar_id',
     ];
 
     protected function casts(): array
@@ -37,7 +40,17 @@ class Task extends Model
             'status' => TaskStatus::class,
             'priority' => TaskPriority::class,
             'want_meet' => 'boolean',
+            'google_color_id' => GoogleEventColor::class,
         ];
+    }
+
+    public function googleColor(): ?GoogleEventColor
+    {
+        $value = $this->google_color_id;
+
+        return $value instanceof GoogleEventColor
+            ? $value
+            : GoogleEventColor::tryFromMixed(is_scalar($value) ? (string) $value : null);
     }
 
     public function project(): BelongsTo

@@ -26,6 +26,9 @@ class DomainServicesTest extends TestCase
         $this->assertSame('Negociação', OpportunityStage::Negotiation->label());
         $this->assertSame('contract', OpportunityStage::Won->icon());
         $this->assertContains('negotiation', OpportunityStage::boardOrder());
+        $this->assertSame('Tomate', \App\Enums\GoogleEventColor::Tomato->label());
+        $this->assertSame('#dc2127', \App\Enums\GoogleEventColor::Tomato->background());
+        $this->assertCount(11, \App\Enums\GoogleEventColor::palette());
     }
 
     public function test_task_builds_google_calendar_url(): void
@@ -67,6 +70,39 @@ class DomainServicesTest extends TestCase
             'https://calendar.google.com/calendar/embed?src=demo',
             $service->calendarSrc()
         );
+    }
+
+    public function test_setting_service_extracts_calendar_id_from_embed_url(): void
+    {
+        $service = app(SettingService::class);
+        $id = 'team@group.calendar.google.com';
+
+        $this->assertSame(
+            $id,
+            $service->normalizeCalendarId('https://calendar.google.com/calendar/embed?src='.rawurlencode($id).'&ctz=UTC')
+        );
+
+        $service->putMany([
+            'google_calendar_id' => 'primary',
+            'google_calendar_embed' => 'https://calendar.google.com/calendar/embed?src='.rawurlencode($id),
+        ]);
+
+        $this->assertSame($id, $service->get('google_calendar_id'));
+    }
+
+    public function test_google_client_id_is_sanitized(): void
+    {
+        $service = app(SettingService::class);
+
+        $this->assertSame(
+            '514374829027-abc.apps.googleusercontent.com',
+            $service->sanitizeGoogleClientId('.514374829027-abc.apps.googleusercontent.com')
+        );
+
+        $google = app(\App\Services\GoogleCalendarService::class);
+        $status = $google->connectionStatus();
+        $this->assertArrayHasKey('state', $status);
+        $this->assertArrayHasKey('has_refresh', $status);
     }
 
     public function test_setting_service_rejects_non_google_calendar_urls(): void

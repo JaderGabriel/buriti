@@ -69,13 +69,32 @@ class SettingService
     /** @param array<string, string|null> $values */
     public function putMany(array $values): void
     {
+        if (array_key_exists('google_calendar_embed', $values)) {
+            $values['google_calendar_embed'] = $this->normalizeCalendarSrc($values['google_calendar_embed']);
+        }
+
+        if (array_key_exists('google_calendar_id', $values)) {
+            $values['google_calendar_id'] = $this->normalizeCalendarId($values['google_calendar_id']);
+        }
+
+        if (array_key_exists('google_client_id', $values)) {
+            $values['google_client_id'] = $this->sanitizeGoogleClientId(
+                is_string($values['google_client_id'] ?? null) ? $values['google_client_id'] : null
+            );
+        }
+
+        $embedSrc = $values['google_calendar_embed'] ?? null;
+        $calendarId = $values['google_calendar_id'] ?? null;
+        $embedCalendarId = $this->normalizeCalendarId(is_string($embedSrc) ? $embedSrc : null);
+
+        // If Calendar ID is empty/primary but the embed points to a specific agenda, prefer that.
+        if ($embedCalendarId && (! filled($calendarId) || $calendarId === 'primary')) {
+            $values['google_calendar_id'] = $embedCalendarId;
+        }
+
         foreach ($values as $key => $value) {
             if (! in_array($key, self::KEYS, true)) {
                 continue;
-            }
-
-            if ($key === 'google_calendar_embed') {
-                $value = $this->normalizeCalendarSrc($value);
             }
 
             Setting::query()->updateOrCreate(
@@ -85,6 +104,50 @@ class SettingService
         }
 
         Cache::forget(self::CACHE_KEY);
+    }
+
+    /**
+     * Accepts a raw Calendar ID, an embed URL, or an iframe src and returns the Google calendar id.
+     */
+    public function normalizeCalendarId(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $value = trim(html_entity_decode($value, ENT_QUOTES));
+        if ($value === '') {
+            return null;
+        }
+
+        if (preg_match('/[?&]src=([^&"\']+)/i', $value, $matches)) {
+            $value = rawurldecode($matches[1]);
+        } elseif (str_contains($value, 'calendar.google.com')) {
+            $query = parse_url($value, PHP_URL_QUERY);
+            if (is_string($query) && $query !== '') {
+                parse_str($query, $params);
+                if (! empty($params['src']) && is_string($params['src'])) {
+                    $value = rawurldecode($params['src']);
+                }
+            }
+        }
+
+        $value = trim($value);
+
+        return $value !== '' ? $value : null;
+    }
+
+    public function sanitizeGoogleClientId(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $value = trim(html_entity_decode($value, ENT_QUOTES));
+        $value = preg_replace('/^[\s.]+/', '', $value) ?? $value;
+        $value = trim($value, " \t\n\r\0\x0B\"'");
+
+        return $value !== '' ? $value : null;
     }
 
     /** @return array<string, string|null> */

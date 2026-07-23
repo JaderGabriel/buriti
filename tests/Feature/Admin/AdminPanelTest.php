@@ -222,7 +222,7 @@ class AdminPanelTest extends TestCase
             'telegram_url' => 'https://t.me/JaderGabriel',
             'telegram_handle' => '@JaderGabriel',
             'google_calendar_url' => 'https://calendar.google.com/calendar/u/0/r',
-            'google_calendar_embed' => 'https://calendar.google.com/calendar/embed?src=example',
+            'google_calendar_embed' => 'https://calendar.google.com/calendar/embed?src=example%40group.calendar.google.com',
             'google_calendar_id' => 'primary',
             'google_auto_sync' => '1',
         ])->assertRedirect(route('admin.settings.edit').'#google-integration');
@@ -232,10 +232,11 @@ class AdminPanelTest extends TestCase
         $this->assertSame('jadergabriel8@gmail.com', $settings['contact_email']);
         $this->assertSame('+55 38991758416', $settings['contact_whatsapp']);
         $this->assertSame('@JaderGabriel', $settings['telegram_handle']);
-        $this->assertSame('primary', $settings['google_calendar_id']);
+        // primary + embed específico → Calendar ID alinha ao src do embed
+        $this->assertSame('example@group.calendar.google.com', $settings['google_calendar_id']);
         $this->assertSame('1', $settings['google_auto_sync']);
         $this->assertSame(
-            'https://calendar.google.com/calendar/embed?src=example',
+            'https://calendar.google.com/calendar/embed?src=example%40group.calendar.google.com',
             app(SettingService::class)->calendarSrc()
         );
     }

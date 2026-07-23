@@ -1782,6 +1782,82 @@ html.dark .postit-lilac {
     min-width: 0;
 }
 
+.task-event--gcal.task-event--compact {
+    border-left-color: var(--gcal-bg) !important;
+}
+
+.task-event--gcal.task-event--agenda {
+    border-left: 3px solid var(--gcal-bg);
+}
+
+.task-event--gcal .task-event__hit {
+    background: color-mix(in oklab, var(--gcal-bg) 28%, transparent);
+    border-radius: 4px;
+}
+
+.task-event--gcal .task-event__hit:hover {
+    background: color-mix(in oklab, var(--gcal-bg) 42%, transparent);
+}
+
+.gcal-color-picker {
+    display: grid;
+    gap: 0.4rem;
+}
+
+.gcal-color-picker__label {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--color-mist);
+}
+
+.gcal-color-picker__swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    align-items: center;
+}
+
+.gcal-color-picker__swatch {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.35rem;
+    height: 1.35rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    border-radius: 999px;
+}
+
+.gcal-color-picker__swatch span {
+    display: block;
+    width: 0.95rem;
+    height: 0.95rem;
+    border-radius: 999px;
+    background: var(--gcal-swatch, #5484ed);
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+    transition: transform 0.12s ease, outline-color 0.12s ease;
+}
+
+.gcal-color-picker__swatch--none span {
+    background:
+        linear-gradient(135deg, transparent 46%, rgba(120, 120, 120, 0.7) 48%, rgba(120, 120, 120, 0.7) 52%, transparent 54%),
+        color-mix(in oklab, var(--color-panel) 80%, var(--color-mist));
+}
+
+.gcal-color-picker__swatch:hover span,
+.gcal-color-picker__swatch:focus-visible span {
+    transform: scale(1.12);
+}
+
+.gcal-color-picker__swatch.is-active span,
+.gcal-color-picker__swatch:has(input:checked) span {
+    outline: 2px solid rgba(255, 255, 255, 0.75);
+    outline-offset: 1px;
+}
+
 .task-event__hit {
     display: flex;
     width: 100%;
@@ -2036,6 +2112,36 @@ button.task-agenda__date:hover {
 .task-chip--doing { border-left-color: #2f7ec4; }
 .task-chip--done { border-left-color: #3d9b6e; }
 .task-chip--todo { border-left-color: var(--color-brand-bright); }
+
+.task-chip--google {
+    border-left-color: #5484ed;
+    background: color-mix(in oklab, #5484ed 16%, transparent);
+}
+
+.task-chip--google[style*="--gcal-bg"] {
+    border-left-color: var(--gcal-bg);
+    background: color-mix(in oklab, var(--gcal-bg) 22%, transparent);
+}
+
+.task-event--google {
+    border: 1px dashed color-mix(in oklab, #5484ed 45%, var(--color-line));
+    border-radius: 0.5rem;
+    padding: 0.35rem 0.45rem 0.45rem;
+    background: color-mix(in oklab, #5484ed 8%, transparent);
+}
+
+.task-event--google.task-event--gcal {
+    border-color: color-mix(in oklab, var(--gcal-bg) 55%, var(--color-line));
+    background: color-mix(in oklab, var(--gcal-bg) 14%, transparent);
+}
+
+.task-event__google-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.35rem;
+    padding-left: 2.4rem;
+}
 
 .task-chip__time {
     flex-shrink: 0;
@@ -3980,20 +4086,131 @@ button.task-agenda__date:hover {
 
 .admin-docs__checklist {
     list-style: none;
-    margin: 0.5rem 0 0;
+    margin: 0.65rem 0 0;
     padding: 0;
+    display: grid;
+    gap: 0.45rem;
+}
+
+.admin-docs__details--checklist summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.admin-docs__checklist-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.5rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in oklab, var(--color-brand-bright) 35%, var(--color-line));
+    background: color-mix(in oklab, var(--color-brand) 14%, transparent);
+    color: var(--color-brand-bright);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.admin-docs__checklist-progress {
+    margin-top: 0.7rem;
+    height: 0.35rem;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--color-line) 70%, transparent);
+    overflow: hidden;
+}
+
+.admin-docs__checklist-progress > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--color-brand), var(--color-brand-bright));
+    transition: width 0.25s ease;
 }
 
 .admin-docs__checklist li {
     position: relative;
-    padding-left: 1.25rem;
+    display: grid;
+    grid-template-columns: 1.15rem minmax(0, 1fr);
+    gap: 0.55rem;
+    align-items: start;
+    margin: 0;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid var(--color-line);
+    border-radius: 0.75rem;
+    background: color-mix(in oklab, var(--color-ink) 35%, transparent);
 }
 
 .admin-docs__checklist li::before {
-    content: '☐';
+    content: none;
+}
+
+.admin-docs__checklist-mark {
+    width: 1.05rem;
+    height: 1.05rem;
+    margin-top: 0.1rem;
+    border-radius: 999px;
+    border: 1.5px solid color-mix(in oklab, var(--color-mist) 55%, var(--color-line));
+    background: transparent;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.admin-docs__checklist li.is-done {
+    border-color: color-mix(in oklab, var(--color-brand-bright) 35%, var(--color-line));
+    background: color-mix(in oklab, var(--color-brand) 10%, transparent);
+}
+
+.admin-docs__checklist li.is-done .admin-docs__checklist-mark {
+    border-color: var(--color-brand-bright);
+    background: var(--color-brand);
+}
+
+.admin-docs__checklist li.is-done .admin-docs__checklist-mark::after {
+    content: '';
     position: absolute;
-    left: 0;
-    color: var(--color-brand-bright);
+    left: 0.28rem;
+    top: 0.12rem;
+    width: 0.28rem;
+    height: 0.5rem;
+    border: solid #fff;
+    border-width: 0 1.5px 1.5px 0;
+    transform: rotate(45deg);
+}
+
+.admin-docs__checklist li.is-pending .admin-docs__checklist-mark {
+    border-style: dashed;
+}
+
+.admin-docs__checklist-copy {
+    display: grid;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.admin-docs__checklist-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-snow);
+    line-height: 1.3;
+}
+
+.admin-docs__checklist-hint {
+    font-size: 0.68rem;
+    color: var(--color-mist);
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+.admin-docs__checklist li.is-done .admin-docs__checklist-hint {
+    color: color-mix(in oklab, var(--color-brand-bright) 70%, var(--color-mist));
+}
+
+.admin-docs__note--tight {
+    margin-top: 0.75rem;
+    margin-bottom: 0;
 }
 
 .settings-google-layout {

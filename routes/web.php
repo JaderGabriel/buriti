@@ -167,4 +167,5 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/google/connect', [GoogleOAuthController::class, 'redirect'])->name('google.connect');
     Route::get('/google/callback', [GoogleOAuthController::class, 'callback'])->name('google.callback');
     Route::post('/google/disconnect', [GoogleOAuthController::class, 'disconnect'])->name('google.disconnect');
+    Route::post('/google/test', [GoogleOAuthController::class, 'test'])->name('google.test');
 });

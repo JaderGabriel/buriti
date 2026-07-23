@@ -4,6 +4,7 @@ namespace App\Services\Telegram;
 
 use App\Enums\ContactSource;
 use App\Enums\ContactStatus;
+use App\Enums\GoogleEventColor;
 use App\Enums\OpportunityStage;
 use App\Enums\ProjectStatus;
 use App\Enums\TaskPriority;
@@ -18,6 +19,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\CompanyResolver;
 use App\Services\SettingService;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -39,6 +41,7 @@ class TelegramBotService
         private TelegramWebAuthService $webAuth,
         private TelegramShareCardService $shareCard,
         private CompanyResolver $companies,
+        private TaskTelegramFormatter $taskFormatter,
     ) {}
 
     public function configured(): bool
@@ -1015,7 +1018,7 @@ HTML;
     private function handleTask(string $argument, ?User $admin): string
     {
         if ($argument === '') {
-            return "Uso:\n<code>/tarefas</code>\n<code>/tarefa ID</code>\n<code>/tarefa add Título|projeto?|contato?|prio?|status?</code>\n<code>/tarefa set ID|Título|projeto|contato|prio|status</code>\n<code>/tarefa del ID ok</code>";
+            return "Uso:\n<code>/tarefas</code>\n<code>/tarefa ID</code>\n<code>/tarefa add Título|projeto?|contato?|prio?|status?|data?|cor?</code>\n<code>/tarefa set ID|Título|projeto|contato|prio|status</code>\n<code>/tarefa del ID ok</code>\n\nData: <code>2026-07-23 15:30</code> ou <code>amanha 10:00</code>\nCor Google: <code>1</code>–<code>11</code> (ex.: 9 = Mirtilo)";
         }
 
         [$action, $rest] = $this->parseAction($argument);
@@ -1037,16 +1040,21 @@ HTML;
     private function listTasks(string $argument): string
     {
         $limit = $this->listLimit($argument);
-        $items = Task::query()->with(['project', 'contact'])->latest('id')->limit($limit)->get();
+        $items = Task::query()
+            ->with(['project', 'contact'])
+            ->orderByRaw('due_at is null')
+            ->orderBy('due_at')
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get();
 
         if ($items->isEmpty()) {
             return 'Nenhuma tarefa encontrada.';
         }
 
-        $lines = ["✅ <b>Tarefas</b> (últimas {$items->count()})", ''];
+        $lines = ['📅 <b>Agenda · Tarefas</b> ('.$items->count().')', '──────────────', ''];
         foreach ($items as $item) {
-            $project = $item->project ? ' · P#'.$item->project->id : '';
-            $lines[] = "#{$item->id} · {$this->escape($item->title)} · {$item->status->value}/{$item->priority->value}{$project}";
+            $lines[] = $this->taskFormatter->listLine($item);
         }
         $lines[] = '';
         $lines[] = 'Detalhe: <code>/tarefa ID</code>';
@@ -1065,27 +1073,17 @@ HTML;
             return 'Tarefa não encontrada.';
         }
 
-        $url = route('admin.tasks.index');
-
-        return implode("\n", array_filter([
-            "✅ <b>Tarefa #{$item->id}</b>",
-            '<b>Título:</b> '.$this->escape($item->title),
-            '<b>Status:</b> '.$item->status->value,
-            '<b>Prioridade:</b> '.$item->priority->value,
-            $item->project ? '<b>Projeto:</b> #'.$item->project->id.' '.$this->escape($item->project->name) : null,
-            $item->contact ? '<b>Contato:</b> #'.$item->contact->id.' '.$this->escape($item->contact->name) : null,
-            "🔗 <a href=\"{$this->escape($url)}\">Abrir tarefas</a>",
-        ]));
+        return $this->taskFormatter->card($item);
     }
 
     private function createTask(string $argument, ?User $admin): string
     {
-        $fields = $this->splitArgs($argument, 5);
+        $fields = $this->splitArgs($argument, 7);
         if ($fields === [] || ! filled($fields[0] ?? null)) {
-            return 'Uso: <code>/tarefa add Título|projeto_id?|contato?|prioridade?|status?</code>';
+            return 'Uso: <code>/tarefa add Título|projeto_id?|contato?|prioridade?|status?|data?|cor?</code>';
         }
 
-        [$title, $projectRef, $contactRef, $priorityRaw, $statusRaw] = array_pad($fields, 5, null);
+        [$title, $projectRef, $contactRef, $priorityRaw, $statusRaw, $dueRaw, $colorRaw] = array_pad($fields, 7, null);
 
         $projectId = $this->resolveProjectId($projectRef, allowEmpty: true);
         if ($projectId === false) {
@@ -1106,22 +1104,40 @@ HTML;
         $status = TaskStatus::tryFrom(Str::lower(trim((string) ($statusRaw ?: 'todo'))))
             ?? TaskStatus::Todo;
 
+        $dueAt = null;
+        if (filled($dueRaw) && ! $this->keep($dueRaw)) {
+            $dueAt = $this->parseTaskDueAt((string) $dueRaw);
+            if ($dueAt === null) {
+                return 'Data/hora inválida. Ex.: <code>2026-07-23 15:30</code> ou <code>amanha 10:00</code>';
+            }
+        }
+
+        $color = null;
+        if (filled($colorRaw) && ! $this->keep($colorRaw)) {
+            $color = GoogleEventColor::tryFromMixed(trim((string) $colorRaw));
+            if ($color === null) {
+                return 'Cor inválida. Use 1–11 (cores Google Agenda).';
+            }
+        }
+
         $task = new Task([
             'title' => trim((string) $title),
             'project_id' => $projectId,
             'contact_id' => $contactId,
             'priority' => $priority,
             'status' => $status,
+            'due_at' => $dueAt,
             'want_meet' => true,
+            'google_color_id' => $color?->value,
         ]);
         $task->forceFill([
             'user_id' => $admin?->id,
             'telegram_reminder_sent_at' => null,
         ])->save();
 
-        $url = route('admin.tasks.index');
+        $task->load(['project', 'contact']);
 
-        return "✅ Tarefa <b>#{$task->id}</b> {$this->escape($task->title)}\n🔗 <a href=\"{$this->escape($url)}\">Abrir tarefas</a>";
+        return $this->taskFormatter->card($task, '✅ <b>Tarefa criada na agenda</b>');
     }
 
     private function updateTask(string $argument): string
@@ -1183,8 +1199,9 @@ HTML;
         }
 
         $item->update($data);
+        $item->refresh()->load(['project', 'contact']);
 
-        return '✏️ Tarefa atualizada.'."\n".$this->showTask((string) $item->id);
+        return $this->taskFormatter->card($item, '✏️ <b>Tarefa actualizada</b>');
     }
 
     private function deleteTask(string $argument): string
@@ -1205,7 +1222,42 @@ HTML;
         $label = $item->title;
         $item->delete();
 
-        return "🗑️ Tarefa <b>#{$id}</b> {$this->escape($label)} removida.";
+        return "🗑️ Tarefa <b>#{$id}</b> {$this->escape($label)} removida da agenda.";
+    }
+
+    private function parseTaskDueAt(string $raw): ?Carbon
+    {
+        $value = trim($raw);
+        if ($value === '') {
+            return null;
+        }
+
+        $value = Str::lower($value);
+        $value = str_replace(['/', '.'], ['-', '-'], $value);
+        $value = preg_replace('/\s+/', ' ', $value) ?? $value;
+
+        $timezone = config('app.timezone', 'America/Sao_Paulo');
+        $now = now($timezone);
+
+        if (preg_match('/^(hoje|amanha|amanhã)\s+(\d{1,2}):(\d{2})$/u', $value, $m)) {
+            $base = str_starts_with($m[1], 'hoje') ? $now->copy() : $now->copy()->addDay();
+
+            return $base->setTime((int) $m[2], (int) $m[3]);
+        }
+
+        if (preg_match('/^(\d{1,2})-(\d{1,2})-(\d{4})\s+(\d{1,2}):(\d{2})$/', $value, $m)) {
+            try {
+                return Carbon::createFromFormat('d-m-Y H:i', "{$m[1]}-{$m[2]}-{$m[3]} {$m[4]}:{$m[5]}", $timezone);
+            } catch (\Throwable) {
+                return null;
+            }
+        }
+
+        try {
+            return Carbon::parse($raw, $timezone);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     // -------------------------------------------------------------------------

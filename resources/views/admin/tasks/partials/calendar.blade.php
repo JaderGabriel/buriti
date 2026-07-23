@@ -32,15 +32,30 @@
                     <span class="task-calendar__add" aria-hidden="true">+</span>
                 </div>
                 <div class="task-calendar__events">
-                    @foreach($day['tasks']->take(4) as $task)
+                    @php
+                        $dayTasks = $day['tasks'];
+                        $dayGoogle = $day['google_events'] ?? collect();
+                        $visibleTasks = $dayTasks->take(3);
+                        $remainingSlots = max(0, 4 - $visibleTasks->count());
+                        $visibleGoogle = $dayGoogle->take($remainingSlots);
+                        $hiddenCount = max(0, $dayTasks->count() - $visibleTasks->count())
+                            + max(0, $dayGoogle->count() - $visibleGoogle->count());
+                    @endphp
+                    @foreach($visibleTasks as $task)
                         @include('admin.tasks.partials.calendar-chip', [
                             'task' => $task,
                             'view' => 'agenda',
                             'month' => $month,
                         ])
                     @endforeach
-                    @if($day['tasks']->count() > 4)
-                        <p class="task-calendar__more">+{{ $day['tasks']->count() - 4 }} mais</p>
+                    @foreach($visibleGoogle as $event)
+                        @include('admin.tasks.partials.google-event-chip', [
+                            'event' => $event,
+                            'googleCalendarUrl' => $googleCalendarUrl ?? null,
+                        ])
+                    @endforeach
+                    @if($hiddenCount > 0)
+                        <p class="task-calendar__more">+{{ $hiddenCount }} mais</p>
                     @endif
                 </div>
             </div>

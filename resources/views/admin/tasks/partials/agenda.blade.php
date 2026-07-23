@@ -15,14 +15,42 @@
         </button>
     </div>
 
+    @if(!empty($googleEventsError))
+        <div class="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+            {{ $googleEventsError }}
+        </div>
+    @elseif(!empty($googleApiReady) && ($googleEventsCount ?? 0) > 0)
+        <p class="mb-4 text-xs text-mist">
+            A mostrar também <strong class="text-snow">{{ $stats['google_month'] ?? $googleEventsCount }}</strong> evento(s) da Agenda Google (só leitura).
+        </p>
+    @elseif(empty($googleApiReady))
+        <p class="mb-4 text-xs text-mist">
+            Eventos criados só no Google aparecem aqui depois de ligar a API OAuth em
+            <a href="{{ route('admin.settings.edit') }}#google-integration" class="text-brand-bright hover:underline">Configurações</a>.
+        </p>
+    @endif
+
     @php
-        $monthGroups = $agendaGroups->filter(
+        $agendaGoogleGroups = $agendaGoogleGroups ?? collect();
+        $monthTaskGroups = $agendaGroups->filter(
             fn ($tasks, $date) => \Carbon\Carbon::parse($date)->format('Y-m') === $month
         );
+        $monthGoogleGroups = $agendaGoogleGroups->filter(
+            fn ($events, $date) => $date !== '' && \Carbon\Carbon::parse($date)->format('Y-m') === $month
+        );
+        $allDates = $monthTaskGroups->keys()
+            ->merge($monthGoogleGroups->keys())
+            ->unique()
+            ->sort()
+            ->values();
     @endphp
 
-    @forelse($monthGroups as $date => $dayTasks)
-        @php $carbon = \Carbon\Carbon::parse($date); @endphp
+    @forelse($allDates as $date)
+        @php
+            $carbon = \Carbon\Carbon::parse($date);
+            $dayTasks = $monthTaskGroups->get($date, collect());
+            $dayGoogle = $monthGoogleGroups->get($date, collect());
+        @endphp
         <div class="task-agenda__day {{ $carbon->isToday() ? 'is-today' : '' }}" id="day-{{ $date }}">
             <button
                 type="button"
@@ -46,8 +74,15 @@
                             'priorityLabels' => $priorityLabels,
                             'projects' => $projects,
                             'contacts' => $contacts,
+                            'googleEventColors' => $googleEventColors ?? null,
                         ])
                     </div>
+                @endforeach
+                @foreach($dayGoogle as $event)
+                    @include('admin.tasks.partials.google-event-item', [
+                        'event' => $event,
+                        'googleCalendarUrl' => $googleCalendarUrl ?? null,
+                    ])
                 @endforeach
             </div>
         </div>
@@ -82,6 +117,7 @@
                         'priorityLabels' => $priorityLabels,
                         'projects' => $projects,
                         'contacts' => $contacts,
+                        'googleEventColors' => $googleEventColors ?? null,
                     ])
                 @endforeach
             </div>

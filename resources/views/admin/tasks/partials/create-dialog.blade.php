@@ -104,6 +104,8 @@
                 Criar com Google Meet (link gerado no CRM se a API estiver ligada)
             </label>
 
+            @include('admin.tasks.partials.google-color-picker', ['googleEventColors' => $googleEventColors ?? null])
+
             <div class="flex flex-wrap items-center justify-end gap-2 pt-1">
                 <button type="button" class="rounded-sm border border-line px-4 py-2 text-sm text-mist hover:text-snow" data-task-create-close>Cancelar</button>
                 <button type="submit" class="rounded-sm bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-bright">Criar</button>

@@ -33,6 +33,7 @@
             </li>
             <li>Copie Client ID e Secret para os campos à esquerda (ou para o <code>.env</code>) e <strong>Salve</strong>.</li>
             <li>Clique em <strong>Ligar conta Google</strong>, autorize Calendar, e o Google devolve ao CRM.</li>
+            <li>Escolha a <strong>agenda correcta</strong> (Calendar ID = mesma do embed) e uma <strong>cor Google</strong> (1–11) na tarefa — o sync envia o <code>colorId</code> oficial.</li>
             <li>Preencha <strong>Calendar ID</strong> (<code>primary</code> ou o ID da agenda), marque <strong>Sincronizar automaticamente</strong> e salve.</li>
         </ol>
         <p class="admin-docs__note">
@@ -44,16 +45,5 @@
         <p class="admin-docs__note">Fuso dos eventos: <code>APP_TIMEZONE=America/Sao_Paulo</code>.</p>
     </details>
 
-    <details class="admin-docs__details">
-        <summary>Checklist rápido (nível 3)</summary>
-        <ul class="admin-docs__checklist">
-            <li>Calendar API ativa</li>
-            <li>URI de callback registada no Cloud Console</li>
-            <li>Client ID + Secret salvos</li>
-            <li>Conta Google ligada (botão no painel)</li>
-            <li>Calendar ID preenchido</li>
-            <li>Auto-sync ligado</li>
-            <li>Painel mostra “API pronta: sim”</li>
-        </ul>
-    </details>
+    @include('admin.settings.partials.google-checklist')
 </x-admin.inline-docs>

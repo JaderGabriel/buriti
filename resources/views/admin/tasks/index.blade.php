@@ -58,6 +58,10 @@
             <span class="task-stat__value">{{ $stats['undated'] }}</span>
             <span class="task-stat__label">Sem data</span>
         </div>
+        <div class="task-stat">
+            <span class="task-stat__value">{{ $stats['google_month'] ?? 0 }}</span>
+            <span class="task-stat__label">Google</span>
+        </div>
     </div>
 
     <div class="mb-6 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
@@ -76,7 +80,7 @@
                 </div>
             @endif
             <x-admin.inline-docs title="Agenda + lembretes Telegram" class="mt-3">
-                <p>Configure URL/embed/API em <a href="{{ route('admin.settings.edit') }}#google-integration">Configurações → Google</a> (documentação ao lado dos campos).</p>
+                <p>Com a API Google ligada, a agenda do CRM também lista eventos da Agenda Google (só leitura), além das tarefas locais.</p>
                 <p class="admin-docs__note mb-0">
                     Tarefas com prazo recebem aviso no Telegram ~10 min antes para quem as criou.
                     Bot + cron: ver <a href="{{ route('admin.integrations.edit') }}#telegram">Integrações → Telegram</a>.
@@ -86,6 +90,15 @@
     </div>
 
     @if($view === 'calendar')
+        @if(!empty($googleEventsError))
+            <div class="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+                {{ $googleEventsError }}
+            </div>
+        @elseif(!empty($googleApiReady) && ($stats['google_month'] ?? 0) > 0)
+            <p class="mb-3 text-xs text-mist">
+                Calendário CRM + <strong class="text-snow">{{ $stats['google_month'] }}</strong> evento(s) Google neste mês (etiqueta «Google»).
+            </p>
+        @endif
         @include('admin.tasks.partials.calendar')
     @elseif($view === 'agenda')
         @include('admin.tasks.partials.agenda')
