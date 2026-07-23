@@ -28,6 +28,7 @@ class HomePageTest extends TestCase
         $response->assertSee('Pronto para o próximo passo digital?', false);
         $response->assertSee('Construa o futuro digital com a BURI-TI', false);
         $response->assertSee('mobile-proposal-fab', false);
+        $response->assertSee('data-mobile-proposal-fab', false);
         $response->assertSee('Método comercial', false);
         $response->assertSee('method-flow', false);
         $response->assertSee('O que chama atenção ao contratante', false);

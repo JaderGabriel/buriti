@@ -47,7 +47,10 @@
                     <svg class="block h-4 w-4 dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 14.3A8.1 8.1 0 1 1 9.7 3 6.5 6.5 0 0 0 21 14.3z"/></svg>
                 </button>
 
-                <x-ui.button href="{{ route('home') }}#contato" class="hidden px-4 py-2 xl:inline-flex">Pedir proposta</x-ui.button>
+                <a
+                    href="{{ route('home') }}#contato"
+                    class="hidden items-center justify-center rounded-sm bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-bright xl:inline-flex"
+                >Pedir proposta</a>
 
                 <button
                     type="button"
@@ -84,8 +87,9 @@
 
     <a
         href="{{ route('home') }}#contato"
-        class="mobile-proposal-fab xl:hidden"
+        class="mobile-proposal-fab inline-flex xl:!hidden"
         aria-label="Pedir proposta"
+        data-mobile-proposal-fab
     >
         <x-ui.icon name="message" class="h-5 w-5" />
         <span>Pedir proposta</span>

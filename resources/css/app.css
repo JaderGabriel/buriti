@@ -399,8 +399,7 @@
     position: fixed;
     right: 1rem;
     bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
-    z-index: 70;
-    display: inline-flex;
+    z-index: 80;
     align-items: center;
     gap: 0.5rem;
     border-radius: 999px;
@@ -412,6 +411,12 @@
     font-weight: 600;
     box-shadow: 0 12px 30px rgba(10, 22, 40, 0.28);
     transition: transform 160ms ease, background-color 160ms ease;
+}
+
+@media (min-width: 1280px) {
+    .mobile-proposal-fab {
+        display: none !important;
+    }
 }
 
 .mobile-proposal-fab:hover {
