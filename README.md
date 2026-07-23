@@ -238,10 +238,12 @@ Cobertura atual (20 testes):
 3. MySQL com utilizador limitado à base
 4. `php artisan migrate --force`
 5. `npm run build` e `php artisan storage:link`
-6. `php artisan config:cache && php artisan route:cache && php artisan view:cache`
+6. `php artisan config:cache && php artisan view:cache`
 7. Cron: `* * * * * cd /caminho && php artisan schedule:run`
-8. Web root apontando para `public/`
+8. Web root apontando para `public/` (URL sem `/public` no path; `APP_URL=https://dominio`)
 9. Trocar senha do admin e proteger `/admin`
+
+**Nota sobre `route:cache`:** com a app servida sob um subpath (ex.: `https://dominio/public`), o cache de rotas quebra a home (`GET /` → 405, só `HEAD`). Nesse caso use `php artisan route:clear` e **não** corra `route:cache`. Com document root em `public/`, `route:cache` é seguro.
 
 ## Licença
 
