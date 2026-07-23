@@ -37,7 +37,6 @@
                         'border border-line bg-panel/80',
                         'rounded-sm' => true,
                     ])
-                    x-data="careerModal"
                 >
                     <div @class([
                         'grid gap-0',
@@ -66,19 +65,14 @@
                             </div>
 
                             @if($links)
-                                <div class="relative mt-8 flex flex-wrap gap-3 text-sm">
-                                    @if(! empty($links['linkedin']))
-                                        <a href="{{ $links['linkedin'] }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-mist transition hover:text-snow">LinkedIn</a>
-                                    @endif
-                                    @if(! empty($links['github']))
-                                        <a href="{{ $links['github'] }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-mist transition hover:text-snow">GitHub</a>
-                                    @endif
-                                    @if(! empty($links['telegram']))
-                                        <a href="{{ $links['telegram'] }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-mist transition hover:text-snow">Telegram</a>
-                                    @endif
-                                    @if(! empty($links['site']))
-                                        <a href="{{ $links['site'] }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-mist transition hover:text-snow">Site</a>
-                                    @endif
+                                <div class="relative mt-8">
+                                    <x-site.contact-icons
+                                        :linkedin="$links['linkedin'] ?? null"
+                                        :github="$links['github'] ?? null"
+                                        :telegram="$links['telegram'] ?? null"
+                                        :telegram-handle="! empty($links['telegram']) ? '@'.ltrim(parse_url($links['telegram'], PHP_URL_PATH) ?: 'Telegram', '/') : null"
+                                        :site="$links['site'] ?? null"
+                                    />
                                 </div>
                             @endif
                         </div>
@@ -120,7 +114,7 @@
                                     @if(count($practice['pillars']) > 3 && $career)
                                         <p class="mt-4 text-xs text-mist">
                                             Processo completo, versionamento, testes e postura — em
-                                            <button type="button" class="font-semibold text-brand-bright underline-offset-2 hover:underline" @click.prevent="show()">
+                                            <button type="button" class="font-semibold text-brand-bright underline-offset-2 hover:underline" data-dialog-open="{{ $modalId }}">
                                                 Ver trajetória completa
                                             </button>.
                                         </p>
@@ -133,9 +127,9 @@
                                     <button
                                         type="button"
                                         class="inline-flex items-center justify-center rounded-sm bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-bright"
-                                        @click.prevent="show()"
-                                        :aria-expanded="open.toString()"
-                                        :aria-controls="open ? '{{ $modalId }}' : null"
+                                        data-dialog-open="{{ $modalId }}"
+                                        aria-haspopup="dialog"
+                                        aria-controls="{{ $modalId }}"
                                     >
                                         Ver trajetória completa
                                     </button>
@@ -144,8 +138,15 @@
                                     Falar com {{ explode(' ', $person['name'])[0] }}
                                 </a>
                                 @if(! empty($links['linkedin']))
-                                    <a href="{{ $links['linkedin'] }}" target="_blank" rel="noopener" class="inline-flex items-center justify-center rounded-sm border border-line px-5 py-2.5 text-sm font-semibold text-mist transition hover:border-brand-bright/50 hover:text-snow">
-                                        LinkedIn
+                                    <a
+                                        href="{{ $links['linkedin'] }}"
+                                        target="_blank"
+                                        rel="noopener"
+                                        class="inline-flex h-10 w-10 items-center justify-center rounded-sm border border-line text-brand-bright transition hover:border-brand-bright/50 hover:text-snow"
+                                        aria-label="Abrir LinkedIn"
+                                        title="LinkedIn"
+                                    >
+                                        <x-ui.icon name="linkedin" class="h-5 w-5" />
                                     </a>
                                 @endif
                             </div>
@@ -257,113 +258,122 @@
                     @if($career)
                         <div
                             id="{{ $modalId }}"
-                            x-cloak
-                            x-show="open"
-                            x-transition.opacity
-                            class="fixed inset-0 z-[100] flex items-end justify-center bg-[#0a1628]/70 p-4 backdrop-blur-[2px] sm:items-center"
+                            class="career-dialog"
                             role="dialog"
                             aria-modal="true"
                             aria-labelledby="{{ $modalId }}-title"
-                            @click.self="hide()"
-                            @keydown.escape.window="if (open) hide()"
+                            hidden
                         >
-                            <div
-                                class="relative max-h-[90svh] w-full max-w-3xl overflow-y-auto rounded-sm border border-line bg-panel shadow-2xl"
-                                @click.stop
-                            >
-                                <div class="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-line bg-panel px-5 py-4 sm:px-6">
-                                    <div class="min-w-0 pr-2">
-                                        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand">Currículo resumido</p>
-                                        <h4 id="{{ $modalId }}-title" class="mt-1 font-display text-xl font-bold text-snow sm:text-2xl">
-                                            {{ $person['name'] }}
-                                        </h4>
-                                        <p class="mt-1 text-sm text-mist">{{ $career['headline'] ?? 'Trajetória profissional' }}</p>
+                            <button
+                                type="button"
+                                class="career-dialog__backdrop"
+                                data-dialog-close
+                                aria-label="Fechar trajetória"
+                            ></button>
+                            <div class="career-dialog__panel" role="document">
+                                <div class="flex max-h-[90svh] flex-col">
+                                    <div class="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-line bg-panel px-5 py-4 sm:px-6">
+                                        <div class="min-w-0 pr-2">
+                                            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand">Currículo resumido</p>
+                                            <h4 id="{{ $modalId }}-title" class="mt-1 font-display text-xl font-bold text-snow sm:text-2xl">
+                                                {{ $person['name'] }}
+                                            </h4>
+                                            <p class="mt-1 text-sm text-mist">{{ $career['headline'] ?? 'Trajetória profissional' }}</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border border-line text-lg leading-none text-snow transition hover:border-brand-bright/50 hover:text-brand-bright"
+                                            data-dialog-close
+                                            aria-label="Fechar trajetória"
+                                        >
+                                            <span aria-hidden="true">✕</span>
+                                        </button>
                                     </div>
-                                    <button
-                                        type="button"
-                                        class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border border-line text-lg leading-none text-snow transition hover:border-brand-bright/50 hover:text-brand-bright"
-                                        @click.prevent="hide()"
-                                        aria-label="Fechar trajetória"
-                                    >
-                                        <span aria-hidden="true">✕</span>
-                                    </button>
-                                </div>
 
-                                <div class="space-y-8 px-5 py-6 sm:px-6">
-                                    @if(! empty($career['summary']))
-                                        <p class="text-sm leading-relaxed text-mist sm:text-base">{{ $career['summary'] }}</p>
-                                    @endif
-
-                                    @if(! empty($career['attractors']))
-                                        <div>
-                                            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand">O que chama atenção ao contratante</p>
-                                            <ul class="mt-4 space-y-3">
-                                                @foreach($career['attractors'] as $point)
-                                                    <li class="flex gap-3 text-sm text-snow">
-                                                        <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-bright"></span>
-                                                        <span>{{ $point }}</span>
-                                                    </li>
-                                                @endforeach
-                                            </ul>
-                                        </div>
-                                    @endif
-
-                                    @php $practice = $career['practice'] ?? null; @endphp
-                                    @if(! empty($practice['pillars']))
-                                        <div>
-                                            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand">
-                                                {{ $practice['title'] ?? 'Como o resultado é produzido' }}
-                                            </p>
-                                            @if(! empty($practice['intro']))
-                                                <p class="mt-2 text-sm text-mist">{{ $practice['intro'] }}</p>
-                                            @endif
-                                            <ol class="mt-5 space-y-5">
-                                                @foreach($practice['pillars'] as $pillar)
-                                                    <li class="border-l-2 border-brand/40 pl-4">
-                                                        <p class="text-sm font-semibold text-snow">{{ $pillar['title'] }}</p>
-                                                        <p class="mt-1.5 text-sm leading-relaxed text-mist">{{ $pillar['body'] }}</p>
-                                                    </li>
-                                                @endforeach
-                                            </ol>
-                                        </div>
-                                    @endif
-
-                                    @if(! empty($career['timeline']))
-                                        <div>
-                                            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand">Linha do tempo</p>
-                                            <ol class="mt-4 space-y-4 border-l border-line pl-5">
-                                                @foreach($career['timeline'] as $step)
-                                                    <li class="relative">
-                                                        <span class="absolute -left-[1.41rem] top-1.5 h-2.5 w-2.5 rounded-full border border-brand bg-panel"></span>
-                                                        <p class="text-xs font-semibold uppercase tracking-wide text-brand-bright">{{ $step['period'] }}</p>
-                                                        <p class="mt-1 font-medium text-snow">{{ $step['title'] }}</p>
-                                                        <p class="mt-1 text-sm text-mist">{{ $step['detail'] }}</p>
-                                                    </li>
-                                                @endforeach
-                                            </ol>
-                                        </div>
-                                    @endif
-
-                                    @if(! empty($career['stack_spotlight']))
-                                        <div>
-                                            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand">Stack em evidência</p>
-                                            <div class="mt-3 flex flex-wrap gap-2">
-                                                @foreach($career['stack_spotlight'] as $skill)
-                                                    <span class="rounded-sm border border-line px-2.5 py-1 text-xs text-snow">{{ $skill }}</span>
-                                                @endforeach
-                                            </div>
-                                        </div>
-                                    @endif
-
-                                    <div class="flex flex-wrap gap-3 border-t border-line pt-5">
-                                        <a href="#contato" class="inline-flex items-center justify-center rounded-sm bg-brand px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-bright" @click="hide()">
-                                            Solicitar proposta
-                                        </a>
-                                        @if(! empty($links['linkedin']))
-                                            <a href="{{ $links['linkedin'] }}" target="_blank" rel="noopener" class="inline-flex items-center justify-center rounded-sm border border-line px-5 py-2.5 text-sm font-semibold text-snow hover:border-brand-bright/50">
-                                                Abrir LinkedIn
-                                            </a>
+                                    <div class="space-y-8 overflow-y-auto px-5 py-6 sm:px-6">
+                                        @if(! empty($career['summary']))
+                                            <p class="text-sm leading-relaxed text-mist sm:text-base">{{ $career['summary'] }}</p>
                                         @endif
+
+                                        @if(! empty($career['attractors']))
+                                            <div>
+                                                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand">O que chama atenção ao contratante</p>
+                                                <ul class="mt-4 space-y-3">
+                                                    @foreach($career['attractors'] as $point)
+                                                        <li class="flex gap-3 text-sm text-snow">
+                                                            <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-bright"></span>
+                                                            <span>{{ $point }}</span>
+                                                        </li>
+                                                    @endforeach
+                                                </ul>
+                                            </div>
+                                        @endif
+
+                                        @php $practice = $career['practice'] ?? null; @endphp
+                                        @if(! empty($practice['pillars']))
+                                            <div>
+                                                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand">
+                                                    {{ $practice['title'] ?? 'Como o resultado é produzido' }}
+                                                </p>
+                                                @if(! empty($practice['intro']))
+                                                    <p class="mt-2 text-sm text-mist">{{ $practice['intro'] }}</p>
+                                                @endif
+                                                <ol class="mt-5 space-y-5">
+                                                    @foreach($practice['pillars'] as $pillar)
+                                                        <li class="border-l-2 border-brand/40 pl-4">
+                                                            <p class="text-sm font-semibold text-snow">{{ $pillar['title'] }}</p>
+                                                            <p class="mt-1.5 text-sm leading-relaxed text-mist">{{ $pillar['body'] }}</p>
+                                                        </li>
+                                                    @endforeach
+                                                </ol>
+                                            </div>
+                                        @endif
+
+                                        @if(! empty($career['timeline']))
+                                            <div>
+                                                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand">Linha do tempo</p>
+                                                <ol class="mt-4 space-y-4 border-l border-line pl-5">
+                                                    @foreach($career['timeline'] as $step)
+                                                        <li class="relative">
+                                                            <span class="absolute -left-[1.41rem] top-1.5 h-2.5 w-2.5 rounded-full border border-brand bg-panel"></span>
+                                                            <p class="text-xs font-semibold uppercase tracking-wide text-brand-bright">{{ $step['period'] }}</p>
+                                                            <p class="mt-1 font-medium text-snow">{{ $step['title'] }}</p>
+                                                            <p class="mt-1 text-sm text-mist">{{ $step['detail'] }}</p>
+                                                        </li>
+                                                    @endforeach
+                                                </ol>
+                                            </div>
+                                        @endif
+
+                                        @if(! empty($career['stack_spotlight']))
+                                            <div>
+                                                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand">Stack em evidência</p>
+                                                <div class="mt-3 flex flex-wrap gap-2">
+                                                    @foreach($career['stack_spotlight'] as $skill)
+                                                        <span class="rounded-sm border border-line px-2.5 py-1 text-xs text-snow">{{ $skill }}</span>
+                                                    @endforeach
+                                                </div>
+                                            </div>
+                                        @endif
+
+                                        <div class="flex flex-wrap gap-3 border-t border-line pt-5">
+                                            <a href="#contato" class="inline-flex items-center justify-center rounded-sm bg-brand px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-bright" data-dialog-close>
+                                                Solicitar proposta
+                                            </a>
+                                            @if(! empty($links['linkedin']))
+                                                <a
+                                                    href="{{ $links['linkedin'] }}"
+                                                    target="_blank"
+                                                    rel="noopener"
+                                                    class="inline-flex h-10 w-10 items-center justify-center rounded-sm border border-line text-brand-bright transition hover:border-brand-bright/50 hover:text-snow"
+                                                    aria-label="Abrir LinkedIn"
+                                                    title="LinkedIn"
+                                                    data-dialog-close
+                                                >
+                                                    <x-ui.icon name="linkedin" class="h-5 w-5" />
+                                                </a>
+                                            @endif
+                                        </div>
                                     </div>
                                 </div>
                             </div>

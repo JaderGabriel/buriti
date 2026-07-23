@@ -31,7 +31,8 @@ class UserSecurityTest extends TestCase
             ->get(route('admin.users.create'))
             ->assertOk()
             ->assertSee('Gerar senha aleatória', false)
-            ->assertSee('passwordGenerator', false)
+            ->assertSee('data-password-generator', false)
+            ->assertSee('data-password-toggle', false)
             ->assertSee('Copiar', false);
 
         $this->actingAs($this->admin)
@@ -157,6 +158,16 @@ class UserSecurityTest extends TestCase
         $edit->assertSee('Salvar foto', false);
         $edit->assertSee('Salvar dados da conta', false);
         $edit->assertSee('Só atualiza a imagem do perfil.', false);
+        $edit->assertSee('/storage/'.$this->admin->avatar_path, false);
+        $edit->assertSee('data-avatar-preview', false);
+        $edit->assertDontSee('x-if="preview"', false);
+
+        $profile = $this->actingAs($this->admin)
+            ->get(route('admin.profile.edit'))
+            ->assertOk();
+
+        $profile->assertSee('/storage/'.$this->admin->avatar_path, false);
+        $profile->assertSee('data-avatar-preview-image', false);
     }
 
     public function test_avatar_update_requires_file_or_removal(): void

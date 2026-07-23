@@ -13,18 +13,6 @@
                 action="{{ route('admin.profile.avatar') }}"
                 enctype="multipart/form-data"
                 class="rounded-sm border border-line bg-panel p-5 sm:p-6"
-                x-data="{
-                    preview: @js($user->avatarUrl()),
-                    fileName: '',
-                    onFile(event) {
-                        const file = event.target.files?.[0];
-                        this.fileName = file?.name || '';
-                        if (this.preview && this.preview.startsWith('blob:')) {
-                            URL.revokeObjectURL(this.preview);
-                        }
-                        this.preview = file ? URL.createObjectURL(file) : @js($user->avatarUrl());
-                    }
-                }"
             >
                 @csrf
                 @method('PUT')
@@ -32,26 +20,15 @@
                 <p class="text-xs font-semibold uppercase tracking-[0.14em] text-mist">Foto de perfil</p>
                 <p class="mt-1 text-sm text-mist">Atualize só a imagem — não é preciso mexer nos dados abaixo.</p>
 
-                <div class="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
-                    <div class="shrink-0">
-                        <template x-if="preview">
-                            <img :src="preview" alt="" class="h-16 w-16 rounded-sm object-cover ring-1 ring-line">
-                        </template>
-                        <template x-if="!preview">
-                            <span class="inline-flex h-16 w-16 items-center justify-center rounded-sm border border-line text-lg font-semibold text-brand-bright">{{ $user->initials() }}</span>
-                        </template>
-                    </div>
-                    <label class="block min-w-0 flex-1 text-sm">
-                        <span class="text-mist">Arquivo (JPG/PNG até 2&nbsp;MB)</span>
-                        <input
-                            type="file"
-                            name="avatar"
-                            accept="image/*"
-                            class="mt-1.5 w-full text-mist file:mr-3 file:rounded-sm file:border-0 file:bg-brand file:px-4 file:py-2 file:text-sm file:text-white"
-                            @change="onFile($event)"
-                        >
-                        <span class="mt-1 block text-xs text-mist" x-text="fileName" x-show="fileName" x-cloak></span>
-                    </label>
+                <div class="mt-4">
+                    <x-admin.avatar-field
+                        :url="$user->avatarUrl()"
+                        :initials="$user->initials()"
+                        size="sm"
+                        input-id="profile-avatar"
+                    >
+                        <p class="text-sm text-mist">Arquivo (JPG/PNG até 2&nbsp;MB)</p>
+                    </x-admin.avatar-field>
                 </div>
 
                 @error('avatar')
@@ -80,13 +57,10 @@
                 <x-ui.input name="username" label="Username" :value="old('username', $user->username)" required placeholder="ex.: jadergabriel" />
                 <x-ui.input type="email" name="email" label="E-mail" :value="old('email', $user->email)" required />
 
-                <div class="border-t border-line pt-4">
-                    <p class="mb-3 text-sm font-semibold text-snow">Alterar senha</p>
-                    <div class="space-y-3">
-                        <x-ui.input type="password" name="current_password" label="Senha atual" autocomplete="current-password" />
-                        <x-ui.input type="password" name="password" label="Nova senha" autocomplete="new-password" />
-                        <x-ui.input type="password" name="password_confirmation" label="Confirmar nova senha" autocomplete="new-password" />
-                    </div>
+                <div class="space-y-4 border-t border-line pt-4">
+                    <p class="text-sm font-semibold text-snow">Alterar senha</p>
+                    <x-ui.input type="password" name="current_password" label="Senha atual" autocomplete="current-password" />
+                    <x-admin.password-fields :editing="true" class="border-0 pt-0" />
                 </div>
 
                 <x-ui.button type="submit">Salvar dados da conta</x-ui.button>

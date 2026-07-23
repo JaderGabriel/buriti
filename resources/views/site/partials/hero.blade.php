@@ -16,10 +16,6 @@
             <div class="reveal-delay-2 mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                 <x-ui.button href="#contato" class="min-w-[11rem]">Pedir proposta</x-ui.button>
                 <x-ui.button href="#metodo" variant="secondary" class="min-w-[11rem] border-white/30 text-[#eef3f8] hover:border-white hover:text-white">Ver método</x-ui.button>
-                <a href="{{ route('admin.dashboard') }}" class="inline-flex items-center gap-2 px-2 text-sm font-semibold text-[#b8c7d8] transition hover:text-white">
-                    <x-ui.icon name="admin" class="h-4 w-4" />
-                    @auth Painel admin @else Área admin @endauth
-                </a>
             </div>
         </div>
 

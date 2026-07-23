@@ -16,44 +16,24 @@
                     Deixe nome, e-mail, telefone e o melhor canal. Respondemos com o próximo passo: discovery, proposta ou suporte.
                 </p>
 
-                <div class="mt-8 space-y-4">
-                    @if($contactEmail)
-                        <a href="mailto:{{ $contactEmail }}" class="flex items-center gap-3 text-sm text-snow transition hover:text-brand-bright">
-                            <span class="inline-flex h-10 w-10 items-center justify-center rounded-sm border border-line text-brand-bright">
-                                <x-ui.icon name="mail" class="h-4 w-4" />
-                            </span>
-                            {{ $contactEmail }}
+                <div class="mt-8">
+                    <x-site.contact-icons
+                        :email="$contactEmail"
+                        :phone="$contactPhone"
+                        :whatsapp="$contactWhatsapp"
+                        :linkedin="$linkedinUrl ?? null"
+                        :github="$githubUrl ?? null"
+                        :telegram="$telegramUrl ?? null"
+                        :telegram-handle="$telegramHandle ?? null"
+                    >
+                        <a
+                            href="{{ route('admin.dashboard') }}"
+                            class="inline-flex h-11 items-center gap-2 rounded-sm border border-line px-3 text-sm font-semibold text-brand-bright transition hover:border-brand-bright/50 hover:bg-ink/40 hover:text-snow"
+                        >
+                            <x-ui.icon name="admin" class="h-5 w-5" />
+                            @auth Painel admin @else Área admin @endauth
                         </a>
-                    @endif
-                    @if($contactPhone || $contactWhatsapp)
-                        <a href="tel:{{ preg_replace('/\s+/', '', $contactPhone ?: $contactWhatsapp) }}" class="flex items-center gap-3 text-sm text-snow transition hover:text-brand-bright">
-                            <span class="inline-flex h-10 w-10 items-center justify-center rounded-sm border border-line text-brand-bright">
-                                <x-ui.icon name="phone" class="h-4 w-4" />
-                            </span>
-                            {{ $contactPhone ?: $contactWhatsapp }}
-                        </a>
-                    @endif
-                    @if($contactWhatsapp)
-                        <a href="https://wa.me/{{ preg_replace('/\D+/', '', $contactWhatsapp) }}" target="_blank" rel="noopener" class="flex items-center gap-3 text-sm text-brand-bright hover:underline">
-                            WhatsApp direto
-                        </a>
-                    @endif
-                </div>
-
-                <div class="mt-10 flex flex-wrap gap-4 text-sm text-mist">
-                    @if($linkedinUrl ?? false)
-                        <a href="{{ $linkedinUrl }}" target="_blank" rel="noopener" class="hover:text-snow">LinkedIn</a>
-                    @endif
-                    @if($githubUrl ?? false)
-                        <a href="{{ $githubUrl }}" target="_blank" rel="noopener" class="hover:text-snow">GitHub</a>
-                    @endif
-                    @if($telegramUrl ?? false)
-                        <a href="{{ $telegramUrl }}" target="_blank" rel="noopener" class="hover:text-snow">{{ $telegramHandle ?? '@JaderGabriel' }}</a>
-                    @endif
-                    <a href="{{ route('admin.dashboard') }}" class="inline-flex items-center gap-1.5 font-semibold text-brand-bright hover:underline">
-                        <x-ui.icon name="admin" class="h-4 w-4" />
-                        @auth Painel admin @else Área admin @endauth
-                    </a>
+                    </x-site.contact-icons>
                 </div>
             </div>
 
@@ -76,7 +56,7 @@
                             <span class="block text-sm text-mist">Telefone / WhatsApp</span>
                             <div
                                 class="mt-1.5 grid gap-2 sm:grid-cols-[minmax(0,14rem)_1fr]"
-                                x-data="phoneCountryField(@js(config('countries')), @js(old('phone_country', 'BR')))"
+                                x-data="buritiPhoneCountryField(@js(config('countries')), @js(old('phone_country', 'BR')))"
                             >
                                 <label class="block text-sm">
                                     <span class="sr-only">País (DDI)</span>
@@ -104,7 +84,7 @@
                                             required
                                             inputmode="numeric"
                                             autocomplete="tel-national"
-                                            placeholder="38991758416"
+                                            placeholder="99999-9999"
                                             class="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-snow outline-none"
                                         >
                                     </div>

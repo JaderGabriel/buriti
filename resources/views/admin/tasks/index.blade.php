@@ -55,7 +55,7 @@
                 <h2 class="mb-4 font-display text-lg font-semibold">{{ $label }}</h2>
                 <div class="space-y-3">
                     @forelse($columns[$status] as $task)
-                        <article class="rounded-xl border border-line bg-ink/60 p-3" x-data="{ open: false }">
+                        <article class="rounded-xl border border-line bg-ink/60 p-3" x-data="({ editing: false })">
                             <div class="flex items-start justify-between gap-2">
                                 <h3 class="font-medium">{{ $task->title }}</h3>
                                 <span class="rounded-full bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-wide text-mist">{{ $task->priority->label() }}</span>
@@ -93,9 +93,9 @@
                                     <span class="text-[10px] uppercase tracking-wide text-brand-bright">Sync</span>
                                 @endif
 
-                                <button type="button" class="text-xs text-mist hover:text-snow" @click="open = !open">Editar</button>
+                                <button type="button" class="text-xs text-mist hover:text-snow" @click="editing = !editing">Editar</button>
                             </div>
-                            <div x-cloak x-show="open" class="mt-3 space-y-2 border-t border-line pt-3">
+                            <div x-cloak x-show="editing" class="mt-3 space-y-2 border-t border-line pt-3">
                                 <form method="POST" action="{{ route('admin.tasks.update', $task) }}" class="space-y-2">
                                     @csrf
                                     @method('PUT')

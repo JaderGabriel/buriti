@@ -47,12 +47,13 @@ class HomePageTest extends TestCase
         $html = $this->get(route('home'))->assertOk()->getContent();
 
         $this->assertStringContainsString('Ver trajetória completa', $html);
-        $this->assertStringContainsString('careerModal', $html);
-        $this->assertStringContainsString('@click.prevent="show()"', $html);
-        $this->assertStringContainsString('x-show="open"', $html);
-        $this->assertStringContainsString('x-cloak', $html);
+        $this->assertStringContainsString('data-dialog-open="career-modal-0"', $html);
+        $this->assertStringContainsString('class="career-dialog"', $html);
+        $this->assertStringContainsString('id="career-modal-0"', $html);
+        $this->assertStringContainsString('role="dialog"', $html);
         $this->assertStringContainsString('aria-label="Fechar trajetória"', $html);
-        $this->assertStringNotContainsString('x-teleport="body"', $html);
+        $this->assertStringContainsString('data-dialog-close', $html);
+        $this->assertStringContainsString(' hidden', $html);
         // Botão "Fechar" de texto no rodapé do modal removido; só permanece o X no topo.
         $this->assertDoesNotMatchRegularExpression(
             '/border-t border-line pt-5[\s\S]*?>\s*Fechar\s*</',
@@ -97,9 +98,13 @@ class HomePageTest extends TestCase
         $response = $this->get(route('home'));
 
         $response->assertOk();
-        $response->assertSee('jadergabriel8@gmail.com', false);
+        $response->assertSee('mailto:jadergabriel8@gmail.com', false);
+        $response->assertSee('aria-label="Enviar e-mail"', false);
+        $response->assertSee('aria-label="Ligar"', false);
+        $response->assertSee('aria-label="Abrir WhatsApp"', false);
         $response->assertSee('@JaderGabriel', false);
-        $response->assertSee('+55 38 99175-8416', false);
+        $response->assertDontSee('+55 38 99175-8416', false);
+        $response->assertDontSee('WhatsApp direto', false);
     }
 
     public function test_home_page_shows_expertise_and_portfolio_signals(): void

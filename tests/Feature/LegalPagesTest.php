@@ -33,6 +33,7 @@ class LegalPagesTest extends TestCase
             ->assertSee('Política de Privacidade', false)
             ->assertSee('Política de Cookies', false)
             ->assertSee('Cookies e privacidade', false)
-            ->assertSee('cookieConsent', false);
+            ->assertSee('Concordo e Aceito', false)
+            ->assertSee('cookie-banner', false);
     }
 }

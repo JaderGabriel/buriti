@@ -1,12 +1,10 @@
 <div
-    x-data="cookieConsent"
-    x-cloak
-    x-show="visible"
-    x-transition.opacity
-    class="fixed inset-x-0 bottom-0 z-[90] p-4 sm:p-6"
+    id="cookie-banner"
+    class="fixed inset-x-0 bottom-0 z-[90] hidden p-4 sm:p-6"
     role="dialog"
     aria-live="polite"
     aria-label="Aviso de cookies"
+    hidden
 >
     <div class="mx-auto flex max-w-4xl flex-col gap-4 rounded-sm border border-line bg-panel p-4 shadow-2xl sm:flex-row sm:items-end sm:gap-6 sm:p-5">
         <div class="min-w-0 flex-1">
@@ -28,9 +26,9 @@
             <button
                 type="button"
                 class="inline-flex items-center justify-center rounded-sm bg-brand px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-bright"
-                @click="accept()"
+                data-cookie-accept
             >
-                Entendi
+                Concordo e Aceito
             </button>
         </div>
     </div>

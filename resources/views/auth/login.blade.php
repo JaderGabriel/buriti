@@ -21,8 +21,26 @@
             </label>
             <label class="block text-sm">
                 <span class="text-mist">Senha</span>
-                <input type="password" name="password" required autocomplete="current-password"
-                       class="mt-1.5 w-full rounded-xl border border-line bg-ink px-3 py-2.5 outline-none ring-brand-bright focus:ring-1">
+                <div class="relative mt-1.5" data-password-field>
+                    <input
+                        type="password"
+                        name="password"
+                        required
+                        autocomplete="current-password"
+                        data-password-input
+                        class="w-full rounded-xl border border-line bg-ink px-3 py-2.5 pr-11 outline-none ring-brand-bright focus:ring-1"
+                    >
+                    <button
+                        type="button"
+                        class="absolute inset-y-0 right-0 inline-flex w-11 items-center justify-center text-mist transition hover:text-snow"
+                        data-password-toggle
+                        aria-label="Mostrar senha"
+                        title="Mostrar senha"
+                    >
+                        <x-ui.icon name="eye" class="h-4 w-4" data-password-icon="show" />
+                        <x-ui.icon name="eye-off" class="hidden h-4 w-4" data-password-icon="hide" />
+                    </button>
+                </div>
             </label>
             <label class="flex items-center gap-2 text-sm text-mist">
                 <input type="checkbox" name="remember" value="1" class="rounded border-line">

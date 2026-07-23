@@ -16,7 +16,7 @@
     </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="overflow-x-hidden" x-data>
+<body class="overflow-x-hidden">
     @yield('body')
 </body>
 </html>

@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Facades\Storage;
 
 #[Fillable(['name', 'username', 'email', 'password', 'avatar_path', 'is_admin', 'is_active', 'last_login_at', 'last_login_ip'])]
 #[Hidden(['password', 'remember_token'])]
@@ -37,9 +36,12 @@ class User extends Authenticatable
 
     public function avatarUrl(): ?string
     {
-        return $this->avatar_path
-            ? Storage::disk('public')->url($this->avatar_path)
-            : null;
+        if (! $this->avatar_path) {
+            return null;
+        }
+
+        // Caminho relativo: funciona em localhost, 127.0.0.1 e produção sem depender do APP_URL.
+        return '/storage/'.ltrim($this->avatar_path, '/');
     }
 
     public function initials(): string

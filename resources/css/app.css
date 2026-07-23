@@ -208,6 +208,44 @@
     display: none !important;
 }
 
+.career-dialog {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.career-dialog.is-open {
+    display: flex;
+}
+
+.career-dialog__backdrop {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    background: rgba(10, 22, 40, 0.72);
+    backdrop-filter: blur(2px);
+}
+
+.career-dialog__panel {
+    position: relative;
+    z-index: 1;
+    width: min(48rem, 100%);
+    max-height: 90svh;
+    overflow: hidden;
+    border: 1px solid var(--color-line);
+    border-radius: 2px;
+    background: var(--color-panel);
+    color: var(--color-snow);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
+}
+
 .sr-only {
     position: absolute;
     width: 1px;

@@ -15,11 +15,7 @@
         </div>
     </div>
 
-    <header
-        class="sticky top-0 z-50 border-b border-line bg-panel"
-        x-data="{ open: false }"
-        @keydown.escape.window="open = false"
-    >
+    <header class="sticky top-0 z-50 border-b border-line bg-panel" data-site-header>
         <div class="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
             <a href="{{ route('home') }}" class="flex min-w-0 items-center gap-2.5 sm:gap-3">
                 <img src="{{ asset('images/logo-buriti.png') }}" alt="BURI-TI" class="h-9 w-9 object-contain sm:h-10 sm:w-10">
@@ -38,7 +34,7 @@
                 <a href="{{ route('home') }}#contato" class="transition hover:text-snow">Contato</a>
             </nav>
 
-            <div class="flex items-center gap-2" x-data="themeToggle">
+            <div class="flex items-center gap-2">
                 <button
                     type="button"
                     data-theme-toggle
@@ -56,29 +52,29 @@
                 <button
                     type="button"
                     class="inline-flex h-10 w-10 items-center justify-center rounded-sm border border-line text-snow xl:hidden"
-                    @click="open = !open"
-                    :aria-expanded="open.toString()"
+                    data-nav-toggle
+                    aria-expanded="false"
                     aria-controls="mobile-nav"
                     aria-label="Abrir menu"
                 >
-                    <svg x-show="!open" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 7h16M4 12h16M4 17h16"/></svg>
-                    <svg x-show="open" x-cloak class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 6l12 12M18 6L6 18"/></svg>
+                    <svg data-nav-icon="open" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 7h16M4 12h16M4 17h16"/></svg>
+                    <svg data-nav-icon="close" class="hidden h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 6l12 12M18 6L6 18"/></svg>
                 </button>
             </div>
         </div>
 
-        <div id="mobile-nav" x-cloak x-show="open" x-transition.origin.top class="border-t border-line bg-panel xl:hidden">
+        <div id="mobile-nav" class="hidden border-t border-line bg-panel xl:hidden" data-nav-panel hidden>
             <nav class="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-4 text-sm sm:px-6">
-                <a href="{{ route('home') }}#metodo" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" @click="open = false">Método</a>
-                <a href="{{ route('home') }}#servicos" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" @click="open = false">Serviços</a>
-                <a href="{{ route('home') }}#expertise" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" @click="open = false">Expertise</a>
-                <a href="{{ route('home') }}#projetos" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" @click="open = false">Portfólio</a>
-                <a href="{{ route('home') }}#equipe" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" @click="open = false">Quem é quem</a>
-                <a href="{{ route('home') }}#contato" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" @click="open = false">Contato</a>
-                <x-site.admin-link class="rounded-sm px-3 py-3 font-semibold text-brand-bright" @click="open = false">
+                <a href="{{ route('home') }}#metodo" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Método</a>
+                <a href="{{ route('home') }}#servicos" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Serviços</a>
+                <a href="{{ route('home') }}#expertise" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Expertise</a>
+                <a href="{{ route('home') }}#projetos" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Portfólio</a>
+                <a href="{{ route('home') }}#equipe" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Quem é quem</a>
+                <a href="{{ route('home') }}#contato" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Contato</a>
+                <x-site.admin-link class="rounded-sm px-3 py-3 font-semibold text-brand-bright" data-nav-close>
                     @auth Painel admin @else Área admin @endauth
                 </x-site.admin-link>
-                <x-ui.button href="{{ route('home') }}#contato" class="mt-2 w-full" @click="open = false">Pedir proposta</x-ui.button>
+                <x-ui.button href="{{ route('home') }}#contato" class="mt-2 w-full" data-nav-close>Pedir proposta</x-ui.button>
             </nav>
         </div>
     </header>
@@ -108,19 +104,16 @@
             </div>
             <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.16em] text-mist">Conta e redes</p>
-                <div class="mt-3 flex flex-col gap-2 text-sm text-mist">
-                    <x-site.admin-link class="font-semibold text-brand-bright hover:text-snow">
+                <div class="mt-3 space-y-3">
+                    <x-site.admin-link class="inline-flex text-sm font-semibold text-brand-bright hover:text-snow">
                         @auth Abrir painel admin @else Área admin @endauth
                     </x-site.admin-link>
-                    @if($githubUrl ?? false)
-                        <a href="{{ $githubUrl }}" target="_blank" rel="noopener" class="hover:text-snow">GitHub</a>
-                    @endif
-                    @if($linkedinUrl ?? false)
-                        <a href="{{ $linkedinUrl }}" target="_blank" rel="noopener" class="hover:text-snow">LinkedIn</a>
-                    @endif
-                    @if($telegramUrl ?? false)
-                        <a href="{{ $telegramUrl }}" target="_blank" rel="noopener" class="hover:text-snow">{{ $telegramHandle ?? 'Telegram' }}</a>
-                    @endif
+                    <x-site.contact-icons
+                        :linkedin="$linkedinUrl ?? null"
+                        :github="$githubUrl ?? null"
+                        :telegram="$telegramUrl ?? null"
+                        :telegram-handle="$telegramHandle ?? null"
+                    />
                 </div>
             </div>
         </div>
