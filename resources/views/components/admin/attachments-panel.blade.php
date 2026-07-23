@@ -47,7 +47,7 @@
     $eyebrow = $isAlbum ? 'Álbum' : 'Arquivos';
 @endphp
 
-<section {{ $attributes->merge(['class' => 'drive-panel'.($isAlbum ? ' drive-panel--album' : ' drive-panel--folder')]) }}>
+<section {{ $attributes->merge(['class' => 'drive-panel'.($isAlbum ? ' drive-panel--album' : ' drive-panel--folder')]) }} data-drive-panel>
     <header class="drive-panel__header">
         <div class="drive-panel__heading">
             <span class="drive-panel__icon" aria-hidden="true">
@@ -72,24 +72,52 @@
             <div class="drive-album">
                 @forelse($items as $attachment)
                     <figure class="drive-album__item">
-                        <a href="{{ $attachment->url() }}" target="_blank" rel="noopener" class="drive-album__thumb" title="{{ $attachment->title ?: $attachment->original_name }}">
+                        <button
+                            type="button"
+                            class="drive-album__thumb"
+                            title="{{ $attachment->title ?: $attachment->original_name }}"
+                            data-drive-open
+                            data-drive-kind="{{ $attachment->previewKind() }}"
+                            data-drive-src="{{ $attachment->isPreviewable() ? $attachment->previewUrl() : route('admin.attachments.download', $attachment) }}"
+                            data-drive-name="{{ $attachment->title ?: $attachment->original_name }}"
+                            data-drive-download="{{ route('admin.attachments.download', $attachment) }}"
+                            data-drive-previewable="{{ $attachment->isPreviewable() ? '1' : '0' }}"
+                        >
                             @if($attachment->isImage())
-                                <img src="{{ $attachment->url() }}" alt="{{ $attachment->title ?: $attachment->original_name }}">
+                                <img src="{{ $attachment->previewUrl() }}" alt="{{ $attachment->title ?: $attachment->original_name }}">
                             @else
                                 <span class="drive-file-badge">{{ $attachment->isPdf() ? 'PDF' : 'DOC' }}</span>
                             @endif
-                        </a>
+                        </button>
                         <figcaption class="drive-album__meta">
                             <p class="drive-album__name" title="{{ $attachment->title ?: $attachment->original_name }}">
                                 {{ $attachment->title ?: $attachment->original_name }}
                             </p>
                             <p class="drive-album__info">{{ $attachment->humanSize() }} · {{ $attachment->created_at->format('d/m/Y') }}</p>
                             <div class="drive-album__actions">
-                                <a href="{{ route('admin.attachments.download', $attachment) }}" class="drive-action">Baixar</a>
+                                <button
+                                    type="button"
+                                    class="drive-action drive-action--icon"
+                                    title="Ver"
+                                    aria-label="Ver arquivo"
+                                    data-drive-open
+                                    data-drive-kind="{{ $attachment->previewKind() }}"
+                                    data-drive-src="{{ $attachment->isPreviewable() ? $attachment->previewUrl() : route('admin.attachments.download', $attachment) }}"
+                                    data-drive-name="{{ $attachment->title ?: $attachment->original_name }}"
+                                    data-drive-download="{{ route('admin.attachments.download', $attachment) }}"
+                                    data-drive-previewable="{{ $attachment->isPreviewable() ? '1' : '0' }}"
+                                >
+                                    <x-ui.icon name="eye" class="h-3.5 w-3.5" />
+                                </button>
+                                <a href="{{ route('admin.attachments.download', $attachment) }}" class="drive-action drive-action--icon" title="Baixar" aria-label="Baixar arquivo">
+                                    <x-ui.icon name="download" class="h-3.5 w-3.5" />
+                                </a>
                                 <form method="POST" action="{{ route('admin.attachments.destroy', $attachment) }}" data-confirm="Mover esta foto para a lixeira? Poderá recuperá-la depois.">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="drive-action drive-action--danger">Lixeira</button>
+                                    <button type="submit" class="drive-action drive-action--icon drive-action--danger" title="Lixeira" aria-label="Mover para a lixeira">
+                                        <x-ui.icon name="trash" class="h-3.5 w-3.5" />
+                                    </button>
                                 </form>
                             </div>
                         </figcaption>
@@ -105,17 +133,26 @@
             <div class="drive-folder">
                 @forelse($items as $attachment)
                     <article class="drive-row">
-                        <div class="drive-row__main">
+                        <button
+                            type="button"
+                            class="drive-row__main drive-row__main--button"
+                            data-drive-open
+                            data-drive-kind="{{ $attachment->previewKind() }}"
+                            data-drive-src="{{ $attachment->isPreviewable() ? $attachment->previewUrl() : route('admin.attachments.download', $attachment) }}"
+                            data-drive-name="{{ $attachment->title ?: $attachment->original_name }}"
+                            data-drive-download="{{ route('admin.attachments.download', $attachment) }}"
+                            data-drive-previewable="{{ $attachment->isPreviewable() ? '1' : '0' }}"
+                        >
                             @if($attachment->isImage())
-                                <a href="{{ $attachment->url() }}" target="_blank" rel="noopener" class="drive-row__thumb">
-                                    <img src="{{ $attachment->url() }}" alt="">
-                                </a>
+                                <span class="drive-row__thumb">
+                                    <img src="{{ $attachment->previewUrl() }}" alt="">
+                                </span>
                             @else
                                 <span class="drive-file-badge" aria-hidden="true">
                                     {{ $attachment->isPdf() ? 'PDF' : strtoupper(\Illuminate\Support\Str::limit(pathinfo($attachment->original_name, PATHINFO_EXTENSION) ?: 'DOC', 4, '')) }}
                                 </span>
                             @endif
-                            <div class="min-w-0">
+                            <div class="min-w-0 text-left">
                                 <p class="drive-row__name" title="{{ $attachment->title ?: $attachment->original_name }}">
                                     {{ $attachment->title ?: $attachment->original_name }}
                                 </p>
@@ -125,18 +162,30 @@
                                     <span>{{ $attachment->created_at->format('d/m/Y H:i') }}</span>
                                 </p>
                             </div>
-                        </div>
+                        </button>
                         <div class="drive-row__actions">
-                            <a href="{{ route('admin.attachments.download', $attachment) }}" class="drive-action">
+                            <button
+                                type="button"
+                                class="drive-action drive-action--icon"
+                                title="Ver"
+                                aria-label="Ver arquivo"
+                                data-drive-open
+                                data-drive-kind="{{ $attachment->previewKind() }}"
+                                data-drive-src="{{ $attachment->isPreviewable() ? $attachment->previewUrl() : route('admin.attachments.download', $attachment) }}"
+                                data-drive-name="{{ $attachment->title ?: $attachment->original_name }}"
+                                data-drive-download="{{ route('admin.attachments.download', $attachment) }}"
+                                data-drive-previewable="{{ $attachment->isPreviewable() ? '1' : '0' }}"
+                            >
+                                <x-ui.icon name="eye" class="h-3.5 w-3.5" />
+                            </button>
+                            <a href="{{ route('admin.attachments.download', $attachment) }}" class="drive-action drive-action--icon" title="Baixar" aria-label="Baixar arquivo">
                                 <x-ui.icon name="download" class="h-3.5 w-3.5" />
-                                Baixar
                             </a>
                             <form method="POST" action="{{ route('admin.attachments.destroy', $attachment) }}" data-confirm="Mover este arquivo para a lixeira? Poderá recuperá-lo depois.">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="drive-action drive-action--danger">
+                                <button type="submit" class="drive-action drive-action--icon drive-action--danger" title="Lixeira" aria-label="Mover para a lixeira">
                                     <x-ui.icon name="trash" class="h-3.5 w-3.5" />
-                                    Lixeira
                                 </button>
                             </form>
                         </div>
@@ -236,5 +285,23 @@
                 </ul>
             </div>
         @endif
+    </div>
+
+    <div class="drive-viewer" data-drive-viewer hidden>
+        <div class="drive-viewer__backdrop" data-drive-close></div>
+        <div class="drive-viewer__dialog" role="dialog" aria-modal="true" aria-labelledby="drive-viewer-title">
+            <header class="drive-viewer__header">
+                <h3 id="drive-viewer-title" class="drive-viewer__title" data-drive-title></h3>
+                <div class="drive-viewer__header-actions">
+                    <a href="#" class="drive-action drive-action--icon" data-drive-download-link title="Baixar" aria-label="Baixar arquivo">
+                        <x-ui.icon name="download" class="h-4 w-4" />
+                    </a>
+                    <button type="button" class="drive-action drive-action--icon" data-drive-close title="Fechar" aria-label="Fechar">
+                        <x-ui.icon name="lost" class="h-4 w-4" />
+                    </button>
+                </div>
+            </header>
+            <div class="drive-viewer__body" data-drive-body></div>
+        </div>
     </div>
 </section>

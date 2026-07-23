@@ -1826,6 +1826,118 @@ function initTaskDayCreateFallback() {
     // Mantido vazio: criação de tarefas usa initTaskCreateDialog (vanilla).
 }
 
+function initDriveViewer() {
+    const escapeHtml = (value) => String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+
+    const closeViewer = (viewer) => {
+        const body = viewer.querySelector('[data-drive-body]');
+        viewer.hidden = true;
+        if (body) {
+            body.innerHTML = '';
+        }
+        document.body.classList.remove('overflow-hidden');
+    };
+
+    const openViewer = async (trigger) => {
+        const panel = trigger.closest('[data-drive-panel]');
+        const viewer = panel?.querySelector('[data-drive-viewer]');
+        if (! panel || ! viewer) {
+            return;
+        }
+
+        const kind = trigger.getAttribute('data-drive-kind') || 'download';
+        const src = trigger.getAttribute('data-drive-src') || '';
+        const name = trigger.getAttribute('data-drive-name') || 'Arquivo';
+        const download = trigger.getAttribute('data-drive-download') || src;
+        const previewable = trigger.getAttribute('data-drive-previewable') === '1';
+        const title = viewer.querySelector('[data-drive-title]');
+        const body = viewer.querySelector('[data-drive-body]');
+        const downloadLink = viewer.querySelector('[data-drive-download-link]');
+
+        if (! body) {
+            return;
+        }
+
+        if (title) {
+            title.textContent = name;
+        }
+        if (downloadLink) {
+            downloadLink.href = download;
+        }
+
+        body.innerHTML = '';
+
+        if (! previewable || kind === 'download') {
+            body.innerHTML = `
+                <div class="drive-viewer__fallback">
+                    <p>Este tipo de ficheiro não pode ser pré-visualizado no browser.</p>
+                    <a href="${escapeHtml(download)}">Baixar ${escapeHtml(name)}</a>
+                </div>
+            `;
+        } else if (kind === 'image') {
+            body.innerHTML = `<img class="drive-viewer__media drive-viewer__media--image" src="${escapeHtml(src)}" alt="${escapeHtml(name)}">`;
+        } else if (kind === 'pdf') {
+            body.innerHTML = `<iframe class="drive-viewer__frame" src="${escapeHtml(src)}" title="${escapeHtml(name)}"></iframe>`;
+        } else if (kind === 'video') {
+            body.innerHTML = `<video class="drive-viewer__media drive-viewer__media--video" src="${escapeHtml(src)}" controls playsinline></video>`;
+        } else if (kind === 'audio') {
+            body.innerHTML = `<audio class="drive-viewer__media drive-viewer__media--audio" src="${escapeHtml(src)}" controls></audio>`;
+        } else if (kind === 'text') {
+            body.innerHTML = `<pre class="drive-viewer__text">A carregar…</pre>`;
+            try {
+                const response = await fetch(src, { credentials: 'same-origin' });
+                const text = await response.text();
+                const pre = body.querySelector('pre');
+                if (pre) {
+                    pre.textContent = text;
+                }
+            } catch (error) {
+                body.innerHTML = `
+                    <div class="drive-viewer__fallback">
+                        <p>Não foi possível ler o ficheiro.</p>
+                        <a href="${escapeHtml(download)}">Baixar ${escapeHtml(name)}</a>
+                    </div>
+                `;
+            }
+        }
+
+        viewer.hidden = false;
+        document.body.classList.add('overflow-hidden');
+    };
+
+    document.addEventListener('click', (event) => {
+        const openTrigger = event.target.closest?.('[data-drive-open]');
+        if (openTrigger) {
+            event.preventDefault();
+            openViewer(openTrigger);
+            return;
+        }
+
+        const closeTrigger = event.target.closest?.('[data-drive-close]');
+        if (closeTrigger) {
+            const viewer = closeTrigger.closest('[data-drive-viewer]');
+            if (viewer) {
+                closeViewer(viewer);
+            }
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') {
+            return;
+        }
+
+        document.querySelectorAll('[data-drive-viewer]:not([hidden])').forEach((viewer) => {
+            closeViewer(viewer);
+        });
+    });
+}
+
 window.Alpine = Alpine;
 
 // Modal / nav / cookies / avatar / password must not depend on Alpine succeeding.
@@ -1848,6 +1960,7 @@ initProjectBoard();
 initProjectCardMinimize();
 initOpportunityBoard();
 initIdeaPostitColors();
+initDriveViewer();
 
 try {
     Alpine.start();

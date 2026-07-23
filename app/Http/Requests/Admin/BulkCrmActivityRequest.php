@@ -29,6 +29,7 @@ class BulkCrmActivityRequest extends FormRequest
 
         $this->merge([
             'contact_ids' => array_values(array_unique(array_filter(array_map('intval', $ids)))),
+            'complete_task' => $this->boolean('complete_task'),
         ]);
     }
 
@@ -42,6 +43,7 @@ class BulkCrmActivityRequest extends FormRequest
             'subject' => ['nullable', 'string', 'max:180'],
             'body' => ['nullable', 'string', 'max:10000'],
             'task_id' => ['nullable', 'exists:tasks,id'],
+            'complete_task' => ['sometimes', 'boolean'],
             'happened_at' => ['nullable', 'date'],
         ];
     }

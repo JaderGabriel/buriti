@@ -141,6 +141,29 @@ class AttachmentTest extends TestCase
             ->get(route('admin.attachments.download', $attachment))
             ->assertOk();
 
+        $preview = $this->actingAs($this->admin)
+            ->get(route('admin.attachments.preview', $attachment))
+            ->assertOk();
+
+        $this->assertStringContainsString(
+            'inline',
+            strtolower((string) $preview->headers->get('content-disposition'))
+        );
+
+        $docx = UploadedFile::fake()->create('plano.docx', 20, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.attachments.store', ['type' => 'contacts', 'id' => $contact->id]), [
+                'file' => $docx,
+                'kind' => 'document',
+            ]);
+
+        $office = Attachment::query()->where('original_name', 'plano.docx')->firstOrFail();
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.attachments.preview', $office))
+            ->assertStatus(415);
+
         $this->actingAs($this->admin)
             ->delete(route('admin.attachments.destroy', $attachment))
             ->assertRedirect();

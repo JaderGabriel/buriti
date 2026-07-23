@@ -44,7 +44,7 @@ class TaskController extends Controller
                 'contact',
                 'attachments',
                 'trashedAttachments.deleter',
-                'activities' => fn ($q) => $q->with(['contact', 'user'])->limit(6),
+                'activities' => fn ($q) => $q->with(['contact', 'user'])->orderBy('happened_at')->orderBy('id')->limit(20),
             ])
             ->boardOrdered()
             ->get();

@@ -1225,6 +1225,19 @@ html.dark .postit-lilac {
     gap: 0.75rem;
 }
 
+.drive-row__main--button {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+    color: inherit;
+}
+
+.drive-row__main--button:hover .drive-row__name {
+    color: var(--color-brand-bright);
+}
+
 .drive-row__thumb {
     display: block;
     height: 2.5rem;
@@ -1318,6 +1331,132 @@ html.dark .postit-lilac {
     background: color-mix(in oklab, #ef4444 10%, transparent);
 }
 
+.drive-action--icon {
+    width: 2rem;
+    height: 2rem;
+    justify-content: center;
+    padding: 0;
+}
+
+.drive-viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+}
+
+.drive-viewer[hidden] {
+    display: none !important;
+}
+
+.drive-viewer__backdrop {
+    position: absolute;
+    inset: 0;
+    background: color-mix(in oklab, #020617 72%, transparent);
+    backdrop-filter: blur(2px);
+}
+
+.drive-viewer__dialog {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    width: min(56rem, 100%);
+    max-height: min(90vh, 48rem);
+    overflow: hidden;
+    border: 1px solid var(--color-line);
+    border-radius: 2px;
+    background: var(--color-panel);
+    box-shadow: 0 24px 64px color-mix(in oklab, #000 45%, transparent);
+}
+
+.drive-viewer__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 0.9rem;
+    border-bottom: 1px solid var(--color-line);
+}
+
+.drive-viewer__title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-snow);
+}
+
+.drive-viewer__header-actions {
+    display: inline-flex;
+    gap: 0.3rem;
+    flex-shrink: 0;
+}
+
+.drive-viewer__body {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    background: color-mix(in oklab, var(--color-ink) 55%, transparent);
+}
+
+.drive-viewer__frame,
+.drive-viewer__media {
+    display: block;
+    width: 100%;
+    min-height: 70vh;
+    border: 0;
+    background: #0b1220;
+}
+
+.drive-viewer__media--image {
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    max-height: 75vh;
+    min-height: 0;
+    margin: 0 auto;
+    object-fit: contain;
+}
+
+.drive-viewer__media--video,
+.drive-viewer__media--audio {
+    min-height: 0;
+    width: 100%;
+    margin: 1.25rem auto;
+    padding: 0 1rem;
+}
+
+.drive-viewer__text {
+    margin: 0;
+    padding: 1rem 1.1rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    color: var(--color-snow);
+}
+
+.drive-viewer__fallback {
+    display: grid;
+    place-items: center;
+    gap: 0.75rem;
+    min-height: 16rem;
+    padding: 2rem 1.25rem;
+    text-align: center;
+    color: var(--color-mist);
+}
+
+.drive-viewer__fallback a {
+    color: var(--color-brand-bright);
+    font-weight: 650;
+}
+
 .drive-empty {
     display: flex;
     flex-direction: column;
@@ -1361,8 +1500,12 @@ html.dark .postit-lilac {
 
 .drive-album__thumb {
     display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
     aspect-ratio: 1;
     overflow: hidden;
+    cursor: pointer;
     background: color-mix(in oklab, var(--color-ink) 70%, transparent);
 }
 
@@ -2027,6 +2170,51 @@ html.dark .postit-lilac {
     gap: 0.55rem;
     padding: 0.55rem 0;
     border-top: 1px solid color-mix(in oklab, var(--color-line) 70%, transparent);
+}
+
+.task-activity-trend {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.task-activity--trend {
+    position: relative;
+    border-top: 0;
+    padding: 0.55rem 0 0.65rem;
+}
+
+.task-activity--trend:last-child {
+    padding-bottom: 0.15rem;
+}
+
+.task-activity__rail {
+    position: absolute;
+    top: 2rem;
+    left: 0.8rem;
+    bottom: 0;
+    width: 1px;
+    background: color-mix(in oklab, var(--color-line) 80%, transparent);
+}
+
+.task-activity--trend:last-child .task-activity__rail {
+    display: none;
+}
+
+.task-activity--trend .task-activity__icon {
+    position: relative;
+    z-index: 1;
+    border-radius: 999px;
+}
+
+.task-activity__subject--link {
+    display: inline-block;
+    color: var(--color-snow);
+    text-decoration: none;
+}
+
+.task-activity__subject--link:hover {
+    color: var(--color-brand-bright);
 }
 
 .task-activity:first-of-type {
@@ -5155,6 +5343,43 @@ button.task-agenda__date:hover {
     border-color: color-mix(in oklab, var(--color-brand-bright) 45%, var(--color-line));
 }
 
+.contact-dossier__facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem 1.1rem;
+    margin-top: 0.85rem;
+    padding: 0;
+    list-style: none;
+}
+
+.contact-dossier__facts li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+    font-size: 0.8125rem;
+    color: var(--color-mist);
+}
+
+.contact-dossier__facts a {
+    color: var(--color-snow);
+    text-decoration: none;
+    word-break: break-word;
+}
+
+.contact-dossier__facts a:hover {
+    color: var(--color-brand-bright);
+}
+
+.contact-dossier__notes {
+    margin-top: 0.85rem;
+    max-width: 42rem;
+    font-size: 0.875rem;
+    line-height: 1.55;
+    color: color-mix(in oklab, var(--color-mist) 88%, var(--color-snow));
+    white-space: pre-wrap;
+}
+
 .contact-dossier__quick {
     display: flex;
     flex-wrap: wrap;
@@ -5557,68 +5782,87 @@ button.task-agenda__date:hover {
 }
 
 .contact-timeline {
-    max-height: 28rem;
+    position: relative;
+    max-height: 32rem;
     overflow: auto;
+    padding-left: 0.15rem;
 }
 
 .contact-timeline__item {
+    position: relative;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);
-    gap: 0.75rem;
-    padding: 0.7rem 0;
-    border-bottom: 1px solid color-mix(in oklab, var(--color-line) 70%, transparent);
+    gap: 0.85rem;
+    padding: 0.85rem 0 0.95rem;
 }
 
 .contact-timeline__item:last-child {
-    border-bottom: 0;
+    padding-bottom: 0.25rem;
+}
+
+.contact-timeline__rail {
+    position: absolute;
+    top: 2.35rem;
+    left: 0.95rem;
+    bottom: 0;
+    width: 1px;
+    background: color-mix(in oklab, var(--color-line) 85%, transparent);
+}
+
+.contact-timeline__item:last-child .contact-timeline__rail {
+    display: none;
 }
 
 .contact-timeline__icon {
+    position: relative;
+    z-index: 1;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 2rem;
     height: 2rem;
-    border-radius: 2px;
-    margin-top: 0.1rem;
+    border-radius: 999px;
+    margin-top: 0.15rem;
+    border: 1px solid color-mix(in oklab, var(--color-line) 80%, transparent);
+    background: var(--color-panel);
 }
 
 .contact-timeline__item--slate .contact-timeline__icon {
     color: #cbd5e1;
-    background: color-mix(in oklab, #94a3b8 18%, transparent);
+    background: color-mix(in oklab, #94a3b8 18%, var(--color-panel));
 }
 
 .contact-timeline__item--green .contact-timeline__icon {
     color: #86efac;
-    background: color-mix(in oklab, #22c55e 18%, transparent);
+    background: color-mix(in oklab, #22c55e 18%, var(--color-panel));
 }
 
 .contact-timeline__item--blue .contact-timeline__icon {
     color: #93c5fd;
-    background: color-mix(in oklab, #3b82f6 18%, transparent);
+    background: color-mix(in oklab, #3b82f6 18%, var(--color-panel));
 }
 
 .contact-timeline__item--amber .contact-timeline__icon {
     color: #fcd34d;
-    background: color-mix(in oklab, #f59e0b 18%, transparent);
+    background: color-mix(in oklab, #f59e0b 18%, var(--color-panel));
 }
 
 .contact-timeline__item--brand .contact-timeline__icon {
     color: var(--color-brand-bright);
-    background: color-mix(in oklab, var(--color-brand) 22%, transparent);
+    background: color-mix(in oklab, var(--color-brand) 22%, var(--color-panel));
 }
 
 .contact-timeline__top {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.45rem 0.65rem;
+    gap: 0.4rem 0.65rem;
 }
 
 .contact-timeline__type {
     font-size: 0.65rem;
     font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--color-brand-bright);
 }
@@ -5633,32 +5877,38 @@ button.task-agenda__date:hover {
     color: var(--color-mist);
 }
 
-.contact-timeline__remove {
+.contact-timeline__actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
     margin-left: auto;
-    border: 0;
+}
+
+.contact-timeline__icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 1px solid transparent;
+    border-radius: 2px;
     background: transparent;
-    font-size: 0.7rem;
     color: var(--color-mist);
     cursor: pointer;
+    text-decoration: none;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 
-.contact-timeline__edit {
-    margin-left: auto;
-    font-size: 0.7rem;
-    font-weight: 600;
+.contact-timeline__icon-btn:hover {
     color: var(--color-brand-bright);
+    border-color: color-mix(in oklab, var(--color-brand-bright) 35%, var(--color-line));
+    background: color-mix(in oklab, var(--color-brand) 10%, transparent);
 }
 
-.contact-timeline__edit:hover {
-    text-decoration: underline;
-}
-
-.contact-timeline__top:has(.contact-timeline__edit) .contact-timeline__remove {
-    margin-left: 0;
-}
-
-.contact-timeline__remove:hover {
+.contact-timeline__icon-btn--danger:hover {
     color: #fca5a5;
+    border-color: color-mix(in oklab, #f87171 40%, var(--color-line));
+    background: color-mix(in oklab, #ef4444 12%, transparent);
 }
 
 .contact-timeline__link {
@@ -5666,8 +5916,8 @@ button.task-agenda__date:hover {
     color: inherit;
     text-decoration: none;
     border-radius: 2px;
-    margin: 0.15rem -0.35rem 0;
-    padding: 0.25rem 0.35rem;
+    margin: 0.2rem -0.4rem 0;
+    padding: 0.35rem 0.4rem;
     transition: background 0.15s ease;
 }
 
@@ -5676,31 +5926,27 @@ button.task-agenda__date:hover {
 }
 
 .contact-timeline__subject {
-    margin-top: 0.25rem;
-    font-size: 0.9rem;
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
     color: var(--color-snow);
 }
 
-.contact-timeline__link .contact-timeline__subject {
-    margin-top: 0;
-}
-
 .contact-timeline__detail {
-    margin-top: 0.3rem;
-    font-size: 0.8125rem;
-    color: var(--color-mist);
+    margin-top: 0.35rem;
+    font-size: 0.875rem;
+    line-height: 1.55;
+    color: color-mix(in oklab, var(--color-mist) 75%, var(--color-snow));
     white-space: pre-wrap;
 }
 
 .contact-timeline__meta {
-    margin-top: 0.3rem;
+    margin-top: 0.4rem;
     font-size: 0.7rem;
+    letter-spacing: 0.01em;
     color: color-mix(in oklab, var(--color-mist) 85%, transparent);
-}
-
-.contact-timeline__hint {
-    opacity: 0.75;
 }
 
 .contact-panel {
@@ -5708,6 +5954,195 @@ button.task-agenda__date:hover {
     border-radius: 2px;
     background: var(--color-panel);
     padding: 1rem;
+}
+
+.contact-panel--agenda {
+    padding-bottom: 0.85rem;
+}
+
+.contact-agenda {
+    margin-top: 0.65rem;
+}
+
+.contact-agenda__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.65rem;
+}
+
+.contact-agenda__nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.contact-agenda__nav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 1px solid var(--color-line);
+    border-radius: 2px;
+    color: var(--color-mist);
+    text-decoration: none;
+    background: color-mix(in oklab, var(--color-ink) 35%, transparent);
+}
+
+.contact-agenda__nav-btn:hover {
+    color: var(--color-snow);
+    border-color: color-mix(in oklab, var(--color-brand-bright) 40%, var(--color-line));
+}
+
+.contact-agenda__month {
+    min-width: 7.5rem;
+    text-align: center;
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-snow);
+}
+
+.contact-agenda__today {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-brand-bright);
+    text-decoration: none;
+}
+
+.contact-agenda__today:hover {
+    text-decoration: underline;
+}
+
+.contact-agenda__weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.2rem;
+    margin-bottom: 0.25rem;
+}
+
+.contact-agenda__weekdays span {
+    text-align: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-mist);
+}
+
+.contact-agenda__grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.2rem;
+}
+
+.contact-agenda__cell {
+    min-height: 4.25rem;
+    padding: 0.3rem;
+    border: 1px solid color-mix(in oklab, var(--color-line) 80%, transparent);
+    border-radius: 2px;
+    background: color-mix(in oklab, var(--color-ink) 28%, transparent);
+}
+
+.contact-agenda__cell.is-muted {
+    opacity: 0.45;
+}
+
+.contact-agenda__cell.is-today {
+    border-color: color-mix(in oklab, var(--color-brand-bright) 55%, var(--color-line));
+    background: color-mix(in oklab, var(--color-brand) 12%, transparent);
+}
+
+.contact-agenda__daynum {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--color-mist);
+}
+
+.contact-agenda__events {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    margin-top: 0.25rem;
+}
+
+.contact-agenda__chip {
+    display: block;
+    overflow: hidden;
+    padding: 0.12rem 0.25rem;
+    border-radius: 2px;
+    font-size: 0.62rem;
+    line-height: 1.25;
+    text-decoration: none;
+    color: #ecfdf5;
+    background: color-mix(in oklab, #10b981 35%, transparent);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.contact-agenda__chip--todo {
+    background: color-mix(in oklab, #38bdf8 32%, transparent);
+    color: #e0f2fe;
+}
+
+.contact-agenda__chip--doing {
+    background: color-mix(in oklab, #f59e0b 32%, transparent);
+    color: #fef3c7;
+}
+
+.contact-agenda__chip--done {
+    background: color-mix(in oklab, #94a3b8 28%, transparent);
+    color: #e2e8f0;
+}
+
+.contact-agenda__chip-time {
+    font-weight: 700;
+    margin-right: 0.2rem;
+}
+
+.contact-agenda__more {
+    font-size: 0.6rem;
+    color: var(--color-mist);
+}
+
+.contact-agenda__undated {
+    margin-top: 0.75rem;
+    padding-top: 0.65rem;
+    border-top: 1px solid color-mix(in oklab, var(--color-line) 75%, transparent);
+}
+
+.contact-agenda__undated-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-mist);
+}
+
+.contact-agenda__undated-list {
+    margin-top: 0.4rem;
+    display: grid;
+    gap: 0.3rem;
+}
+
+.contact-agenda__empty {
+    margin-top: 0.55rem;
+    font-size: 0.8125rem;
+    color: var(--color-mist);
+}
+
+@media (max-width: 640px) {
+    .contact-agenda__cell {
+        min-height: 2.75rem;
+    }
+
+    .contact-agenda__chip-title {
+        display: none;
+    }
 }
 
 .contact-panel__head {
@@ -5834,6 +6269,115 @@ button.task-agenda__date:hover {
 .contact-activity-form__head p {
     margin-top: 0.2rem;
     font-size: 0.75rem;
+    color: var(--color-mist);
+}
+
+.activity-trend__list {
+    margin: 0.85rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.activity-trend__item {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.65rem;
+    padding: 0.55rem 0 0.7rem;
+}
+
+.activity-trend__item:last-child {
+    padding-bottom: 0.1rem;
+}
+
+.activity-trend__rail {
+    position: absolute;
+    top: 1.35rem;
+    left: 0.4rem;
+    bottom: 0;
+    width: 1px;
+    background: color-mix(in oklab, var(--color-line) 80%, transparent);
+}
+
+.activity-trend__item:last-child .activity-trend__rail {
+    display: none;
+}
+
+.activity-trend__dot {
+    position: relative;
+    z-index: 1;
+    width: 0.85rem;
+    height: 0.85rem;
+    margin-top: 0.2rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in oklab, var(--color-brand-bright) 45%, var(--color-line));
+    background: color-mix(in oklab, var(--color-brand) 22%, var(--color-panel));
+}
+
+.activity-trend__item--green .activity-trend__dot {
+    border-color: color-mix(in oklab, #22c55e 45%, var(--color-line));
+    background: color-mix(in oklab, #22c55e 22%, var(--color-panel));
+}
+
+.activity-trend__item--blue .activity-trend__dot {
+    border-color: color-mix(in oklab, #3b82f6 45%, var(--color-line));
+    background: color-mix(in oklab, #3b82f6 22%, var(--color-panel));
+}
+
+.activity-trend__item--amber .activity-trend__dot {
+    border-color: color-mix(in oklab, #f59e0b 45%, var(--color-line));
+    background: color-mix(in oklab, #f59e0b 22%, var(--color-panel));
+}
+
+.activity-trend__item.is-current .activity-trend__dot {
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-brand-bright) 22%, transparent);
+}
+
+.activity-trend__top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.55rem;
+}
+
+.activity-trend__type {
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-brand-bright);
+}
+
+.activity-trend__top time {
+    font-size: 0.65rem;
+    color: var(--color-mist);
+}
+
+.activity-trend__subject {
+    margin: 0.2rem 0 0;
+    font-size: 0.8125rem;
+    font-weight: 650;
+    color: var(--color-snow);
+}
+
+.activity-trend__subject--link {
+    display: inline-block;
+    text-decoration: none;
+}
+
+.activity-trend__subject--link:hover {
+    color: var(--color-brand-bright);
+}
+
+.activity-trend__now {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--color-brand-bright);
+}
+
+.activity-trend__meta {
+    margin: 0.2rem 0 0;
+    font-size: 0.65rem;
     color: var(--color-mist);
 }
 

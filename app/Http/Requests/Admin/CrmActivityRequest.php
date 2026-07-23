@@ -24,6 +24,10 @@ class CrmActivityRequest extends FormRequest
         if (! $this->filled('happened_at')) {
             $this->merge(['happened_at' => now()->toDateTimeString()]);
         }
+
+        $this->merge([
+            'complete_task' => $this->boolean('complete_task'),
+        ]);
     }
 
     /** @return array<string, mixed> */
@@ -35,6 +39,7 @@ class CrmActivityRequest extends FormRequest
             'body' => ['nullable', 'string', 'max:10000'],
             'opportunity_id' => ['nullable', 'exists:opportunities,id'],
             'task_id' => ['nullable', 'exists:tasks,id'],
+            'complete_task' => ['sometimes', 'boolean'],
             'happened_at' => ['nullable', 'date'],
         ];
     }

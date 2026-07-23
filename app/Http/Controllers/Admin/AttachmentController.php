@@ -74,6 +74,22 @@ class AttachmentController extends Controller
         );
     }
 
+    public function preview(Attachment $attachment): StreamedResponse
+    {
+        abort_if($attachment->trashed(), 404);
+        abort_unless($attachment->existsOnDisk(), 404);
+        abort_unless($attachment->isPreviewable(), 415);
+
+        return Storage::disk($attachment->disk)->response(
+            $attachment->path,
+            $attachment->original_name,
+            [
+                'Content-Type' => $attachment->mime_type ?: 'application/octet-stream',
+            ],
+            'inline',
+        );
+    }
+
     private function resolveAttachable(string $type, int $id): Model
     {
         $model = match ($type) {

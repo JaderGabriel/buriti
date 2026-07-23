@@ -48,6 +48,35 @@
                         <span class="contact-dossier__chip">{{ $contact->role }}</span>
                     @endif
                 </div>
+
+                <ul class="contact-dossier__facts">
+                    @if($phoneLabel)
+                        <li>
+                            <x-ui.icon name="phone" class="h-3.5 w-3.5" />
+                            @if($tel)
+                                <a href="{{ $tel }}">{{ $phoneLabel }}</a>
+                            @else
+                                <span>{{ $phoneLabel }}</span>
+                            @endif
+                        </li>
+                    @endif
+                    @if($contact->email)
+                        <li>
+                            <x-ui.icon name="mail" class="h-3.5 w-3.5" />
+                            <a href="mailto:{{ $contact->email }}">{{ $contact->email }}</a>
+                        </li>
+                    @endif
+                    @if($contact->preferred_channel)
+                        <li>
+                            <x-ui.icon name="whatsapp" class="h-3.5 w-3.5" />
+                            <span class="uppercase tracking-wide">{{ $contact->preferred_channel }}</span>
+                        </li>
+                    @endif
+                </ul>
+
+                @if($contact->notes)
+                    <p class="contact-dossier__notes">{{ $contact->notes }}</p>
+                @endif
             </div>
         </div>
 
@@ -221,22 +250,33 @@
                                     $meta = $activityTypeMeta[$activity->type->value] ?? ['icon' => 'task', 'tone' => 'brand', 'label' => $activity->type->label()];
                                 @endphp
                                 <li class="contact-timeline__item contact-timeline__item--{{ $meta['tone'] }}" id="activity-{{ $activity->id }}">
+                                    <span class="contact-timeline__rail" aria-hidden="true"></span>
                                     <span class="contact-timeline__icon" aria-hidden="true">
                                         <x-ui.icon :name="$meta['icon']" class="h-4 w-4" />
                                     </span>
                                     <div class="contact-timeline__body">
                                         <div class="contact-timeline__top">
                                             <span class="contact-timeline__type">{{ $meta['label'] }}</span>
-                                            <time>{{ optional($activity->happened_at)->format('d/m/Y H:i') ?? $activity->created_at->format('d/m/Y H:i') }}</time>
-                                            <a
-                                                href="{{ route('admin.contacts.activities.edit', [$contact, $activity]) }}"
-                                                class="contact-timeline__edit"
-                                            >Editar</a>
-                                            <form method="POST" action="{{ route('admin.contacts.activities.destroy', [$contact, $activity]) }}" data-confirm="Remover atividade?">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="contact-timeline__remove">Remover</button>
-                                            </form>
+                                            <time datetime="{{ optional($activity->happened_at ?? $activity->created_at)->toIso8601String() }}">
+                                                {{ optional($activity->happened_at)->translatedFormat('d M Y · H:i') ?? $activity->created_at->translatedFormat('d M Y · H:i') }}
+                                            </time>
+                                            <div class="contact-timeline__actions">
+                                                <a
+                                                    href="{{ route('admin.contacts.activities.edit', [$contact, $activity]) }}"
+                                                    class="contact-timeline__icon-btn"
+                                                    title="Editar atividade"
+                                                    aria-label="Editar atividade"
+                                                >
+                                                    <x-ui.icon name="pencil" class="h-3.5 w-3.5" />
+                                                </a>
+                                                <form method="POST" action="{{ route('admin.contacts.activities.destroy', [$contact, $activity]) }}" data-confirm="Remover atividade?">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="contact-timeline__icon-btn contact-timeline__icon-btn--danger" title="Remover atividade" aria-label="Remover atividade">
+                                                        <x-ui.icon name="trash" class="h-3.5 w-3.5" />
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </div>
                                         <a href="{{ route('admin.contacts.activities.edit', [$contact, $activity]) }}" class="contact-timeline__link">
                                             <p class="contact-timeline__subject">{{ $activity->subject ?: 'Sem assunto' }}</p>
@@ -246,8 +286,9 @@
                                             <p class="contact-timeline__meta">
                                                 @if($activity->user) {{ $activity->user->name }} @endif
                                                 @if($activity->opportunity) · {{ $activity->opportunity->title }} @endif
-                                                @if($activity->task) · tarefa: {{ $activity->task->title }} @endif
-                                                <span class="contact-timeline__hint"> · clicar para editar</span>
+                                                @if($activity->task)
+                                                    · <a href="{{ route('admin.tasks.index', ['view' => 'agenda']) }}#task-{{ $activity->task->id }}" class="text-brand-bright hover:underline">tarefa: {{ $activity->task->title }}</a>
+                                                @endif
                                             </p>
                                         </a>
                                     </div>
@@ -264,48 +305,6 @@
             </section>
 
             <div class="contact-dossier__secondary">
-                <article class="contact-panel">
-                    <header class="contact-panel__head">
-                        <span class="contact-panel__icon contact-panel__icon--sky"><x-ui.icon name="contact" class="h-4 w-4" /></span>
-                        <h2>Dados</h2>
-                    </header>
-                    <dl class="contact-panel__facts">
-                        <div>
-                            <dt><x-ui.icon name="mail" class="h-3.5 w-3.5" /> E-mail</dt>
-                            <dd>
-                                @if($contact->email)
-                                    <a href="mailto:{{ $contact->email }}">{{ $contact->email }}</a>
-                                @else — @endif
-                            </dd>
-                        </div>
-                        <div>
-                            <dt><x-ui.icon name="phone" class="h-3.5 w-3.5" /> Telefone</dt>
-                            <dd>{{ $phoneLabel ?? '—' }}</dd>
-                        </div>
-                        <div>
-                            <dt><x-ui.icon name="company" class="h-3.5 w-3.5" /> Empresa</dt>
-                            <dd>
-                                @if($contact->clientCompany)
-                                    <a href="{{ route('admin.companies.show', $contact->clientCompany) }}">{{ $contact->clientCompany->displayName() }}</a>
-                                @else
-                                    {{ $contact->companyLabel() ?? '—' }}
-                                @endif
-                            </dd>
-                        </div>
-                        <div>
-                            <dt><x-ui.icon name="users" class="h-3.5 w-3.5" /> Cargo</dt>
-                            <dd>{{ $contact->role ?? '—' }}</dd>
-                        </div>
-                        <div>
-                            <dt><x-ui.icon name="whatsapp" class="h-3.5 w-3.5" /> Canal preferido</dt>
-                            <dd class="uppercase tracking-wide">{{ $contact->preferred_channel ?? '—' }}</dd>
-                        </div>
-                    </dl>
-                    @if($contact->notes)
-                        <p class="contact-panel__notes">{{ $contact->notes }}</p>
-                    @endif
-                </article>
-
                 <article class="contact-panel">
                     <header class="contact-panel__head">
                         <span class="contact-panel__icon contact-panel__icon--emerald"><x-ui.icon name="opportunity" class="h-4 w-4" /></span>
@@ -349,24 +348,20 @@
                     </ul>
                 </article>
 
-                <article class="contact-panel">
+                <article class="contact-panel contact-panel--agenda">
                     <header class="contact-panel__head">
                         <span class="contact-panel__icon contact-panel__icon--orange"><x-ui.icon name="calendar" class="h-4 w-4" /></span>
                         <h2>Tarefas / agenda</h2>
                     </header>
-                    <ul class="contact-panel__list">
-                        @forelse($contact->tasks as $task)
-                            <li class="text-sm">
-                                <span class="font-medium text-snow">{{ $task->title }}</span>
-                                <span class="text-xs text-mist">
-                                    · {{ $task->status->label() }}
-                                    @if($task->due_at) · {{ $task->due_at->format('d/m/Y H:i') }} @endif
-                                </span>
-                            </li>
-                        @empty
-                            <li class="text-sm text-mist">Nenhuma tarefa ligada.</li>
-                        @endforelse
-                    </ul>
+                    @include('admin.contacts.partials.task-calendar', [
+                        'contact' => $contact,
+                        'month' => $agendaMonth,
+                        'monthLabel' => $agendaMonthLabel,
+                        'prevMonth' => $agendaPrevMonth,
+                        'nextMonth' => $agendaNextMonth,
+                        'calendarDays' => $agendaCalendarDays,
+                        'undatedTasks' => $agendaUndatedTasks,
+                    ])
                 </article>
 
                 <div class="contact-dossier__secondary-span">
@@ -419,11 +414,25 @@
                         <span class="text-mist">Tarefa / agenda (opcional)</span>
                         <select name="task_id" class="mt-1.5 w-full rounded-sm border border-line bg-ink/40 px-3 py-2 text-snow">
                             <option value="">—</option>
-                            @foreach($openTasks as $task)
-                                <option value="{{ $task->id }}">{{ $task->title }}</option>
+                            @foreach($linkableTasks as $task)
+                                <option value="{{ $task->id }}">
+                                    {{ $task->title }}
+                                    @if($task->status->isDone()) (concluída) @endif
+                                </option>
                             @endforeach
                         </select>
-                        <span class="mt-1 block text-xs text-mist">Ao vincular uma tarefa, ela fica marcada como concluída.</span>
+                    </label>
+                    <label class="flex items-start gap-2 text-sm">
+                        <input
+                            type="checkbox"
+                            name="complete_task"
+                            value="1"
+                            class="mt-1 rounded-sm border-line bg-ink/40 text-brand-bright focus:ring-brand-bright"
+                        >
+                        <span>
+                            <span class="text-snow">Marcar reunião/tarefa como concluída</span>
+                            <span class="mt-0.5 block text-xs text-mist">Só se vincular uma tarefa acima. Sem isto, a nota fica ligada e a reunião continua no estado actual.</span>
+                        </span>
                     </label>
                     <x-ui.input type="datetime-local" name="happened_at" label="Quando" :value="old('happened_at', now()->format('Y-m-d\\TH:i'))" />
                     <x-ui.button type="submit">Guardar atividade</x-ui.button>
@@ -436,7 +445,7 @@
 @include('admin.contacts.partials.bulk-activity-dialog', [
     'pickerContacts' => $pickerContacts,
     'activityTypes' => $activityTypes,
-    'openTasks' => $openTasks,
+    'openTasks' => $linkableTasks,
     'preselectedContactIds' => [$contact->id],
 ])
 @endsection

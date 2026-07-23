@@ -9,7 +9,15 @@
     $compact = (bool) ($compact ?? false);
     $isDone = $task?->status?->isDone() ?? false;
     $activities = $task?->activities ?? collect();
-    $latestActivity = $activities->first();
+    $latestActivity = $activities
+        ->sortByDesc(fn ($activity) => optional($activity->happened_at ?? $activity->created_at)->timestamp ?? 0)
+        ->first();
+    $trendActivities = $activities
+        ->sortBy(fn ($activity) => [
+            optional($activity->happened_at ?? $activity->created_at)->timestamp ?? 0,
+            $activity->id,
+        ])
+        ->values();
     $activityPreview = $latestActivity
         ? trim((string) ($latestActivity->body ?: $latestActivity->subject ?: $latestActivity->type->label()))
         : '';
@@ -69,7 +77,7 @@
     <div x-cloak x-show="open" class="task-event__editor" @click.stop>
         <div class="task-event__notes-panel task-event__activities-panel">
             <div class="task-event__notes-head">
-                <p class="task-event__notes-label">Atividades do contato</p>
+                <p class="task-event__notes-label">Histórico nesta reunião</p>
                 @if($task->contact)
                     <a href="{{ route('admin.contacts.show', $task->contact) }}#conducao" class="task-event__notes-link" draggable="false">
                         Ver ficha
@@ -77,35 +85,46 @@
                 @endif
             </div>
 
-            @forelse($activities as $activity)
-                <article class="task-activity task-activity--{{ $activity->type->tone() }}">
-                    <span class="task-activity__icon" aria-hidden="true">
-                        <x-ui.icon :name="$activity->type->icon()" class="h-3.5 w-3.5" />
-                    </span>
-                    <div class="min-w-0">
-                        <div class="task-activity__top">
-                            <span class="task-activity__type">{{ $activity->type->label() }}</span>
-                            <time>{{ optional($activity->happened_at ?? $activity->created_at)->format('d/m H:i') }}</time>
+            <ol class="task-activity-trend">
+                @forelse($trendActivities as $activity)
+                    <li class="task-activity task-activity--trend task-activity--{{ $activity->type->tone() }}">
+                        <span class="task-activity__rail" aria-hidden="true"></span>
+                        <span class="task-activity__icon" aria-hidden="true">
+                            <x-ui.icon :name="$activity->type->icon()" class="h-3.5 w-3.5" />
+                        </span>
+                        <div class="min-w-0">
+                            <div class="task-activity__top">
+                                <span class="task-activity__type">{{ $activity->type->label() }}</span>
+                                <time>{{ optional($activity->happened_at ?? $activity->created_at)->format('d/m H:i') }}</time>
+                            </div>
+                            @if($activity->contact)
+                                <a
+                                    href="{{ route('admin.contacts.activities.edit', [$activity->contact, $activity]) }}"
+                                    class="task-activity__subject task-activity__subject--link"
+                                    draggable="false"
+                                >{{ $activity->subject ?: $activity->type->label() }}</a>
+                            @else
+                                <p class="task-activity__subject">{{ $activity->subject ?: $activity->type->label() }}</p>
+                            @endif
+                            @if(filled($activity->body))
+                                <p class="task-activity__body">{{ \Illuminate\Support\Str::limit($activity->body, 220) }}</p>
+                            @endif
+                            <p class="task-activity__meta">
+                                @if($activity->contact) {{ $activity->contact->name }} @endif
+                                @if($activity->user) · {{ $activity->user->name }} @endif
+                            </p>
                         </div>
-                        <p class="task-activity__subject">{{ $activity->subject ?: $activity->type->label() }}</p>
-                        @if(filled($activity->body))
-                            <p class="task-activity__body">{{ \Illuminate\Support\Str::limit($activity->body, 220) }}</p>
+                    </li>
+                @empty
+                    <li class="task-event__notes-empty">
+                        @if($task->contact)
+                            Sem atividades ligadas a este compromisso. Registe na ficha de {{ $task->contact->name }} e vincule esta tarefa.
+                        @else
+                            Sem atividades. Associe um contato e registe a atividade na ficha CRM.
                         @endif
-                        <p class="task-activity__meta">
-                            @if($activity->contact) {{ $activity->contact->name }} @endif
-                            @if($activity->user) · {{ $activity->user->name }} @endif
-                        </p>
-                    </div>
-                </article>
-            @empty
-                <p class="task-event__notes-empty">
-                    @if($task->contact)
-                        Sem atividades ligadas a este compromisso. Registe na ficha de {{ $task->contact->name }} e vincule esta tarefa.
-                    @else
-                        Sem atividades. Associe um contato e registe a atividade na ficha CRM.
-                    @endif
-                </p>
-            @endforelse
+                    </li>
+                @endforelse
+            </ol>
         </div>
 
         <div class="task-event__toolbar">

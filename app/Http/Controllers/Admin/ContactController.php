@@ -20,8 +20,10 @@ use App\Models\Task;
 use App\Services\AttachmentService;
 use App\Services\AuditLogger;
 use App\Services\CompanyResolver;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class ContactController extends Controller
@@ -104,7 +106,15 @@ class ContactController extends Controller
                     'tone' => $type->tone(),
                 ]])
                 ->all(),
-            'openTasks' => Task::query()->open()->orderBy('title')->limit(80)->get(),
+            'openTasks' => Task::query()
+                ->where(function ($query) {
+                    $query->open()->orWhere(function ($done) {
+                        $done->where('status', TaskStatus::Done)->whereNotNull('contact_id');
+                    });
+                })
+                ->orderBy('title')
+                ->limit(120)
+                ->get(),
             'pickerContacts' => Contact::query()
                 ->with('clientCompany:id,name')
                 ->orderBy('name')
@@ -166,7 +176,7 @@ class ContactController extends Controller
             ->with('success', 'Contato criado.');
     }
 
-    public function show(Contact $contact): View
+    public function show(Request $request, Contact $contact): View
     {
         $contact->load([
             'clientCompany',
@@ -178,6 +188,8 @@ class ContactController extends Controller
             'attachments',
             'trashedAttachments.deleter',
         ]);
+
+        $agenda = $this->buildContactAgenda($contact, $request->query('month'));
 
         return view('admin.contacts.show', [
             'contact' => $contact,
@@ -193,12 +205,95 @@ class ContactController extends Controller
                 ]])
                 ->all(),
             'allProjects' => Project::query()->orderBy('name')->get(),
-            'openTasks' => Task::query()->open()->orderBy('title')->get(),
+            'linkableTasks' => $this->linkableTasksForContact($contact),
             'pickerContacts' => Contact::query()
                 ->with('clientCompany:id,name')
                 ->orderBy('name')
                 ->get(['id', 'name', 'company', 'company_id', 'phone', 'email', 'status']),
+            ...$agenda,
         ]);
+    }
+
+    /**
+     * Tarefas abertas + tarefas deste contato (incl. concluídas), para notas posteriores.
+     *
+     * @return \Illuminate\Support\Collection<int, Task>
+     */
+    private function linkableTasksForContact(Contact $contact, ?Task $include = null): \Illuminate\Support\Collection
+    {
+        $tasks = Task::query()
+            ->where(function ($query) use ($contact) {
+                $query->open()->orWhere('contact_id', $contact->id);
+            })
+            ->orderBy('title')
+            ->get();
+
+        if ($include && ! $tasks->contains('id', $include->id)) {
+            $tasks = $tasks->prepend($include)->unique('id')->values();
+        }
+
+        return $tasks->sortBy(fn (Task $task) => mb_strtolower($task->title))->values();
+    }
+
+    /**
+     * @return array{
+     *     agendaMonth: string,
+     *     agendaMonthLabel: string,
+     *     agendaPrevMonth: string,
+     *     agendaNextMonth: string,
+     *     agendaCalendarDays: \Illuminate\Support\Collection<int, array<string, mixed>>,
+     *     agendaUndatedTasks: \Illuminate\Support\Collection<int, Task>
+     * }
+     */
+    private function buildContactAgenda(Contact $contact, mixed $monthQuery): array
+    {
+        $cursor = $this->resolveAgendaMonth($monthQuery);
+        $tasks = $contact->tasks;
+
+        $byDate = $tasks
+            ->filter(fn (Task $task) => $task->due_at !== null)
+            ->sortBy(fn (Task $task) => $task->due_at->timestamp)
+            ->groupBy(fn (Task $task) => $task->due_at->format('Y-m-d'))
+            ->map(fn ($dayTasks) => $dayTasks->values());
+
+        $gridStart = $cursor->copy()->startOfMonth()->startOfWeek(Carbon::SUNDAY);
+        $gridEnd = $cursor->copy()->endOfMonth()->endOfWeek(Carbon::SATURDAY);
+
+        $calendarDays = collect();
+        for ($day = $gridStart->copy(); $day->lte($gridEnd); $day->addDay()) {
+            $key = $day->format('Y-m-d');
+            $calendarDays->push([
+                'date' => $key,
+                'day' => $day->day,
+                'in_month' => $day->month === $cursor->month,
+                'is_today' => $day->isToday(),
+                'tasks' => $byDate->get($key, collect()),
+            ]);
+        }
+
+        return [
+            'agendaMonth' => $cursor->format('Y-m'),
+            'agendaMonthLabel' => Str::ucfirst($cursor->translatedFormat('F Y')),
+            'agendaPrevMonth' => $cursor->copy()->subMonth()->format('Y-m'),
+            'agendaNextMonth' => $cursor->copy()->addMonth()->format('Y-m'),
+            'agendaCalendarDays' => $calendarDays,
+            'agendaUndatedTasks' => $tasks->filter(fn (Task $task) => $task->due_at === null)->values(),
+        ];
+    }
+
+    private function resolveAgendaMonth(mixed $monthQuery): Carbon
+    {
+        $raw = is_string($monthQuery) ? $monthQuery : '';
+
+        if (preg_match('/^\d{4}-\d{2}$/', $raw) === 1) {
+            try {
+                return Carbon::createFromFormat('Y-m', $raw)->startOfMonth();
+            } catch (\Throwable) {
+                // fall through
+            }
+        }
+
+        return now()->startOfMonth();
     }
 
     public function edit(Contact $contact): View
@@ -247,6 +342,8 @@ class ContactController extends Controller
     public function storeActivity(CrmActivityRequest $request, Contact $contact): RedirectResponse
     {
         $data = $request->validated();
+        $completeTask = (bool) ($data['complete_task'] ?? false);
+        unset($data['complete_task']);
 
         if (! empty($data['opportunity_id'])) {
             $owns = $contact->opportunities()->whereKey($data['opportunity_id'])->exists();
@@ -270,7 +367,7 @@ class ContactController extends Controller
         ]);
 
         $message = 'Atividade registada.';
-        if ($task) {
+        if ($task && $completeTask) {
             $task->forceFill([
                 'status' => TaskStatus::Done,
             ])->save();
@@ -284,7 +381,8 @@ class ContactController extends Controller
     {
         $data = $request->validated();
         $contactIds = $data['contact_ids'];
-        unset($data['contact_ids']);
+        $completeTask = (bool) ($data['complete_task'] ?? false);
+        unset($data['contact_ids'], $data['complete_task']);
 
         $task = null;
         if (! empty($data['task_id'])) {
@@ -305,7 +403,7 @@ class ContactController extends Controller
             $created++;
         }
 
-        if ($task) {
+        if ($task && $completeTask) {
             $task->forceFill([
                 'status' => TaskStatus::Done,
             ])->save();
@@ -315,7 +413,7 @@ class ContactController extends Controller
             ? 'Atividade registada em 1 contato.'
             : "Atividade registada em {$created} contatos.";
 
-        if ($task) {
+        if ($task && $completeTask) {
             $message .= ' Tarefa marcada como concluída.';
         }
 
@@ -329,20 +427,22 @@ class ContactController extends Controller
         $contact->load(['opportunities', 'clientCompany']);
         $activity->load(['task', 'opportunity', 'user']);
 
-        $taskChoices = Task::query()
-            ->open()
-            ->orderBy('title')
-            ->get();
-
-        if ($activity->task && ! $taskChoices->contains('id', $activity->task_id)) {
-            $taskChoices = $taskChoices->prepend($activity->task)->unique('id')->values();
+        $relatedActivities = collect();
+        if ($activity->task_id) {
+            $relatedActivities = CrmActivity::query()
+                ->with(['user', 'contact'])
+                ->where('task_id', $activity->task_id)
+                ->orderBy('happened_at')
+                ->orderBy('id')
+                ->get();
         }
 
         return view('admin.contacts.activities.edit', [
             'contact' => $contact,
             'activity' => $activity,
             'activityTypes' => CrmActivityType::options(),
-            'openTasks' => $taskChoices,
+            'linkableTasks' => $this->linkableTasksForContact($contact, $activity->task),
+            'relatedActivities' => $relatedActivities,
         ]);
     }
 
@@ -351,6 +451,8 @@ class ContactController extends Controller
         abort_unless($activity->contact_id === $contact->id, 404);
 
         $data = $request->validated();
+        $completeTask = (bool) ($data['complete_task'] ?? false);
+        unset($data['complete_task']);
 
         if (! empty($data['opportunity_id'])) {
             $owns = $contact->opportunities()->whereKey($data['opportunity_id'])->exists();
@@ -359,7 +461,6 @@ class ContactController extends Controller
             }
         }
 
-        $previousTaskId = $activity->task_id;
         $task = null;
         if (! empty($data['task_id'])) {
             $task = Task::query()->find($data['task_id']);
@@ -371,7 +472,7 @@ class ContactController extends Controller
         $activity->update($data);
 
         $message = 'Atividade actualizada.';
-        if ($task && (int) $previousTaskId !== (int) $task->id) {
+        if ($task && $completeTask) {
             $task->forceFill([
                 'status' => TaskStatus::Done,
             ])->save();

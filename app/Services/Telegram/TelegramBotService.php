@@ -1304,7 +1304,7 @@ HTML;
     private function handleActivity(string $argument, ?User $admin): string
     {
         if ($argument === '') {
-            return "Uso:\n<code>/atividades</code>\n<code>/atividades contato ID|email</code>\n<code>/atividade ID</code>\n<code>/atividade add contato|tipo|assunto?|corpo?|tarefa?|data?</code>\n<code>/atividade set ID|contato|tipo|assunto|corpo|tarefa|data</code>\n<code>/atividade del ID ok</code>\n\nTipos: <code>note</code> <code>call</code> <code>meeting</code> <code>email</code> <code>other</code>\n(também: nota, chamada, reuniao, e-mail, outro)";
+            return "Uso:\n<code>/atividades</code>\n<code>/atividades contato ID|email</code>\n<code>/atividade ID</code>\n<code>/atividade add contato|tipo|assunto?|corpo?|tarefa?|data?|concluir?</code>\n<code>/atividade set ID|contato|tipo|assunto|corpo|tarefa|data</code>\n<code>/atividade del ID ok</code>\n\nTipos: <code>note</code> <code>call</code> <code>meeting</code> <code>email</code> <code>other</code>\n(também: nota, chamada, reuniao, e-mail, outro)\nConcluir tarefa: último campo <code>concluir</code> (sem isto a tarefa só fica vinculada).";
         }
 
         [$action, $rest] = $this->parseAction($argument);
@@ -1397,12 +1397,17 @@ HTML;
 
     private function createActivity(string $argument, ?User $admin): string
     {
-        $fields = $this->splitArgs($argument, 6);
+        $fields = $this->splitArgs($argument, 7);
         if (count($fields) < 2) {
-            return 'Uso: <code>/atividade add contato|tipo|assunto?|corpo?|tarefa?|data?</code>';
+            return 'Uso: <code>/atividade add contato|tipo|assunto?|corpo?|tarefa?|data?|concluir?</code>';
         }
 
-        [$contactRef, $typeRaw, $subject, $body, $taskRef, $happenedRaw] = array_pad($fields, 6, null);
+        [$contactRef, $typeRaw, $subject, $body, $taskRef, $happenedRaw, $completeRaw] = array_pad($fields, 7, null);
+
+        if (! filled($completeRaw) && $this->wantsCompleteTask($happenedRaw)) {
+            $completeRaw = $happenedRaw;
+            $happenedRaw = null;
+        }
 
         $contact = $this->resolveContact((string) $contactRef);
         if (! $contact) {
@@ -1448,7 +1453,7 @@ HTML;
         ]);
 
         $extra = '';
-        if ($task) {
+        if ($task && $this->wantsCompleteTask($completeRaw)) {
             $task->forceFill(['status' => TaskStatus::Done])->save();
             $extra = "\n✅ Tarefa <b>#{$task->id}</b> marcada como concluída.";
         }
@@ -1568,6 +1573,29 @@ HTML;
             'other', 'outro', 'outros' => CrmActivityType::Other,
             default => CrmActivityType::tryFrom($value),
         };
+    }
+
+    private function wantsCompleteTask(mixed $raw): bool
+    {
+        if (! filled($raw) || $this->keep($raw)) {
+            return false;
+        }
+
+        $value = Str::lower(trim((string) $raw));
+        $value = str_replace(['=', ' '], '', $value);
+
+        return in_array($value, [
+            '1',
+            'true',
+            'sim',
+            'yes',
+            'done',
+            'concluir',
+            'concluida',
+            'concluir1',
+            'complete',
+            'completar',
+        ], true);
     }
 
     // -------------------------------------------------------------------------

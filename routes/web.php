@@ -162,6 +162,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
         ->name('attachments.store');
     Route::get('/anexos/{attachment}/download', [AttachmentController::class, 'download'])
         ->name('attachments.download');
+    Route::get('/anexos/{attachment}/preview', [AttachmentController::class, 'preview'])
+        ->name('attachments.preview');
     Route::delete('/anexos/{attachment}', [AttachmentController::class, 'destroy'])
         ->name('attachments.destroy');
     Route::post('/anexos/{attachment}/restaurar', [AttachmentController::class, 'restore'])

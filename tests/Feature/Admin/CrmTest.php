@@ -221,7 +221,7 @@ class CrmTest extends TestCase
         $this->assertFalse($contact->fresh()->projects->contains($project));
     }
 
-    public function test_registering_activity_with_task_marks_task_as_done(): void
+    public function test_registering_activity_with_task_does_not_complete_unless_requested(): void
     {
         $contact = Contact::factory()->create();
         $task = Task::factory()->create([
@@ -238,7 +238,7 @@ class CrmTest extends TestCase
             'task_id' => $task->id,
             'happened_at' => now()->format('Y-m-d\TH:i'),
         ])->assertRedirect()
-            ->assertSessionHas('success', 'Atividade registada e tarefa marcada como concluída.');
+            ->assertSessionHas('success', 'Atividade registada.');
 
         $this->assertDatabaseHas('crm_activities', [
             'contact_id' => $contact->id,
@@ -246,6 +246,63 @@ class CrmTest extends TestCase
             'subject' => 'Ligação feita',
         ]);
 
+        $this->assertSame(TaskStatus::Todo, $task->fresh()->status);
+    }
+
+    public function test_registering_activity_can_complete_linked_task(): void
+    {
+        $contact = Contact::factory()->create();
+        $task = Task::factory()->create([
+            'title' => 'Reunião kickoff',
+            'status' => TaskStatus::Todo,
+            'contact_id' => $contact->id,
+            'project_id' => null,
+        ]);
+
+        $this->actingAs($this->admin)->post(route('admin.contacts.activities.store', $contact), [
+            'type' => 'meeting',
+            'subject' => 'Kickoff feito',
+            'body' => 'Combinámos próximos passos',
+            'task_id' => $task->id,
+            'complete_task' => '1',
+            'happened_at' => now()->format('Y-m-d\TH:i'),
+        ])->assertRedirect()
+            ->assertSessionHas('success', 'Atividade registada e tarefa marcada como concluída.');
+
+        $this->assertSame(TaskStatus::Done, $task->fresh()->status);
+    }
+
+    public function test_can_add_follow_up_note_to_completed_task(): void
+    {
+        $contact = Contact::factory()->create();
+        $task = Task::factory()->create([
+            'title' => 'Reunião fechada',
+            'status' => TaskStatus::Done,
+            'contact_id' => $contact->id,
+            'project_id' => null,
+        ]);
+
+        CrmActivity::factory()->create([
+            'contact_id' => $contact->id,
+            'task_id' => $task->id,
+            'type' => 'meeting',
+            'subject' => 'Ata da reunião',
+            'happened_at' => now()->subDay(),
+        ]);
+
+        $this->actingAs($this->admin)->post(route('admin.contacts.activities.store', $contact), [
+            'type' => 'note',
+            'subject' => 'Follow-up pós reunião',
+            'body' => 'Enviei proposta',
+            'task_id' => $task->id,
+            'happened_at' => now()->format('Y-m-d\TH:i'),
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('crm_activities', [
+            'contact_id' => $contact->id,
+            'task_id' => $task->id,
+            'subject' => 'Follow-up pós reunião',
+        ]);
         $this->assertSame(TaskStatus::Done, $task->fresh()->status);
     }
 
@@ -288,6 +345,31 @@ class CrmTest extends TestCase
             'task_id' => $task->id,
             'user_id' => $this->admin->id,
         ]);
+
+        $this->assertSame(TaskStatus::Todo, $task->fresh()->status);
+    }
+
+    public function test_bulk_activity_can_complete_linked_task(): void
+    {
+        $contactA = Contact::factory()->create(['name' => 'Ana Bulk Done']);
+        $task = Task::factory()->create([
+            'title' => 'Follow-up a fechar',
+            'status' => TaskStatus::Todo,
+            'contact_id' => null,
+            'project_id' => null,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->from(route('admin.contacts.index'))
+            ->post(route('admin.contacts.activities.bulk'), [
+                'contact_ids' => [$contactA->id],
+                'type' => 'note',
+                'subject' => 'Fecho',
+                'task_id' => $task->id,
+                'complete_task' => '1',
+                'happened_at' => now()->format('Y-m-d\TH:i'),
+            ])
+            ->assertRedirect(route('admin.contacts.index'));
 
         $this->assertSame(TaskStatus::Done, $task->fresh()->status);
     }
@@ -346,7 +428,9 @@ class CrmTest extends TestCase
         $this->actingAs($this->admin)
             ->get(route('admin.contacts.show', $contact))
             ->assertOk()
-            ->assertSee('Reunião com contato', false);
+            ->assertSee('Reunião com contato', false)
+            ->assertSee('contact-agenda', false)
+            ->assertDontSee('>Dados</h2>', false);
     }
 
     public function test_dashboard_shows_crm_counters(): void
@@ -405,6 +489,14 @@ class CrmTest extends TestCase
             'status' => TaskStatus::Todo,
         ]);
 
+        $sibling = CrmActivity::factory()->create([
+            'contact_id' => $contact->id,
+            'task_id' => $task->id,
+            'type' => 'note',
+            'subject' => 'Nota prévia da reunião',
+            'happened_at' => now()->subHours(2),
+        ]);
+
         $this->actingAs($this->admin)
             ->get(route('admin.contacts.activities.edit', [$contact, $activity]))
             ->assertOk()
@@ -428,7 +520,13 @@ class CrmTest extends TestCase
             'body' => 'Escopo fechado',
             'task_id' => $task->id,
         ]);
-        $this->assertSame(TaskStatus::Done, $task->fresh()->status);
+        $this->assertSame(TaskStatus::Todo, $task->fresh()->status);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.contacts.activities.edit', [$contact, $activity->fresh()]))
+            ->assertOk()
+            ->assertSee('Histórico nesta reunião', false)
+            ->assertSee('Nota prévia da reunião', false);
 
         $this->actingAs($this->admin)
             ->get(route('admin.dashboard'))

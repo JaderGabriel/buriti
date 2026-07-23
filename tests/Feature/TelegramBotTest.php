@@ -491,6 +491,15 @@ class TelegramBotTest extends TestCase
         $this->assertSame(CrmActivityType::Call, $activity->type);
         $this->assertSame('Ligação de alinhamento', $activity->subject);
         $this->assertSame($task->id, $activity->task_id);
+        $this->assertSame(TaskStatus::Todo, $task->fresh()->status);
+
+        $this->postWebhook([
+            'message' => [
+                'chat' => ['id' => 999001],
+                'text' => "/atividade add {$contact->id} | note | Follow-up | Enviado resumo | {$task->id} | . | concluir",
+            ],
+        ])->assertOk();
+
         $this->assertSame(TaskStatus::Done, $task->fresh()->status);
 
         Http::assertSent(function ($request) use ($activity) {

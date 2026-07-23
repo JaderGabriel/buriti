@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\CrmActivityType;
 use App\Enums\IdeaNoteColor;
+use App\Enums\TaskStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Contact;
 use App\Models\ContactMessage;
@@ -51,7 +52,15 @@ class DashboardController extends Controller
                 ->with('clientCompany:id,name')
                 ->orderBy('name')
                 ->get(['id', 'name', 'company', 'company_id', 'phone', 'email', 'status']),
-            'openTasks' => Task::query()->open()->orderBy('title')->limit(80)->get(),
+            'openTasks' => Task::query()
+                ->where(function ($query) {
+                    $query->open()->orWhere(function ($done) {
+                        $done->where('status', TaskStatus::Done)->whereNotNull('contact_id');
+                    });
+                })
+                ->orderBy('title')
+                ->limit(120)
+                ->get(),
             'leadsCount' => Contact::query()->leads()->count(),
             'tasksDueSoon' => Task::query()
                 ->open()

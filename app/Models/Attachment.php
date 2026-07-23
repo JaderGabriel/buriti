@@ -72,6 +72,52 @@ class Attachment extends Model
             || str_ends_with(mb_strtolower($this->original_name), '.pdf');
     }
 
+    public function isVideo(): bool
+    {
+        return str_starts_with((string) $this->mime_type, 'video/');
+    }
+
+    public function isAudio(): bool
+    {
+        return str_starts_with((string) $this->mime_type, 'audio/');
+    }
+
+    public function isText(): bool
+    {
+        $mime = (string) $this->mime_type;
+        $name = mb_strtolower($this->original_name);
+
+        return str_starts_with($mime, 'text/')
+            || in_array($mime, ['application/json', 'application/xml'], true)
+            || str_ends_with($name, '.txt')
+            || str_ends_with($name, '.csv')
+            || str_ends_with($name, '.md')
+            || str_ends_with($name, '.json')
+            || str_ends_with($name, '.xml');
+    }
+
+    public function isPreviewable(): bool
+    {
+        return $this->isImage() || $this->isPdf() || $this->isVideo() || $this->isAudio() || $this->isText();
+    }
+
+    public function previewUrl(): string
+    {
+        return route('admin.attachments.preview', $this);
+    }
+
+    public function previewKind(): string
+    {
+        return match (true) {
+            $this->isImage() => 'image',
+            $this->isPdf() => 'pdf',
+            $this->isVideo() => 'video',
+            $this->isAudio() => 'audio',
+            $this->isText() => 'text',
+            default => 'download',
+        };
+    }
+
     public function humanSize(): string
     {
         $bytes = max(0, (int) $this->size);

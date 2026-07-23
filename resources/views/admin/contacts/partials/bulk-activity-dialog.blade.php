@@ -84,10 +84,24 @@
                         <select name="task_id" class="mt-1.5 w-full rounded-sm border border-line bg-ink/40 px-3 py-2 text-snow">
                             <option value="">—</option>
                             @foreach($openTasks as $task)
-                                <option value="{{ $task->id }}">{{ $task->title }}</option>
+                                <option value="{{ $task->id }}">
+                                    {{ $task->title }}
+                                    @if($task->status->isDone()) (concluída) @endif
+                                </option>
                             @endforeach
                         </select>
-                        <span class="mt-1 block text-xs text-mist">Se vincular uma tarefa, ela fica concluída.</span>
+                    </label>
+                    <label class="flex items-start gap-2 text-sm">
+                        <input
+                            type="checkbox"
+                            name="complete_task"
+                            value="1"
+                            class="mt-1 rounded-sm border-line bg-ink/40 text-brand-bright focus:ring-brand-bright"
+                        >
+                        <span>
+                            <span class="text-snow">Marcar reunião/tarefa como concluída</span>
+                            <span class="mt-0.5 block text-xs text-mist">Opcional — só afecta a tarefa vinculada.</span>
+                        </span>
                     </label>
                     <x-ui.input type="datetime-local" name="happened_at" label="Quando" :value="old('happened_at', now()->format('Y-m-d\\TH:i'))" />
 
