@@ -109,6 +109,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
         ->names('contacts');
     Route::post('/contatos/{contact}/atividades', [AdminContactController::class, 'storeActivity'])
         ->name('contacts.activities.store');
+    Route::get('/contatos/{contact}/atividades/{activity}/editar', [AdminContactController::class, 'editActivity'])
+        ->name('contacts.activities.edit');
+    Route::put('/contatos/{contact}/atividades/{activity}', [AdminContactController::class, 'updateActivity'])
+        ->name('contacts.activities.update');
     Route::delete('/contatos/{contact}/atividades/{activity}', [AdminContactController::class, 'destroyActivity'])
         ->name('contacts.activities.destroy');
     Route::post('/contatos/{contact}/projetos', [AdminContactController::class, 'attachProject'])

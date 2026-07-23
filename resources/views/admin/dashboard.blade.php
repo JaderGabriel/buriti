@@ -251,7 +251,7 @@
                         $subject = filled($activity->subject) ? $activity->subject : $activity->type->label();
                         $body = trim((string) ($activity->body ?? ''));
                         $href = $contact
-                            ? route('admin.contacts.show', $contact).'#conducao'
+                            ? route('admin.contacts.activities.edit', [$contact, $activity])
                             : route('admin.contacts.index');
                     @endphp
                     <li class="dash-conduct__item dash-conduct__item--{{ $tone }}">

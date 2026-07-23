@@ -322,6 +322,67 @@ class ContactController extends Controller
         return back()->with('success', $message);
     }
 
+    public function editActivity(Contact $contact, CrmActivity $activity): View
+    {
+        abort_unless($activity->contact_id === $contact->id, 404);
+
+        $contact->load(['opportunities', 'clientCompany']);
+        $activity->load(['task', 'opportunity', 'user']);
+
+        $taskChoices = Task::query()
+            ->open()
+            ->orderBy('title')
+            ->get();
+
+        if ($activity->task && ! $taskChoices->contains('id', $activity->task_id)) {
+            $taskChoices = $taskChoices->prepend($activity->task)->unique('id')->values();
+        }
+
+        return view('admin.contacts.activities.edit', [
+            'contact' => $contact,
+            'activity' => $activity,
+            'activityTypes' => CrmActivityType::options(),
+            'openTasks' => $taskChoices,
+        ]);
+    }
+
+    public function updateActivity(CrmActivityRequest $request, Contact $contact, CrmActivity $activity): RedirectResponse
+    {
+        abort_unless($activity->contact_id === $contact->id, 404);
+
+        $data = $request->validated();
+
+        if (! empty($data['opportunity_id'])) {
+            $owns = $contact->opportunities()->whereKey($data['opportunity_id'])->exists();
+            if (! $owns) {
+                return back()->withErrors(['opportunity_id' => 'Oportunidade inválida para este contato.']);
+            }
+        }
+
+        $previousTaskId = $activity->task_id;
+        $task = null;
+        if (! empty($data['task_id'])) {
+            $task = Task::query()->find($data['task_id']);
+            if (! $task) {
+                return back()->withErrors(['task_id' => 'Tarefa inválida.']);
+            }
+        }
+
+        $activity->update($data);
+
+        $message = 'Atividade actualizada.';
+        if ($task && (int) $previousTaskId !== (int) $task->id) {
+            $task->forceFill([
+                'status' => TaskStatus::Done,
+            ])->save();
+            $message = 'Atividade actualizada e tarefa marcada como concluída.';
+        }
+
+        return redirect()
+            ->route('admin.contacts.show', $contact)
+            ->with('success', $message);
+    }
+
     public function destroyActivity(Contact $contact, CrmActivity $activity): RedirectResponse
     {
         abort_unless($activity->contact_id === $contact->id, 404);

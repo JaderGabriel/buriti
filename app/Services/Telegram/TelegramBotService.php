@@ -4,6 +4,7 @@ namespace App\Services\Telegram;
 
 use App\Enums\ContactSource;
 use App\Enums\ContactStatus;
+use App\Enums\CrmActivityType;
 use App\Enums\GoogleEventColor;
 use App\Enums\OpportunityStage;
 use App\Enums\ProjectStatus;
@@ -11,6 +12,7 @@ use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Models\Contact;
 use App\Models\ContactMessage;
+use App\Models\CrmActivity;
 use App\Models\LoginActivity;
 use App\Models\Opportunity;
 use App\Models\Project;
@@ -42,6 +44,7 @@ class TelegramBotService
         private TelegramShareCardService $shareCard,
         private CompanyResolver $companies,
         private TaskTelegramFormatter $taskFormatter,
+        private CrmActivityTelegramFormatter $activityFormatter,
     ) {}
 
     public function configured(): bool
@@ -245,10 +248,24 @@ class TelegramBotService
             '/projeto' => $this->handleProject($argument),
             '/tarefas' => $this->listTasks($argument),
             '/tarefa' => $this->handleTask($argument, $admin),
+            '/atividades' => $this->listActivities($argument),
+            '/atividade' => $this->handleActivity($argument, $admin),
             '/mensagens' => $this->listMessages($argument),
             '/mensagem' => $this->handleMessage($argument),
-            default => "Comando não reconhecido. Envie /ajuda para ver a lista.",
+            default => $this->handleBareInput($text, $admin),
         };
+    }
+
+    private function handleBareInput(string $text, ?User $admin): string
+    {
+        $trimmed = trim($text);
+
+        // Após /tarefas, digitar só o ID (ex.: 1) abre o detalhe da tarefa.
+        if ($admin && ctype_digit($trimmed)) {
+            return $this->showTask($trimmed);
+        }
+
+        return 'Comando não reconhecido. Envie /ajuda para ver a lista.';
     }
 
     private function handleStart(string $chatId, string $argument, ?User $admin): string
@@ -315,7 +332,7 @@ class TelegramBotService
 {$authBlock}
 
 <b>Como usar</b>
-• Listar: <code>/contatos</code> <code>/oportunidades</code> <code>/projetos</code> <code>/tarefas</code> <code>/mensagens</code>
+• Listar: <code>/contatos</code> <code>/oportunidades</code> <code>/projetos</code> <code>/tarefas</code> <code>/atividades</code> <code>/mensagens</code>
 • Ver: <code>/contato 12</code> (idem para as outras entidades)
 • Criar: <code>/contato add Nome|email|tel?|empresa?|status?</code>
 • Editar: <code>/contato set 12|Nome|email|tel|empresa|status</code>
@@ -326,7 +343,7 @@ Em <code>del</code>, confirme com <code>ok</code>.
 
 <b>Atalhos</b>
 <code>/card</code> · <code>/card Nome do cliente</code> — card para encaminhar
-<code>/oportunidade</code> · <code>/projeto</code> · <code>/tarefa</code> · <code>/mensagem</code>
+<code>/oportunidade</code> · <code>/projeto</code> · <code>/tarefa</code> · <code>/atividade</code> · <code>/mensagem</code>
 <code>/mensagem lida ID</code> · <code>/id</code>
 
 Campos separados por <code>|</code>.
@@ -1018,7 +1035,7 @@ HTML;
     private function handleTask(string $argument, ?User $admin): string
     {
         if ($argument === '') {
-            return "Uso:\n<code>/tarefas</code>\n<code>/tarefa ID</code>\n<code>/tarefa add Título|projeto?|contato?|prio?|status?|data?|cor?</code>\n<code>/tarefa set ID|Título|projeto|contato|prio|status</code>\n<code>/tarefa del ID ok</code>\n\nData: <code>2026-07-23 15:30</code> ou <code>amanha 10:00</code>\nCor Google: <code>1</code>–<code>11</code> (ex.: 9 = Mirtilo)";
+            return "Uso:\n<code>/tarefas</code> — abertas (hoje/próximas) + concluídas recentes\n<code>/tarefa ID</code> ou <code>/tarefas ID</code>\n<code>/tarefas limite 8</code>\n<code>/tarefa add Título|projeto?|contato?|prio?|status?|data?|cor?</code>\n<code>/tarefa set ID|Título|projeto|contato|prio|status</code>\n<code>/tarefa del ID ok</code>\n\nData: <code>2026-07-23 15:30</code> ou <code>amanha 10:00</code>\nCor Google: <code>1</code>–<code>11</code> (ex.: 9 = Mirtilo)";
         }
 
         [$action, $rest] = $this->parseAction($argument);
@@ -1039,27 +1056,47 @@ HTML;
 
     private function listTasks(string $argument): string
     {
-        $limit = $this->listLimit($argument);
-        $items = Task::query()
-            ->with(['project', 'contact'])
+        $argument = trim($argument);
+
+        // `/tarefas 12` deve abrir a tarefa #12 (ID), não limitar a lista a 12 itens.
+        // Limite customizado: `/tarefas limite 20` (ou limit/top/n) — por secção.
+        if ($argument !== '' && ctype_digit($argument)) {
+            return $this->showTask($argument);
+        }
+
+        $perSection = self::LIST_DEFAULT;
+        if (preg_match('/^(?:limite|limit|top|n)\s+(\d+)$/iu', $argument, $matches)) {
+            $perSection = $this->listLimit($matches[1]);
+        }
+
+        $timezone = config('app.timezone', 'America/Sao_Paulo');
+        $now = Carbon::now($timezone);
+        $horizonEnd = $now->copy()->addDays(7)->endOfDay();
+
+        $openTasks = Task::query()
+            ->open()
+            ->with(['project', 'contact', 'activities' => fn ($q) => $q->limit(1)])
+            ->where(function ($query) use ($horizonEnd) {
+                $query->whereNull('due_at')
+                    ->orWhere('due_at', '<=', $horizonEnd);
+            })
             ->orderByRaw('due_at is null')
             ->orderBy('due_at')
-            ->orderByDesc('id')
-            ->limit($limit)
+            ->orderBy('id')
+            ->limit($perSection)
             ->get();
 
-        if ($items->isEmpty()) {
-            return 'Nenhuma tarefa encontrada.';
-        }
+        $doneTasks = Task::query()
+            ->where('status', TaskStatus::Done)
+            ->with(['project', 'contact', 'activities' => fn ($q) => $q->limit(1)])
+            ->orderByRaw('due_at is null')
+            ->orderByDesc('due_at')
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
+            ->limit($perSection)
+            ->get();
 
-        $lines = ['📅 <b>Agenda · Tarefas</b> ('.$items->count().')', '──────────────', ''];
-        foreach ($items as $item) {
-            $lines[] = $this->taskFormatter->listLine($item);
-        }
-        $lines[] = '';
-        $lines[] = 'Detalhe: <code>/tarefa ID</code>';
-
-        return implode("\n", $lines);
+        return $this->taskFormatter->agendaDigest($openTasks, $doneTasks);
     }
 
     private function showTask(string $ref): string
@@ -1261,6 +1298,279 @@ HTML;
     }
 
     // -------------------------------------------------------------------------
+    // Atividades CRM
+    // -------------------------------------------------------------------------
+
+    private function handleActivity(string $argument, ?User $admin): string
+    {
+        if ($argument === '') {
+            return "Uso:\n<code>/atividades</code>\n<code>/atividades contato ID|email</code>\n<code>/atividade ID</code>\n<code>/atividade add contato|tipo|assunto?|corpo?|tarefa?|data?</code>\n<code>/atividade set ID|contato|tipo|assunto|corpo|tarefa|data</code>\n<code>/atividade del ID ok</code>\n\nTipos: <code>note</code> <code>call</code> <code>meeting</code> <code>email</code> <code>other</code>\n(também: nota, chamada, reuniao, e-mail, outro)";
+        }
+
+        [$action, $rest] = $this->parseAction($argument);
+
+        return match ($action) {
+            'list', 'lista' => $this->listActivities($rest),
+            'add', 'novo', 'create', 'criar', 'registar', 'registrar' => $this->createActivity($rest, $admin),
+            'set', 'edit', 'update', 'editar' => $this->updateActivity($rest),
+            'del', 'delete', 'rm', 'apagar', 'remover' => $this->deleteActivity($rest),
+            'get', 'ver', 'show' => $this->showActivity($rest),
+            default => ctype_digit($action) && $rest === ''
+                ? $this->showActivity($action)
+                : (str_contains($argument, '|')
+                    ? $this->createActivity($argument, $admin)
+                    : $this->showActivity($argument)),
+        };
+    }
+
+    private function listActivities(string $argument): string
+    {
+        $argument = trim($argument);
+        $limit = self::LIST_DEFAULT;
+        $contact = null;
+
+        if ($argument !== '' && ctype_digit($argument)) {
+            return $this->showActivity($argument);
+        }
+
+        if (preg_match('/^(?:limite|limit|top|n)\s+(\d+)$/iu', $argument, $matches)) {
+            $limit = $this->listLimit($matches[1]);
+        } elseif (preg_match('/^(?:contato|contact|c)\s+(.+)$/iu', $argument, $matches)) {
+            $contact = $this->resolveContact(trim($matches[1]));
+            if (! $contact) {
+                return 'Contato não encontrado. Use ID ou e-mail.';
+            }
+        } elseif ($argument !== '') {
+            $contact = $this->resolveContact($argument);
+            if (! $contact) {
+                return 'Uso: <code>/atividades</code> · <code>/atividades limite 15</code> · <code>/atividades contato 12</code>';
+            }
+        }
+
+        $query = CrmActivity::query()
+            ->with(['contact', 'task'])
+            ->orderByDesc('happened_at')
+            ->orderByDesc('id');
+
+        if ($contact) {
+            $query->where('contact_id', $contact->id);
+        }
+
+        $items = $query->limit($limit)->get();
+
+        if ($items->isEmpty()) {
+            return $contact
+                ? 'Nenhuma atividade para '.$this->escape($contact->name).'.'
+                : 'Nenhuma atividade registada.';
+        }
+
+        $title = $contact
+            ? '🗂 <b>Atividades · '.$this->escape($contact->name).'</b> ('.$items->count().')'
+            : '🗂 <b>Atividades CRM</b> (últimas '.$items->count().')';
+
+        $lines = [$title, '──────────────', ''];
+        foreach ($items as $item) {
+            $lines[] = $this->activityFormatter->listLine($item);
+        }
+        $lines[] = '';
+        $lines[] = 'Detalhe: <code>/atividade ID</code> · Registar: <code>/atividade add contato|tipo|assunto</code>';
+
+        return implode("\n", $lines);
+    }
+
+    private function showActivity(string $ref): string
+    {
+        if (! ctype_digit(trim($ref))) {
+            return 'Informe o ID numérico da atividade.';
+        }
+
+        $item = CrmActivity::query()
+            ->with(['contact', 'task', 'opportunity', 'user'])
+            ->find((int) $ref);
+
+        if (! $item) {
+            return 'Atividade não encontrada.';
+        }
+
+        return $this->activityFormatter->card($item);
+    }
+
+    private function createActivity(string $argument, ?User $admin): string
+    {
+        $fields = $this->splitArgs($argument, 6);
+        if (count($fields) < 2) {
+            return 'Uso: <code>/atividade add contato|tipo|assunto?|corpo?|tarefa?|data?</code>';
+        }
+
+        [$contactRef, $typeRaw, $subject, $body, $taskRef, $happenedRaw] = array_pad($fields, 6, null);
+
+        $contact = $this->resolveContact((string) $contactRef);
+        if (! $contact) {
+            return 'Contato não encontrado. Use ID ou e-mail.';
+        }
+
+        $type = $this->resolveActivityType((string) $typeRaw);
+        if (! $type) {
+            return 'Tipo inválido. Use: note, call, meeting, email, other (ou nota/chamada/reuniao/e-mail/outro).';
+        }
+
+        $taskId = null;
+        $task = null;
+        if (filled($taskRef) && ! $this->keep($taskRef)) {
+            if (! ctype_digit(trim((string) $taskRef))) {
+                return 'Tarefa inválida. Use o ID numérico.';
+            }
+            $task = Task::query()->find((int) $taskRef);
+            if (! $task) {
+                return 'Tarefa não encontrada.';
+            }
+            $taskId = $task->id;
+        }
+
+        $happenedAt = now();
+        if (filled($happenedRaw) && ! $this->keep($happenedRaw)) {
+            $parsed = $this->parseTaskDueAt((string) $happenedRaw);
+            if ($parsed === null) {
+                return 'Data inválida. Ex.: <code>2026-07-23 15:30</code> ou <code>hoje 10:00</code>';
+            }
+            $happenedAt = $parsed;
+        }
+
+        $activity = CrmActivity::query()->create([
+            'contact_id' => $contact->id,
+            'opportunity_id' => null,
+            'task_id' => $taskId,
+            'user_id' => $admin?->id,
+            'type' => $type,
+            'subject' => filled($subject) && ! $this->keep($subject) ? trim((string) $subject) : null,
+            'body' => filled($body) && ! $this->keep($body) ? trim((string) $body) : null,
+            'happened_at' => $happenedAt,
+        ]);
+
+        $extra = '';
+        if ($task) {
+            $task->forceFill(['status' => TaskStatus::Done])->save();
+            $extra = "\n✅ Tarefa <b>#{$task->id}</b> marcada como concluída.";
+        }
+
+        $activity->load(['contact', 'task', 'opportunity', 'user']);
+
+        return $this->activityFormatter->card($activity, '✅ <b>Atividade registada</b>').$extra;
+    }
+
+    private function updateActivity(string $argument): string
+    {
+        $fields = $this->splitArgs($argument, 7);
+        if (count($fields) < 2) {
+            return 'Uso: <code>/atividade set ID|contato|tipo|assunto|corpo|tarefa|data</code> (use <code>.</code> para manter)';
+        }
+
+        [$id, $contactRef, $typeRaw, $subject, $body, $taskRef, $happenedRaw] = array_pad($fields, 7, null);
+        if (! ctype_digit(trim((string) $id))) {
+            return 'ID inválido.';
+        }
+
+        $item = CrmActivity::query()->find((int) $id);
+        if (! $item) {
+            return 'Atividade não encontrada.';
+        }
+
+        $data = [];
+
+        if (! $this->keep($contactRef) && filled($contactRef)) {
+            $contact = $this->resolveContact((string) $contactRef);
+            if (! $contact) {
+                return 'Contato não encontrado.';
+            }
+            $data['contact_id'] = $contact->id;
+        }
+
+        if (! $this->keep($typeRaw) && filled($typeRaw)) {
+            $type = $this->resolveActivityType((string) $typeRaw);
+            if (! $type) {
+                return 'Tipo inválido (note, call, meeting, email, other).';
+            }
+            $data['type'] = $type;
+        }
+
+        if (! $this->keep($subject)) {
+            $data['subject'] = filled($subject) ? trim((string) $subject) : null;
+        }
+
+        if (! $this->keep($body)) {
+            $data['body'] = filled($body) ? trim((string) $body) : null;
+        }
+
+        if (! $this->keep($taskRef)) {
+            if (! filled($taskRef)) {
+                $data['task_id'] = null;
+            } else {
+                if (! ctype_digit(trim((string) $taskRef))) {
+                    return 'Tarefa inválida. Use o ID numérico ou vazio para limpar.';
+                }
+                $task = Task::query()->find((int) $taskRef);
+                if (! $task) {
+                    return 'Tarefa não encontrada.';
+                }
+                $data['task_id'] = $task->id;
+            }
+        }
+
+        if (! $this->keep($happenedRaw) && filled($happenedRaw)) {
+            $parsed = $this->parseTaskDueAt((string) $happenedRaw);
+            if ($parsed === null) {
+                return 'Data inválida. Ex.: <code>2026-07-23 15:30</code>';
+            }
+            $data['happened_at'] = $parsed;
+        }
+
+        if ($data === []) {
+            return 'Nada para atualizar. Use <code>.</code> só nos campos que quer manter.';
+        }
+
+        $item->update($data);
+        $item->refresh()->load(['contact', 'task', 'opportunity', 'user']);
+
+        return $this->activityFormatter->card($item, '✏️ <b>Atividade actualizada</b>');
+    }
+
+    private function deleteActivity(string $argument): string
+    {
+        [$id, $confirm] = $this->parseDelete($argument);
+        if ($id === null) {
+            return 'Uso: <code>/atividade del ID ok</code>';
+        }
+        if (! $confirm) {
+            return "Para apagar a atividade <b>#{$id}</b>, confirme:\n<code>/atividade del {$id} ok</code>";
+        }
+
+        $item = CrmActivity::query()->find($id);
+        if (! $item) {
+            return 'Atividade não encontrada.';
+        }
+
+        $label = $item->subject ?: $item->type->label();
+        $item->delete();
+
+        return "🗑️ Atividade <b>#{$id}</b> {$this->escape($label)} removida.";
+    }
+
+    private function resolveActivityType(string $raw): ?CrmActivityType
+    {
+        $value = Str::lower(trim($raw));
+        $value = str_replace(['é', 'ê', 'á', 'ã'], ['e', 'e', 'a', 'a'], $value);
+
+        return match ($value) {
+            'note', 'nota' => CrmActivityType::Note,
+            'call', 'chamada', 'ligacao', 'telefone', 'phone' => CrmActivityType::Call,
+            'meeting', 'reuniao', 'meet', 'encontro' => CrmActivityType::Meeting,
+            'email', 'e-mail', 'mail' => CrmActivityType::Email,
+            'other', 'outro', 'outros' => CrmActivityType::Other,
+            default => CrmActivityType::tryFrom($value),
+        };
+    }
+
+    // -------------------------------------------------------------------------
     // Mensagens
     // -------------------------------------------------------------------------
 
@@ -1378,6 +1688,7 @@ HTML;
         $opportunities = Opportunity::query()->open()->count();
         $projects = Project::query()->where('status', ProjectStatus::Active)->count();
         $tasks = Task::query()->open()->count();
+        $activities = CrmActivity::query()->where('happened_at', '>=', now()->subDays(7))->count();
         $unread = ContactMessage::query()->unread()->count();
 
         return implode("\n", [
@@ -1387,9 +1698,10 @@ HTML;
             "Oportunidades abertas: <b>{$opportunities}</b>",
             "Projetos ativos: <b>{$projects}</b>",
             "Tarefas abertas: <b>{$tasks}</b>",
+            "Atividades (7 dias): <b>{$activities}</b>",
             "Mensagens não lidas: <b>{$unread}</b>",
             '',
-            'Listas: <code>/contatos</code> · <code>/oportunidades</code> · <code>/projetos</code> · <code>/tarefas</code> · <code>/mensagens</code>',
+            'Listas: <code>/contatos</code> · <code>/oportunidades</code> · <code>/projetos</code> · <code>/tarefas</code> · <code>/atividades</code> · <code>/mensagens</code>',
         ]);
     }
 

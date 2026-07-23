@@ -91,17 +91,21 @@ class TaskTelegramFormatter
         $color = $task->googleColor();
         $isDone = $task->status->isDone();
         $mark = $isDone ? '✅' : ($color?->telegramEmoji() ?? $task->status->telegramMark());
-        $timezone = config('app.timezone', 'America/Sao_Paulo');
-        $due = $task->due_at?->timezone($timezone);
-        $when = $due
-            ? $due->translatedFormat('d/m H:i')
-            : 'sem hora';
+        $when = $this->listWhenLabel($task);
+        $statusBit = $isDone
+            ? '<b>Concluída</b>'
+            : match ($task->dueUrgency()) {
+                'overdue' => '<b>Atrasada</b>',
+                'today' => '<b>Hoje</b>',
+                'soon' => $this->escape($task->status->label()),
+                default => $this->escape($task->status->label()),
+            };
 
         $bits = [
             $mark.' <b>#'.$task->id.'</b>',
             $this->escape($task->title),
             '🕐 '.$when,
-            $isDone ? '<b>Concluída</b>' : $this->escape($task->status->label()),
+            $statusBit,
         ];
 
         if ($color && ! $isDone) {
@@ -115,6 +119,77 @@ class TaskTelegramFormatter
         }
 
         return implode(' · ', $bits);
+    }
+
+    /**
+     * Agenda em duas secções: abertas (hoje/próximas) + concluídas recentes.
+     *
+     * @param  iterable<int, Task>  $openTasks
+     * @param  iterable<int, Task>  $doneTasks
+     */
+    public function agendaDigest(iterable $openTasks, iterable $doneTasks): string
+    {
+        $open = collect($openTasks)->values();
+        $done = collect($doneTasks)->values();
+
+        if ($open->isEmpty() && $done->isEmpty()) {
+            return 'Nenhuma tarefa encontrada.';
+        }
+
+        $lines = [
+            '📅 <b>Agenda · Tarefas</b>',
+            '──────────────',
+        ];
+
+        $lines[] = '';
+        $lines[] = '🔵 <b>Em aberto</b> · hoje e próximas'.($open->isNotEmpty() ? ' ('.$open->count().')' : '');
+        if ($open->isEmpty()) {
+            $lines[] = '<i>Nada agendado para hoje nem nos próximos dias.</i>';
+        } else {
+            foreach ($open as $task) {
+                $lines[] = $this->listLine($task);
+            }
+        }
+
+        $lines[] = '';
+        $lines[] = '✅ <b>Concluídas recentes</b>'.($done->isNotEmpty() ? ' ('.$done->count().')' : '');
+        if ($done->isEmpty()) {
+            $lines[] = '<i>Ainda sem conclusões recentes.</i>';
+        } else {
+            foreach ($done as $task) {
+                $lines[] = $this->listLine($task);
+            }
+        }
+
+        $lines[] = '';
+        $lines[] = 'Detalhe pelo ID: <code>/tarefa 12</code> ou <code>/tarefas 12</code>';
+        $lines[] = 'Ajustar quantidade: <code>/tarefas limite 8</code>';
+
+        return implode("\n", $lines);
+    }
+
+    private function listWhenLabel(Task $task): string
+    {
+        $timezone = config('app.timezone', 'America/Sao_Paulo');
+        $due = $task->due_at?->timezone($timezone);
+
+        if ($due === null) {
+            return 'sem hora';
+        }
+
+        if ($due->isToday()) {
+            return 'hoje '.$due->format('H:i');
+        }
+
+        if ($due->isTomorrow()) {
+            return 'amanhã '.$due->format('H:i');
+        }
+
+        if ($due->isYesterday()) {
+            return 'ontem '.$due->format('H:i');
+        }
+
+        return $due->translatedFormat('d/m H:i');
     }
 
     public function reminder(Task $task, Carbon $now): string

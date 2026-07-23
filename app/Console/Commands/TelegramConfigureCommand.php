@@ -59,6 +59,8 @@ class TelegramConfigureCommand extends Command
                 ['command' => 'projeto', 'description' => 'Ver/add/set/del projeto'],
                 ['command' => 'tarefas', 'description' => 'Listar tarefas'],
                 ['command' => 'tarefa', 'description' => 'Ver/add/set/del tarefa'],
+                ['command' => 'atividades', 'description' => 'Listar atividades CRM'],
+                ['command' => 'atividade', 'description' => 'Ver/add/set/del atividade'],
                 ['command' => 'mensagens', 'description' => 'Listar mensagens do site'],
                 ['command' => 'mensagem', 'description' => 'Ver/lida/del mensagem'],
             ]),

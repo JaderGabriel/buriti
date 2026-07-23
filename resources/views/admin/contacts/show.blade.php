@@ -220,7 +220,7 @@
                                 @php
                                     $meta = $activityTypeMeta[$activity->type->value] ?? ['icon' => 'task', 'tone' => 'brand', 'label' => $activity->type->label()];
                                 @endphp
-                                <li class="contact-timeline__item contact-timeline__item--{{ $meta['tone'] }}">
+                                <li class="contact-timeline__item contact-timeline__item--{{ $meta['tone'] }}" id="activity-{{ $activity->id }}">
                                     <span class="contact-timeline__icon" aria-hidden="true">
                                         <x-ui.icon :name="$meta['icon']" class="h-4 w-4" />
                                     </span>
@@ -228,21 +228,28 @@
                                         <div class="contact-timeline__top">
                                             <span class="contact-timeline__type">{{ $meta['label'] }}</span>
                                             <time>{{ optional($activity->happened_at)->format('d/m/Y H:i') ?? $activity->created_at->format('d/m/Y H:i') }}</time>
+                                            <a
+                                                href="{{ route('admin.contacts.activities.edit', [$contact, $activity]) }}"
+                                                class="contact-timeline__edit"
+                                            >Editar</a>
                                             <form method="POST" action="{{ route('admin.contacts.activities.destroy', [$contact, $activity]) }}" data-confirm="Remover atividade?">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="contact-timeline__remove">Remover</button>
                                             </form>
                                         </div>
-                                        <p class="contact-timeline__subject">{{ $activity->subject ?: 'Sem assunto' }}</p>
-                                        @if($activity->body)
-                                            <p class="contact-timeline__detail">{{ $activity->body }}</p>
-                                        @endif
-                                        <p class="contact-timeline__meta">
-                                            @if($activity->user) {{ $activity->user->name }} @endif
-                                            @if($activity->opportunity) · {{ $activity->opportunity->title }} @endif
-                                            @if($activity->task) · tarefa: {{ $activity->task->title }} @endif
-                                        </p>
+                                        <a href="{{ route('admin.contacts.activities.edit', [$contact, $activity]) }}" class="contact-timeline__link">
+                                            <p class="contact-timeline__subject">{{ $activity->subject ?: 'Sem assunto' }}</p>
+                                            @if($activity->body)
+                                                <p class="contact-timeline__detail">{{ $activity->body }}</p>
+                                            @endif
+                                            <p class="contact-timeline__meta">
+                                                @if($activity->user) {{ $activity->user->name }} @endif
+                                                @if($activity->opportunity) · {{ $activity->opportunity->title }} @endif
+                                                @if($activity->task) · tarefa: {{ $activity->task->title }} @endif
+                                                <span class="contact-timeline__hint"> · clicar para editar</span>
+                                            </p>
+                                        </a>
                                     </div>
                                 </li>
                             @empty

@@ -390,4 +390,60 @@ class CrmTest extends TestCase
 
         $this->assertDatabaseMissing('crm_activities', ['id' => $activity->id]);
     }
+
+    public function test_admin_can_edit_and_update_activity_from_contact(): void
+    {
+        $contact = Contact::factory()->create(['name' => 'Cliente Edit']);
+        $activity = CrmActivity::factory()->create([
+            'contact_id' => $contact->id,
+            'type' => 'call',
+            'subject' => 'Ligação antiga',
+            'body' => 'Notas antigas',
+        ]);
+        $task = Task::factory()->create([
+            'title' => 'Fechar follow-up',
+            'status' => TaskStatus::Todo,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.contacts.activities.edit', [$contact, $activity]))
+            ->assertOk()
+            ->assertSee('Editar atividade', false)
+            ->assertSee('Ligação antiga', false);
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.contacts.activities.update', [$contact, $activity]), [
+                'type' => 'meeting',
+                'subject' => 'Reunião actualizada',
+                'body' => 'Escopo fechado',
+                'task_id' => $task->id,
+                'happened_at' => now()->format('Y-m-d H:i:s'),
+            ])
+            ->assertRedirect(route('admin.contacts.show', $contact));
+
+        $this->assertDatabaseHas('crm_activities', [
+            'id' => $activity->id,
+            'type' => 'meeting',
+            'subject' => 'Reunião actualizada',
+            'body' => 'Escopo fechado',
+            'task_id' => $task->id,
+        ]);
+        $this->assertSame(TaskStatus::Done, $task->fresh()->status);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee(route('admin.contacts.activities.edit', [$contact, $activity]), false);
+    }
+
+    public function test_activity_edit_belongs_to_contact(): void
+    {
+        $contact = Contact::factory()->create();
+        $activity = CrmActivity::factory()->create(['contact_id' => $contact->id]);
+        $other = Contact::factory()->create();
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.contacts.activities.edit', [$other, $activity]))
+            ->assertNotFound();
+    }
 }

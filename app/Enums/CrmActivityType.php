@@ -43,6 +43,18 @@ enum CrmActivityType: string
         };
     }
 
+    /** Emoji curto para Telegram / listagens. */
+    public function telegramMark(): string
+    {
+        return match ($this) {
+            self::Note => '📝',
+            self::Call => '📞',
+            self::Meeting => '🤝',
+            self::Email => '✉️',
+            self::Other => '🗂',
+        };
+    }
+
     /** @return array<string, string> */
     public static function options(): array
     {
