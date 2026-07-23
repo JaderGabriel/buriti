@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\LoginActivity;
 use App\Models\User;
+use App\Support\ClientContext;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -44,10 +46,15 @@ class AuthSecurityService
         $this->recordLoginAttempt($request, $user, true);
     }
 
-    /** @return list<object{id: string, user_id: int|null, ip_address: string|null, user_agent: string|null, last_activity: int, is_current: bool}> */
+    public function sessionsEnabled(): bool
+    {
+        return config('session.driver') === 'database';
+    }
+
+    /** @return list<object> */
     public function sessionsFor(User $user, ?string $currentSessionId = null): array
     {
-        if (config('session.driver') !== 'database') {
+        if (! $this->sessionsEnabled()) {
             return [];
         }
 
@@ -55,20 +62,44 @@ class AuthSecurityService
             ->where('user_id', $user->id)
             ->orderByDesc('last_activity')
             ->get()
-            ->map(fn ($row) => (object) [
-                'id' => $row->id,
-                'user_id' => $row->user_id,
-                'ip_address' => $row->ip_address,
-                'user_agent' => $row->user_agent,
-                'last_activity' => (int) $row->last_activity,
-                'is_current' => $currentSessionId !== null && hash_equals((string) $row->id, (string) $currentSessionId),
-            ])
+            ->map(fn ($row) => $this->presentSession($row, $currentSessionId, $user))
+            ->all();
+    }
+
+    /** @return list<object> */
+    public function activeSessions(?string $viewerSessionId = null, int $limit = 50): array
+    {
+        if (! $this->sessionsEnabled()) {
+            return [];
+        }
+
+        $rows = DB::table('sessions')
+            ->whereNotNull('user_id')
+            ->orderByDesc('last_activity')
+            ->limit($limit)
+            ->get();
+
+        if ($rows->isEmpty()) {
+            return [];
+        }
+
+        $users = User::query()
+            ->whereIn('id', $rows->pluck('user_id')->unique()->filter()->all())
+            ->get(['id', 'name', 'email', 'username', 'avatar_path', 'is_active'])
+            ->keyBy('id');
+
+        return $rows
+            ->map(fn ($row) => $this->presentSession(
+                $row,
+                $viewerSessionId,
+                $users->get((int) $row->user_id),
+            ))
             ->all();
     }
 
     public function destroySession(User $user, string $sessionId): bool
     {
-        if (config('session.driver') !== 'database') {
+        if (! $this->sessionsEnabled()) {
             return false;
         }
 
@@ -89,7 +120,7 @@ class AuthSecurityService
 
     public function destroyOtherSessions(User $user, string $currentSessionId): int
     {
-        if (config('session.driver') !== 'database') {
+        if (! $this->sessionsEnabled()) {
             return 0;
         }
 
@@ -110,7 +141,7 @@ class AuthSecurityService
 
     public function destroyAllSessions(User $user): int
     {
-        if (config('session.driver') !== 'database') {
+        if (! $this->sessionsEnabled()) {
             return 0;
         }
 
@@ -142,5 +173,25 @@ class AuthSecurityService
             'summary' => $user->email,
             'email' => $user->email,
         ], $request, $user->id);
+    }
+
+    private function presentSession(object $row, ?string $currentSessionId, ?User $user): object
+    {
+        $ua = $row->user_agent !== null ? (string) $row->user_agent : null;
+        $lastActivity = (int) $row->last_activity;
+
+        return (object) [
+            'id' => (string) $row->id,
+            'user_id' => $row->user_id !== null ? (int) $row->user_id : null,
+            'user' => $user,
+            'ip_address' => $row->ip_address,
+            'location' => ClientContext::locationLabel($row->ip_address !== null ? (string) $row->ip_address : null),
+            'device_type' => ClientContext::deviceType($ua),
+            'application' => ClientContext::application($ua),
+            'user_agent' => $ua,
+            'last_activity' => $lastActivity,
+            'last_activity_at' => Carbon::createFromTimestamp($lastActivity, config('app.timezone')),
+            'is_current' => $currentSessionId !== null && hash_equals((string) $row->id, (string) $currentSessionId),
+        ];
     }
 }

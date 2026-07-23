@@ -82,6 +82,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
         ->name('users.avatar');
     Route::patch('/usuarios/{user}/ativo', [UserController::class, 'toggleActive'])
         ->name('users.toggle-active');
+    Route::delete('/usuarios/{user}/sessoes', [UserController::class, 'destroyAllSessions'])
+        ->name('users.sessions.destroy-all');
+    Route::delete('/usuarios/{user}/sessoes/{session}', [UserController::class, 'destroySession'])
+        ->name('users.sessions.destroy');
 
     Route::get('/integracoes', [IntegrationController::class, 'edit'])->name('integrations.edit');
     Route::put('/integracoes', [IntegrationController::class, 'update'])->name('integrations.update');

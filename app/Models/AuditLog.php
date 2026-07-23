@@ -48,6 +48,7 @@ class AuditLog extends Model
             'auth.logout' => 'Logout',
             'auth.session.destroy' => 'Sessão encerrada',
             'auth.session.destroy_others' => 'Outras sessões encerradas',
+            'auth.session.destroy_all' => 'Todas as sessões encerradas',
             'attachment.created' => 'Anexo adicionado',
             'attachment.trashed' => 'Anexo ocultado',
             'attachment.restored' => 'Anexo recuperado',

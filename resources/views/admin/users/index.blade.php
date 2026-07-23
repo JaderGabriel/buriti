@@ -103,6 +103,18 @@
     <div class="mt-4">{{ $users->links() }}</div>
 
     <div class="mt-10">
+        <x-admin.session-list
+            :sessions="$sessions"
+            :session-driver="$sessionDriver"
+            title="Sessões ativas"
+            description="Logins ativos no painel. Revogue por dispositivo — IP, local, tipo, aplicativo e data/hora."
+            :show-user="true"
+            :allow-revoke-current="false"
+            :destroy-url="fn ($session) => route('admin.users.sessions.destroy', [$session->user_id, $session->id])"
+        />
+    </div>
+
+    <div class="mt-10">
         <x-admin.login-activity-log
             :activities="$loginActivities"
             title="Logs de acesso do sistema"

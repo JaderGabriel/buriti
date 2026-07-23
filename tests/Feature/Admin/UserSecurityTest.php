@@ -304,8 +304,57 @@ class UserSecurityTest extends TestCase
             ->get(route('admin.users.edit', $target))
             ->assertOk()
             ->assertSee('Log deste usuário', false)
+            ->assertSee('Sessões deste usuário', false)
             ->assertSee('192.168.1.10', false)
             ->assertDontSee('192.168.1.99', false);
+    }
+
+    public function test_admin_can_list_and_revoke_user_sessions(): void
+    {
+        config(['session.driver' => 'database']);
+
+        $target = User::factory()->create(['name' => 'Sessão Alvo']);
+
+        \Illuminate\Support\Facades\DB::table('sessions')->insert([
+            [
+                'id' => 'sess-target-1',
+                'user_id' => $target->id,
+                'ip_address' => '10.0.0.55',
+                'user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
+                'payload' => 'x',
+                'last_activity' => now()->timestamp,
+            ],
+            [
+                'id' => 'sess-target-2',
+                'user_id' => $target->id,
+                'ip_address' => '10.0.0.56',
+                'user_agent' => 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile Safari/604.1',
+                'payload' => 'x',
+                'last_activity' => now()->subHour()->timestamp,
+            ],
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.users.index'))
+            ->assertOk()
+            ->assertSee('Sessões ativas', false)
+            ->assertSee('Sessão Alvo', false)
+            ->assertSee('10.0.0.55', false)
+            ->assertSee('Chrome · Windows', false)
+            ->assertSee('Mobile', false);
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.users.sessions.destroy', [$target, 'sess-target-2']))
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('sessions', ['id' => 'sess-target-2']);
+        $this->assertDatabaseHas('sessions', ['id' => 'sess-target-1']);
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.users.sessions.destroy-all', $target))
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('sessions', ['id' => 'sess-target-1']);
     }
 
     public function test_security_headers_are_present(): void

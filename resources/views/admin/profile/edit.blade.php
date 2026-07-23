@@ -68,56 +68,17 @@
         </div>
 
         <div class="space-y-6">
-            <section class="rounded-sm border border-line bg-panel p-5 sm:p-6">
-                <div class="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                        <h2 class="font-display text-lg font-semibold">Sessões ativas</h2>
-                        <p class="mt-1 text-sm text-mist">
-                            Driver atual: <code class="text-brand-bright">{{ $sessionDriver }}</code>
-                            @if($sessionDriver !== 'database')
-                                — use <code class="text-brand-bright">SESSION_DRIVER=database</code> no .env para listar e revogar.
-                            @endif
-                        </p>
-                    </div>
-                    @if($sessionDriver === 'database' && count($sessions) > 1)
-                        <form method="POST" action="{{ route('admin.profile.sessions.destroy-others') }}" data-confirm="Encerrar todas as outras sessões?">
-                            @csrf
-                            @method('DELETE')
-                            <button class="text-sm font-semibold text-brand-bright hover:underline">Encerrar outras</button>
-                        </form>
-                    @endif
-                </div>
-
-                @if($errors->has('session'))
-                    <p class="mt-3 text-sm text-red-400">{{ $errors->first('session') }}</p>
-                @endif
-
-                <ul class="mt-4 space-y-3">
-                    @forelse($sessions as $session)
-                        <li class="rounded-sm border border-line px-3 py-3 text-sm">
-                            <div class="flex flex-wrap items-start justify-between gap-2">
-                                <div>
-                                    <p class="font-medium text-snow">
-                                        {{ $session->is_current ? 'Esta sessão' : 'Outro dispositivo' }}
-                                    </p>
-                                    <p class="mt-1 text-xs text-mist">IP: {{ $session->ip_address ?? '—' }}</p>
-                                    <p class="mt-1 break-all text-xs text-mist">{{ \Illuminate\Support\Str::limit($session->user_agent, 90) }}</p>
-                                    <p class="mt-1 text-xs text-mist">Atividade: {{ \Illuminate\Support\Carbon::createFromTimestamp($session->last_activity)->diffForHumans() }}</p>
-                                </div>
-                                @unless($session->is_current)
-                                    <form method="POST" action="{{ route('admin.profile.sessions.destroy', $session->id) }}">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button class="text-xs text-red-300 hover:underline">Encerrar</button>
-                                    </form>
-                                @endunless
-                            </div>
-                        </li>
-                    @empty
-                        <li class="text-sm text-mist">Nenhuma sessão listável no momento.</li>
-                    @endforelse
-                </ul>
-            </section>
+            <x-admin.session-list
+                :sessions="$sessions"
+                :session-driver="$sessionDriver"
+                title="Sessões ativas"
+                description="Dispositivos com login neste painel. Revogue os que não reconhecer."
+                :allow-revoke-current="false"
+                :destroy-all-url="count($sessions) > 1 ? route('admin.profile.sessions.destroy-others') : null"
+                destroy-all-label="Encerrar outras"
+                destroy-all-confirm="Encerrar todas as outras sessões?"
+                :destroy-url="fn ($session) => route('admin.profile.sessions.destroy', $session->id)"
+            />
 
             <section class="rounded-sm border border-line bg-panel p-5 sm:p-6">
                 <h2 class="font-display text-lg font-semibold">Histórico de login</h2>

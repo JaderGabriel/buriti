@@ -14,6 +14,7 @@ use App\Services\AuditLogger;
 use App\Services\AuthSecurityService;
 use App\Services\AvatarService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class UserController extends Controller
@@ -25,12 +26,14 @@ class UserController extends Controller
         private AuditLogger $audit,
     ) {}
 
-    public function index(): View
+    public function index(Request $request): View
     {
         $this->authorizeAdmin();
 
         return view('admin.users.index', [
             'users' => User::query()->orderBy('name')->paginate(12)->withQueryString(),
+            'sessions' => $this->security->activeSessions($request->session()->getId()),
+            'sessionDriver' => config('session.driver'),
             'loginActivities' => LoginActivity::query()
                 ->with('user:id,name,email,username')
                 ->orderByDesc('created_at')
@@ -50,6 +53,8 @@ class UserController extends Controller
 
         return view('admin.users.form', [
             'user' => new User(['is_admin' => true]),
+            'sessions' => [],
+            'sessionDriver' => config('session.driver'),
             'loginActivities' => collect(),
             'auditLogs' => collect(),
         ]);
@@ -78,13 +83,17 @@ class UserController extends Controller
             ->with('success', 'Usuário criado.');
     }
 
-    public function edit(User $user): View
+    public function edit(Request $request, User $user): View
     {
         $this->authorizeAdmin();
         $user->load(['attachments', 'trashedAttachments.deleter']);
 
+        $currentId = $user->is(auth()->user()) ? $request->session()->getId() : null;
+
         return view('admin.users.form', [
             'user' => $user,
+            'sessions' => $this->security->sessionsFor($user, $currentId),
+            'sessionDriver' => config('session.driver'),
             'loginActivities' => LoginActivity::query()
                 ->forUser($user)
                 ->orderByDesc('created_at')
@@ -209,6 +218,38 @@ class UserController extends Controller
         return redirect()
             ->route('admin.users.index')
             ->with('success', $user->is_active ? 'Usuário reativado.' : 'Usuário desativado.');
+    }
+
+    public function destroySession(Request $request, User $user, string $session): RedirectResponse
+    {
+        $this->authorizeAdmin();
+
+        if ($user->is(auth()->user()) && hash_equals($request->session()->getId(), $session)) {
+            return back()->withErrors(['session' => 'Não é possível revogar a sessão atual por aqui. Use Sair.']);
+        }
+
+        $this->security->destroySession($user, $session);
+
+        return back()->with('success', 'Sessão revogada.');
+    }
+
+    public function destroyAllSessions(Request $request, User $user): RedirectResponse
+    {
+        $this->authorizeAdmin();
+
+        if ($user->is(auth()->user())) {
+            $count = $this->security->destroyOtherSessions($user, $request->session()->getId());
+
+            return back()->with('success', $count > 0
+                ? "{$count} outra(s) sessão(ões) revogada(s)."
+                : 'Não havia outras sessões para revogar.');
+        }
+
+        $count = $this->security->destroyAllSessions($user);
+
+        return back()->with('success', $count > 0
+            ? "{$count} sessão(ões) revogada(s)."
+            : 'Não havia sessões ativas.');
     }
 
     private function authorizeAdmin(): void
