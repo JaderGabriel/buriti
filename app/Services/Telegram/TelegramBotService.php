@@ -108,6 +108,11 @@ class TelegramBotService
     public function isAllowedChat(string $chatId): bool
     {
         $allowed = $this->allowedChatIds();
+        $notify = trim((string) ($this->settings->get('telegram_notify_chat_id') ?? ''));
+
+        if ($notify !== '' && ! in_array($notify, $allowed, true)) {
+            $allowed[] = $notify;
+        }
 
         if ($allowed === []) {
             return false;

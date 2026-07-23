@@ -329,20 +329,13 @@
 }
 
 .method-index {
+    display: block;
     font-family: var(--font-display);
     font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--color-brand-bright);
-}
-
-.method-index--rail {
-    display: none;
-}
-
-.method-index--mobile {
-    display: block;
 }
 
 .method-title {
@@ -379,18 +372,10 @@
         gap: 0.75rem;
     }
 
-    .method-index--rail {
-        display: inline-block;
-    }
-
-    .method-index--mobile {
-        display: none;
-    }
-
     .method-connector {
         position: absolute;
         top: 1.35rem;
-        left: 4.5rem;
+        left: 2.75rem;
         right: -0.75rem;
         width: auto;
         height: 1px;
@@ -406,7 +391,7 @@
     }
 
     .method-title {
-        margin-top: 0;
+        margin-top: 0.35rem;
     }
 }
 

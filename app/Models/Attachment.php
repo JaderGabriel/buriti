@@ -51,7 +51,7 @@ class Attachment extends Model
 
     public function url(): string
     {
-        return '/storage/'.ltrim($this->path, '/');
+        return Storage::disk($this->disk ?: 'public')->url($this->path);
     }
 
     public function isImage(): bool

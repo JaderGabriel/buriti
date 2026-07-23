@@ -148,6 +148,23 @@ class TelegramBotTest extends TestCase
         });
     }
 
+    public function test_notify_chat_id_is_also_authorized_for_commands(): void
+    {
+        app(SettingService::class)->putMany([
+            'telegram_allowed_chat_ids' => '',
+            'telegram_notify_chat_id' => '555001',
+        ]);
+
+        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+            'message' => [
+                'chat' => ['id' => 555001],
+                'text' => '/contato Notify User | notify@empresa.com',
+            ],
+        ])->assertOk();
+
+        $this->assertDatabaseHas('contacts', ['email' => 'notify@empresa.com']);
+    }
+
     public function test_admin_can_save_telegram_chat_settings(): void
     {
         $admin = \App\Models\User::factory()->create();

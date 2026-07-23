@@ -128,7 +128,8 @@
                     <li>Crie o bot no @BotFather e copie o token.</li>
                     <li>No <code class="text-snow">.env</code>: <code class="text-snow">TELEGRAM_BOT_TOKEN</code> e <code class="text-snow">TELEGRAM_WEBHOOK_SECRET</code> (string aleatória).</li>
                     <li>Rode <code class="text-snow">php artisan telegram:configure</code> (APP_URL = <code class="text-snow">https://buriti.dev.br/public</code>).</li>
-                    <li>Fale com o bot, envie <code class="text-snow">/id</code> e cole o Chat ID acima.</li>
+                    <li>Fale com o bot, envie <code class="text-snow">/id</code> e cole o Chat ID em <strong class="text-snow">Chats autorizados</strong> (e no de notificação, se quiser alertas do site).</li>
+                    <li>No servidor: <code class="text-snow">APP_URL=https://buriti.dev.br/public</code>, mesmo <code class="text-snow">TELEGRAM_WEBHOOK_SECRET</code> do webhook, depois <code class="text-snow">php artisan telegram:configure</code>.</li>
                     <li>Comandos: <code class="text-snow">/ajuda</code>, <code class="text-snow">/contato</code>, <code class="text-snow">/oportunidade</code>, <code class="text-snow">/projeto</code>, <code class="text-snow">/tarefa</code>.</li>
                 </ol>
                 <p class="mt-2">
