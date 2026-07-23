@@ -83,9 +83,13 @@ class IntegrationToolkitService
     {
         $token = filled(config('services.telegram.bot_token'));
         $secret = filled(config('services.telegram.webhook_secret'));
-        $allowed = filled($this->settings->get('telegram_allowed_chat_ids'));
+        $linkedAdmins = \App\Models\User::query()
+            ->where('is_admin', true)
+            ->where('is_active', true)
+            ->whereNotNull('telegram_chat_id')
+            ->count();
         $notify = filled($this->settings->get('telegram_notify_chat_id'));
-        $level = ($token ? 1 : 0) + ($secret ? 1 : 0) + ($allowed ? 1 : 0);
+        $level = ($token ? 1 : 0) + ($secret ? 1 : 0) + ($linkedAdmins > 0 ? 1 : 0);
 
         $webhookUrl = null;
         if ($secret) {
@@ -96,21 +100,22 @@ class IntegrationToolkitService
             'configured' => $level >= 2,
             'level' => $level,
             'label' => match ($level) {
-                3 => 'Telegram pronto (bot + webhook + chats)',
-                2 => $allowed ? 'Bot e chats OK — falta webhook secret' : 'Bot OK — autorize os chats',
+                3 => 'Telegram pronto (bot + webhook + admin logado)',
+                2 => $linkedAdmins > 0 ? 'Bot e admin OK — falta webhook secret' : 'Bot OK — admin deve fazer /login',
                 1 => $token ? 'Token do bot definido' : 'Segredo do webhook definido',
                 default => 'Telegram por configurar',
             },
             'next_step' => match (true) {
-                $level >= 3 => 'Use /ajuda no bot. Mensagens do site chegam ao chat de notificação.',
+                $level >= 3 => 'Admins: /login no bot. Alertas do site vão aos chats ligados (+ notify opcional).',
                 ! $token => 'Crie o bot no @BotFather e defina TELEGRAM_BOT_TOKEN no .env.',
-                ! $secret => 'Defina TELEGRAM_WEBHOOK_SECRET e rode php artisan telegram:set-webhook.',
-                ! $allowed => 'Envie /id no bot e cole o Chat ID em “Chats autorizados”.',
-                default => 'Complete token, secret e chats autorizados.',
+                ! $secret => 'Defina TELEGRAM_WEBHOOK_SECRET e rode php artisan telegram:configure.',
+                $linkedAdmins === 0 => 'No Telegram: /login email_ou_usuario | senha (apenas admin).',
+                default => 'Complete token, webhook e login de um admin no bot.',
             },
             'token_set' => $token,
             'webhook_secret_set' => $secret,
-            'allowed_chats_set' => $allowed,
+            'allowed_chats_set' => $linkedAdmins > 0,
+            'linked_admins' => $linkedAdmins,
             'notify_chat_set' => $notify,
             'webhook_url' => $webhookUrl,
         ];

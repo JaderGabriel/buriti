@@ -64,7 +64,7 @@
                 ],
                 [
                     'route' => 'admin.tasks.index',
-                    'label' => 'Tarefas',
+                    'label' => 'Agenda',
                     'pattern' => 'admin.tasks.*',
                     'icon' => 'task',
                     'tone' => 'text-orange-300 bg-orange-500/15',

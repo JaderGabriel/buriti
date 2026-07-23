@@ -31,9 +31,12 @@
                 <ol class="mt-4 space-y-2 text-sm text-mist">
                     <li><strong class="text-snow">Nível 1 —</strong> URL da Agenda + atalhos Meet nas tarefas.</li>
                     <li><strong class="text-snow">Nível 2 —</strong> Embed público da Agenda no painel de tarefas.</li>
-                    <li><strong class="text-snow">Nível 3 —</strong> API OAuth no <code class="text-brand-bright">.env</code> para criar eventos e Meet automaticamente.</li>
+                    <li><strong class="text-snow">Nível 3 —</strong> API OAuth no <code class="text-brand-bright">.env</code> (<code class="text-snow">GOOGLE_CLIENT_ID</code>, <code class="text-snow">SECRET</code>, <code class="text-snow">REFRESH_TOKEN</code>) para criar eventos e Meet automaticamente.</li>
                 </ol>
                 <p class="mt-3 text-xs text-mist">
+                    Passo a passo (Cloud Console, Playground, Calendar ID): ver <code class="text-snow">README.md</code> → “Integração Google Agenda / Meet”.
+                </p>
+                <p class="mt-2 text-xs text-mist">
                     API pronta neste ambiente:
                     <span class="{{ $googleApiReady ? 'text-brand-bright' : 'text-mist' }}">{{ $googleApiReady ? 'sim (credenciais detetadas)' : 'não — preencha GOOGLE_CLIENT_ID / SECRET / REFRESH_TOKEN' }}</span>
                 </p>

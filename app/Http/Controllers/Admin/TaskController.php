@@ -13,11 +13,16 @@ use App\Services\AttachmentService;
 use App\Services\AuditLogger;
 use App\Services\GoogleCalendarService;
 use App\Services\SettingService;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class TaskController extends Controller
 {
+    /** @var list<string> */
+    private const VIEWS = ['calendar', 'agenda', 'board', 'list'];
+
     public function __construct(
         private SettingService $settings,
         private GoogleCalendarService $google,
@@ -25,20 +30,59 @@ class TaskController extends Controller
         private AuditLogger $audit,
     ) {}
 
-    public function index(): View
+    public function index(Request $request): View
     {
+        $view = $this->resolveView($request->query('view'));
+        $cursor = $this->resolveMonth($request->query('month'));
+
         $tasks = Task::query()
             ->with(['project', 'contact', 'attachments', 'trashedAttachments.deleter'])
             ->boardOrdered()
-            ->get()
-            ->groupBy(fn (Task $task) => $task->status->value);
+            ->get();
 
         $columns = [];
+        $grouped = $tasks->groupBy(fn (Task $task) => $task->status->value);
         foreach (TaskStatus::boardOrder() as $status) {
-            $columns[$status] = $tasks->get($status, collect());
+            $columns[$status] = $grouped->get($status, collect());
         }
 
+        $byDate = $tasks
+            ->filter(fn (Task $task) => $task->due_at !== null)
+            ->groupBy(fn (Task $task) => $task->due_at->format('Y-m-d'));
+
+        $gridStart = $cursor->copy()->startOfMonth()->startOfWeek(Carbon::SUNDAY);
+        $gridEnd = $cursor->copy()->endOfMonth()->endOfWeek(Carbon::SATURDAY);
+
+        $calendarDays = collect();
+        for ($day = $gridStart->copy(); $day->lte($gridEnd); $day->addDay()) {
+            $key = $day->format('Y-m-d');
+            $calendarDays->push([
+                'date' => $key,
+                'day' => $day->day,
+                'in_month' => $day->month === $cursor->month,
+                'is_today' => $day->isToday(),
+                'weekday' => $day->dayOfWeek,
+                'tasks' => $byDate->get($key, collect()),
+            ]);
+        }
+
+        $undatedTasks = $tasks->filter(fn (Task $task) => $task->due_at === null)->values();
+
+        $agendaGroups = $tasks
+            ->filter(fn (Task $task) => $task->due_at !== null)
+            ->sortBy('due_at')
+            ->groupBy(fn (Task $task) => $task->due_at->format('Y-m-d'));
+
         return view('admin.tasks.index', [
+            'view' => $view,
+            'month' => $cursor->format('Y-m'),
+            'monthLabel' => $cursor->translatedFormat('F Y'),
+            'prevMonth' => $cursor->copy()->subMonth()->format('Y-m'),
+            'nextMonth' => $cursor->copy()->addMonth()->format('Y-m'),
+            'calendarDays' => $calendarDays,
+            'agendaGroups' => $agendaGroups,
+            'undatedTasks' => $undatedTasks,
+            'tasks' => $tasks,
             'columns' => $columns,
             'statusLabels' => TaskStatus::options(),
             'priorityLabels' => TaskPriority::options(),
@@ -48,6 +92,15 @@ class TaskController extends Controller
             'googleCalendarUrl' => $this->google->calendarHomeUrl(),
             'googleIntegration' => $this->google->integrationStatus(),
             'instantMeetUrl' => $this->google->instantMeetUrl(),
+            'stats' => [
+                'total' => $tasks->count(),
+                'open' => $tasks->filter(fn (Task $task) => in_array($task->status, [TaskStatus::Todo, TaskStatus::Doing], true))->count(),
+                'due_month' => $tasks->filter(
+                    fn (Task $task) => $task->due_at
+                        && $task->due_at->isSameMonth($cursor)
+                )->count(),
+                'undated' => $undatedTasks->count(),
+            ],
         ]);
     }
 
@@ -64,14 +117,11 @@ class TaskController extends Controller
                 return redirect()->away($result['url']);
             }
 
-            return redirect()
-                ->route('admin.tasks.index')
+            return $this->tasksRedirect()
                 ->with('success', 'Tarefa criada. '.($result['message'] ?? ''));
         }
 
-        return redirect()
-            ->route('admin.tasks.index')
-            ->with('success', 'Tarefa criada.');
+        return $this->tasksRedirect()->with('success', 'Tarefa criada.');
     }
 
     public function update(TaskRequest $request, Task $task): RedirectResponse
@@ -83,14 +133,11 @@ class TaskController extends Controller
         if ($this->shouldAutoSync() && $task->want_meet) {
             $result = $this->google->syncTask($task->fresh());
 
-            return redirect()
-                ->route('admin.tasks.index')
+            return $this->tasksRedirect()
                 ->with('success', 'Tarefa atualizada. '.($result['message'] ?? ''));
         }
 
-        return redirect()
-            ->route('admin.tasks.index')
-            ->with('success', 'Tarefa atualizada.');
+        return $this->tasksRedirect()->with('success', 'Tarefa atualizada.');
     }
 
     public function destroy(Task $task): RedirectResponse
@@ -105,9 +152,7 @@ class TaskController extends Controller
             'task_id' => $task->id,
         ]);
 
-        return redirect()
-            ->route('admin.tasks.index')
-            ->with('success', 'Tarefa removida.');
+        return $this->tasksRedirect()->with('success', 'Tarefa removida.');
     }
 
     public function syncGoogle(Task $task): RedirectResponse
@@ -118,13 +163,41 @@ class TaskController extends Controller
             return redirect()->away($result['url']);
         }
 
-        return redirect()
-            ->route('admin.tasks.index')
+        return $this->tasksRedirect()
             ->with('success', $result['message'] ?? 'Sincronizado com Google.');
     }
 
     private function shouldAutoSync(): bool
     {
         return $this->settings->autoSyncEnabled() && $this->google->apiConfigured();
+    }
+
+    private function resolveView(?string $view): string
+    {
+        return in_array($view, self::VIEWS, true) ? $view : 'calendar';
+    }
+
+    private function resolveMonth(?string $month): Carbon
+    {
+        try {
+            return Carbon::createFromFormat('Y-m', (string) $month)->startOfMonth();
+        } catch (\Throwable) {
+            return now()->startOfMonth();
+        }
+    }
+
+    private function tasksRedirect(): RedirectResponse
+    {
+        $params = [];
+
+        if (request()->filled('return_view') || request()->filled('view')) {
+            $params['view'] = $this->resolveView((string) request('return_view', request('view')));
+        }
+
+        if (request()->filled('return_month') || request()->filled('month')) {
+            $params['month'] = (string) request('return_month', request('month'));
+        }
+
+        return redirect()->route('admin.tasks.index', $params);
     }
 }

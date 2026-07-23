@@ -120,6 +120,37 @@ class AdminPanelTest extends TestCase
         $this->assertTrue($task->want_meet);
     }
 
+    public function test_tasks_index_supports_calendar_and_board_views(): void
+    {
+        Task::factory()->create([
+            'title' => 'Reunião de escopo',
+            'due_at' => now()->startOfMonth()->addDays(3)->setTime(10, 0),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.tasks.index'))
+            ->assertOk()
+            ->assertSee('Calendário de atividades', false)
+            ->assertSee('task-calendar', false)
+            ->assertSee('Reunião de escopo', false);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.tasks.index', ['view' => 'board']))
+            ->assertOk()
+            ->assertSee('task-board', false)
+            ->assertSee('A fazer', false);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.tasks.index', ['view' => 'agenda']))
+            ->assertOk()
+            ->assertSee('task-agenda', false);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.tasks.index', ['view' => 'list']))
+            ->assertOk()
+            ->assertSee('task-list', false);
+    }
+
     public function test_task_google_sync_redirects_to_calendar_when_api_missing(): void
     {
         $task = Task::factory()->create([

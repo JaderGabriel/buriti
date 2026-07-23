@@ -36,21 +36,30 @@ class TelegramConfigureCommand extends Command
             'Nome' => $api->setMyName('BURI-TI CRM'),
             'Descrição' => $api->setMyDescription(
                 "Assistente operacional da BURI-TI.\n\n".
-                "Crie contatos, oportunidades, projetos e tarefas pelo Telegram.\n".
-                "Receba alertas das mensagens do formulário do site buriti.dev.br.\n\n".
+                "CRM no Telegram: listar, ver, criar, editar e apagar contatos, oportunidades, projetos, tarefas e mensagens.\n".
+                "Receba alertas do formulário do site.\n\n".
                 "Comandos: /ajuda"
             ),
             'Descrição curta' => $api->setMyShortDescription(
-                'CRM BURI-TI: contatos, oportunidades, projetos, tarefas e alertas do site.'
+                'CRM BURI-TI: consulta e gestão de contatos, projetos, tarefas e alertas.'
             ),
             'Comandos' => $api->setMyCommands([
-                ['command' => 'ajuda', 'description' => 'Lista de comandos do CRM'],
+                ['command' => 'ajuda', 'description' => 'Lista completa de comandos CRM'],
+                ['command' => 'login', 'description' => 'Login admin: email|senha'],
+                ['command' => 'logout', 'description' => 'Encerrar sessão do bot'],
+                ['command' => 'eu', 'description' => 'Mostra a sessão atual'],
                 ['command' => 'id', 'description' => 'Mostra o Chat ID deste chat'],
                 ['command' => 'status', 'description' => 'Resumo operacional do CRM'],
-                ['command' => 'contato', 'description' => 'Criar/atualizar contato'],
-                ['command' => 'oportunidade', 'description' => 'Criar oportunidade'],
-                ['command' => 'projeto', 'description' => 'Criar projeto'],
-                ['command' => 'tarefa', 'description' => 'Criar tarefa'],
+                ['command' => 'contatos', 'description' => 'Listar contatos'],
+                ['command' => 'contato', 'description' => 'Ver/add/set/del contato'],
+                ['command' => 'oportunidades', 'description' => 'Listar oportunidades'],
+                ['command' => 'oportunidade', 'description' => 'Ver/add/set/del oportunidade'],
+                ['command' => 'projetos', 'description' => 'Listar projetos'],
+                ['command' => 'projeto', 'description' => 'Ver/add/set/del projeto'],
+                ['command' => 'tarefas', 'description' => 'Listar tarefas'],
+                ['command' => 'tarefa', 'description' => 'Ver/add/set/del tarefa'],
+                ['command' => 'mensagens', 'description' => 'Listar mensagens do site'],
+                ['command' => 'mensagem', 'description' => 'Ver/lida/del mensagem'],
             ]),
         ];
 

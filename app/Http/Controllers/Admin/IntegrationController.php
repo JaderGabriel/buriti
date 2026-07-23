@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateIntegrationsRequest;
+use App\Models\User;
 use App\Services\GoogleCalendarService;
 use App\Services\IntegrationToolkitService;
 use App\Services\SettingService;
@@ -27,6 +28,12 @@ class IntegrationController extends Controller
             'telegram' => $this->integrations->telegramStatus(),
             'google' => $this->google->integrationStatus(),
             'roadmap' => $this->integrations->roadmap(),
+            'telegramAdmins' => User::query()
+                ->where('is_admin', true)
+                ->where('is_active', true)
+                ->whereNotNull('telegram_chat_id')
+                ->orderBy('name')
+                ->get(['id', 'name', 'email', 'telegram_chat_id']),
         ]);
     }
 

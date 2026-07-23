@@ -21,10 +21,10 @@ Stack: **Laravel 13**, **Blade**, **Vite**, **Tailwind CSS 4**, **Alpine.js**, M
 - Mensagens do formulário (mensageria visual)
 - Projetos (nome, informações, links, GitHub, logo, contrato)
 - Anexos com soft delete (lixeira + recuperação) e auditoria
-- Planejamento de tarefas (kanban) com ícones Meet/Agenda e sync Google
+- Planejamento de atividades (calendário / agenda / quadro / lista) com Meet e sync Google
 - Usuários (criar/editar), foto de perfil, sessões, login e auditoria
 - Integrações: Google, Trello, Notion, Telegram Bot
-- Configurações de contato e hub de integração Google (embed → API + Meet)
+- Configurações de contato e hub de integração Google (atalhos → embed → API + Meet)
 
 ## Segurança
 
@@ -114,9 +114,153 @@ Definidos em `config/buriti.php` e editáveis em **Admin → Configurações**:
 - WhatsApp: `+55 38991758416`
 - Telegram: `@JaderGabriel` → https://t.me/JaderGabriel
 
+## Integração Google Agenda / Meet
+
+A integração tem **3 níveis**. Os níveis 1–2 configuram-se em **Admin → Configurações** (banco `settings`). O nível 3 usa variáveis no **`.env`**.
+
+| Nível | O que ativa | Onde configurar |
+|------|-------------|-----------------|
+| **1 — Básico** | Botão “Google Agenda” e atalho para criar evento/Meet | Admin → URL da agenda |
+| **2 — Operacional** | Agenda embutida no painel de atividades | Admin → Embed |
+| **3 — Total** | API cria/atualiza eventos e Meet automaticamente | `.env` + Calendar ID + auto-sync |
+
+Status atual: o painel mostra o nível em **Configurações** e em **Agenda** (`GoogleCalendarService::integrationStatus()`).
+
+---
+
+### Nível 1 — URL da Agenda (atalhos)
+
+1. Abra [Google Agenda](https://calendar.google.com/).
+2. Copie a URL da vista principal, tipicamente:
+   `https://calendar.google.com/calendar/u/0/r`
+3. Em **Admin → Configurações → Integração Google**:
+   - **URL da agenda** → cole essa URL
+4. Salve.
+
+**Resultado:** botões “Google Agenda” / “Novo Meet” e, sem API, o sync de tarefa abre um *template* de evento no browser (`calendar.google.com/calendar/render?...`).
+
+Não precisa de `.env` neste nível.
+
+---
+
+### Nível 2 — Embed da Agenda no admin
+
+1. No Google Agenda: **Definições** (engrenagem) → escolha a agenda → **Integrar calendário**.
+2. Em **Código de inserção**, copie:
+   - a **URL** do iframe (`https://calendar.google.com/calendar/embed?src=...`), **ou**
+   - o HTML completo `<iframe src="..."></iframe>`
+3. Em **Admin → Configurações**:
+   - **Embed (URL ou HTML do iframe)** → cole o valor  
+   - O sistema aceita só URLs `calendar.google.com` / `www.google.com` (sanitização em `SettingService`).
+4. Para a agenda aparecer publicamente no embed, em **Acesso** da agenda use **Disponível publicamente** (ou “Ver apenas disponibilidade”, conforme a política da conta).
+5. Salve e abra **Admin → Agenda**.
+
+**Resultado:** iframe da Agenda ao lado das vistas de atividades.
+
+Ainda não precisa de `.env`.
+
+---
+
+### Nível 3 — API OAuth (sync automático + Meet)
+
+O app **não** tem ecrã de “Ligar com Google” ainda. Usa um **refresh token** já obtido e troca-o por *access token* em runtime (`oauth2.googleapis.com/token`).
+
+#### Variáveis no `.env`
+
+```env
+GOOGLE_CLIENT_ID=xxxxx.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-xxxxx
+GOOGLE_REFRESH_TOKEN=1//xxxxx
+GOOGLE_REDIRECT_URI="${APP_URL}/admin/google/callback"
+```
+
+| Variável | O que é | Onde obter |
+|----------|---------|------------|
+| `GOOGLE_CLIENT_ID` | ID do cliente OAuth 2.0 | Google Cloud Console → Credenciais |
+| `GOOGLE_CLIENT_SECRET` | Segredo do cliente | Mesmo sítio (tipo “Aplicativo da Web”) |
+| `GOOGLE_REFRESH_TOKEN` | Token de longa duração com scope Calendar | OAuth Playground (passos abaixo) |
+| `GOOGLE_REDIRECT_URI` | URI autorizada no cliente OAuth | Deve coincidir com uma URI registada no Console; o valor default aponta para callback futuro. Para o Playground use também a URI do Playground. |
+
+Depois de editar o `.env`:
+
+```bash
+php artisan config:clear
+```
+
+#### Passo a passo — Google Cloud Console
+
+1. Aceda a [Google Cloud Console](https://console.cloud.google.com/).
+2. Crie (ou selecione) um **projeto**.
+3. **APIs e serviços → Biblioteca** → ative **Google Calendar API**.
+4. **APIs e serviços → Tela de consentimento OAuth**:
+   - Tipo: **Externo** (ou Interno, se for Workspace)
+   - Preencha nome da app, e-mail de suporte
+   - Em **Scopes**, adicione:
+     - `https://www.googleapis.com/auth/calendar`
+     - `https://www.googleapis.com/auth/calendar.events`
+   - Em modo teste, adicione o seu Gmail em **Utilizadores de teste**
+5. **APIs e serviços → Credenciais → Criar credenciais → ID do cliente OAuth**:
+   - Tipo: **Aplicativo da Web**
+   - **URIs de redirecionamento autorizados** (adicione ambas se for usar o Playground):
+     - `https://developers.google.com/oauthplayground`
+     - `https://buriti.dev.br/public/admin/google/callback` (ou o seu `APP_URL` + `/admin/google/callback`)
+6. Copie **Client ID** e **Client Secret** para o `.env`.
+
+#### Passo a passo — obter `GOOGLE_REFRESH_TOKEN`
+
+1. Abra [OAuth 2.0 Playground](https://developers.google.com/oauthplayground/).
+2. Clique na engrenagem (**OAuth 2.0 configuration**):
+   - Marque **Use your own OAuth credentials**
+   - Cole o `GOOGLE_CLIENT_ID` e o `GOOGLE_CLIENT_SECRET`
+3. Em **Step 1**, selecione:
+   - `Calendar API v3` → `https://www.googleapis.com/auth/calendar`
+   - e/ou `https://www.googleapis.com/auth/calendar.events`
+4. **Authorize APIs** → escolha a conta Google da agenda → aceite.
+5. **Step 2 → Exchange authorization code for tokens**.
+6. Copie o **Refresh token** para `GOOGLE_REFRESH_TOKEN` no `.env`.
+
+> Guarde o refresh token em local seguro. Se o revogar (segurança da conta Google) ou mudar o Client Secret, tem de gerar outro.
+
+#### Calendar ID (Admin, não `.env`)
+
+1. Google Agenda → Definições da agenda → **Integrar calendário**.
+2. Copie o **ID do calendário**:
+   - agenda principal: muitas vezes `primary`, **ou**
+   - um e-mail do tipo `nome@gmail.com` / `...@group.calendar.google.com`
+3. Em **Admin → Configurações** → **Calendar ID (API)** → cole o valor (default: `primary`).
+
+#### Auto-sync
+
+Em **Admin → Configurações**, marque:
+
+- **Sincronizar automaticamente ao criar/editar tarefa (requer API nível 3)**
+
+Com API + esta opção:
+
+- criar/editar atividade com Meet marcado → cria/atualiza evento na Agenda e grava `google_event_id` / `meet_url`
+- sem API → o botão **Agenda** na atividade abre o template no browser
+
+#### Checklist rápido nível 3
+
+```text
+[ ] Calendar API ativada no Cloud Console
+[ ] OAuth Client (Web) com Client ID + Secret
+[ ] Refresh token com scope calendar no .env
+[ ] php artisan config:clear
+[ ] Calendar ID correto em Configurações
+[ ] Auto-sync ligado (opcional, recomendado)
+[ ] Painel mostra “API pronta neste ambiente: sim”
+```
+
+#### Notas
+
+- `GOOGLE_REDIRECT_URI` no `.env` serve sobretudo para alinhar a URI no Console; a app **atual** autentica só com refresh token (não implementa ainda a rota `/admin/google/callback`).
+- Timezone dos eventos: `APP_TIMEZONE` / `config('app.timezone')`.
+- Em produção (`APP_URL=https://buriti.dev.br/public`), mantenha o mesmo domínio nas URIs autorizadas do OAuth.
+
 ## Telegram Bot (CRM)
 
-Bot automatizado para criar registros e receber mensagens do formulário:
+Bot para **listar, ver, criar, editar e apagar** registos do CRM, e receber mensagens do formulário:
 
 1. Crie o bot no [@BotFather](https://t.me/BotFather)
 2. No `.env`:
@@ -124,13 +268,26 @@ Bot automatizado para criar registros e receber mensagens do formulário:
    TELEGRAM_BOT_TOKEN=...
    TELEGRAM_WEBHOOK_SECRET=uma-string-aleatoria
    ```
-3. Com `APP_URL` público (HTTPS), ex.: `https://buriti.dev.br/public`: `php artisan telegram:set-webhook`
-4. Fale com o bot, envie `/id` e cole o Chat ID em Integrações
-5. Comandos: `/ajuda`, `/contato`, `/oportunidade`, `/projeto`, `/tarefa`, `/status`
+3. Com `APP_URL` público (HTTPS), ex.: `https://buriti.dev.br/public`: `php artisan telegram:configure`
+4. Fale com o bot e faça login de **admin**: `/login email_ou_usuario | senha`
+5. Apague a mensagem do login; use `/logout` para sair
+6. Comandos: `/ajuda`, `/status`, `/contatos`, CRUD com `add`/`set`/`del`, etc.
+
+Apenas utilizadores com `is_admin=1` e conta ativa podem autenticar. A sessão fica ligada ao `telegram_chat_id` do utilizador.
+
+Padrão de ações (campos separados por `|`; em `set` use `.` para manter; em `del` confirme com `ok`):
+
+```text
+/contatos
+/contato 12
+/contato add Nome | email | tel? | empresa? | status?
+/contato set 12 | Nome | email | . | empresa | active
+/contato del 12 ok
+```
+
+O mesmo padrão vale para `/oportunidade`, `/projeto`, `/tarefa` e `/mensagem` (`lida` / `del`).
 
 Webhook: `POST {APP_URL}/webhooks/telegram/{TELEGRAM_WEBHOOK_SECRET}`
-
-Para reconfigurar nome, foto clara e webhook:
 
 ```bash
 php artisan telegram:configure

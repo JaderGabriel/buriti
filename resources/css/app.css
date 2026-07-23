@@ -1330,5 +1330,519 @@ html.dark .postit-slate {
     opacity: 0.9;
 }
 
+/* —— Admin task planner / calendar —— */
+.task-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+    .task-stats {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+.task-stat {
+    border: 1px solid var(--color-line);
+    border-radius: 2px;
+    background: var(--color-panel);
+    padding: 0.85rem 1rem;
+}
+
+.task-stat__value {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-snow);
+    line-height: 1.1;
+}
+
+.task-stat__label {
+    margin-top: 0.25rem;
+    display: block;
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-mist);
+}
+
+.task-view-switch {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+@media (min-width: 640px) {
+    .task-view-switch {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+.task-view-switch__btn {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    border: 1px solid var(--color-line);
+    border-radius: 2px;
+    background: var(--color-panel);
+    padding: 0.7rem 0.85rem;
+    text-decoration: none;
+    transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.task-view-switch__btn:hover {
+    border-color: color-mix(in oklab, var(--color-brand-bright) 45%, var(--color-line));
+}
+
+.task-view-switch__btn.is-active {
+    border-color: color-mix(in oklab, var(--color-brand-bright) 55%, var(--color-line));
+    background: color-mix(in oklab, var(--color-brand) 12%, var(--color-panel));
+}
+
+.task-view-switch__label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-snow);
+}
+
+.task-view-switch__hint {
+    font-size: 0.7rem;
+    color: var(--color-mist);
+}
+
+.task-calendar__toolbar,
+.task-agenda__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.task-calendar__nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.task-calendar__nav-btn {
+    display: inline-flex;
+    height: 2.25rem;
+    width: 2.25rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-line);
+    border-radius: 2px;
+    background: var(--color-panel);
+    color: var(--color-snow);
+    font-size: 1.25rem;
+    line-height: 1;
+    text-decoration: none;
+}
+
+.task-calendar__nav-btn:hover {
+    border-color: var(--color-brand-bright);
+}
+
+.task-calendar__month {
+    min-width: 10rem;
+    text-align: center;
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--color-snow);
+}
+
+.task-calendar__today {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-brand-bright);
+    text-decoration: none;
+}
+
+.task-calendar__today:hover {
+    text-decoration: underline;
+}
+
+.task-calendar__weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.35rem;
+    margin-bottom: 0.35rem;
+}
+
+.task-calendar__weekdays span {
+    text-align: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-mist);
+}
+
+.task-calendar__grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.35rem;
+}
+
+.task-calendar__cell {
+    min-height: 7.5rem;
+    border: 1px solid var(--color-line);
+    border-radius: 2px;
+    background: var(--color-panel);
+    padding: 0.4rem;
+    overflow: hidden;
+}
+
+.task-calendar__cell.is-muted {
+    opacity: 0.45;
+}
+
+.task-calendar__cell.is-today {
+    border-color: color-mix(in oklab, var(--color-brand-bright) 60%, var(--color-line));
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-brand-bright) 35%, transparent);
+}
+
+.task-calendar__daynum {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-snow);
+    margin-bottom: 0.35rem;
+}
+
+.task-calendar__events {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.task-calendar__event {
+    border-left: 2px solid var(--color-brand-bright);
+    background: color-mix(in oklab, var(--color-ink) 55%, transparent);
+    border-radius: 0 2px 2px 0;
+    padding: 0.15rem 0.25rem;
+}
+
+.task-calendar__event--doing {
+    border-left-color: #2f7ec4;
+}
+
+.task-calendar__event--done {
+    border-left-color: #3d9b6e;
+}
+
+.task-calendar__event--todo {
+    border-left-color: var(--color-brand-bright);
+}
+
+.task-calendar__more {
+    font-size: 0.65rem;
+    color: var(--color-mist);
+    padding: 0.1rem 0.2rem;
+}
+
+.task-calendar__undated {
+    margin-top: 1.25rem;
+    border-top: 1px solid var(--color-line);
+    padding-top: 1rem;
+}
+
+.task-calendar__undated-title {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-snow);
+    margin-bottom: 0.75rem;
+}
+
+.task-calendar__undated-list {
+    display: grid;
+    gap: 0.65rem;
+}
+
+@media (min-width: 768px) {
+    .task-calendar__undated-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .task-calendar__cell {
+        min-height: 8.5rem;
+    }
+}
+
+.task-agenda__day {
+    display: grid;
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+    gap: 0.85rem;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-line);
+}
+
+.task-agenda__day.is-today .task-agenda__dom {
+    color: var(--color-brand-bright);
+}
+
+.task-agenda__date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-top: 0.25rem;
+}
+
+.task-agenda__dow {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-mist);
+}
+
+.task-agenda__dom {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-snow);
+    line-height: 1.1;
+}
+
+.task-agenda__moy {
+    font-size: 0.65rem;
+    color: var(--color-mist);
+}
+
+.task-agenda__items {
+    display: grid;
+    gap: 0.65rem;
+}
+
+.task-board {
+    display: grid;
+    gap: 0.85rem;
+}
+
+@media (min-width: 1024px) {
+    .task-board {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+.task-board__column {
+    border: 1px solid var(--color-line);
+    border-radius: 2px;
+    background: color-mix(in oklab, var(--color-panel) 85%, transparent);
+    padding: 0.85rem;
+}
+
+.task-board__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.85rem;
+}
+
+.task-board__header h2 {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-snow);
+}
+
+.task-board__header span {
+    font-size: 0.75rem;
+    color: var(--color-mist);
+}
+
+.task-board__list {
+    display: grid;
+    gap: 0.65rem;
+}
+
+.task-list__table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--color-line);
+    border-radius: 2px;
+}
+
+.task-list__table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 720px;
+}
+
+.task-list__table th {
+    text-align: left;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-mist);
+    padding: 0.75rem 0.85rem;
+    border-bottom: 1px solid var(--color-line);
+    background: var(--color-panel);
+}
+
+.task-list__table td {
+    vertical-align: top;
+    padding: 0.75rem 0.85rem;
+    border-bottom: 1px solid color-mix(in oklab, var(--color-line) 70%, transparent);
+}
+
+.task-item {
+    border: 1px solid var(--color-line);
+    border-radius: 2px;
+    background: color-mix(in oklab, var(--color-ink) 55%, var(--color-panel));
+    padding: 0.65rem 0.75rem;
+}
+
+.task-item--compact {
+    border: 0;
+    background: transparent;
+    padding: 0;
+}
+
+.task-item__toggle {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    text-align: left;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    color: inherit;
+}
+
+.task-item__title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-snow);
+    line-height: 1.3;
+}
+
+.task-item--compact .task-item__title {
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.task-item__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    align-items: center;
+}
+
+.task-item--compact .task-item__meta {
+    display: none;
+}
+
+.task-item__sub {
+    margin-top: 0.35rem;
+    font-size: 0.75rem;
+    color: var(--color-mist);
+}
+
+.task-item__time {
+    font-size: 0.7rem;
+    color: var(--color-mist);
+}
+
+.task-item__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.5rem;
+    align-items: center;
+}
+
+.task-item--compact .task-item__actions {
+    margin-top: 0.2rem;
+}
+
+.task-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border: 1px solid var(--color-line);
+    border-radius: 2px;
+    background: transparent;
+    padding: 0.2rem 0.45rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--color-mist);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.task-action:hover {
+    border-color: color-mix(in oklab, var(--color-brand-bright) 50%, var(--color-line));
+    color: var(--color-brand-bright);
+}
+
+.task-item__sync {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-brand-bright);
+}
+
+.task-item__editor {
+    margin-top: 0.65rem;
+    border-top: 1px solid var(--color-line);
+    padding-top: 0.65rem;
+}
+
+.task-chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 2px;
+    padding: 0.1rem 0.35rem;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.task-chip--todo,
+.task-chip--medium {
+    background: color-mix(in oklab, var(--color-brand) 18%, transparent);
+    color: var(--color-brand-bright);
+}
+
+.task-chip--doing,
+.task-chip--high {
+    background: color-mix(in oklab, #2f7ec4 22%, transparent);
+    color: #7eb6e8;
+}
+
+.task-chip--done,
+.task-chip--low {
+    background: color-mix(in oklab, #3d9b6e 20%, transparent);
+    color: #7dcca5;
+}
+
+@media (max-width: 767px) {
+    .task-calendar__weekdays span:nth-child(n + 2) {
+        font-size: 0.6rem;
+    }
+
+    .task-calendar__cell {
+        min-height: 5.5rem;
+        padding: 0.25rem;
+    }
+
+    .task-item--compact .task-item__actions .task-action:not(:last-child) {
+        display: none;
+    }
+}
+
 
 

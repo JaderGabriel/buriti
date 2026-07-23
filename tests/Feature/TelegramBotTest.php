@@ -12,6 +12,7 @@ use App\Models\ContactMessage;
 use App\Models\Opportunity;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\User;
 use App\Services\SettingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -20,6 +21,8 @@ use Tests\TestCase;
 class TelegramBotTest extends TestCase
 {
     use RefreshDatabase;
+
+    private User $admin;
 
     protected function setUp(): void
     {
@@ -31,14 +34,33 @@ class TelegramBotTest extends TestCase
             'app.url' => 'https://buriti.test',
         ]);
 
+        $this->admin = User::factory()->create([
+            'email' => 'admin@buriti.test',
+            'username' => 'adminbot',
+            'password' => 'password',
+            'is_admin' => true,
+            'is_active' => true,
+        ]);
+
         app(SettingService::class)->putMany([
-            'telegram_allowed_chat_ids' => '999001',
             'telegram_notify_chat_id' => '999001',
         ]);
 
         Http::fake([
             'api.telegram.org/*' => Http::response(['ok' => true, 'result' => true]),
         ]);
+    }
+
+    private function loginAdmin(string $chatId = '999001'): void
+    {
+        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+            'message' => [
+                'chat' => ['id' => (int) $chatId],
+                'text' => '/login admin@buriti.test | password',
+            ],
+        ])->assertOk();
+
+        $this->assertSame($chatId, $this->admin->fresh()->telegram_chat_id);
     }
 
     public function test_webhook_rejects_invalid_secret(): void
@@ -48,8 +70,43 @@ class TelegramBotTest extends TestCase
         ])->assertNotFound();
     }
 
-    public function test_bot_creates_contact_opportunity_project_and_task(): void
+    public function test_unauthenticated_chat_cannot_run_crm_commands(): void
     {
+        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+            'message' => [
+                'chat' => ['id' => 999001],
+                'text' => '/contato Intruso | hack@x.com',
+            ],
+        ])->assertOk();
+
+        $this->assertDatabaseMissing('contacts', ['email' => 'hack@x.com']);
+        Http::assertSent(fn ($request) => str_contains($request->data()['text'] ?? '', 'administradores'));
+    }
+
+    public function test_non_admin_cannot_login(): void
+    {
+        User::factory()->withoutAdminAccess()->create([
+            'email' => 'user@buriti.test',
+            'password' => 'password',
+        ]);
+
+        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+            'message' => [
+                'chat' => ['id' => 555],
+                'text' => '/login user@buriti.test | password',
+            ],
+        ])->assertOk();
+
+        $this->assertDatabaseMissing('users', [
+            'email' => 'user@buriti.test',
+            'telegram_chat_id' => '555',
+        ]);
+    }
+
+    public function test_admin_can_login_and_use_crm(): void
+    {
+        $this->loginAdmin();
+
         $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
             'message' => [
                 'chat' => ['id' => 999001],
@@ -84,7 +141,6 @@ class TelegramBotTest extends TestCase
         $project = Project::query()->where('name', 'Portal Acme')->first();
         $this->assertNotNull($project);
         $this->assertSame(ProjectStatus::Active, $project->status);
-        $this->assertFalse($project->is_public);
 
         $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
             'message' => [
@@ -97,26 +153,35 @@ class TelegramBotTest extends TestCase
         $this->assertNotNull($task);
         $this->assertSame(TaskPriority::High, $task->priority);
         $this->assertSame(TaskStatus::Todo, $task->status);
-        $this->assertSame($project->id, $task->project_id);
-        $this->assertSame($contact->id, $task->contact_id);
-
-        Http::assertSent(fn ($request) => str_contains($request->url(), 'sendMessage'));
     }
 
-    public function test_unauthorized_chat_cannot_create_records(): void
+    public function test_admin_can_logout(): void
     {
+        $this->loginAdmin();
+
         $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
             'message' => [
-                'chat' => ['id' => 111],
-                'text' => '/contato Intruso | hack@x.com',
+                'chat' => ['id' => 999001],
+                'text' => '/logout',
             ],
         ])->assertOk();
 
-        $this->assertDatabaseMissing('contacts', ['email' => 'hack@x.com']);
+        $this->assertNull($this->admin->fresh()->telegram_chat_id);
+
+        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+            'message' => [
+                'chat' => ['id' => 999001],
+                'text' => '/contatos',
+            ],
+        ])->assertOk();
+
+        Http::assertSent(fn ($request) => str_contains($request->data()['text'] ?? '', 'administradores'));
     }
 
     public function test_website_form_notifies_telegram(): void
     {
+        $this->loginAdmin();
+
         $this->post(route('contact.store'), [
             'name' => 'Lead Site',
             'email' => 'lead@site.com',
@@ -148,40 +213,95 @@ class TelegramBotTest extends TestCase
         });
     }
 
-    public function test_notify_chat_id_is_also_authorized_for_commands(): void
+    public function test_bot_lists_shows_updates_and_deletes_crm_records(): void
     {
-        app(SettingService::class)->putMany([
-            'telegram_allowed_chat_ids' => '',
-            'telegram_notify_chat_id' => '555001',
+        $this->loginAdmin();
+
+        $contact = Contact::factory()->create([
+            'name' => 'Ana Silva',
+            'email' => 'ana@empresa.com',
+        ]);
+        $project = Project::factory()->create(['name' => 'Portal Acme']);
+        $task = Task::factory()->create([
+            'title' => 'Kickoff',
+            'project_id' => $project->id,
+            'contact_id' => $contact->id,
+            'status' => TaskStatus::Todo,
+            'priority' => TaskPriority::Medium,
+        ]);
+        $opportunity = Opportunity::factory()->create([
+            'contact_id' => $contact->id,
+            'title' => 'Site institucional',
+            'stage' => OpportunityStage::Lead,
+        ]);
+        $message = ContactMessage::factory()->create([
+            'name' => 'Lead Site',
+            'email' => 'lead@site.com',
+            'subject' => 'Proposta',
+            'read_at' => null,
         ]);
 
         $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
-            'message' => [
-                'chat' => ['id' => 555001],
-                'text' => '/contato Notify User | notify@empresa.com',
-            ],
+            'message' => ['chat' => ['id' => 999001], 'text' => '/contatos'],
         ])->assertOk();
 
-        $this->assertDatabaseHas('contacts', ['email' => 'notify@empresa.com']);
+        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+            'message' => [
+                'chat' => ['id' => 999001],
+                'text' => "/contato set {$contact->id} | Ana Atualizada | . | . | . | active",
+            ],
+        ])->assertOk();
+        $this->assertSame('Ana Atualizada', $contact->fresh()->name);
+
+        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+            'message' => [
+                'chat' => ['id' => 999001],
+                'text' => "/tarefa set {$task->id} | Kickoff OK | . | . | high | doing",
+            ],
+        ])->assertOk();
+        $task->refresh();
+        $this->assertSame('Kickoff OK', $task->title);
+        $this->assertSame(TaskPriority::High, $task->priority);
+
+        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+            'message' => [
+                'chat' => ['id' => 999001],
+                'text' => "/oportunidade set {$opportunity->id} | . | Site Plus | qualified | 20000",
+            ],
+        ])->assertOk();
+        $this->assertSame('Site Plus', $opportunity->fresh()->title);
+
+        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+            'message' => ['chat' => ['id' => 999001], 'text' => "/mensagem lida {$message->id}"],
+        ])->assertOk();
+        $this->assertNotNull($message->fresh()->read_at);
+
+        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+            'message' => ['chat' => ['id' => 999001], 'text' => "/projeto del {$project->id} ok"],
+        ])->assertOk();
+        $this->assertDatabaseMissing('projects', ['id' => $project->id]);
+
+        $this->postJson(route('webhooks.telegram', ['secret' => 'secret-test']), [
+            'message' => ['chat' => ['id' => 999001], 'text' => "/tarefa del {$task->id} ok"],
+        ])->assertOk();
+        $this->assertDatabaseMissing('tasks', ['id' => $task->id]);
     }
 
-    public function test_admin_can_save_telegram_chat_settings(): void
+    public function test_admin_can_save_telegram_notify_setting(): void
     {
-        $admin = \App\Models\User::factory()->create();
+        $admin = User::factory()->create();
 
         $this->actingAs($admin)->put(route('admin.integrations.update'), [
-            'telegram_allowed_chat_ids' => '42, 43',
             'telegram_notify_chat_id' => '42',
         ])->assertRedirect(route('admin.integrations.edit'));
 
         $settings = app(SettingService::class)->all();
-        $this->assertSame('42, 43', $settings['telegram_allowed_chat_ids']);
         $this->assertSame('42', $settings['telegram_notify_chat_id']);
 
         $this->actingAs($admin)
             ->get(route('admin.integrations.edit'))
             ->assertOk()
             ->assertSee('Telegram Bot', false)
-            ->assertSee('/contato', false);
+            ->assertSee('/login', false);
     }
 }

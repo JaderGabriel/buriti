@@ -109,28 +109,31 @@
 
             <div class="mt-4 grid gap-4 sm:grid-cols-2">
                 <x-ui.input
-                    name="telegram_allowed_chat_ids"
-                    label="Chats autorizados (IDs)"
-                    :value="$settings['telegram_allowed_chat_ids'] ?? ''"
-                    placeholder="ex.: 123456789, -100987654321"
-                />
-                <x-ui.input
                     name="telegram_notify_chat_id"
-                    label="Chat para notificações do site"
+                    label="Chat extra para notificações do site (opcional)"
                     :value="$settings['telegram_notify_chat_id'] ?? ''"
-                    placeholder="Mesmo ID ou outro chat/grupo"
+                    placeholder="Chat ID — além dos admins logados no bot"
                 />
+            </div>
+
+            <div class="mt-4 rounded-sm border border-line bg-ink/20 px-4 py-3 text-sm text-mist">
+                <p class="font-semibold text-snow">Admins com sessão no bot</p>
+                @forelse($telegramAdmins as $adminUser)
+                    <p class="mt-1">{{ $adminUser->name }} · {{ $adminUser->email }} · <code class="text-snow">{{ $adminUser->telegram_chat_id }}</code></p>
+                @empty
+                    <p class="mt-1">Nenhum admin logado. No Telegram: <code class="text-snow">/login email | senha</code></p>
+                @endforelse
             </div>
 
             <div class="mt-4 space-y-2 rounded-sm border border-line bg-ink/30 px-4 py-3 text-xs text-mist">
                 <p class="font-semibold text-snow">Como ativar</p>
                 <ol class="list-decimal space-y-1 pl-4">
                     <li>Crie o bot no @BotFather e copie o token.</li>
-                    <li>No <code class="text-snow">.env</code>: <code class="text-snow">TELEGRAM_BOT_TOKEN</code> e <code class="text-snow">TELEGRAM_WEBHOOK_SECRET</code> (string aleatória).</li>
-                    <li>Rode <code class="text-snow">php artisan telegram:configure</code> (APP_URL = <code class="text-snow">https://buriti.dev.br/public</code>).</li>
-                    <li>Fale com o bot, envie <code class="text-snow">/id</code> e cole o Chat ID em <strong class="text-snow">Chats autorizados</strong> (e no de notificação, se quiser alertas do site).</li>
-                    <li>No servidor: <code class="text-snow">APP_URL=https://buriti.dev.br/public</code>, mesmo <code class="text-snow">TELEGRAM_WEBHOOK_SECRET</code> do webhook, depois <code class="text-snow">php artisan telegram:configure</code>.</li>
-                    <li>Comandos: <code class="text-snow">/ajuda</code>, <code class="text-snow">/contato</code>, <code class="text-snow">/oportunidade</code>, <code class="text-snow">/projeto</code>, <code class="text-snow">/tarefa</code>.</li>
+                    <li>No <code class="text-snow">.env</code>: <code class="text-snow">TELEGRAM_BOT_TOKEN</code> e <code class="text-snow">TELEGRAM_WEBHOOK_SECRET</code>.</li>
+                    <li>Rode <code class="text-snow">php artisan telegram:configure</code> (APP_URL com <code class="text-snow">/public</code> em produção).</li>
+                    <li>No bot: <code class="text-snow">/login email_ou_usuario | senha</code> — <strong class="text-snow">apenas contas admin</strong>.</li>
+                    <li>Apague a mensagem do login (contém a senha). Use <code class="text-snow">/logout</code> para encerrar.</li>
+                    <li>Comandos CRM: <code class="text-snow">/ajuda</code>, listas e <code class="text-snow">add</code>/<code class="text-snow">set</code>/<code class="text-snow">del</code>.</li>
                 </ol>
                 <p class="mt-2">
                     Token:
@@ -141,9 +144,9 @@
                     <span class="{{ $telegram['webhook_secret_set'] ? 'text-brand-bright' : 'text-mist' }}">
                         {{ $telegram['webhook_secret_set'] ? 'sim' : 'não' }}
                     </span>
-                    · Chats:
-                    <span class="{{ $telegram['allowed_chats_set'] ? 'text-brand-bright' : 'text-mist' }}">
-                        {{ $telegram['allowed_chats_set'] ? 'autorizados' : 'pendente' }}
+                    · Admins logados:
+                    <span class="{{ ($telegram['linked_admins'] ?? 0) > 0 ? 'text-brand-bright' : 'text-mist' }}">
+                        {{ $telegram['linked_admins'] ?? 0 }}
                     </span>
                 </p>
                 @if(! empty($telegram['webhook_url']))
