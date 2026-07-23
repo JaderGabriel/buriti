@@ -70,11 +70,33 @@ class TelegramApiClient
 
         $response = Http::timeout(15)->asJson()->post($this->endpoint('setWebhook'), $payload);
 
-        return [
-            'ok' => (bool) ($response->json('ok') ?? false),
-            'description' => (string) ($response->json('description') ?? $response->body()),
-            'result' => $response->json('result'),
-        ];
+        return $this->normalize($response);
+    }
+
+    /** @return array{ok: bool, description?: string, result?: mixed} */
+    public function deleteWebhook(): array
+    {
+        if (! $this->configured()) {
+            return ['ok' => false, 'description' => 'TELEGRAM_BOT_TOKEN em falta.'];
+        }
+
+        $response = Http::timeout(12)->asJson()->post($this->endpoint('deleteWebhook'), [
+            'drop_pending_updates' => false,
+        ]);
+
+        return $this->normalize($response);
+    }
+
+    /** @return array{ok: bool, description?: string, result?: mixed} */
+    public function getWebhookInfo(): array
+    {
+        if (! $this->configured()) {
+            return ['ok' => false, 'description' => 'TELEGRAM_BOT_TOKEN em falta.'];
+        }
+
+        $response = Http::timeout(12)->get($this->endpoint('getWebhookInfo'));
+
+        return $this->normalize($response);
     }
 
     /** @return array{ok: bool, description?: string, result?: mixed} */
@@ -86,9 +108,99 @@ class TelegramApiClient
 
         $response = Http::timeout(12)->get($this->endpoint('getMe'));
 
+        return $this->normalize($response);
+    }
+
+    /**
+     * @param  list<array{command: string, description: string}>  $commands
+     * @return array{ok: bool, description?: string, result?: mixed}
+     */
+    public function setMyCommands(array $commands): array
+    {
+        if (! $this->configured()) {
+            return ['ok' => false, 'description' => 'TELEGRAM_BOT_TOKEN em falta.'];
+        }
+
+        $response = Http::timeout(12)->asJson()->post($this->endpoint('setMyCommands'), [
+            'commands' => $commands,
+        ]);
+
+        return $this->normalize($response);
+    }
+
+    /** @return array{ok: bool, description?: string, result?: mixed} */
+    public function setMyName(string $name): array
+    {
+        if (! $this->configured()) {
+            return ['ok' => false, 'description' => 'TELEGRAM_BOT_TOKEN em falta.'];
+        }
+
+        $response = Http::timeout(12)->asJson()->post($this->endpoint('setMyName'), [
+            'name' => $name,
+        ]);
+
+        return $this->normalize($response);
+    }
+
+    /** @return array{ok: bool, description?: string, result?: mixed} */
+    public function setMyDescription(string $description): array
+    {
+        if (! $this->configured()) {
+            return ['ok' => false, 'description' => 'TELEGRAM_BOT_TOKEN em falta.'];
+        }
+
+        $response = Http::timeout(12)->asJson()->post($this->endpoint('setMyDescription'), [
+            'description' => $description,
+        ]);
+
+        return $this->normalize($response);
+    }
+
+    /** @return array{ok: bool, description?: string, result?: mixed} */
+    public function setMyShortDescription(string $description): array
+    {
+        if (! $this->configured()) {
+            return ['ok' => false, 'description' => 'TELEGRAM_BOT_TOKEN em falta.'];
+        }
+
+        $response = Http::timeout(12)->asJson()->post($this->endpoint('setMyShortDescription'), [
+            'short_description' => $description,
+        ]);
+
+        return $this->normalize($response);
+    }
+
+    /** @return array{ok: bool, description?: string, result?: mixed} */
+    public function setMyProfilePhoto(string $absolutePath): array
+    {
+        if (! $this->configured()) {
+            return ['ok' => false, 'description' => 'TELEGRAM_BOT_TOKEN em falta.'];
+        }
+
+        if (! is_file($absolutePath)) {
+            return ['ok' => false, 'description' => "Imagem não encontrada: {$absolutePath}"];
+        }
+
+        $photoMeta = json_encode([
+            'type' => 'static',
+            'photo' => 'attach://bot_photo',
+        ], JSON_THROW_ON_ERROR);
+
+        $response = Http::timeout(30)
+            ->attach('bot_photo', file_get_contents($absolutePath), basename($absolutePath))
+            ->post($this->endpoint('setMyProfilePhoto'), [
+                'photo' => $photoMeta,
+            ]);
+
+        return $this->normalize($response);
+    }
+
+    /** @return array{ok: bool, description?: string, result?: mixed} */
+    private function normalize(\Illuminate\Http\Client\Response $response): array
+    {
         return [
             'ok' => (bool) ($response->json('ok') ?? false),
-            'description' => (string) ($response->json('description') ?? ''),
+            'description' => (string) ($response->json('description') ?? $response->body()),
             'result' => $response->json('result'),
         ];
     }

@@ -124,11 +124,17 @@ Bot automatizado para criar registros e receber mensagens do formulário:
    TELEGRAM_BOT_TOKEN=...
    TELEGRAM_WEBHOOK_SECRET=uma-string-aleatoria
    ```
-3. Com `APP_URL` público (HTTPS): `php artisan telegram:set-webhook`
-4. Em **Admin → Integrações → Telegram**, cole o Chat ID (`/id` no bot)
+3. Com `APP_URL` público (HTTPS), ex.: `https://buriti.dev.br/public`: `php artisan telegram:set-webhook`
+4. Fale com o bot, envie `/id` e cole o Chat ID em Integrações
 5. Comandos: `/ajuda`, `/contato`, `/oportunidade`, `/projeto`, `/tarefa`, `/status`
 
-Webhook: `POST /webhooks/telegram/{TELEGRAM_WEBHOOK_SECRET}`
+Webhook: `POST {APP_URL}/webhooks/telegram/{TELEGRAM_WEBHOOK_SECRET}`
+
+Para reconfigurar nome, foto clara e webhook:
+
+```bash
+php artisan telegram:configure
+```
 
 ## Arquitetura (MVC)
 
