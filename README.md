@@ -256,11 +256,10 @@ Cobertura inclui site público, auth, CRM (contactos, oportunidades, projetos/bo
 5. `npm run build` e `php artisan storage:link`
 6. `php artisan config:cache && php artisan view:cache`
 7. Cron: `* * * * * cd /caminho && php artisan schedule:run`
-8. Web root apontando para a pasta `public/`
+8. Web root apontando para a pasta `public/` (ideal: URL sem `/public`; se a app ficar em `https://dominio/public`, o guard remove `route:cache` automaticamente)
 9. Trocar senha do admin e proteger `/admin`
-10. Em logout/login: se a home der 405, ver nota abaixo
 
-**Nota sobre `route:cache`:** com a app servida sob um subpath (ex.: `https://dominio/public`), o cache de rotas quebra a home (`GET /` → 405, só `HEAD`). Nesse caso use `php artisan route:clear` e **não** corra `route:cache`. Com document root em `public/`, `route:cache` é seguro. O logout redireciona para `/admin/login` para não depender da home após sair da sessão.
+**Nota sobre `route:cache`:** com `APP_URL` em subpath (ex. `https://dominio/public`), o cache de rotas quebra a home (`GET /` → 405, só `HEAD`). A app **remove esse cache ao arrancar** e após `optimize`/`route:cache`. Prefira document root = `public/` e `APP_URL` sem path; aí `route:cache` é seguro. Logout volta para a home do site.
 
 ## Licença
 

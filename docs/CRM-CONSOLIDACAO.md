@@ -159,7 +159,7 @@ Ao consolidar, **não regressar** estes comportamentos:
 2. Notas posteriores numa reunião **já concluída** são válidas (mesmo `task_id`).
 3. Abrir nota/reunião mostra o **trend** (cadeia temporal no mesmo `task_id`).
 4. Anexos de documentos passam por download/preview autenticados (disco privado).
-5. Com app sob `/public`, **não** usar `route:cache` (ou apontar o document root para `public/`).
+5. Com app sob `/public`, a app remove `route:cache` sozinha (ou apontar o document root para `public/`).
 6. Sessões admin revogáveis exigem `SESSION_DRIVER=database`.
 
 ---

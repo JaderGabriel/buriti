@@ -123,7 +123,7 @@ class AuthTest extends TestCase
 
         $response = $this->actingAs($user)->post(route('logout'));
 
-        $response->assertRedirect(route('login'));
+        $response->assertRedirect(route('home'));
         $this->assertGuest();
     }
 }
