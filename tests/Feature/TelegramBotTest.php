@@ -250,6 +250,37 @@ class TelegramBotTest extends TestCase
         });
     }
 
+    public function test_contatos_lists_even_when_email_is_null(): void
+    {
+        $this->loginAdmin();
+
+        Contact::factory()->create([
+            'name' => 'Sem Email',
+            'email' => null,
+        ]);
+        Contact::factory()->create([
+            'name' => 'Com Email',
+            'email' => 'ok@buriti.test',
+        ]);
+
+        $this->postWebhook([
+            'message' => ['chat' => ['id' => 999001], 'text' => '/contatos'],
+        ])->assertOk();
+
+        Http::assertSent(function ($request) {
+            if (! str_contains($request->url(), 'sendMessage')) {
+                return false;
+            }
+
+            $text = (string) ($request->data()['text'] ?? '');
+
+            return str_contains($text, 'Contatos')
+                && str_contains($text, 'Sem Email')
+                && str_contains($text, 'Com Email')
+                && str_contains($text, 'ok@buriti.test');
+        });
+    }
+
     public function test_bot_lists_shows_updates_and_deletes_crm_records(): void
     {
         $this->loginAdmin();

@@ -57,6 +57,14 @@ class TelegramBotService
         return $this->configured();
     }
 
+    public function notifyProcessingError(string $chatId): void
+    {
+        $this->api->sendMessage(
+            $chatId,
+            '⚠️ Não consegui processar esse comando. Tente de novo ou envie /ajuda.'
+        );
+    }
+
     /** @param  array<string, mixed>  $update */
     public function handleUpdate(array $update): void
     {
@@ -559,7 +567,8 @@ HTML;
         $lines = ["👥 <b>Contatos</b> (últimos {$items->count()})", ''];
         foreach ($items as $contact) {
             $status = $contact->status?->value ?? '?';
-            $lines[] = "#{$contact->id} · {$this->escape($contact->name)} · {$this->escape($contact->email)} · <i>{$status}</i>";
+            $email = filled($contact->email) ? $this->escape($contact->email) : '—';
+            $lines[] = "#{$contact->id} · {$this->escape($contact->name)} · {$email} · <i>{$status}</i>";
         }
         $lines[] = '';
         $lines[] = 'Detalhe: <code>/contato ID</code>';
@@ -579,7 +588,7 @@ HTML;
         return implode("\n", array_filter([
             "👤 <b>Contato #{$contact->id}</b>",
             '<b>Nome:</b> '.$this->escape($contact->name),
-            '<b>E-mail:</b> '.$this->escape($contact->email),
+            '<b>E-mail:</b> '.(filled($contact->email) ? $this->escape($contact->email) : '—'),
             $contact->phone ? '<b>Telefone:</b> '.$this->escape($contact->phone) : null,
             $contact->companyLabel() ? '<b>Empresa:</b> '.$this->escape($contact->companyLabel()) : null,
             '<b>Status:</b> '.($contact->status?->value ?? '—'),
@@ -1835,8 +1844,8 @@ HTML;
         return array_values($parts);
     }
 
-    private function escape(string $value): string
+    private function escape(?string $value): string
     {
-        return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 }

@@ -41,6 +41,11 @@ class TelegramWebhookController extends Controller
                 'update_id' => $payload['update_id'] ?? null,
             ]);
             report($e);
+
+            $chatId = data_get($payload, 'message.chat.id');
+            if ($chatId !== null && $bot->configured()) {
+                $bot->notifyProcessingError((string) $chatId);
+            }
         }
 
         return response('ok', 200);
