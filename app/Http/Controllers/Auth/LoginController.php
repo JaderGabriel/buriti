@@ -23,7 +23,6 @@ class LoginController extends Controller
     {
         return view('auth.login', [
             'telegramLoginEnabled' => $this->telegramWebAuth->enabled(),
-            'telegramBotUsername' => $this->telegramWebAuth->botUsername(),
         ]);
     }
 

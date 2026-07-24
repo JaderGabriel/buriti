@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Services\Telegram\TelegramBotService;
 use App\Services\Telegram\TelegramWebAuthService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -51,11 +52,14 @@ class TelegramWebLoginTest extends TestCase
         );
     }
 
-    public function test_login_page_shows_telegram_when_configured(): void
+    public function test_login_page_shows_telegram_challenge_only(): void
     {
         $this->get(route('login'))
             ->assertOk()
             ->assertSee('Continuar com Telegram', false)
+            ->assertSee('desafio temporário', false)
+            ->assertDontSee('telegram-widget.js', false)
+            ->assertDontSee('data-telegram-login="BuritiCrmBot"', false)
             ->assertSee('Entrar no painel', false);
     }
 
@@ -108,7 +112,7 @@ class TelegramWebLoginTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_widget_callback_logs_in_linked_admin(): void
+    public function test_widget_callback_still_works_for_legacy_links_but_is_not_advertised(): void
     {
         $authDate = now()->timestamp;
         $payload = [
@@ -133,6 +137,22 @@ class TelegramWebLoginTest extends TestCase
             ->assertRedirect(route('admin.dashboard'));
 
         $this->assertAuthenticatedAs($this->admin);
+    }
+
+    public function test_webhook_returns_ok_even_when_handler_throws(): void
+    {
+        $bot = \Mockery::mock(TelegramBotService::class);
+        $bot->shouldReceive('configured')->andReturn(true);
+        $bot->shouldReceive('handleUpdate')->once()->andThrow(new \RuntimeException('boom'));
+        $this->app->instance(TelegramBotService::class, $bot);
+
+        $this->postWebhook([
+            'update_id' => 1,
+            'message' => [
+                'chat' => ['id' => 999001],
+                'text' => '/ajuda',
+            ],
+        ])->assertOk()->assertSee('ok');
     }
 
     public function test_widget_callback_rejects_invalid_hash(): void

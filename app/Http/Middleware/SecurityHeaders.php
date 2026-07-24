@@ -22,7 +22,7 @@ class SecurityHeaders
         if (! $response->headers->has('Content-Security-Policy')) {
             $response->headers->set(
                 'Content-Security-Policy',
-                "default-src 'self'; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://telegram.org; font-src 'self' data:; frame-src 'self' https://calendar.google.com https://*.google.com https://oauth.telegram.org; connect-src 'self'"
+                "default-src 'self'; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-src 'self' https://calendar.google.com https://*.google.com; connect-src 'self'"
             );
         }
 

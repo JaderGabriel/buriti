@@ -181,10 +181,10 @@
                         <summary>Setup do bot</summary>
                         <ol>
                             <li>Crie o bot no @BotFather e copie o token.</li>
-                            <li>No <code>.env</code>: <code>TELEGRAM_BOT_TOKEN</code>, <code>TELEGRAM_WEBHOOK_SECRET</code> (e opcionalmente <code>TELEGRAM_BOT_USERNAME</code>).</li>
-                            <li>Com <code>APP_URL</code> HTTPS (ex. com <code>/public</code>): <code>php artisan telegram:configure</code>.</li>
+                            <li>No <code>.env</code>: <code>TELEGRAM_BOT_TOKEN</code>, <code>TELEGRAM_BOT_USERNAME</code> (ex. <code>buri_tibot</code>), <code>TELEGRAM_WEBHOOK_SECRET</code>.</li>
+                            <li>Com <code>APP_URL</code> HTTPS (ex. com <code>/public</code>): <code>php artisan telegram:configure</code>. Se o nome der rate limit: <code>--skip-name --drop-pending</code>.</li>
                             <li>No bot: <code>/login email_ou_usuario | senha</code> — só contas admin. A mensagem com senha é apagada.</li>
-                            <li>No site, use “Continuar com Telegram” ou o widget. <code>/logout</code> encerra a sessão.</li>
+                            <li>No site, use só “Continuar com Telegram” (desafio temporário no bot). <code>/logout</code> encerra a sessão do bot.</li>
                             <li>Comandos: <code>/ajuda</code>, listas e <code>add</code>/<code>set</code>/<code>del</code>.</li>
                         </ol>
                     </details>
@@ -197,10 +197,6 @@
                             <li>Teste: <code>php artisan tasks:telegram-reminders</code></li>
                         </ol>
                         <p class="admin-docs__note">Fuso: <code>APP_TIMEZONE=America/Sao_Paulo</code>. Cada tarefa notifica uma vez; mudar o prazo permite novo aviso.</p>
-                    </details>
-                    <details class="admin-docs__details">
-                        <summary>Widget de login</summary>
-                        <p>No BotFather: <code>/setdomain</code> com o domínio do site (ex.: <code>buriti.dev.br</code>).</p>
                     </details>
                 </x-admin.inline-docs>
             </div>

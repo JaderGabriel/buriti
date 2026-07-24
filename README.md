@@ -48,7 +48,7 @@ Jornada: **Mensagem → Contato → Oportunidade → Projeto → Tarefa**.
 - Histórico de tentativas de login e revogação de sessões (`SESSION_DRIVER=database`)
 - Senha mínima com letras e números (regra `Password::defaults`)
 - Honeypot no contacto público
-- Login admin também via Telegram (widget / deep link)
+- Login admin também via Telegram (desafio temporário no bot — sem widget)
 
 ## Requisitos
 
@@ -195,6 +195,8 @@ Webhook: `POST {APP_URL}/webhooks/telegram/{TELEGRAM_WEBHOOK_SECRET}`
 
 ```bash
 php artisan telegram:configure
+# Após rate limit no nome, ou para limpar fila/erro 5xx antigo:
+php artisan telegram:configure --skip-name --drop-pending
 # ou só o webhook:
 php artisan telegram:set-webhook
 ```

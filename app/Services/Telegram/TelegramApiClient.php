@@ -126,7 +126,7 @@ class TelegramApiClient
     }
 
     /** @return array{ok: bool, description?: string, result?: mixed} */
-    public function setWebhook(string $url, ?string $secretToken = null): array
+    public function setWebhook(string $url, ?string $secretToken = null, bool $dropPendingUpdates = false): array
     {
         if (! $this->configured()) {
             return ['ok' => false, 'description' => 'TELEGRAM_BOT_TOKEN em falta.'];
@@ -135,7 +135,7 @@ class TelegramApiClient
         $payload = [
             'url' => $url,
             'allowed_updates' => ['message'],
-            'drop_pending_updates' => false,
+            'drop_pending_updates' => $dropPendingUpdates,
         ];
 
         if (filled($secretToken)) {

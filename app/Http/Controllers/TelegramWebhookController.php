@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Services\Telegram\TelegramBotService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class TelegramWebhookController extends Controller
 {
@@ -29,7 +31,17 @@ class TelegramWebhookController extends Controller
 
         /** @var array<string, mixed> $payload */
         $payload = $request->all();
-        $bot->handleUpdate($payload);
+
+        try {
+            $bot->handleUpdate($payload);
+        } catch (Throwable $e) {
+            // Sempre 200 para o Telegram não desativar o webhook por 5xx transitórios.
+            Log::error('Telegram webhook failed', [
+                'message' => $e->getMessage(),
+                'update_id' => $payload['update_id'] ?? null,
+            ]);
+            report($e);
+        }
 
         return response('ok', 200);
     }

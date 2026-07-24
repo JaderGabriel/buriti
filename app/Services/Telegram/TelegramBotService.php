@@ -287,7 +287,7 @@ class TelegramBotService
 
         $status = $this->webAuth->status($token);
         if (($status['status'] ?? '') === 'expired') {
-            return '⏳ Este pedido de login expirou. Volte ao site e clique em <b>Entrar com Telegram</b> outra vez.';
+            return '⏳ Este pedido de login expirou. Volte ao site e clique em <b>Continuar com Telegram</b> outra vez.';
         }
 
         if (! $admin) {
@@ -295,7 +295,7 @@ class TelegramBotService
 
             return "🔐 Para liberar o painel web, faça primeiro o login neste chat:\n".
                 "<code>/login email_ou_usuario | senha</code>\n\n".
-                'Depois volte ao site e clique novamente em <b>Entrar com Telegram</b>.';
+                'Depois volte ao site e clique novamente em <b>Continuar com Telegram</b>.';
         }
 
         if (! $this->webAuth->approve($token, $admin)) {
@@ -323,7 +323,7 @@ class TelegramBotService
             $authBlock = "🔐 <b>Sem sessão</b> — só administradores\n".
                 "<code>/login email_ou_usuario | senha</code>\n".
                 "<i>A mensagem do login (com senha) é apagada automaticamente.</i>\n".
-                '<i>Depois pode entrar no painel web com “Entrar com Telegram”.</i>';
+                '<i>Depois pode entrar no painel web com “Continuar com Telegram”.</i>';
         }
 
         return <<<HTML

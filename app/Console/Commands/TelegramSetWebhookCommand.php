@@ -8,7 +8,8 @@ use Illuminate\Console\Command;
 class TelegramSetWebhookCommand extends Command
 {
     protected $signature = 'telegram:set-webhook
-        {--url= : URL completa do webhook (default: APP_URL/webhooks/telegram/{secret})}';
+        {--url= : URL completa do webhook (default: APP_URL/webhooks/telegram/{secret})}
+        {--drop-pending : Descarta updates pendentes ao registar o webhook}';
 
     protected $description = 'Registra o webhook do bot Telegram na API do BotFather';
 
@@ -32,7 +33,7 @@ class TelegramSetWebhookCommand extends Command
 
         $this->info("Webhook URL: {$url}");
 
-        $result = $api->setWebhook($url, $secret);
+        $result = $api->setWebhook($url, $secret, (bool) $this->option('drop-pending'));
 
         if (! ($result['ok'] ?? false)) {
             $this->error($result['description'] ?? 'Falha ao registar webhook.');
@@ -46,6 +47,11 @@ class TelegramSetWebhookCommand extends Command
         if (($me['ok'] ?? false) && is_array($me['result'] ?? null)) {
             $username = $me['result']['username'] ?? '?';
             $this->line("Bot: @{$username}");
+        }
+
+        $info = $api->getWebhookInfo();
+        if (($info['ok'] ?? false) && is_array($info['result'] ?? null) && ! empty($info['result']['last_error_message'])) {
+            $this->warn('Último erro webhook (pode ser antigo): '.$info['result']['last_error_message']);
         }
 
         return self::SUCCESS;

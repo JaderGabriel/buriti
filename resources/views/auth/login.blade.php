@@ -29,7 +29,7 @@
                 <div class="mb-8">
                     <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-bright">Acesso admin</p>
                     <h1 id="login-heading" class="mt-2 font-display text-2xl font-bold text-snow sm:text-3xl">Entrar no painel</h1>
-                    <p class="mt-2 text-sm text-mist">Use e-mail/username ou confirme pelo Telegram.</p>
+                    <p class="mt-2 text-sm text-mist">Use e-mail/username ou confirme pelo bot Telegram (desafio único).</p>
                 </div>
 
                 @if ($errors->has('telegram'))
@@ -53,26 +53,16 @@
                         <div class="hidden rounded-sm border border-line bg-ink/60 px-3 py-3 text-sm text-mist" data-telegram-wait hidden>
                             <p class="font-medium text-snow">Aguardando confirmação no Telegram…</p>
                             <p class="mt-1 text-xs leading-relaxed">
-                                Abra o bot, confirme o pedido e volte aqui. O painel abre automaticamente.
+                                Abra o bot (já precisa ter feito <code class="text-snow/90">/login</code> uma vez), confirme o pedido e volte aqui. O painel abre automaticamente.
                             </p>
                             <a href="#" class="mt-2 inline-flex text-xs font-semibold text-brand-bright hover:text-snow" data-telegram-open target="_blank" rel="noopener">
                                 Abrir Telegram de novo
                             </a>
                         </div>
 
-                        @if ($telegramBotUsername)
-                            <div class="flex justify-center pt-1" data-telegram-widget-host>
-                                <script
-                                    async
-                                    src="https://telegram.org/js/telegram-widget.js?22"
-                                    data-telegram-login="{{ $telegramBotUsername }}"
-                                    data-size="large"
-                                    data-radius="4"
-                                    data-auth-url="{{ route('login.telegram.callback') }}"
-                                    data-request-access="write"
-                                ></script>
-                            </div>
-                        @endif
+                        <p class="text-xs leading-relaxed text-mist">
+                            Login seguro por desafio temporário no bot — sem widget de terceiros. Conta Telegram tem de estar vinculada com <code class="text-snow/80">/login email | senha</code>.
+                        </p>
                     </div>
 
                     <div class="login-divider" aria-hidden="true">
