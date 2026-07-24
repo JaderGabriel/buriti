@@ -52,11 +52,16 @@ class PhoneNumber
 
         foreach ($countries as $country) {
             $dial = (string) $country['dial'];
-            if ($dial !== '' && str_starts_with($digits, $dial) && strlen($digits) > strlen($dial) + 6) {
+            if ($dial === '' || ! str_starts_with($digits, $dial)) {
+                continue;
+            }
+
+            $national = substr($digits, strlen($dial));
+            if (self::looksLikeFullNational($national, (string) $country['iso'])) {
                 return [
                     'iso' => $country['iso'],
                     'dial' => $dial,
-                    'national' => substr($digits, strlen($dial)),
+                    'national' => $national,
                     'flag' => $country['flag'],
                 ];
             }
@@ -77,16 +82,11 @@ class PhoneNumber
             return null;
         }
 
-        $local = preg_replace('/\D+/', '', (string) $national) ?: '';
-        $local = ltrim($local, '0');
+        $local = self::nationalDigits((string) $national, (string) $country['dial'], (string) $country['iso']);
         $dial = (string) $country['dial'];
 
         if ($local === '') {
             return null;
-        }
-
-        if (str_starts_with($local, $dial) && strlen($local) > strlen($dial) + 7) {
-            $local = substr($local, strlen($dial));
         }
 
         return '+'.$dial.' '.self::formatNational($local, $country['iso']);
@@ -159,13 +159,8 @@ class PhoneNumber
 
         $country = self::country($iso) ?? self::country($fallbackIso) ?? self::country('BR');
         $iso = $country['iso'] ?? 'BR';
-        $local = preg_replace('/\D+/', '', $national) ?: '';
-        $local = ltrim($local, '0');
         $dial = (string) ($country['dial'] ?? '55');
-
-        if (str_starts_with($local, $dial) && strlen($local) > strlen($dial) + 7) {
-            $local = substr($local, strlen($dial));
-        }
+        $local = self::nationalDigits($national, $dial, $iso);
 
         $phone = $local !== '' ? self::compose($iso, $local) : null;
 
@@ -174,5 +169,43 @@ class PhoneNumber
             'phone_number' => $local !== '' ? $local : null,
             'phone' => $phone,
         ];
+    }
+
+    /**
+     * Remove DDI só quando o valor claramente inclui país + número nacional completo.
+     * No Brasil o nacional tem 10–11 dígitos (DDD + assinante). Números como DDD 55
+     * (ex.: 55998887777) NÃO devem perder o DDD por colisão com o DDI 55.
+     */
+    private static function nationalDigits(string $national, string $dial, string $iso): string
+    {
+        $local = preg_replace('/\D+/', '', $national) ?: '';
+        $local = ltrim($local, '0');
+
+        if ($dial === '' || ! str_starts_with($local, $dial)) {
+            return $local;
+        }
+
+        $withoutDial = substr($local, strlen($dial));
+        if (self::looksLikeFullNational($withoutDial, $iso)) {
+            return $withoutDial;
+        }
+
+        return $local;
+    }
+
+    private static function looksLikeFullNational(string $national, string $iso): bool
+    {
+        $length = strlen($national);
+        if ($length < 8) {
+            return false;
+        }
+
+        if (strtoupper($iso) === 'BR') {
+            // DDD (2) + fixo (8) ou celular (9) => 10 ou 11. Nunca tratar 8–9 dígitos
+            // como nacional completo após “DDI”, senão DDD 55 vira lixo.
+            return $length === 10 || $length === 11;
+        }
+
+        return $length >= 8;
     }
 }
