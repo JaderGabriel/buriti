@@ -472,12 +472,12 @@ class ContactController extends Controller
 
         $activity->update($data);
 
-        $message = 'Atividade actualizada.';
+        $message = 'Atividade atualizada.';
         if ($task && $completeTask) {
             $task->forceFill([
                 'status' => TaskStatus::Done,
             ])->save();
-            $message = 'Atividade actualizada e tarefa marcada como concluída.';
+            $message = 'Atividade atualizada e tarefa marcada como concluída.';
         }
 
         return redirect()

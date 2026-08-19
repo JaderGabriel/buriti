@@ -193,7 +193,7 @@ class ProjectBoardTest extends TestCase
 
         $this->get(route('home'))
             ->assertOk()
-            ->assertSee('Seleção em evidência', false)
+            ->assertSee('Projetos em destaque', false)
             ->assertSee('Estrela Home', false)
             ->assertSee('Portfolio Home', false)
             ->assertSee('Oculto Home', false);
@@ -208,8 +208,8 @@ class ProjectBoardTest extends TestCase
         $this->actingAs($this->admin)
             ->get(route('admin.home-projects.edit'))
             ->assertOk()
-            ->assertSee('Repositórios públicos', false)
-            ->assertSee('Repositórios privados', false)
+            ->assertSee('Código aberto', false)
+            ->assertSee('Projetos confidenciais', false)
             ->assertSee('Repo Aberto Home', false)
             ->assertSee('Repo NDA Home', false);
 

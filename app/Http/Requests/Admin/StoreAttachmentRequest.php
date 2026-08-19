@@ -54,7 +54,7 @@ class StoreAttachmentRequest extends FormRequest
             $ext = mb_strtolower((string) $file->getClientOriginalExtension());
 
             if (in_array($ext, self::BLOCKED_EXTENSIONS, true) || in_array($mime, self::BLOCKED_MIMES, true)) {
-                $validator->errors()->add('file', 'Tipo de ficheiro não permitido por segurança.');
+                $validator->errors()->add('file', 'Tipo de arquivo não permitido por segurança.');
 
                 return;
             }
@@ -72,7 +72,7 @@ class StoreAttachmentRequest extends FormRequest
             };
 
             if (! $ok) {
-                $validator->errors()->add('file', 'Tipo de ficheiro inválido para esta pasta.');
+                $validator->errors()->add('file', 'Tipo de arquivo inválido para esta pasta.');
             }
         });
     }

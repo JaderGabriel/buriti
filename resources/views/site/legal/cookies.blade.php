@@ -13,7 +13,7 @@
                 <div>
                     <h2 class="font-display text-lg font-semibold text-snow">1. O que são cookies</h2>
                     <p class="mt-3">
-                        Cookies são pequenos ficheiros guardados no seu navegador. Também usamos armazenamento local (localStorage)
+                        Cookies são pequenos arquivos guardados no seu navegador. Também usamos armazenamento local (localStorage)
                         para preferências da interface. Nesta página, “cookies” inclui esses mecanismos equivalentes.
                     </p>
                 </div>
@@ -39,7 +39,7 @@
                                 </tr>
                                 <tr>
                                     <td class="px-3 py-3 text-snow">XSRF-TOKEN</td>
-                                    <td class="px-3 py-3">Segurança contra pedidos forjados</td>
+                    <td class="px-3 py-3">Segurança contra requisições forjadas</td>
                                     <td class="px-3 py-3">Sessão</td>
                                     <td class="px-3 py-3">Sim</td>
                                 </tr>
@@ -74,10 +74,10 @@
                 </div>
 
                 <div>
-                    <h2 class="font-display text-lg font-semibold text-snow">4. Como gerir</h2>
+                    <h2 class="font-display text-lg font-semibold text-snow">4. Como gerenciar</h2>
                     <ul class="mt-3 list-disc space-y-2 pl-5">
-                        <li>Pode aceitar o aviso de cookies no banner exibido na primeira visita.</li>
-                        <li>Pode limpar cookies e localStorage nas definições do navegador a qualquer momento.</li>
+                        <li>Você pode aceitar o aviso de cookies no banner exibido na primeira visita.</li>
+                        <li>Você pode limpar cookies e localStorage nas configurações do navegador a qualquer momento.</li>
                         <li>Desativar cookies necessários pode impedir o login no painel admin.</li>
                     </ul>
                 </div>

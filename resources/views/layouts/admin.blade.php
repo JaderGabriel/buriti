@@ -14,7 +14,7 @@
             'items' => [
                 [
                     'route' => 'admin.dashboard',
-                    'label' => 'Dashboard',
+                    'label' => 'Início',
                     'pattern' => 'admin.dashboard',
                     'icon' => 'dashboard',
                     'tone' => 'text-brand-bright bg-brand/15',
@@ -72,7 +72,7 @@
                 ],
                 [
                     'route' => 'admin.home-projects.edit',
-                    'label' => 'Home',
+                    'label' => 'Site',
                     'pattern' => 'admin.home-projects.*',
                     'icon' => 'star',
                     'tone' => 'text-amber-300 bg-amber-500/15',
@@ -195,7 +195,7 @@
                 type="search"
                 name="q"
                 value="{{ request('q') }}"
-                placeholder="Buscar contacto, empresa…"
+                placeholder="Buscar contato, empresa…"
                 class="w-full rounded-sm border border-line bg-ink/40 px-3 py-2 text-sm text-snow placeholder:text-mist/70"
             >
         </form>

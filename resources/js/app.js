@@ -1150,7 +1150,7 @@ function initHomeProjectBoard() {
             return;
         }
         if (statusEl) {
-            statusEl.textContent = 'A gravar…';
+            statusEl.textContent = 'Salvando…';
         }
         try {
             const response = await fetch(saveUrl, {
@@ -1168,7 +1168,7 @@ function initHomeProjectBoard() {
                 throw new Error(`Falha ao gravar (${response.status})`);
             }
             if (statusEl) {
-                statusEl.textContent = 'Ordem da home actualizada.';
+                statusEl.textContent = 'Ordem do site atualizada.';
             }
         } catch (error) {
             console.error(error);
@@ -2241,7 +2241,7 @@ function initDriveViewer() {
         if (! previewable || kind === 'download') {
             body.innerHTML = `
                 <div class="drive-viewer__fallback">
-                    <p>Este tipo de ficheiro não pode ser pré-visualizado no browser.</p>
+                    <p>Este tipo de arquivo não pode ser pré-visualizado no navegador.</p>
                     <a href="${escapeHtml(download)}">Baixar ${escapeHtml(name)}</a>
                 </div>
             `;
@@ -2265,7 +2265,7 @@ function initDriveViewer() {
             } catch (error) {
                 body.innerHTML = `
                     <div class="drive-viewer__fallback">
-                        <p>Não foi possível ler o ficheiro.</p>
+                        <p>Não foi possível ler o arquivo.</p>
                         <a href="${escapeHtml(download)}">Baixar ${escapeHtml(name)}</a>
                     </div>
                 `;

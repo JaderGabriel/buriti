@@ -4,16 +4,16 @@
             <p class="section-kicker">Próximo passo</p>
             <h2 class="mt-3 font-display text-2xl font-bold text-snow sm:text-3xl md:text-4xl">Pronto para o próximo passo digital?</h2>
             <p class="mt-3 max-w-2xl text-sm text-mist sm:text-base">
-                Construa o futuro digital com a BURI-TI — proposta objetiva, escopo claro e acompanhamento próximo.
+                Proposta objetiva, escopo claro e acompanhamento próximo — da conversa inicial à operação.
             </p>
         </div>
 
         <div class="grid gap-12 lg:grid-cols-[0.95fr_1.05fr]">
             <div>
                 <p class="section-kicker">Contato comercial</p>
-                <h3 class="section-title">Vamos estruturar sua próxima entrega de TI</h3>
+                <h3 class="section-title">Vamos estruturar sua próxima entrega</h3>
                 <p class="mt-4 text-sm text-mist sm:text-base">
-                    Deixe nome, e-mail, WhatsApp e o melhor canal. Respondemos com o próximo passo: discovery, proposta ou suporte.
+                    Informe nome, e-mail, WhatsApp e o melhor canal. Respondemos com o próximo passo: diagnóstico, proposta ou suporte.
                 </p>
 
                 <div class="mt-8">
@@ -80,7 +80,7 @@
                     @enderror
 
                     <div class="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
-                        <p class="text-xs text-mist">Usamos o WhatsApp para retorno comercial rápido. Sem spam.</p>
+                        <p class="text-xs text-mist">Usamos o WhatsApp para retorno comercial rápido. Sem envio em massa.</p>
                         <x-ui.button type="submit" class="w-full sm:w-auto">Enviar pedido de contato</x-ui.button>
                     </div>
                 </form>

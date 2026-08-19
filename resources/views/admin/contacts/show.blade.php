@@ -431,7 +431,7 @@
                         >
                         <span>
                             <span class="text-snow">Marcar reunião/tarefa como concluída</span>
-                            <span class="mt-0.5 block text-xs text-mist">Só se vincular uma tarefa acima. Sem isto, a nota fica ligada e a reunião continua no estado actual.</span>
+                            <span class="mt-0.5 block text-xs text-mist">Só se vincular uma tarefa acima. Sem isto, a nota fica ligada e a reunião continua no estado atual.</span>
                         </span>
                     </label>
                     <x-ui.input type="datetime-local" name="happened_at" label="Quando" :value="old('happened_at', now()->format('Y-m-d\\TH:i'))" />

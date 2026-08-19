@@ -79,6 +79,6 @@
     </ul>
 
     <p class="admin-docs__note admin-docs__note--tight">
-        No Cloud Console: active também a <strong>Google Calendar API</strong> e, em modo teste, o seu Gmail em utilizadores de teste.
+        No Cloud Console: ative também a <strong>Google Calendar API</strong> e, em modo teste, o seu Gmail em usuários de teste.
     </p>
 </details>

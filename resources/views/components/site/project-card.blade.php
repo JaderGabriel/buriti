@@ -48,7 +48,7 @@
         @else
             <span class="inline-flex items-center gap-1.5 text-xs text-mist">
                 <span class="h-1.5 w-1.5 rounded-full bg-brand-bright"></span>
-                Código sob NDA — sem link público
+                Código confidencial — sem link público
             </span>
         @endif
     </div>

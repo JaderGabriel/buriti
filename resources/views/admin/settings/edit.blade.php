@@ -27,8 +27,8 @@
                 <x-ui.input name="telegram_handle" label="Telegram (handle)" :value="$settings['telegram_handle']" placeholder="@usuario_exemplo" />
             </div>
             <x-admin.inline-docs title="Canais públicos" class="mt-2">
-                <p>WhatsApp: use o <strong>nome de utilizador</strong> (ex.: <code>usuario.exemplo</code> → <code>https://wa.me/usuario.exemplo</code>) ou um número internacional fictício no formato <code>+55 11 90000-0000</code>. O campo Telefone é interno; no site público o canal é WhatsApp.</p>
-                <p class="admin-docs__note mb-0">O handle do Telegram alimenta o botão de contacto; a URL completa é usada nos ícones sociais.</p>
+                <p>WhatsApp: use o <strong>nome de usuário</strong> (ex.: <code>usuario.exemplo</code> → <code>https://wa.me/usuario.exemplo</code>) ou um número internacional fictício no formato <code>+55 11 90000-0000</code>. O campo Telefone é interno; no site público o canal é WhatsApp.</p>
+                <p class="admin-docs__note mb-0">O identificador do Telegram alimenta o botão de contato; a URL completa é usada nos ícones sociais.</p>
             </x-admin.inline-docs>
         </section>
 

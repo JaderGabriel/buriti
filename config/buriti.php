@@ -17,32 +17,32 @@ return [
         [
             'icon' => 'consulting',
             'title' => 'Consultoria em TI',
-            'description' => 'Diagnóstico de necessidades e roadmap tecnológico sob medida para o seu negócio.',
+            'description' => 'Diagnóstico de necessidades e um plano tecnológico alinhado ao seu negócio.',
         ],
         [
             'icon' => 'code',
             'title' => 'Desenvolvimento de Software',
-            'description' => 'Aplicações web e integrações Laravel alinhadas ao processo real da operação.',
+            'description' => 'Sistemas web e integrações Laravel alinhados ao processo real da operação.',
         ],
         [
             'icon' => 'bi',
             'title' => 'Business Intelligence',
-            'description' => 'Painéis, indicadores e modelagem de dados para decisão gerencial com Power BI e bases educacionais.',
+            'description' => 'Painéis e números para a gestão decidir — Power BI e bases educacionais.',
         ],
         [
             'icon' => 'project',
             'title' => 'Gestão de Projetos',
-            'description' => 'Entrega ágil com priorização, transparência e prazos realistas.',
+            'description' => 'Entrega em ciclos curtos, com prioridade clara, transparência e prazos realistas.',
         ],
         [
             'icon' => 'support',
             'title' => 'Suporte e Integrações',
-            'description' => 'Suporte contínuo, pontes entre sistemas (i-Educar, biometria, catracas) e operação estável.',
+            'description' => 'Suporte contínuo, ligações entre sistemas (i-Educar, biometria, catracas) e operação estável.',
         ],
         [
             'icon' => 'train',
             'title' => 'Treinamentos',
-            'description' => 'Capacitação prática para maximizar o uso das tecnologias já contratadas.',
+            'description' => 'Capacitação prática para a equipe aproveitar melhor o que já foi contratado.',
         ],
     ],
 
@@ -70,7 +70,7 @@ return [
                 ],
                 'career' => [
                     'headline' => 'Trajetória que o contratante precisa ver',
-                    'summary' => 'Analista e desenvolvedor full-stack com atuação em educação corporativa, governança de TI e plataformas digitais. Experiência em escala (AVAs Moodle, integrações WordPress e sistemas educacionais) e entrega técnica hands-on em PHP/Laravel, BI e operações.',
+                    'summary' => 'Analista e desenvolvedor full-stack com atuação em educação corporativa, governança de TI e plataformas digitais. Experiência em escala (AVAs Moodle, integrações WordPress e sistemas educacionais) e entrega técnica prática em PHP/Laravel, indicadores e operações.',
                     'attractors' => [
                         'Domínio prático de Moodle (AVA/LMS), WordPress e integrações entre ecommerce, dados e aprendizagem.',
                         'Experiência com educação corporativa em escala — jornadas com dezenas de milhares de colaboradores e reporting para gestão.',
@@ -265,7 +265,7 @@ return [
     | Modelagem gerencial + técnica da experiência BURI-TI / Jader Gabriel
     */
     'expertise' => [
-        'intro' => 'Atuação que une visão gerencial (projetos, processos e educação corporativa) com entrega técnica (software, LMS, CMS, dados e BI) — do diagnóstico à operação.',
+        'intro' => 'Atuação que une gestão de projetos e capacitação com entrega técnica — sistemas, aprendizagem, conteúdo, dados e indicadores — do diagnóstico à operação.',
         'managerial' => [
             [
                 'title' => 'Análise de Sistemas e Projetos',
@@ -348,6 +348,7 @@ return [
             'stack' => ['Laravel', 'PHP', 'MySQL', 'PostgreSQL', 'Dashboards'],
             'status' => 'active',
             'is_public' => true,
+            'logo_path' => 'images/projects/servlitcys.svg',
             'sort_order' => 1,
         ],
         [
@@ -359,6 +360,20 @@ return [
             'stack' => ['PHP', 'Power BI', 'i-Educar', 'SQL'],
             'status' => 'active',
             'is_public' => true,
+            'sort_order' => 2,
+        ],
+        [
+            'name' => 'i-Educar Relatórios Avançados',
+            'category' => 'Relatórios e documentos',
+            'information' => 'Pacote open-source para o i-Educar: relatórios e documentos em PDF (Dompdf, sem Jasper/Java), Excel, menus temáticos e validação pública por QR Code (certificados, boletins, fichas, atas e indicadores).',
+            'website_url' => null,
+            'github_url' => 'https://github.com/JaderGabriel/i-educar-advreport-package',
+            'stack' => ['PHP', 'Laravel', 'i-Educar', 'Dompdf', 'Excel'],
+            'status' => 'active',
+            'is_public' => true,
+            'repo_is_private' => false,
+            'featured_on_home' => true,
+            'featured_sort' => 10,
             'sort_order' => 2,
         ],
         [

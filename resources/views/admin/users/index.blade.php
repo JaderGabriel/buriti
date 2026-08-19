@@ -127,7 +127,7 @@
         <x-admin.audit-log
             :logs="$auditLogs"
             title="Auditoria do sistema"
-            description="Ações sensíveis: anexos, CRM, utilizadores e autenticação. Também gravadas em storage/logs/audit.log."
+            description="Ações sensíveis: anexos, CRM, usuários e autenticação. Também gravadas em storage/logs/audit.log."
         />
     </div>
 @endsection

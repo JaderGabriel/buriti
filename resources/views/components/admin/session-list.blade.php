@@ -6,7 +6,7 @@
     'sessionDriver' => null,
     'destroyAllUrl' => null,
     'destroyAllLabel' => 'Revogar todas',
-    'destroyAllConfirm' => 'Revogar todas as sessões listadas deste utilizador?',
+    'destroyAllConfirm' => 'Revogar todas as sessões listadas deste usuário?',
     /** @var callable|null fn(object $session): string */
     'destroyUrl' => null,
     'allowRevokeCurrent' => true,
@@ -94,7 +94,7 @@
                     </div>
 
                     @if($canRevoke)
-                        <form method="POST" action="{{ $revokeUrl }}" data-confirm="Revogar esta sessão? O utilizador terá de entrar de novo.">
+                        <form method="POST" action="{{ $revokeUrl }}" data-confirm="Revogar esta sessão? O usuário terá de entrar de novo.">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="text-xs font-semibold text-red-300 hover:underline">Revogar</button>

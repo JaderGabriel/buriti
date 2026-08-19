@@ -5,27 +5,26 @@
                 <p class="section-kicker">Portfólio</p>
                 <h2 class="section-title">Projetos e entregas reais</h2>
                 <p class="mt-4 text-sm text-mist sm:text-base">
-                    Cases públicos com repositório aberto e entregas confidenciais (repositório privado):
-                    a capacidade fica visível; o código sensível, não.
+                    Projetos com código aberto e entregas sob contrato. Você vê o que fazemos; o que é confidencial permanece protegido.
                 </p>
             </div>
             @if($githubUrl ?? false)
                 <a href="{{ $githubUrl }}" target="_blank" rel="noopener" class="text-sm text-mist hover:text-brand-bright">
-                    Ver GitHub público →
+                    Ver GitHub →
                 </a>
             @endif
         </div>
 
         @if($projects->isEmpty())
-            <p class="mt-10 text-mist">Em breve, novos cases. Fale conosco para conhecer entregas sob NDA.</p>
+            <p class="mt-10 text-mist">Em breve, novos projetos. Fale conosco para conhecer entregas sob contrato.</p>
         @else
             @if(($featuredProjects ?? collect())->isNotEmpty())
                 <div class="home-featured mt-12">
                     <div class="home-featured__head">
                         <div>
                             <p class="section-kicker">Destaques</p>
-                            <h3 class="font-display text-2xl font-semibold text-snow sm:text-3xl">Seleção em evidência</h3>
-                            <p class="mt-2 max-w-2xl text-sm text-mist">Cases com estrela no painel — espaço próprio, acima do restante do portfólio.</p>
+                            <h3 class="font-display text-2xl font-semibold text-snow sm:text-3xl">Projetos em destaque</h3>
+                            <p class="mt-2 max-w-2xl text-sm text-mist">O que queremos que você veja primeiro.</p>
                         </div>
                         <span class="home-featured__badge" aria-hidden="true">★</span>
                     </div>
@@ -44,8 +43,8 @@
             @if($openSourceProjects->isNotEmpty())
                 <div class="mt-10">
                     <div class="mb-5 flex items-end justify-between gap-3">
-                        <h3 class="font-display text-xl font-semibold text-snow">Repositórios públicos</h3>
-                        <p class="text-xs text-mist">Com links quando disponíveis</p>
+                        <h3 class="font-display text-xl font-semibold text-snow">Código aberto</h3>
+                        <p class="text-xs text-mist">Com links quando existirem</p>
                     </div>
                     <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                         @foreach($openSourceProjects as $project)
@@ -59,12 +58,12 @@
                 <div class="mt-14">
                     <div class="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                         <div>
-                            <h3 class="font-display text-xl font-semibold text-snow">Repositórios privados</h3>
+                            <h3 class="font-display text-xl font-semibold text-snow">Projetos confidenciais</h3>
                             <p class="mt-1 max-w-2xl text-sm text-mist">
-                                Parte do portfólio comercial: stack e resultado descritos, sem exposição de código ou URLs internas.
+                                Stack e resultado descritos no site, sem expor código nem endereços internos.
                             </p>
                         </div>
-                        <span class="text-xs font-semibold uppercase tracking-[0.14em] text-brand">Sob NDA / contrato</span>
+                        <span class="text-xs font-semibold uppercase tracking-[0.14em] text-brand">Contrato / NDA</span>
                     </div>
                     <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                         @foreach($privateRepoProjects as $project)

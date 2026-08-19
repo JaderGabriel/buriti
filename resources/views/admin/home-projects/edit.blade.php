@@ -5,16 +5,16 @@
     <div class="pm-workspace__header">
         <div>
             <p class="pm-workspace__eyebrow">Site institucional</p>
-            <h1 class="pm-workspace__title">Portfólio na home</h1>
+            <h1 class="pm-workspace__title">Portfólio no site</h1>
             <p class="pm-workspace__lead">
-                Construa a home em duas áreas: a <strong class="text-snow">pública</strong> (destaques e repositórios abertos)
-                e a <strong class="text-snow">restrita</strong> (cases visíveis sem código). Arraste os cards; a ordem na coluna é a da página.
+                Monte a página inicial em duas áreas: a <strong class="text-snow">pública</strong> (destaques e código aberto)
+                e a <strong class="text-snow">restrita</strong> (projetos visíveis sem código). Arraste os cards; a ordem na coluna é a da página.
             </p>
         </div>
         <div class="pm-workspace__actions">
             <a href="{{ route('home') }}#projetos" target="_blank" rel="noopener" class="pm-btn pm-btn--ghost">
                 <x-ui.icon name="external" class="h-4 w-4" />
-                Ver home
+                Ver site
             </a>
             <a href="{{ route('admin.projects.index') }}" class="pm-btn pm-btn--ghost">
                 <x-ui.icon name="project" class="h-4 w-4" />
@@ -32,22 +32,22 @@
             <header class="home-board__region-head">
                 <div>
                     <p class="home-board__region-kicker">Parte pública</p>
-                    <h2 id="home-board-public">Com links na landing</h2>
-                    <p>Faixa de destaques e grelha «Repositórios públicos». Site e GitHub podem aparecer no card.</p>
+                    <h2 id="home-board-public">Com links no site</h2>
+                    <p>Faixa de destaques e grade de código aberto. Site e GitHub podem aparecer no card.</p>
                 </div>
             </header>
             <div class="home-board__region-grid home-board__region-grid--pair">
                 @include('admin.home-projects.partials.column', ['column' => [
                     'lane' => 'featured',
-                    'title' => 'Destaques (estrela)',
+                    'title' => 'Destaques',
                     'hint' => 'Bloco próprio no topo do portfólio',
                     'tone' => 'star',
                     'items' => $featured,
                 ]])
                 @include('admin.home-projects.partials.column', ['column' => [
                     'lane' => 'portfolio',
-                    'title' => 'Repositórios públicos',
-                    'hint' => 'Grelha aberta, abaixo dos destaques',
+                    'title' => 'Código aberto',
+                    'hint' => 'Grade abaixo dos destaques',
                     'tone' => 'site',
                     'items' => $portfolio,
                 ]])
@@ -58,16 +58,16 @@
             <header class="home-board__region-head">
                 <div>
                     <p class="home-board__region-kicker">Parte restrita</p>
-                    <h2 id="home-board-restricted">Na home, sem código</h2>
-                    <p>Faixa «Repositórios privados» — stack e resultado visíveis, sem URLs de Site/GitHub.</p>
+                    <h2 id="home-board-restricted">No site, sem código</h2>
+                    <p>Faixa de projetos confidenciais — stack e resultado visíveis, sem links de site ou GitHub.</p>
                 </div>
-                <span class="home-board__region-badge">NDA / contrato</span>
+                <span class="home-board__region-badge">Contrato / NDA</span>
             </header>
             <div class="home-board__region-grid">
                 @include('admin.home-projects.partials.column', ['column' => [
                     'lane' => 'restricted',
-                    'title' => 'Repositórios privados',
-                    'hint' => 'Continua público no site, com o selo de repositório privado',
+                    'title' => 'Projetos confidenciais',
+                    'hint' => 'Continua no site, com o selo de repositório privado',
                     'tone' => 'nda',
                     'items' => $restricted,
                 ]])
@@ -79,14 +79,14 @@
                 <div>
                     <p class="home-board__region-kicker">Fora do site</p>
                     <h2 id="home-board-off">Só no painel</h2>
-                    <p>Não entram na landing. Ficha, etapas e anexos ficam na operação interna.</p>
+                    <p>Não entram na página inicial. Ficha, etapas e anexos ficam na operação interna.</p>
                 </div>
             </header>
             <div class="home-board__region-grid">
                 @include('admin.home-projects.partials.column', ['column' => [
                     'lane' => 'hidden',
-                    'title' => 'Fora da home',
-                    'hint' => 'is_public desligado — invisível ao visitante',
+                    'title' => 'Fora do site',
+                    'hint' => 'O visitante não vê este projeto',
                     'tone' => 'hidden',
                     'items' => $hidden,
                 ]])
@@ -94,6 +94,6 @@
         </section>
     </div>
 
-    <p class="mt-4 text-xs text-mist" data-home-board-status>Alterações gravam-se ao soltar o card. Mover entre pública e restrita altera o tipo de repositório.</p>
+    <p class="mt-4 text-xs text-mist" data-home-board-status>As alterações são salvas ao soltar o card. Mover entre pública e restrita altera o tipo de repositório.</p>
 </div>
 @endsection

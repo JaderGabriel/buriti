@@ -1,15 +1,15 @@
 <section id="expertise" class="section-shell">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="max-w-3xl">
-            <p class="section-kicker">Expertise</p>
-            <h2 class="section-title">Modelagem gerencial e técnica</h2>
+            <p class="section-kicker">Experiência</p>
+            <h2 class="section-title">Gestão e tecnologia na prática</h2>
             <p class="mt-4 text-sm leading-relaxed text-mist sm:text-base">{{ $expertise['intro'] }}</p>
         </div>
 
         <div class="mt-12 grid gap-8 lg:grid-cols-2">
             <div class="rounded-[1.5rem] border border-line bg-panel/70 p-6 sm:p-8">
                 <h3 class="font-display text-xl font-semibold">Visão gerencial</h3>
-                <p class="mt-2 text-sm text-mist">Capacidade de conduzir projetos, processos e capacitação com foco em resultado de negócio.</p>
+                <p class="mt-2 text-sm text-mist">Como conduzimos projetos, processos e capacitação com foco em resultado.</p>
                 <ul class="mt-8 space-y-6">
                     @foreach($expertise['managerial'] as $item)
                         <li>
@@ -30,7 +30,7 @@
 
             <div class="rounded-[1.5rem] border border-line bg-panel/70 p-6 sm:p-8">
                 <h3 class="font-display text-xl font-semibold">Stack e ferramentas</h3>
-                <p class="mt-2 text-sm text-mist">Linguagens, plataformas e ecossistemas usados na entrega técnica do dia a dia.</p>
+                <p class="mt-2 text-sm text-mist">Linguagens, plataformas e ferramentas usadas na entrega do dia a dia.</p>
                 <div class="mt-8 space-y-6">
                     @foreach($expertise['technical'] as $group)
                         <div>
@@ -47,8 +47,8 @@
         </div>
 
         <div class="mt-8">
-            <h3 class="font-display text-xl font-semibold">Experiência em BI e dados</h3>
-            <p class="mt-2 max-w-2xl text-sm text-mist">Do dado operacional ao indicador gerencial — Power BI, ETL e plataformas analíticas no ecossistema educacional.</p>
+            <h3 class="font-display text-xl font-semibold">Indicadores e dados</h3>
+            <p class="mt-2 max-w-2xl text-sm text-mist">Do dado operacional ao número que a gestão usa — Power BI, importações e plataformas no contexto educacional.</p>
             <div class="mt-8 grid gap-5 sm:grid-cols-2">
                 @foreach($expertise['bi'] as $item)
                     <article class="border-b border-line pb-5">

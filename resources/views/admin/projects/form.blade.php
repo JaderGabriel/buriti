@@ -106,7 +106,7 @@
                             <input type="checkbox" name="is_public" value="1" class="mt-1" @checked(old('is_public', $project->is_public))>
                             <span>
                                 <strong class="text-snow">Exibir no site</strong>
-                                <span class="block text-xs">Aparece na seção Portfólio da landing.</span>
+                                <span class="block text-xs">Aparece na seção Portfólio do site.</span>
                             </span>
                         </label>
                         <label class="flex items-start gap-2 text-sm text-mist">

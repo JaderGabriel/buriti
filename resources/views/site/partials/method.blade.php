@@ -1,10 +1,10 @@
 <section id="metodo" class="section-shell">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="max-w-3xl">
-            <p class="section-kicker">Método comercial</p>
-            <h2 class="section-title">Do contato à operação — fluxo de entrega</h2>
+            <p class="section-kicker">Como trabalhamos</p>
+            <h2 class="section-title">Do primeiro contato à operação no dia a dia</h2>
             <p class="mt-4 text-sm text-mist sm:text-base">
-                Um caminho transparente, no estilo das consultoras de tecnologia: cada etapa com objetivo, dono e resultado mensurável.
+                Um caminho transparente: cada etapa tem objetivo, responsável e entrega visível — para você acompanhar o contrato com segurança.
             </p>
         </div>
 

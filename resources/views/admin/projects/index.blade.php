@@ -11,7 +11,7 @@
         <div class="pm-workspace__actions">
             <a href="{{ route('admin.home-projects.edit') }}" class="pm-btn pm-btn--ghost">
                 <x-ui.icon name="star" class="h-4 w-4" />
-                Home
+                Site
             </a>
             <a href="{{ route('admin.tasks.index') }}" class="pm-btn pm-btn--ghost">
                 <x-ui.icon name="task" class="h-4 w-4" />

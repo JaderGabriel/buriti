@@ -137,7 +137,7 @@
                     :allow-revoke-current="! $user->is(auth()->user())"
                     :destroy-all-url="route('admin.users.sessions.destroy-all', $user)"
                     destroy-all-label="Revogar sessões"
-                    :destroy-all-confirm="$user->is(auth()->user()) ? 'Revogar todas as outras sessões desta conta?' : 'Revogar todas as sessões deste utilizador?'"
+                    :destroy-all-confirm="$user->is(auth()->user()) ? 'Revogar todas as outras sessões desta conta?' : 'Revogar todas as sessões deste usuário?'"
                     :destroy-url="fn ($session) => route('admin.users.sessions.destroy', [$user, $session->id])"
                 />
 

@@ -132,7 +132,7 @@
                                     @if($opportunity->contact)
                                         <a href="{{ route('admin.contacts.show', $opportunity->contact) }}" draggable="false">{{ $opportunity->contact->name }}</a>
                                     @else
-                                        Sem contacto
+                                        Sem contato
                                     @endif
                                     @if($opportunity->companyLabel())
                                         · {{ $opportunity->companyLabel() }}

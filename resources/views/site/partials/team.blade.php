@@ -7,8 +7,8 @@
 <section id="equipe" class="section-shell">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="max-w-3xl">
-            <p class="section-kicker">Quem é quem</p>
-            <h2 class="section-title">Pessoas por trás da entrega</h2>
+            <p class="section-kicker">Equipe</p>
+            <h2 class="section-title">Quem entrega o trabalho</h2>
             @if($intro)
                 <p class="mt-4 text-sm text-mist sm:text-base">{{ $intro }}</p>
             @endif
@@ -297,7 +297,7 @@
 
                                         @if(! empty($career['attractors']))
                                             <div>
-                                                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand">O que chama atenção ao contratante</p>
+                                                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand">O que o contratante precisa ver</p>
                                                 <ul class="mt-4 space-y-3">
                                                     @foreach($career['attractors'] as $point)
                                                         <li class="flex gap-3 text-sm text-snow">

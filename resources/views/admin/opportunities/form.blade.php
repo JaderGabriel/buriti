@@ -70,7 +70,7 @@
                             </option>
                         @endforeach
                     </select>
-                    <span class="mt-1 block text-xs text-mist">Pode ficar vazia. Não é obrigatório herdar a empresa do contacto.</span>
+                    <span class="mt-1 block text-xs text-mist">Pode ficar vazia. Não é obrigatório herdar a empresa do contato.</span>
                     @error('company_id') <p class="mt-1 text-xs text-red-400">{{ $message }}</p> @enderror
                 </label>
 
@@ -151,7 +151,7 @@
             <section class="pm-panel mt-6 max-w-3xl">
                 <header class="pm-panel__head">
                     <h2>Modelo no Drive</h2>
-                    <p>Copia um ficheiro da pasta de modelos para a pasta de contratos</p>
+                    <p>Copia um arquivo da pasta de modelos para a pasta de contratos</p>
                 </header>
                 <form method="POST" action="{{ route('admin.opportunities.drive-copy', $opportunity) }}" class="flex flex-wrap items-end gap-3">
                     @csrf

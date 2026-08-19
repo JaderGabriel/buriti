@@ -22,7 +22,7 @@ class ProjectFileService
             return $currentPath;
         }
 
-        if ($currentPath) {
+        if ($currentPath && ! str_starts_with($currentPath, 'images/')) {
             Storage::disk($disk)->delete($currentPath);
             // Contratos antigos podiam estar no disco público.
             if ($disk === 'local' && str_contains($directory, 'contracts')) {
@@ -35,7 +35,7 @@ class ProjectFileService
 
     public function delete(?string $path, string $disk = 'public'): void
     {
-        if ($path) {
+        if ($path && ! str_starts_with($path, 'images/')) {
             Storage::disk($disk)->delete($path);
         }
     }

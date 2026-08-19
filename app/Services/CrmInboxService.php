@@ -156,7 +156,7 @@ class CrmInboxService
                     'type' => 'oportunidade',
                     'id' => $opportunity->id,
                     'title' => $opportunity->title,
-                    'subtitle' => $opportunity->contact?->name ?? 'Sem contacto',
+                    'subtitle' => $opportunity->contact?->name ?? 'Sem contato',
                     'url' => route('admin.opportunities.edit', $opportunity),
                 ];
             });

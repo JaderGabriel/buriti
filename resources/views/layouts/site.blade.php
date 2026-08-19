@@ -9,7 +9,7 @@
     <div class="oracle-topbar hidden border-b border-line bg-panel text-xs text-mist sm:block">
         <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-2 sm:px-6 lg:px-8">
             <div class="flex flex-wrap gap-4">
-                <a href="{{ $sectionHref('servicos') }}" class="hover:text-snow">Produtos e serviços</a>
+                <a href="{{ $sectionHref('servicos') }}" class="hover:text-snow">Serviços</a>
                 <a href="{{ $sectionHref('projetos') }}" class="hover:text-snow">Portfólio</a>
                 <a href="{{ $sectionHref('contato') }}" class="hover:text-snow">Contato</a>
             </div>
@@ -31,11 +31,11 @@
             </a>
 
             <nav class="hidden items-center gap-6 text-sm font-medium text-mist xl:flex">
-                <a href="{{ $sectionHref('metodo') }}" class="transition hover:text-snow">Método</a>
+                <a href="{{ $sectionHref('metodo') }}" class="transition hover:text-snow">Como trabalhamos</a>
                 <a href="{{ $sectionHref('servicos') }}" class="transition hover:text-snow">Serviços</a>
-                <a href="{{ $sectionHref('expertise') }}" class="transition hover:text-snow">Expertise</a>
+                <a href="{{ $sectionHref('expertise') }}" class="transition hover:text-snow">Experiência</a>
                 <a href="{{ $sectionHref('projetos') }}" class="transition hover:text-snow">Portfólio</a>
-                <a href="{{ $sectionHref('equipe') }}" class="transition hover:text-snow">Quem é quem</a>
+                <a href="{{ $sectionHref('equipe') }}" class="transition hover:text-snow">Equipe</a>
                 <a href="{{ $sectionHref('contato') }}" class="transition hover:text-snow">Contato</a>
             </nav>
 
@@ -73,11 +73,11 @@
 
         <div id="mobile-nav" class="hidden border-t border-line bg-panel xl:hidden" data-nav-panel hidden>
             <nav class="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-4 text-sm sm:px-6">
-                <a href="{{ $sectionHref('metodo') }}" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Método</a>
+                <a href="{{ $sectionHref('metodo') }}" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Como trabalhamos</a>
                 <a href="{{ $sectionHref('servicos') }}" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Serviços</a>
-                <a href="{{ $sectionHref('expertise') }}" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Expertise</a>
+                <a href="{{ $sectionHref('expertise') }}" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Experiência</a>
                 <a href="{{ $sectionHref('projetos') }}" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Portfólio</a>
-                <a href="{{ $sectionHref('equipe') }}" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Quem é quem</a>
+                <a href="{{ $sectionHref('equipe') }}" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Equipe</a>
                 <a href="{{ $sectionHref('contato') }}" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Contato</a>
                 <x-site.admin-link class="rounded-sm px-3 py-3 font-semibold text-brand-bright" data-nav-close>
                     @auth Painel admin @else Área admin @endauth
@@ -118,7 +118,7 @@
                     <img src="{{ asset('images/logo-buriti.png') }}" alt="" class="h-9 w-9 object-contain">
                     <span class="font-display text-lg font-bold tracking-wide">BURI-TI</span>
                 </div>
-                <p class="mt-3 max-w-sm text-sm text-mist">Infraestrutura de software, dados e BI para operações que precisam de resultado — no estilo das grandes plataformas de tecnologia.</p>
+                <p class="mt-3 max-w-sm text-sm text-mist">Software, dados e indicadores para operações que precisam de resultado claro — da proposta ao dia a dia.</p>
             </div>
             <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.16em] text-mist">Navegação</p>

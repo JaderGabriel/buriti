@@ -33,7 +33,7 @@ class AdminPanelTest extends TestCase
         $this->actingAs($this->admin)
             ->get(route('admin.dashboard'))
             ->assertOk()
-            ->assertSee('Dashboard', false);
+            ->assertSee('Início', false);
     }
 
     public function test_admin_can_read_and_mark_contact_messages(): void

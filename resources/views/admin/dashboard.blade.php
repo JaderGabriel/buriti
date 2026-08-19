@@ -2,7 +2,7 @@
 
 @section('content')
     <div class="mb-8">
-        <h1 class="font-display text-2xl font-bold sm:text-3xl">Dashboard</h1>
+        <h1 class="font-display text-2xl font-bold sm:text-3xl">Início</h1>
         <p class="mt-1 text-mist">Visão rápida da operação BURI-TI</p>
     </div>
 

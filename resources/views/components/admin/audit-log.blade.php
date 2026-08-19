@@ -1,7 +1,7 @@
 @props([
     'logs',
     'title' => 'Auditoria',
-    'description' => 'Registo de ações sensíveis do painel (Laravel audit log).',
+    'description' => 'Registro de ações sensíveis do painel (Laravel audit log).',
     'showUser' => true,
 ])
 

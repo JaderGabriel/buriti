@@ -1,9 +1,9 @@
 <section id="servicos" class="section-shell">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="max-w-2xl">
-            <p class="section-kicker">Capacidades</p>
-            <h2 class="section-title">Serviços para venda de TI com evidência</h2>
-            <p class="mt-4 text-sm text-mist sm:text-base">Oferta completa: da consultoria ao BI, com engenharia e suporte para sustentar o contrato.</p>
+            <p class="section-kicker">O que fazemos</p>
+            <h2 class="section-title">Serviços para contratar com clareza</h2>
+            <p class="mt-4 text-sm text-mist sm:text-base">Consultoria, sistemas, indicadores e suporte — o conjunto que sustenta o contrato no dia a dia.</p>
         </div>
 
         <div class="mt-12 grid gap-x-8 gap-y-10 sm:grid-cols-2 xl:grid-cols-3">

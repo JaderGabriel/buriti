@@ -18,20 +18,20 @@ class HomePageTest extends TestCase
         $response->assertSee('BURI-TI', false);
         $response->assertSee('Tecnologia para Pessoas', false);
         $response->assertSee('Consultoria em TI', false);
-        $response->assertSee('Do contato à operação', false);
+        $response->assertSee('Do primeiro contato à operação', false);
         $response->assertSee('Área admin', false);
-        $response->assertSee('Quem é quem', false);
+        $response->assertSee('Equipe', false);
         $response->assertSee('Jader Gabriel', false);
         $response->assertSee('images/team/jader-gabriel.jpg', false);
         $response->assertSee('Fundador', false);
         $response->assertSee('/admin"', false);
         $response->assertSee('Pronto para o próximo passo digital?', false);
-        $response->assertSee('Construa o futuro digital com a BURI-TI', false);
+        $response->assertSee('Proposta objetiva, escopo claro', false);
         $response->assertSee('mobile-proposal-fab', false);
         $response->assertSee('data-mobile-proposal-fab', false);
-        $response->assertSee('Método comercial', false);
+        $response->assertSee('Como trabalhamos', false);
         $response->assertSee('method-flow', false);
-        $response->assertSee('O que chama atenção ao contratante', false);
+        $response->assertSee('O que o contratante precisa ver', false);
         $response->assertSee('Como o resultado é produzido', false);
         $response->assertSee('Processo de desenvolvimento', false);
         $response->assertSee('Moodle', false);
@@ -89,8 +89,8 @@ class HomePageTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Case NDA Municipal', false);
-        $response->assertSee('Repositórios privados', false);
-        $response->assertSee('Código sob NDA', false);
+        $response->assertSee('Projetos confidenciais', false);
+        $response->assertSee('Código confidencial', false);
         $response->assertDontSee('https://github.com/JaderGabriel/secret-repo', false);
         $response->assertDontSee('https://internal.example/secret', false);
         $this->assertTrue($private->fresh()->repo_is_private);
@@ -122,7 +122,7 @@ class HomePageTest extends TestCase
         $response = $this->get(route('home'));
 
         $response->assertOk();
-        $response->assertSee('Modelagem gerencial e técnica', false);
+        $response->assertSee('Gestão e tecnologia na prática', false);
         $response->assertSee('Power BI', false);
         $response->assertSee('Servlitcys Destaque', false);
         $response->assertSee('BI &amp; Painéis', false);
@@ -145,5 +145,40 @@ class HomePageTest extends TestCase
         $response->assertSee('Odin', false);
         $response->assertSee('Moodle', false);
         $response->assertDontSee('https://github.com/JaderGabriel/Odin', false);
+    }
+
+    public function test_home_page_features_public_advanced_reports_package(): void
+    {
+        $this->seed(\Database\Seeders\PortfolioSeeder::class);
+
+        $project = \App\Models\Project::query()->where('name', 'i-Educar Relatórios Avançados')->first();
+
+        $this->assertNotNull($project);
+        $this->assertTrue($project->is_public);
+        $this->assertTrue($project->featured_on_home);
+        $this->assertFalse($project->repo_is_private);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Projetos em destaque', false)
+            ->assertSee('i-Educar Relatórios Avançados', false)
+            ->assertSee('https://github.com/JaderGabriel/i-educar-advreport-package', false)
+            ->assertSee('Dompdf', false);
+    }
+
+    public function test_servlitcys_uses_bundled_favicon_as_logo(): void
+    {
+        $this->seed(\Database\Seeders\PortfolioSeeder::class);
+
+        $project = \App\Models\Project::query()->where('name', 'Servlitcys')->first();
+
+        $this->assertNotNull($project);
+        $this->assertSame('images/projects/servlitcys.svg', $project->logo_path);
+        $this->assertStringContainsString('images/projects/servlitcys.svg', (string) $project->logoUrl());
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('images/projects/servlitcys.svg', false)
+            ->assertSee('Servlitcys', false);
     }
 }

@@ -27,7 +27,7 @@
                     <h2 class="font-display text-lg font-semibold text-snow">2. Quais dados coletamos</h2>
                     <ul class="mt-3 list-disc space-y-2 pl-5">
                         <li><strong class="text-snow">Formulário de contato:</strong> nome, e-mail, telefone/WhatsApp, empresa (opcional), assunto, mensagem e canal preferido.</li>
-                        <li><strong class="text-snow">Dados técnicos mínimos:</strong> endereço IP e registos de segurança em tentativas de login no painel admin.</li>
+                        <li><strong class="text-snow">Dados técnicos mínimos:</strong> endereço IP e registros de segurança em tentativas de login no painel admin.</li>
                         <li><strong class="text-snow">Cookies e armazenamento local:</strong> ver a <a href="{{ route('cookies') }}" class="text-brand-bright hover:underline">Política de Cookies</a>.</li>
                     </ul>
                 </div>
@@ -36,7 +36,7 @@
                     <h2 class="font-display text-lg font-semibold text-snow">3. Para que usamos os dados</h2>
                     <ul class="mt-3 list-disc space-y-2 pl-5">
                         <li>Responder pedidos comerciais e de suporte enviados pelo site.</li>
-                        <li>Gerir o relacionamento comercial (CRM interno), quando aplicável.</li>
+                        <li>Gerenciar o relacionamento comercial (CRM interno), quando aplicável.</li>
                         <li>Garantir segurança, autenticação e funcionamento do painel administrativo.</li>
                         <li>Cumprir obrigações legais e defender direitos em processos eventualmente necessários.</li>
                     </ul>
