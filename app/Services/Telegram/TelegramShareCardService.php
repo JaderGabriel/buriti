@@ -37,7 +37,6 @@ class TelegramShareCardService
     {
         $forLabel = $this->normalizeLabel($forLabel);
         $email = $this->contact('contact_email');
-        $phone = $this->contact('contact_phone');
         $site = $this->siteUrl();
 
         $lines = array_filter([
@@ -47,7 +46,6 @@ class TelegramShareCardService
             'Consultoria, software, BI e gestão de projetos — com entrega mensurável.',
             '',
             $email ? '✉️ '.$this->escape($email) : null,
-            $phone ? '📞 '.$this->escape($phone) : null,
             '🌐 <a href="'.$this->escape($site).'">'.$this->escape($this->displayHost($site)).'</a>',
             '',
             '<i>Encaminhe este card ao cliente ou use os botões abaixo.</i>',
@@ -133,11 +131,10 @@ class TelegramShareCardService
         imagefilledrectangle($img, 98, $height - 168, $width - 98, $height - 167, $line);
 
         $email = $this->contact('contact_email') ?: '';
-        $phone = $this->contact('contact_phone') ?: '';
         $host = $this->displayHost($this->siteUrl());
 
         $this->text($img, 18, 98, $height - 128, $snow, $regular, $email);
-        $this->text($img, 18, 98, $height - 98, $mist, $regular, trim($phone.'  ·  '.$host));
+        $this->text($img, 18, 98, $height - 98, $mist, $regular, $host);
 
         $logoPath = public_path('images/logo-buriti.png');
         if (is_file($logoPath)) {

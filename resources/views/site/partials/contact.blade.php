@@ -13,13 +13,12 @@
                 <p class="section-kicker">Contato comercial</p>
                 <h3 class="section-title">Vamos estruturar sua próxima entrega de TI</h3>
                 <p class="mt-4 text-sm text-mist sm:text-base">
-                    Deixe nome, e-mail, telefone e o melhor canal. Respondemos com o próximo passo: discovery, proposta ou suporte.
+                    Deixe nome, e-mail, WhatsApp e o melhor canal. Respondemos com o próximo passo: discovery, proposta ou suporte.
                 </p>
 
                 <div class="mt-8">
                     <x-site.contact-icons
                         :email="$contactEmail"
-                        :phone="$contactPhone"
                         :whatsapp="$contactWhatsapp"
                         :linkedin="$linkedinUrl ?? null"
                         :github="$githubUrl ?? null"
@@ -46,7 +45,7 @@
                     <div class="grid gap-4 sm:grid-cols-2">
                         <x-ui.phone-field
                             class="sm:col-span-2"
-                            label="Telefone / WhatsApp"
+                            label="WhatsApp"
                             :value="old('phone')"
                             required
                             hint="Escolha o país pela bandeira/nome. Digite só o DDD e o número, sem o DDI."
@@ -57,8 +56,7 @@
                     <label class="block text-sm">
                         <span class="text-mist">Canal preferido de contato</span>
                         <select name="preferred_channel" required class="mt-1.5 w-full rounded-sm border border-line bg-ink px-3 py-2.5 text-snow outline-none ring-brand-bright focus:ring-1">
-                            <option value="phone" @selected(old('preferred_channel', 'phone') === 'phone')>Telefone</option>
-                            <option value="whatsapp" @selected(old('preferred_channel') === 'whatsapp')>WhatsApp</option>
+                            <option value="whatsapp" @selected(old('preferred_channel', 'whatsapp') === 'whatsapp')>WhatsApp</option>
                             <option value="email" @selected(old('preferred_channel') === 'email')>E-mail</option>
                         </select>
                         @if(isset($errors) && $errors->has('preferred_channel'))
@@ -82,7 +80,7 @@
                     @enderror
 
                     <div class="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
-                        <p class="text-xs text-mist">Usamos o telefone para retorno comercial rápido. Sem spam.</p>
+                        <p class="text-xs text-mist">Usamos o WhatsApp para retorno comercial rápido. Sem spam.</p>
                         <x-ui.button type="submit" class="w-full sm:w-auto">Enviar pedido de contato</x-ui.button>
                     </div>
                 </form>

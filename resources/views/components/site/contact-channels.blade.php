@@ -1,6 +1,5 @@
 @props([
     'email' => null,
-    'phone' => null,
     'whatsapp' => null,
     'linkedin' => null,
     'github' => null,
@@ -11,7 +10,6 @@
 <div {{ $attributes }}>
     <x-site.contact-icons
         :email="$email"
-        :phone="$phone"
         :whatsapp="$whatsapp"
         :linkedin="$linkedin"
         :github="$github"

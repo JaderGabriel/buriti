@@ -1,6 +1,5 @@
 @props([
     'email' => null,
-    'phone' => null,
     'whatsapp' => null,
     'linkedin' => null,
     'github' => null,
@@ -10,8 +9,6 @@
 ])
 
 @php
-    $phoneValue = $phone;
-    $telHref = $phoneValue ? 'tel:'.preg_replace('/\s+/', '', $phoneValue) : null;
     $waHref = \App\Support\WhatsAppLink::href(is_string($whatsapp) ? $whatsapp : null);
     $iconClass = 'inline-flex h-11 w-11 items-center justify-center rounded-sm border border-line text-brand-bright transition hover:border-brand-bright/50 hover:bg-ink/40 hover:text-snow';
 @endphp
@@ -25,17 +22,6 @@
             title="E-mail"
         >
             <x-ui.icon name="mail" class="h-5 w-5" />
-        </a>
-    @endif
-
-    @if($telHref)
-        <a
-            href="{{ $telHref }}"
-            class="{{ $iconClass }}"
-            aria-label="Ligar"
-            title="Telefone"
-        >
-            <x-ui.icon name="phone" class="h-5 w-5" />
         </a>
     @endif
 
