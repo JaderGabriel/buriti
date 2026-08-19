@@ -18,16 +18,16 @@
                 </div>
             </div>
             <div class="grid gap-4 sm:grid-cols-2">
-                <x-ui.input type="email" name="contact_email" label="E-mail" :value="$settings['contact_email']" />
-                <x-ui.input name="contact_phone" label="Telefone" :value="$settings['contact_phone']" />
-                <x-ui.input name="contact_whatsapp" label="WhatsApp" :value="$settings['contact_whatsapp']" placeholder="jadergabriel" />
-                <x-ui.input type="url" name="linkedin_url" label="LinkedIn" :value="$settings['linkedin_url']" />
-                <x-ui.input type="url" name="github_url" label="GitHub" :value="$settings['github_url']" />
-                <x-ui.input type="url" name="telegram_url" label="Telegram (URL)" :value="$settings['telegram_url']" placeholder="https://t.me/JaderGabriel" />
-                <x-ui.input name="telegram_handle" label="Telegram (handle)" :value="$settings['telegram_handle']" placeholder="@JaderGabriel" />
+                <x-ui.input type="email" name="contact_email" label="E-mail" :value="$settings['contact_email']" placeholder="contato@empresa.exemplo" />
+                <x-ui.input name="contact_phone" label="Telefone" :value="$settings['contact_phone']" placeholder="+55 11 90000-0000" />
+                <x-ui.input name="contact_whatsapp" label="WhatsApp" :value="$settings['contact_whatsapp']" placeholder="usuario.exemplo" />
+                <x-ui.input type="url" name="linkedin_url" label="LinkedIn" :value="$settings['linkedin_url']" placeholder="https://www.linkedin.com/in/usuario-exemplo/" />
+                <x-ui.input type="url" name="github_url" label="GitHub" :value="$settings['github_url']" placeholder="https://github.com/usuario-exemplo" />
+                <x-ui.input type="url" name="telegram_url" label="Telegram (URL)" :value="$settings['telegram_url']" placeholder="https://t.me/usuario_exemplo" />
+                <x-ui.input name="telegram_handle" label="Telegram (handle)" :value="$settings['telegram_handle']" placeholder="@usuario_exemplo" />
             </div>
             <x-admin.inline-docs title="Canais públicos" class="mt-2">
-                <p>WhatsApp: use o <strong>nome de utilizador</strong> (ex.: <code>jadergabriel</code>) para <code>https://wa.me/jadergabriel</code>, ou o número internacional (ex.: <code>+55 38 99175-8416</code>). O telefone do botão «Ligar» continua no campo Telefone.</p>
+                <p>WhatsApp: use o <strong>nome de utilizador</strong> (ex.: <code>usuario.exemplo</code> → <code>https://wa.me/usuario.exemplo</code>) ou um número internacional fictício no formato <code>+55 11 90000-0000</code>. O campo Telefone é interno; no site público o canal é WhatsApp.</p>
                 <p class="admin-docs__note mb-0">O handle do Telegram alimenta o botão de contacto; a URL completa é usada nos ícones sociais.</p>
             </x-admin.inline-docs>
         </section>

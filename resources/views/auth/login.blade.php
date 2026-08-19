@@ -81,6 +81,7 @@
                             required
                             autofocus
                             autocomplete="username"
+                            placeholder="usuario@exemplo.com"
                             class="login-input"
                         >
                         @error('login') <span class="mt-1 block text-xs text-red-400">{{ $message }}</span> @enderror

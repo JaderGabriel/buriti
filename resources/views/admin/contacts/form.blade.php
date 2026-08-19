@@ -13,8 +13,8 @@
         @csrf
         @if($editing) @method('PUT') @endif
 
-        <x-ui.input name="name" label="Nome" :value="old('name', $contact->name)" required />
-        <x-ui.input type="email" name="email" label="E-mail" :value="old('email', $contact->email)" />
+        <x-ui.input name="name" label="Nome" :value="old('name', $contact->name)" required placeholder="Maria Silva" />
+        <x-ui.input type="email" name="email" label="E-mail" :value="old('email', $contact->email)" placeholder="maria.silva@exemplo.com" />
         <x-ui.phone-field :value="old('phone', $contact->phone)" />
 
         <label class="block text-sm">
@@ -28,10 +28,10 @@
                 @endforeach
             </select>
         </label>
-        <x-ui.input name="company" label="Ou digite uma nova empresa" :value="old('company')" placeholder="Cria/associa pelo nome se preenchido" />
+        <x-ui.input name="company" label="Ou digite uma nova empresa" :value="old('company')" placeholder="Empresa Exemplo Ltda" />
         <p class="-mt-2 text-xs text-mist">Se digitar um nome novo, ele tem prioridade sobre a seleção acima.</p>
 
-        <x-ui.input name="role" label="Cargo / papel" :value="old('role', $contact->role)" />
+        <x-ui.input name="role" label="Cargo / papel" :value="old('role', $contact->role)" placeholder="Diretora de TI" />
 
         <label class="block text-sm">
             <span class="text-mist">Canal preferido</span>

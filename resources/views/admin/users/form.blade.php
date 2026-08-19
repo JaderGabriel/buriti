@@ -82,10 +82,10 @@
                     <div>
                         <p class="text-xs font-semibold uppercase tracking-[0.14em] text-mist">Identidade</p>
                         <div class="mt-4 grid gap-4 sm:grid-cols-2">
-                            <x-ui.input name="name" label="Nome" :value="old('name', $user->name)" required />
-                            <x-ui.input name="username" label="Username" :value="old('username', $user->username)" required placeholder="ex.: jadergabriel" />
+                            <x-ui.input name="name" label="Nome" :value="old('name', $user->name)" required placeholder="Ana Costa" />
+                            <x-ui.input name="username" label="Username" :value="old('username', $user->username)" required placeholder="ex.: usuario.admin" />
                             <div class="sm:col-span-2">
-                                <x-ui.input type="email" name="email" label="E-mail" :value="old('email', $user->email)" required />
+                                <x-ui.input type="email" name="email" label="E-mail" :value="old('email', $user->email)" required placeholder="ana.costa@exemplo.com" />
                             </div>
                         </div>
                     </div>

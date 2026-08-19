@@ -38,8 +38,8 @@
                     </div>
 
                     <div class="grid gap-4 sm:grid-cols-2">
-                        <x-ui.input name="name" label="Nome" :value="old('name')" required />
-                        <x-ui.input type="email" name="email" label="E-mail" :value="old('email')" required />
+                        <x-ui.input name="name" label="Nome" :value="old('name')" required placeholder="Maria Silva" />
+                        <x-ui.input type="email" name="email" label="E-mail" :value="old('email')" required placeholder="maria.silva@exemplo.com" />
                     </div>
 
                     <div class="grid gap-4 sm:grid-cols-2">
@@ -50,7 +50,7 @@
                             required
                             hint="Escolha o país pela bandeira/nome. Digite só o DDD e o número, sem o DDI."
                         />
-                        <x-ui.input name="company" label="Empresa" :value="old('company')" class="sm:col-span-2" />
+                        <x-ui.input name="company" label="Empresa" :value="old('company')" class="sm:col-span-2" placeholder="Empresa Exemplo Ltda" />
                     </div>
 
                     <label class="block text-sm">
@@ -64,7 +64,7 @@
                         @endif
                     </label>
 
-                    <x-ui.input name="subject" label="Assunto / necessidade" :value="old('subject')" required placeholder="Ex.: Painel BI + integração i-Educar" />
+                    <x-ui.input name="subject" label="Assunto / necessidade" :value="old('subject')" required placeholder="Ex.: consultoria em painel de indicadores" />
                     <x-ui.input type="textarea" name="message" label="Mensagem" :value="old('message')" rows="5" required />
 
                     <label class="flex items-start gap-3 rounded-sm border border-line bg-ink/20 px-3 py-3 text-sm text-mist">

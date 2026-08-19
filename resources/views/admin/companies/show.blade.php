@@ -110,12 +110,12 @@
                     @csrf
                     <p class="text-sm font-medium">Contato rápido</p>
                     <div class="grid gap-3 sm:grid-cols-2">
-                        <x-ui.input name="name" label="Nome" :value="old('name')" required />
-                        <x-ui.input type="email" name="email" label="E-mail" :value="old('email')" />
+                        <x-ui.input name="name" label="Nome" :value="old('name')" required placeholder="Maria Silva" />
+                        <x-ui.input type="email" name="email" label="E-mail" :value="old('email')" placeholder="maria.silva@exemplo.com" />
                         <div class="sm:col-span-2">
                             <x-ui.phone-field :value="old('phone')" />
                         </div>
-                        <x-ui.input name="role" label="Cargo" :value="old('role')" />
+                        <x-ui.input name="role" label="Cargo" :value="old('role')" placeholder="Diretora de TI" />
                     </div>
                     <label class="block text-sm">
                         <span class="text-mist">Status</span>

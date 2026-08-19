@@ -54,7 +54,7 @@
                         @required($required)
                         inputmode="numeric"
                         autocomplete="tel-national"
-                        placeholder="38 99175-8416"
+                        placeholder="11 98765-4321"
                         class="phone-field__input"
                         data-phone-national
                         x-on:input="formatNational($event)"

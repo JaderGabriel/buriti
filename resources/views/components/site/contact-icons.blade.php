@@ -82,12 +82,11 @@
             href="{{ $telegram }}"
             target="_blank"
             rel="noopener"
-            class="inline-flex items-center gap-2 rounded-sm border border-line px-3 py-2.5 text-sm text-mist transition hover:border-brand-bright/50 hover:bg-ink/40 hover:text-snow"
-            aria-label="Abrir Telegram {{ $telegramHandle ?: '' }}"
-            title="Telegram"
+            class="{{ $iconClass }}"
+            aria-label="Abrir Telegram{{ $telegramHandle ? ' '.$telegramHandle : '' }}"
+            title="Telegram{{ $telegramHandle ? ' '.$telegramHandle : '' }}"
         >
-            <x-ui.icon name="telegram" class="h-5 w-5 text-brand-bright" />
-            <span>{{ $telegramHandle ?: 'Telegram' }}</span>
+            <x-ui.icon name="telegram" class="h-5 w-5" />
         </a>
     @endif
 

@@ -13,13 +13,13 @@
         @csrf
         @if($editing) @method('PUT') @endif
 
-        <x-ui.input name="name" label="Razão / nome" :value="old('name', $company->name)" required />
-        <x-ui.input name="trade_name" label="Nome fantasia" :value="old('trade_name', $company->trade_name)" />
-        <x-ui.input name="document" label="CNPJ / documento" :value="old('document', $company->document)" />
+        <x-ui.input name="name" label="Razão / nome" :value="old('name', $company->name)" required placeholder="Empresa Exemplo Ltda" />
+        <x-ui.input name="trade_name" label="Nome fantasia" :value="old('trade_name', $company->trade_name)" placeholder="Exemplo Tech" />
+        <x-ui.input name="document" label="CNPJ / documento" :value="old('document', $company->document)" placeholder="00.000.000/0001-00" />
         <x-ui.phone-field :value="old('phone', $company->phone)" />
         <div class="grid gap-4 sm:grid-cols-2">
-            <x-ui.input type="email" name="email" label="E-mail" :value="old('email', $company->email)" />
-            <x-ui.input type="url" name="website_url" label="Site" :value="old('website_url', $company->website_url)" />
+            <x-ui.input type="email" name="email" label="E-mail" :value="old('email', $company->email)" placeholder="contato@exemplo.com" />
+            <x-ui.input type="url" name="website_url" label="Site" :value="old('website_url', $company->website_url)" placeholder="https://www.exemplo.com" />
         </div>
 
         <label class="block text-sm">

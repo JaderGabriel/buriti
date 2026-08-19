@@ -53,9 +53,9 @@
 
                 <p class="text-xs font-semibold uppercase tracking-[0.14em] text-mist">Dados da conta</p>
 
-                <x-ui.input name="name" label="Nome" :value="old('name', $user->name)" required />
-                <x-ui.input name="username" label="Username" :value="old('username', $user->username)" required placeholder="ex.: jadergabriel" />
-                <x-ui.input type="email" name="email" label="E-mail" :value="old('email', $user->email)" required />
+                <x-ui.input name="name" label="Nome" :value="old('name', $user->name)" required placeholder="Ana Costa" />
+                <x-ui.input name="username" label="Username" :value="old('username', $user->username)" required placeholder="ex.: usuario.admin" />
+                <x-ui.input type="email" name="email" label="E-mail" :value="old('email', $user->email)" required placeholder="ana.costa@exemplo.com" />
 
                 <div class="space-y-4 border-t border-line pt-4">
                     <p class="text-sm font-semibold text-snow">Alterar senha</p>
