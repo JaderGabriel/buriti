@@ -168,7 +168,8 @@ class ProjectBoardTest extends TestCase
         $this->actingAs($this->admin)
             ->get(route('admin.home-projects.edit'))
             ->assertOk()
-            ->assertSee('Portfólio na home', false)
+            ->assertSee('Parte pública', false)
+            ->assertSee('Parte restrita', false)
             ->assertSee('Estrela Home', false)
             ->assertSee('Portfolio Home', false)
             ->assertSee('Oculto Home', false);
@@ -177,6 +178,7 @@ class ProjectBoardTest extends TestCase
             ->putJson(route('admin.home-projects.update'), [
                 'featured_ids' => [$portfolio->id, $featured->id],
                 'portfolio_ids' => [$hidden->id],
+                'restricted_ids' => [],
                 'hidden_ids' => [],
             ])
             ->assertOk()
@@ -195,5 +197,42 @@ class ProjectBoardTest extends TestCase
             ->assertSee('Estrela Home', false)
             ->assertSee('Portfolio Home', false)
             ->assertSee('Oculto Home', false);
+    }
+
+    public function test_home_projects_board_splits_public_and_restricted_lanes(): void
+    {
+        $open = Project::factory()->public()->create(['name' => 'Repo Aberto Home']);
+        $nda = Project::factory()->privateRepo()->create(['name' => 'Repo NDA Home']);
+        $internal = Project::factory()->create(['name' => 'Interno Home', 'is_public' => false]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.home-projects.edit'))
+            ->assertOk()
+            ->assertSee('Repositórios públicos', false)
+            ->assertSee('Repositórios privados', false)
+            ->assertSee('Repo Aberto Home', false)
+            ->assertSee('Repo NDA Home', false);
+
+        $this->actingAs($this->admin)
+            ->putJson(route('admin.home-projects.update'), [
+                'featured_ids' => [],
+                'portfolio_ids' => [$nda->id],
+                'restricted_ids' => [$open->id],
+                'hidden_ids' => [$internal->id],
+            ])
+            ->assertOk()
+            ->assertJsonPath('ok', true);
+
+        $this->assertFalse($nda->fresh()->repo_is_private);
+        $this->assertTrue($nda->fresh()->is_public);
+        $this->assertTrue($open->fresh()->repo_is_private);
+        $this->assertTrue($open->fresh()->is_public);
+        $this->assertFalse($internal->fresh()->is_public);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Repo Aberto Home', false)
+            ->assertSee('Repo NDA Home', false)
+            ->assertDontSee('Interno Home', false);
     }
 }

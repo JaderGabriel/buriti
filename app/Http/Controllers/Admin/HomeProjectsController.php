@@ -27,6 +27,14 @@ class HomeProjectsController extends Controller
         $portfolio = $projects
             ->where('is_public', true)
             ->where('featured_on_home', false)
+            ->where('repo_is_private', false)
+            ->sortBy('sort_order')
+            ->values();
+
+        $restricted = $projects
+            ->where('is_public', true)
+            ->where('featured_on_home', false)
+            ->where('repo_is_private', true)
             ->sortBy('sort_order')
             ->values();
 
@@ -38,6 +46,7 @@ class HomeProjectsController extends Controller
         return view('admin.home-projects.edit', [
             'featured' => $featured,
             'portfolio' => $portfolio,
+            'restricted' => $restricted,
             'hidden' => $hidden,
             'saveUrl' => route('admin.home-projects.update'),
         ]);
@@ -47,10 +56,11 @@ class HomeProjectsController extends Controller
     {
         $featuredIds = $this->uniqueIds($request->validated('featured_ids'));
         $portfolioIds = $this->uniqueIds($request->validated('portfolio_ids'));
+        $restrictedIds = $this->uniqueIds($request->validated('restricted_ids'));
         $hiddenIds = $this->uniqueIds($request->validated('hidden_ids'));
 
         $seen = [];
-        foreach ([$featuredIds, $portfolioIds, $hiddenIds] as $group) {
+        foreach ([$featuredIds, $portfolioIds, $restrictedIds, $hiddenIds] as $group) {
             foreach ($group as $id) {
                 if (isset($seen[$id])) {
                     return response()->json([
@@ -62,7 +72,7 @@ class HomeProjectsController extends Controller
             }
         }
 
-        DB::transaction(function () use ($featuredIds, $portfolioIds, $hiddenIds) {
+        DB::transaction(function () use ($featuredIds, $portfolioIds, $restrictedIds, $hiddenIds) {
             foreach ($featuredIds as $index => $id) {
                 Project::query()->whereKey($id)->update([
                     'is_public' => true,
@@ -75,6 +85,16 @@ class HomeProjectsController extends Controller
                 Project::query()->whereKey($id)->update([
                     'is_public' => true,
                     'featured_on_home' => false,
+                    'repo_is_private' => false,
+                    'sort_order' => ($index + 1) * 10,
+                ]);
+            }
+
+            foreach ($restrictedIds as $index => $id) {
+                Project::query()->whereKey($id)->update([
+                    'is_public' => true,
+                    'featured_on_home' => false,
+                    'repo_is_private' => true,
                     'sort_order' => ($index + 1) * 10,
                 ]);
             }
@@ -91,12 +111,14 @@ class HomeProjectsController extends Controller
             'summary' => 'Ordem e destaques da home',
             'featured_ids' => $featuredIds,
             'portfolio_ids' => $portfolioIds,
+            'restricted_ids' => $restrictedIds,
         ]);
 
         return response()->json([
             'ok' => true,
             'featured_ids' => $featuredIds,
             'portfolio_ids' => $portfolioIds,
+            'restricted_ids' => $restrictedIds,
             'hidden_ids' => $hiddenIds,
         ]);
     }

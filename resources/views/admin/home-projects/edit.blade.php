@@ -7,8 +7,8 @@
             <p class="pm-workspace__eyebrow">Site institucional</p>
             <h1 class="pm-workspace__title">Portfólio na home</h1>
             <p class="pm-workspace__lead">
-                Arraste os cards entre colunas para publicar, esconder ou marcar com estrela.
-                A ordem na coluna é a ordem na página inicial.
+                Construa a home em duas áreas: a <strong class="text-snow">pública</strong> (destaques e repositórios abertos)
+                e a <strong class="text-snow">restrita</strong> (cases visíveis sem código). Arraste os cards; a ordem na coluna é a da página.
             </p>
         </div>
         <div class="pm-workspace__actions">
@@ -28,35 +28,72 @@
         data-home-project-board
         data-save-url="{{ $saveUrl }}"
     >
-        @foreach ([
-            ['lane' => 'featured', 'title' => 'Destaques (estrela)', 'hint' => 'Bloco próprio no topo do portfólio', 'tone' => 'star', 'items' => $featured],
-            ['lane' => 'portfolio', 'title' => 'Portfólio', 'hint' => 'Grelha abaixo dos destaques', 'tone' => 'site', 'items' => $portfolio],
-            ['lane' => 'hidden', 'title' => 'Fora da home', 'hint' => 'Não aparecem no site', 'tone' => 'hidden', 'items' => $hidden],
-        ] as $column)
-            <section class="home-board__column home-board__column--{{ $column['tone'] }}" data-home-lane="{{ $column['lane'] }}">
-                <header class="home-board__header">
-                    <div>
-                        <h2>
-                            @if($column['lane'] === 'featured')
-                                <x-ui.icon name="star" class="h-4 w-4" />
-                            @endif
-                            {{ $column['title'] }}
-                        </h2>
-                        <p>{{ $column['hint'] }}</p>
-                    </div>
-                    <span class="pm-board__count" data-column-count>{{ $column['items']->count() }}</span>
-                </header>
-                <div class="home-board__list" data-column-list>
-                    @forelse($column['items'] as $project)
-                        @include('admin.home-projects.partials.card', ['project' => $project, 'lane' => $column['lane']])
-                    @empty
-                        <p class="pm-board__empty" data-empty>Solte projetos aqui.</p>
-                    @endforelse
+        <section class="home-board__region home-board__region--public" aria-labelledby="home-board-public">
+            <header class="home-board__region-head">
+                <div>
+                    <p class="home-board__region-kicker">Parte pública</p>
+                    <h2 id="home-board-public">Com links na landing</h2>
+                    <p>Faixa de destaques e grelha «Repositórios públicos». Site e GitHub podem aparecer no card.</p>
                 </div>
-            </section>
-        @endforeach
+            </header>
+            <div class="home-board__region-grid home-board__region-grid--pair">
+                @include('admin.home-projects.partials.column', ['column' => [
+                    'lane' => 'featured',
+                    'title' => 'Destaques (estrela)',
+                    'hint' => 'Bloco próprio no topo do portfólio',
+                    'tone' => 'star',
+                    'items' => $featured,
+                ]])
+                @include('admin.home-projects.partials.column', ['column' => [
+                    'lane' => 'portfolio',
+                    'title' => 'Repositórios públicos',
+                    'hint' => 'Grelha aberta, abaixo dos destaques',
+                    'tone' => 'site',
+                    'items' => $portfolio,
+                ]])
+            </div>
+        </section>
+
+        <section class="home-board__region home-board__region--restricted" aria-labelledby="home-board-restricted">
+            <header class="home-board__region-head">
+                <div>
+                    <p class="home-board__region-kicker">Parte restrita</p>
+                    <h2 id="home-board-restricted">Na home, sem código</h2>
+                    <p>Faixa «Repositórios privados» — stack e resultado visíveis, sem URLs de Site/GitHub.</p>
+                </div>
+                <span class="home-board__region-badge">NDA / contrato</span>
+            </header>
+            <div class="home-board__region-grid">
+                @include('admin.home-projects.partials.column', ['column' => [
+                    'lane' => 'restricted',
+                    'title' => 'Repositórios privados',
+                    'hint' => 'Continua público no site, com o selo de repositório privado',
+                    'tone' => 'nda',
+                    'items' => $restricted,
+                ]])
+            </div>
+        </section>
+
+        <section class="home-board__region home-board__region--off" aria-labelledby="home-board-off">
+            <header class="home-board__region-head">
+                <div>
+                    <p class="home-board__region-kicker">Fora do site</p>
+                    <h2 id="home-board-off">Só no painel</h2>
+                    <p>Não entram na landing. Ficha, etapas e anexos ficam na operação interna.</p>
+                </div>
+            </header>
+            <div class="home-board__region-grid">
+                @include('admin.home-projects.partials.column', ['column' => [
+                    'lane' => 'hidden',
+                    'title' => 'Fora da home',
+                    'hint' => 'is_public desligado — invisível ao visitante',
+                    'tone' => 'hidden',
+                    'items' => $hidden,
+                ]])
+            </div>
+        </section>
     </div>
 
-    <p class="mt-4 text-xs text-mist" data-home-board-status>Alterações gravam-se ao soltar o card.</p>
+    <p class="mt-4 text-xs text-mist" data-home-board-status>Alterações gravam-se ao soltar o card. Mover entre pública e restrita altera o tipo de repositório.</p>
 </div>
 @endsection

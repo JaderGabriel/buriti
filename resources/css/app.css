@@ -7209,13 +7209,79 @@ button.task-agenda__date:hover {
 }
 
 .home-board {
+    display: flex;
+    flex-direction: column;
+    gap: 1.35rem;
+}
+
+.home-board__region {
+    border: 1px solid var(--color-line);
+    border-radius: 2px;
+    padding: 0.9rem 0.85rem 0.95rem;
+    background: color-mix(in oklab, var(--color-panel) 70%, transparent);
+}
+
+.home-board__region--public {
+    border-top: 3px solid #2f7ec4;
+}
+
+.home-board__region--restricted {
+    border-top: 3px solid color-mix(in oklab, var(--color-brand) 75%, #8b5cf6);
+}
+
+.home-board__region--off {
+    border-top: 3px solid color-mix(in oklab, var(--color-mist) 55%, transparent);
+}
+
+.home-board__region-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+}
+
+.home-board__region-kicker {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-brand-bright);
+}
+
+.home-board__region-head h2 {
+    margin-top: 0.15rem;
+    font-size: 1.05rem;
+    font-weight: 650;
+}
+
+.home-board__region-head p {
+    margin-top: 0.25rem;
+    max-width: 40rem;
+    font-size: 0.8rem;
+    color: var(--color-mist);
+}
+
+.home-board__region-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-brand-bright);
+    border: 1px solid color-mix(in oklab, var(--color-brand) 40%, var(--color-line));
+    border-radius: 999px;
+    padding: 0.28rem 0.65rem;
+}
+
+.home-board__region-grid {
     display: grid;
     gap: 0.85rem;
 }
 
 @media (min-width: 1024px) {
-    .home-board {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+    .home-board__region-grid--pair {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         align-items: start;
     }
 }
@@ -7230,6 +7296,7 @@ button.task-agenda__date:hover {
 
 .home-board__column--star { border-top: 2px solid #e2b45c; }
 .home-board__column--site { border-top: 2px solid #2f7ec4; }
+.home-board__column--nda { border-top: 2px solid color-mix(in oklab, var(--color-brand) 70%, #8b5cf6); }
 .home-board__column--hidden { border-top: 2px solid color-mix(in oklab, var(--color-mist) 50%, transparent); }
 
 .home-board__column.is-drop-target {

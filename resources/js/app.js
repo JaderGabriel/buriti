@@ -1124,9 +1124,24 @@ function initHomeProjectBoard() {
         });
     };
 
+    const applyLaneToCard = (card, lane) => {
+        if (lane === 'portfolio') {
+            card.dataset.repoPrivate = '0';
+        }
+        if (lane === 'restricted') {
+            card.dataset.repoPrivate = '1';
+        }
+        const meta = card.querySelector('[data-home-card-meta]');
+        if (meta) {
+            const category = card.dataset.category || 'Sem categoria';
+            meta.textContent = card.dataset.repoPrivate === '1' ? `${category} · repo privado` : category;
+        }
+    };
+
     const payload = () => ({
         featured_ids: laneIds('featured'),
         portfolio_ids: laneIds('portfolio'),
+        restricted_ids: laneIds('restricted'),
         hidden_ids: laneIds('hidden'),
     });
 
@@ -1188,6 +1203,7 @@ function initHomeProjectBoard() {
         } else {
             list.appendChild(card);
         }
+        applyLaneToCard(card, lane);
         refreshCounts();
     };
 
@@ -1208,7 +1224,8 @@ function initHomeProjectBoard() {
             return;
         }
         const inFeatured = Boolean(card.closest('[data-home-lane="featured"]'));
-        placeInLane(inFeatured ? 'portfolio' : 'featured', card, 0);
+        const unstarLane = card.dataset.repoPrivate === '1' ? 'restricted' : 'portfolio';
+        placeInLane(inFeatured ? unstarLane : 'featured', card, 0);
         void save();
     });
 

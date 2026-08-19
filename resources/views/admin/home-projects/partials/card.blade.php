@@ -1,6 +1,8 @@
 <article
     class="home-board__card"
     data-home-project-id="{{ $project->id }}"
+    data-repo-private="{{ $project->repo_is_private ? '1' : '0' }}"
+    data-category="{{ $project->category ?: 'Sem categoria' }}"
 >
     <div class="home-board__card-top">
         @if($project->logoUrl())
@@ -10,7 +12,7 @@
         @endif
         <div class="min-w-0 flex-1">
             <p class="home-board__name">{{ $project->name }}</p>
-            <p class="home-board__meta">
+            <p class="home-board__meta" data-home-card-meta>
                 {{ $project->category ?: 'Sem categoria' }}
                 @if($project->repo_is_private) · repo privado @endif
             </p>
