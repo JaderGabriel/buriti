@@ -65,10 +65,18 @@
                 [
                     'route' => 'admin.projects.index',
                     'label' => 'Projetos',
-                    'pattern' => 'admin.projects.*',
+                    'pattern' => ['admin.projects.index', 'admin.projects.create', 'admin.projects.store', 'admin.projects.edit', 'admin.projects.update'],
                     'icon' => 'project',
                     'tone' => 'text-cyan-300 bg-cyan-500/15',
                     'active' => 'bg-cyan-500/20 text-cyan-200 ring-1 ring-cyan-400/35',
+                ],
+                [
+                    'route' => 'admin.home-projects.edit',
+                    'label' => 'Home',
+                    'pattern' => 'admin.home-projects.*',
+                    'icon' => 'star',
+                    'tone' => 'text-amber-300 bg-amber-500/15',
+                    'active' => 'bg-amber-500/20 text-amber-200 ring-1 ring-amber-400/35',
                 ],
                 [
                     'route' => 'admin.tasks.index',
@@ -211,7 +219,7 @@
                         <p class="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-mist/70">{{ $group['label'] }}</p>
                     @endif
                     @foreach($group['items'] as $item)
-                        @php $active = request()->routeIs($item['pattern']); @endphp
+                        @php $active = is_array($item['pattern']) ? request()->routeIs(...$item['pattern']) : request()->routeIs($item['pattern']); @endphp
                         <a href="{{ route($item['route']) }}"
                            data-admin-close
                            @class([

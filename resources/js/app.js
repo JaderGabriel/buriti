@@ -1062,6 +1062,243 @@ function initProjectCardMinimize() {
     });
 }
 
+function initHomeProjectBoard() {
+    const board = document.querySelector('[data-home-project-board]');
+    if (! board || board.dataset.dndBound === '1') {
+        return;
+    }
+    board.dataset.dndBound = '1';
+
+    const saveUrl = board.dataset.saveUrl || '';
+    const MOVE_THRESHOLD = 8;
+    const statusEl = document.querySelector('[data-home-board-status]');
+    /** @type {null | {
+     *   card: HTMLElement,
+     *   pointerId: number,
+     *   startX: number,
+     *   startY: number,
+     *   offsetX: number,
+     *   offsetY: number,
+     *   moved: boolean,
+     *   ghost: HTMLElement | null,
+     * }} */
+    let drag = null;
+
+    const laneIds = (lane) => {
+        const list = board.querySelector(`[data-home-lane="${lane}"] [data-column-list]`);
+        if (! list) {
+            return [];
+        }
+
+        return [...list.querySelectorAll('[data-home-project-id]')]
+            .map((el) => Number(el.dataset.homeProjectId))
+            .filter((id) => Number.isFinite(id) && id > 0);
+    };
+
+    const refreshCounts = () => {
+        board.querySelectorAll('[data-home-lane]').forEach((column) => {
+            const count = column.querySelectorAll('[data-home-project-id]').length;
+            const badge = column.querySelector('[data-column-count]');
+            if (badge) {
+                badge.textContent = String(count);
+            }
+            const list = column.querySelector('[data-column-list]');
+            const empty = list?.querySelector('[data-empty]');
+            if (count === 0 && list && ! empty) {
+                const p = document.createElement('p');
+                p.className = 'pm-board__empty';
+                p.dataset.empty = '';
+                p.textContent = 'Solte projetos aqui.';
+                list.appendChild(p);
+            } else if (count > 0 && empty) {
+                empty.remove();
+            }
+        });
+
+        board.querySelectorAll('[data-home-project-id]').forEach((card) => {
+            const featured = Boolean(card.closest('[data-home-lane="featured"]'));
+            const star = card.querySelector('[data-home-star]');
+            star?.classList.toggle('is-on', featured);
+            star?.setAttribute('aria-pressed', featured ? 'true' : 'false');
+            star?.setAttribute('title', featured ? 'Tirar estrela' : 'Destacar com estrela');
+        });
+    };
+
+    const payload = () => ({
+        featured_ids: laneIds('featured'),
+        portfolio_ids: laneIds('portfolio'),
+        hidden_ids: laneIds('hidden'),
+    });
+
+    const save = async () => {
+        if (! saveUrl) {
+            return;
+        }
+        if (statusEl) {
+            statusEl.textContent = 'A gravar…';
+        }
+        try {
+            const response = await fetch(saveUrl, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    ...csrfHeaders(),
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify(payload()),
+            });
+            if (! response.ok) {
+                throw new Error(`Falha ao gravar (${response.status})`);
+            }
+            if (statusEl) {
+                statusEl.textContent = 'Ordem da home actualizada.';
+            }
+        } catch (error) {
+            console.error(error);
+            if (statusEl) {
+                statusEl.textContent = 'Não foi possível gravar. Recarregue a página.';
+            }
+        }
+    };
+
+    const insertBeforeCard = (list, clientY, draggedCard) => {
+        const cards = [...list.querySelectorAll('[data-home-project-id]')].filter((el) => el !== draggedCard);
+        for (const card of cards) {
+            const rect = card.getBoundingClientRect();
+            if (clientY < rect.top + rect.height / 2) {
+                return card;
+            }
+        }
+
+        return null;
+    };
+
+    const placeInLane = (lane, card, clientY) => {
+        const column = board.querySelector(`[data-home-lane="${lane}"]`);
+        const list = column?.querySelector('[data-column-list]');
+        if (! list) {
+            return;
+        }
+        list.querySelector('[data-empty]')?.remove();
+        const before = insertBeforeCard(list, clientY, card);
+        if (before) {
+            list.insertBefore(card, before);
+        } else {
+            list.appendChild(card);
+        }
+        refreshCounts();
+    };
+
+    const columnFromPoint = (x, y) => {
+        const el = document.elementFromPoint(x, y);
+        const column = el?.closest?.('[data-home-lane]');
+        return column && board.contains(column) ? column : null;
+    };
+
+    board.addEventListener('click', (event) => {
+        const star = event.target.closest?.('[data-home-star]');
+        if (! (star instanceof HTMLElement) || ! board.contains(star)) {
+            return;
+        }
+        event.preventDefault();
+        const card = star.closest('[data-home-project-id]');
+        if (! (card instanceof HTMLElement)) {
+            return;
+        }
+        const inFeatured = Boolean(card.closest('[data-home-lane="featured"]'));
+        placeInLane(inFeatured ? 'portfolio' : 'featured', card, 0);
+        void save();
+    });
+
+    board.addEventListener('pointerdown', (event) => {
+        if (event.pointerType === 'mouse' && event.button !== 0) {
+            return;
+        }
+        if (event.target.closest?.('a, button')) {
+            return;
+        }
+        const card = event.target.closest?.('[data-home-project-id]');
+        if (! (card instanceof HTMLElement) || ! board.contains(card)) {
+            return;
+        }
+        const rect = card.getBoundingClientRect();
+        drag = {
+            card,
+            pointerId: event.pointerId,
+            startX: event.clientX,
+            startY: event.clientY,
+            offsetX: event.clientX - rect.left,
+            offsetY: event.clientY - rect.top,
+            moved: false,
+            ghost: null,
+        };
+    });
+
+    board.addEventListener('pointermove', (event) => {
+        if (! drag || event.pointerId !== drag.pointerId) {
+            return;
+        }
+        const dx = event.clientX - drag.startX;
+        const dy = event.clientY - drag.startY;
+        if (! drag.moved && Math.hypot(dx, dy) < MOVE_THRESHOLD) {
+            return;
+        }
+        if (! drag.moved) {
+            drag.moved = true;
+            board.setPointerCapture(event.pointerId);
+            const rect = drag.card.getBoundingClientRect();
+            const ghost = /** @type {HTMLElement} */ (drag.card.cloneNode(true));
+            ghost.classList.add('pm-card--ghost');
+            ghost.style.width = `${rect.width}px`;
+            ghost.style.left = `${rect.left}px`;
+            ghost.style.top = `${rect.top}px`;
+            ghost.querySelectorAll('a, button').forEach((el) => el.setAttribute('tabindex', '-1'));
+            document.body.appendChild(ghost);
+            drag.ghost = ghost;
+            drag.card.classList.add('is-dragging');
+            board.classList.add('is-dragging-card');
+        }
+        event.preventDefault();
+        if (drag.ghost) {
+            drag.ghost.style.left = `${event.clientX - drag.offsetX}px`;
+            drag.ghost.style.top = `${event.clientY - drag.offsetY}px`;
+        }
+        board.querySelectorAll('.is-drop-target').forEach((el) => el.classList.remove('is-drop-target'));
+        const column = columnFromPoint(event.clientX, event.clientY);
+        column?.classList.add('is-drop-target');
+        if (column) {
+            placeInLane(column.dataset.homeLane || '', drag.card, event.clientY);
+        }
+    });
+
+    const finish = (event) => {
+        if (! drag || event.pointerId !== drag.pointerId) {
+            return;
+        }
+        const moved = drag.moved;
+        drag.card.classList.remove('is-dragging');
+        board.classList.remove('is-dragging-card');
+        board.querySelectorAll('.is-drop-target').forEach((el) => el.classList.remove('is-drop-target'));
+        drag.ghost?.remove();
+        try {
+            if (board.hasPointerCapture?.(drag.pointerId)) {
+                board.releasePointerCapture(drag.pointerId);
+            }
+        } catch {
+            // ignore
+        }
+        drag = null;
+        if (moved) {
+            void save();
+        }
+    };
+
+    board.addEventListener('pointerup', finish);
+    board.addEventListener('pointercancel', finish);
+}
+
 function initProjectBoard() {
     const board = document.querySelector('[data-project-board]');
     if (! board || board.dataset.dndBound === '1') {
@@ -2071,6 +2308,7 @@ initBulkActivityDialog();
 initPhonebookSelection();
 initTaskDayCreateFallback();
 initProjectBoard();
+initHomeProjectBoard();
 initProjectCardMinimize();
 initOpportunityBoard();
 initIdeaPostitColors();

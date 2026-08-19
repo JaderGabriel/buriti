@@ -20,14 +20,22 @@
             <p class="mt-10 text-mist">Em breve, novos cases. Fale conosco para conhecer entregas sob NDA.</p>
         @else
             @if(($featuredProjects ?? collect())->isNotEmpty())
-                <div class="mt-10">
-                    <div class="mb-5 flex items-end justify-between gap-3">
-                        <h3 class="font-display text-xl font-semibold text-snow">Em destaque</h3>
-                        <p class="text-xs text-mist">Seleção do painel admin</p>
+                <div class="home-featured mt-12">
+                    <div class="home-featured__head">
+                        <div>
+                            <p class="section-kicker">Destaques</p>
+                            <h3 class="font-display text-2xl font-semibold text-snow sm:text-3xl">Seleção em evidência</h3>
+                            <p class="mt-2 max-w-2xl text-sm text-mist">Cases com estrela no painel — espaço próprio, acima do restante do portfólio.</p>
+                        </div>
+                        <span class="home-featured__badge" aria-hidden="true">★</span>
                     </div>
-                    <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                        @foreach($featuredProjects as $project)
-                            <x-site.project-card :project="$project" class="border-brand/35 bg-[linear-gradient(160deg,rgba(30,112,191,0.14),transparent_55%)]" />
+                    <div class="home-featured__grid">
+                        @foreach($featuredProjects as $index => $project)
+                            <x-site.project-card
+                                :project="$project"
+                                :featured="true"
+                                class="{{ $index === 0 && $featuredProjects->count() > 1 ? 'home-featured__lead' : '' }}"
+                            />
                         @endforeach
                     </div>
                 </div>

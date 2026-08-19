@@ -154,4 +154,46 @@ class ProjectBoardTest extends TestCase
             ->assertSee('data-status-url-template', false)
             ->assertSee('1/2 · 50%', false);
     }
+
+    public function test_home_projects_board_reorders_and_stars(): void
+    {
+        $hidden = Project::factory()->create(['name' => 'Oculto Home', 'is_public' => false]);
+        $portfolio = Project::factory()->public()->create(['name' => 'Portfolio Home', 'sort_order' => 10]);
+        $featured = Project::factory()->public()->create([
+            'name' => 'Estrela Home',
+            'featured_on_home' => true,
+            'featured_sort' => 10,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.home-projects.edit'))
+            ->assertOk()
+            ->assertSee('Portfólio na home', false)
+            ->assertSee('Estrela Home', false)
+            ->assertSee('Portfolio Home', false)
+            ->assertSee('Oculto Home', false);
+
+        $this->actingAs($this->admin)
+            ->putJson(route('admin.home-projects.update'), [
+                'featured_ids' => [$portfolio->id, $featured->id],
+                'portfolio_ids' => [$hidden->id],
+                'hidden_ids' => [],
+            ])
+            ->assertOk()
+            ->assertJsonPath('ok', true);
+
+        $this->assertTrue($portfolio->fresh()->featured_on_home);
+        $this->assertTrue($portfolio->fresh()->is_public);
+        $this->assertSame(10, (int) $portfolio->fresh()->featured_sort);
+        $this->assertSame(20, (int) $featured->fresh()->featured_sort);
+        $this->assertTrue($hidden->fresh()->is_public);
+        $this->assertFalse($hidden->fresh()->featured_on_home);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Seleção em evidência', false)
+            ->assertSee('Estrela Home', false)
+            ->assertSee('Portfolio Home', false)
+            ->assertSee('Oculto Home', false);
+    }
 }

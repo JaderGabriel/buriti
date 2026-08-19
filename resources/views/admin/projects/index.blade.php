@@ -9,6 +9,10 @@
             <p class="pm-workspace__lead">Arraste cards entre colunas ou na vertical para ordenar, e acompanhe o % pelas etapas do projeto.</p>
         </div>
         <div class="pm-workspace__actions">
+            <a href="{{ route('admin.home-projects.edit') }}" class="pm-btn pm-btn--ghost">
+                <x-ui.icon name="star" class="h-4 w-4" />
+                Home
+            </a>
             <a href="{{ route('admin.tasks.index') }}" class="pm-btn pm-btn--ghost">
                 <x-ui.icon name="task" class="h-4 w-4" />
                 Agenda

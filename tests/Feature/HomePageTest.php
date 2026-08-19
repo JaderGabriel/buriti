@@ -105,6 +105,7 @@ class HomePageTest extends TestCase
         $response->assertSee('aria-label="Enviar e-mail"', false);
         $response->assertSee('aria-label="Ligar"', false);
         $response->assertSee('aria-label="Abrir WhatsApp"', false);
+        $response->assertSee('https://wa.me/jadergabriel', false);
         $response->assertSee('@JaderGabriel', false);
         $response->assertDontSee('+55 38 99175-8416', false);
         $response->assertDontSee('WhatsApp direto', false);

@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\CompanyController;
 use App\Http\Controllers\Admin\ContactController as AdminContactController;
 use App\Http\Controllers\Admin\ContactMessageController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\HomeProjectsController;
 use App\Http\Controllers\Admin\IdeaNoteController;
 use App\Http\Controllers\Admin\IntegrationController;
 use App\Http\Controllers\Admin\OpportunityController;
@@ -137,6 +138,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::post('/oportunidades/{opportunity}/drive-modelo', [OpportunityController::class, 'copyDriveTemplate'])
         ->middleware('throttle:20,1')
         ->name('opportunities.drive-copy');
+
+    Route::get('/home-projetos', [HomeProjectsController::class, 'edit'])->name('home-projects.edit');
+    Route::put('/home-projetos', [HomeProjectsController::class, 'update'])->name('home-projects.update');
 
     Route::resource('projetos', ProjectController::class)
         ->parameters(['projetos' => 'project'])

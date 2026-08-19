@@ -4,7 +4,7 @@ return [
     'contact' => [
         'email' => 'jadergabriel8@gmail.com',
         'phone' => '+55 38 99175-8416',
-        'whatsapp' => '+55 38991758416',
+        'whatsapp' => 'jadergabriel',
         'linkedin_url' => 'https://www.linkedin.com/in/jadergabriel/',
         'github_url' => 'https://github.com/JaderGabriel',
         'telegram_url' => 'https://t.me/JaderGabriel',
@@ -54,7 +54,6 @@ return [
                 'role' => 'Fundador · Analista de Sistemas e Projetos',
                 'initials' => 'JG',
                 'featured' => true,
-                // Foto do perfil LinkedIn (https://www.linkedin.com/in/jadergabriel/)
                 'photo' => 'images/team/jader-gabriel.jpg',
                 'bio' => 'CEO da BURI-TI: software, BI, Moodle, WordPress e operação educacional. Une diagnóstico de negócio, engenharia (PHP/Laravel, Rails) e plataformas de aprendizagem para transformar requisito em entrega mensurável.',
                 'focus' => [

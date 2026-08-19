@@ -20,14 +20,14 @@
             <div class="grid gap-4 sm:grid-cols-2">
                 <x-ui.input type="email" name="contact_email" label="E-mail" :value="$settings['contact_email']" />
                 <x-ui.input name="contact_phone" label="Telefone" :value="$settings['contact_phone']" />
-                <x-ui.input name="contact_whatsapp" label="WhatsApp" :value="$settings['contact_whatsapp']" placeholder="+55 38 99175-8416" />
+                <x-ui.input name="contact_whatsapp" label="WhatsApp" :value="$settings['contact_whatsapp']" placeholder="jadergabriel" />
                 <x-ui.input type="url" name="linkedin_url" label="LinkedIn" :value="$settings['linkedin_url']" />
                 <x-ui.input type="url" name="github_url" label="GitHub" :value="$settings['github_url']" />
                 <x-ui.input type="url" name="telegram_url" label="Telegram (URL)" :value="$settings['telegram_url']" placeholder="https://t.me/JaderGabriel" />
                 <x-ui.input name="telegram_handle" label="Telegram (handle)" :value="$settings['telegram_handle']" placeholder="@JaderGabriel" />
             </div>
             <x-admin.inline-docs title="Canais públicos" class="mt-2">
-                <p>Use o formato internacional no WhatsApp/telefone (ex.: <code>+55 38 99175-8416</code>) para os botões <code>wa.me</code> e <code>tel:</code> funcionarem no site.</p>
+                <p>WhatsApp: use o <strong>nome de utilizador</strong> (ex.: <code>jadergabriel</code>) para <code>https://wa.me/jadergabriel</code>, ou o número internacional (ex.: <code>+55 38 99175-8416</code>). O telefone do botão «Ligar» continua no campo Telefone.</p>
                 <p class="admin-docs__note mb-0">O handle do Telegram alimenta o botão de contacto; a URL completa é usada nos ícones sociais.</p>
             </x-admin.inline-docs>
         </section>

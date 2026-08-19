@@ -52,7 +52,7 @@
                                     <img
                                         src="{{ asset($person['photo']) }}"
                                         alt="{{ $person['name'] }}"
-                                        class="h-28 w-28 rounded-sm object-cover ring-1 ring-line sm:h-32 sm:w-32"
+                                        class="h-28 w-28 rounded-sm object-cover object-top ring-1 ring-line sm:h-32 sm:w-32"
                                     >
                                 @else
                                     <div class="inline-flex h-28 w-28 items-center justify-center rounded-sm border border-brand/40 bg-ink/40 font-display text-3xl font-bold tracking-wide text-brand-bright sm:h-32 sm:w-32 sm:text-4xl">

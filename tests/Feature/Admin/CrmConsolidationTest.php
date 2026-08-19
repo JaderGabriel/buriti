@@ -173,7 +173,8 @@ class CrmConsolidationTest extends TestCase
 
         $this->get(route('home'))
             ->assertOk()
-            ->assertSee('Em destaque', false)
+            ->assertSee('Destaques', false)
+            ->assertSee('Seleção em evidência', false)
             ->assertSee('Case Destaque Home', false)
             ->assertSee('Case Comum', false);
     }

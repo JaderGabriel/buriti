@@ -10,9 +10,9 @@
 ])
 
 @php
-    $phoneValue = $phone ?: $whatsapp;
+    $phoneValue = $phone;
     $telHref = $phoneValue ? 'tel:'.preg_replace('/\s+/', '', $phoneValue) : null;
-    $waHref = $whatsapp ? 'https://wa.me/'.preg_replace('/\D+/', '', $whatsapp) : null;
+    $waHref = \App\Support\WhatsAppLink::href(is_string($whatsapp) ? $whatsapp : null);
     $iconClass = 'inline-flex h-11 w-11 items-center justify-center rounded-sm border border-line text-brand-bright transition hover:border-brand-bright/50 hover:bg-ink/40 hover:text-snow';
 @endphp
 

@@ -3,6 +3,7 @@
 namespace App\Services\Telegram;
 
 use App\Services\SettingService;
+use App\Support\WhatsAppLink;
 use Illuminate\Support\Str;
 
 class TelegramShareCardService
@@ -234,14 +235,12 @@ class TelegramShareCardService
 
     private function whatsappUrl(): string
     {
-        $raw = preg_replace('/\D+/', '', (string) ($this->settings->get('contact_whatsapp') ?? '')) ?: '';
-        if ($raw === '') {
-            return '';
-        }
+        $url = WhatsAppLink::href(
+            $this->settings->get('contact_whatsapp'),
+            'Olá! Vi o card da BURI-TI e gostaria de falar sobre um projeto.'
+        );
 
-        $text = rawurlencode('Olá! Vi o card da BURI-TI e gostaria de falar sobre um projeto.');
-
-        return 'https://wa.me/'.$raw.'?text='.$text;
+        return $url ?? '';
     }
 
     private function contact(string $key): string
