@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\GoogleCalendarService;
+use App\Services\GoogleDriveService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -12,7 +13,10 @@ use Throwable;
 
 class GoogleOAuthController extends Controller
 {
-    public function __construct(private GoogleCalendarService $google) {}
+    public function __construct(
+        private GoogleCalendarService $google,
+        private GoogleDriveService $drive,
+    ) {}
 
     public function redirect(Request $request): RedirectResponse
     {
@@ -25,9 +29,10 @@ class GoogleOAuthController extends Controller
 
         $state = Str::random(40);
         $request->session()->put('google_oauth_state', $state);
+        $force = $request->boolean('force') || ! $this->google->apiConfigured();
 
         try {
-            return redirect()->away($this->google->authorizationUrl($state));
+            return redirect()->away($this->google->authorizationUrl($state, $force));
         } catch (Throwable $e) {
             Log::warning('Google OAuth redirect failed', ['error' => $e->getMessage()]);
 
@@ -79,7 +84,7 @@ class GoogleOAuthController extends Controller
         return redirect()
             ->route('admin.settings.edit')
             ->withFragment('google-integration')
-            ->with('success', 'Conta Google ligada. Ao criar tarefas com Meet, o CRM gera o evento e guarda o link automaticamente.');
+            ->with('success', 'Conta Google ligada (Agenda + Drive). O CRM reutiliza o refresh token até o Google o invalidar — em modo Teste do Cloud Console isso acontece aos 7 dias; publique a app para evitar religar toda a semana.');
     }
 
     public function disconnect(): RedirectResponse
@@ -94,11 +99,21 @@ class GoogleOAuthController extends Controller
 
     public function test(): RedirectResponse
     {
-        $result = $this->google->testConnection();
+        $calendar = $this->google->testConnection();
+        $drive = $this->drive->testFolders();
+
+        $ok = $calendar['ok'];
+        $message = $calendar['message'];
+        if ($drive['ok']) {
+            $message .= ' '.$drive['message'];
+        } elseif (filled($this->drive->templatesFolderId()) || filled($this->drive->contractsFolderId())) {
+            $ok = false;
+            $message .= ' Drive: '.$drive['message'];
+        }
 
         return redirect()
             ->route('admin.settings.edit')
             ->withFragment('google-integration')
-            ->with($result['ok'] ? 'success' : 'error', $result['message']);
+            ->with($ok ? 'success' : 'error', $message);
     }
 }

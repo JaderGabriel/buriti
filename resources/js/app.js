@@ -1297,22 +1297,72 @@ function refreshOpportunityBoardCounts(board) {
     });
 }
 
-async function moveOpportunityCard(board, card, stage, urlTemplate) {
-    const id = card.dataset.opportunityId;
-    const fromStage = card.dataset.stage;
-    if (! id || ! stage || fromStage === stage || ! urlTemplate) {
-        return;
+function opportunityColumnCardIds(list) {
+    return [...list.querySelectorAll('[data-opportunity-id]')]
+        .map((el) => String(el.dataset.opportunityId || ''))
+        .filter(Boolean);
+}
+
+function opportunityCardInsertBefore(list, clientY, draggedCard) {
+    const cards = [...list.querySelectorAll('[data-opportunity-id]')].filter((el) => el !== draggedCard);
+    for (const card of cards) {
+        const rect = card.getBoundingClientRect();
+        if (clientY < rect.top + rect.height / 2) {
+            return card;
+        }
     }
 
-    const column = board.querySelector(`.crm-board__column[data-stage="${CSS.escape(stage)}"]`);
-    if (! column) {
-        return;
-    }
+    return null;
+}
 
-    const fromColumn = card.closest('.crm-board__column');
+function placeOpportunityCardInColumn(column, card, clientY) {
     const list = column.querySelector('[data-column-list]');
-    list?.querySelector('[data-empty]')?.remove();
-    list?.appendChild(card);
+    if (! list) {
+        return [];
+    }
+
+    list.querySelector('[data-empty]')?.remove();
+    const before = opportunityCardInsertBefore(list, clientY, card);
+    if (before) {
+        list.insertBefore(card, before);
+    } else {
+        list.appendChild(card);
+    }
+
+    return opportunityColumnCardIds(list);
+}
+
+function restoreOpportunityCardPosition(card, originList, originNextSibling, originStage) {
+    if (! originList) {
+        return;
+    }
+
+    originList.querySelector('[data-empty]')?.remove();
+    if (originNextSibling && originNextSibling.parentElement === originList) {
+        originList.insertBefore(card, originNextSibling);
+    } else {
+        originList.appendChild(card);
+    }
+
+    if (originStage) {
+        card.dataset.stage = originStage;
+    }
+}
+
+async function moveOpportunityCard(board, card, stage, urlTemplate, orderedIds, origin) {
+    const id = card.dataset.opportunityId;
+    if (! id || ! stage || ! urlTemplate) {
+        return;
+    }
+
+    const ids = Array.isArray(orderedIds)
+        ? orderedIds.map(String).filter(Boolean)
+        : opportunityColumnCardIds(card.closest('[data-column-list]') || document.createElement('div'));
+
+    if (! ids.includes(String(id))) {
+        ids.push(String(id));
+    }
+
     card.dataset.stage = stage;
     refreshOpportunityBoardCounts(board);
 
@@ -1328,7 +1378,10 @@ async function moveOpportunityCard(board, card, stage, urlTemplate) {
                 ...csrfHeaders(),
             },
             credentials: 'same-origin',
-            body: JSON.stringify({ stage }),
+            body: JSON.stringify({
+                stage,
+                ordered_ids: ids.map((value) => Number(value)).filter((value) => Number.isFinite(value) && value > 0),
+            }),
         });
 
         if (! response.ok) {
@@ -1345,13 +1398,8 @@ async function moveOpportunityCard(board, card, stage, urlTemplate) {
         }
     } catch (error) {
         console.error(error);
-        if (fromColumn) {
-            const fromList = fromColumn.querySelector('[data-column-list]');
-            fromList?.querySelector('[data-empty]')?.remove();
-            fromList?.appendChild(card);
-            card.dataset.stage = fromStage;
-            refreshOpportunityBoardCounts(board);
-        }
+        restoreOpportunityCardPosition(card, origin?.list, origin?.nextSibling, origin?.stage);
+        refreshOpportunityBoardCounts(board);
     }
 }
 
@@ -1375,11 +1423,19 @@ function initOpportunityBoard() {
      *   offsetY: number,
      *   moved: boolean,
      *   ghost: HTMLElement | null,
+     *   originList: HTMLElement | null,
+     *   originNextSibling: ChildNode | null,
+     *   originOrder: string,
+     *   lastColumn: HTMLElement | null,
+     *   lastBefore: HTMLElement | null,
+     *   orderedIds: string[],
      * }} */
     let drag = null;
 
     const clearDropTargets = () => {
-        board.querySelectorAll('.is-drop-target').forEach((el) => el.classList.remove('is-drop-target'));
+        board.querySelectorAll('.is-drop-target, .is-drop-slot').forEach((el) => {
+            el.classList.remove('is-drop-target', 'is-drop-slot');
+        });
     };
 
     const cleanup = () => {
@@ -1420,6 +1476,7 @@ function initOpportunityBoard() {
         }
 
         const rect = card.getBoundingClientRect();
+        const originList = card.closest('[data-column-list]');
         drag = {
             card,
             id: String(card.dataset.opportunityId || ''),
@@ -1431,6 +1488,12 @@ function initOpportunityBoard() {
             offsetY: event.clientY - rect.top,
             moved: false,
             ghost: null,
+            originList: originList instanceof HTMLElement ? originList : null,
+            originNextSibling: card.nextElementSibling,
+            originOrder: originList instanceof HTMLElement ? opportunityColumnCardIds(originList).join(',') : '',
+            lastColumn: null,
+            lastBefore: null,
+            orderedIds: [],
         };
     });
 
@@ -1474,7 +1537,22 @@ function initOpportunityBoard() {
         }
 
         clearDropTargets();
-        columnFromPoint(event.clientX, event.clientY)?.classList.add('is-drop-target');
+        const column = columnFromPoint(event.clientX, event.clientY);
+        if (! column) {
+            return;
+        }
+
+        column.classList.add('is-drop-target');
+        const list = column.querySelector('[data-column-list]');
+        const before = list ? opportunityCardInsertBefore(list, event.clientY, drag.card) : null;
+        before?.classList.add('is-drop-slot');
+
+        if (drag.lastColumn !== column || drag.lastBefore !== before) {
+            drag.lastColumn = column;
+            drag.lastBefore = before;
+            drag.orderedIds = placeOpportunityCardInColumn(column, drag.card, event.clientY);
+            refreshOpportunityBoardCounts(board);
+        }
     });
 
     const finish = (event) => {
@@ -1485,19 +1563,53 @@ function initOpportunityBoard() {
         const current = drag;
         const column = current.moved ? columnFromPoint(event.clientX, event.clientY) : null;
         const stage = column?.dataset?.stage || '';
+        let orderedIds = current.orderedIds;
+
+        if (current.moved && column) {
+            orderedIds = placeOpportunityCardInColumn(column, current.card, event.clientY);
+        }
+
+        const origin = {
+            stage: current.fromStage,
+            list: current.originList,
+            nextSibling: current.originNextSibling,
+        };
+
         cleanup();
 
-        if (! current.moved || ! stage) {
+        if (! current.moved) {
             return;
         }
 
-        void moveOpportunityCard(board, current.card, stage, urlTemplate);
+        if (! stage || ! column) {
+            restoreOpportunityCardPosition(current.card, origin.list, origin.nextSibling, origin.stage);
+            refreshOpportunityBoardCounts(board);
+            return;
+        }
+
+        const nextOrder = orderedIds.join(',');
+        if (stage === current.fromStage && nextOrder === current.originOrder) {
+            return;
+        }
+
+        void moveOpportunityCard(board, current.card, stage, urlTemplate, orderedIds, origin);
     };
 
     board.addEventListener('pointerup', finish);
     board.addEventListener('pointercancel', (event) => {
-        if (drag && event.pointerId === drag.pointerId) {
-            cleanup();
+        if (! drag || event.pointerId !== drag.pointerId) {
+            return;
+        }
+        const current = drag;
+        const origin = {
+            stage: current.fromStage,
+            list: current.originList,
+            nextSibling: current.originNextSibling,
+        };
+        cleanup();
+        if (current.moved) {
+            restoreOpportunityCardPosition(current.card, origin.list, origin.nextSibling, origin.stage);
+            refreshOpportunityBoardCounts(board);
         }
     });
 }

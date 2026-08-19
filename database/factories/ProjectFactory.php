@@ -27,8 +27,10 @@ class ProjectFactory extends Factory
             'contract_path' => null,
             'status' => ProjectStatus::Active,
             'is_public' => false,
+            'featured_on_home' => false,
             'repo_is_private' => false,
             'sort_order' => 0,
+            'featured_sort' => 0,
         ];
     }
 

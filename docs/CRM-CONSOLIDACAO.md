@@ -45,6 +45,7 @@ flowchart LR
   ContactMessage --> Contact
   Contact --> Company
   Contact --> Opportunity
+  Company -.-> Opportunity
   Contact --> CrmActivity
   Contact --> Task
   Opportunity --> Project
@@ -56,10 +57,10 @@ flowchart LR
 
 **Pontos de fricção no modelo:**
 
-1. **Empresa duplicada** — `contacts.company` (string livre) e `contacts.company_id` (FK). A UI já prefere a empresa vinculada, mas a string continua a existir e o bot ainda pode gravar texto livre.
-2. **Atividade sem dono de empresa** — `crm_activities` liga a contacto (e opcionalmente tarefa/oportunidade), não a `company_id` / `project_id` de forma directa.
-3. **Sem histórico de estágio** — mudanças de `opportunities.stage` não geram timeline comercial dedicada (só audit pontual em alguns fluxos).
-4. **Responsável** — oportunidades/tarefas não têm “owner” além do utilizador que criou a atividade; multi-admin futuro fica limitado.
+1. **Empresa duplicada** — `contacts.company` (string livre) e `contacts.company_id` (FK). A UI já prefere a empresa vinculada; `php artisan crm:backfill-companies` importa strings órfãs. A coluna texto permanece como espelho, não como fonte.
+2. **Oportunidade sem empresa** — `opportunities.company_id` é **opcional**. O negócio pode existir só com contacto.
+3. **Atividade sem dono de empresa** — `crm_activities` liga a contacto (e opcionalmente tarefa/oportunidade), não a `company_id` / `project_id` de forma directa.
+4. **Responsável** — `opportunities.owner_id` existe no schema; a UI ainda não o expõe (multi-admin futuro).
 5. **Trello/Notion** — configuração de links/tokens; sem sync bidirecional.
 
 ---
@@ -168,8 +169,8 @@ Ao consolidar, **não regressar** estes comportamentos:
 
 ### Dados
 
-- [ ] Script/artisan de backfill `contacts.company` → `companies` + `company_id`
-- [ ] Índices para listagens: `(contact_id, happened_at)` em actividades; `(status, due_at)` em tarefas; `(stage, updated_at)` em oportunidades
+- [x] Script/artisan de backfill `contacts.company` → `companies` + `company_id` (`crm:backfill-companies`; também alinha `opportunities.company_id` quando o contacto já tem empresa)
+- [x] Índices para listagens: `(contact_id, happened_at)` em actividades; `(status, due_at)` em tarefas; `(stage, updated_at)` em oportunidades
 - [ ] Política clara: soft delete vs hard delete por entidade (hoje anexos soft; contactos hard)
 
 ### Produto
@@ -188,7 +189,7 @@ Ao consolidar, **não regressar** estes comportamentos:
 
 - [ ] Preferir `APP_URL` sem `/public` e vhost com root em `public/`
 - [ ] `APP_DEBUG=false` em produção
-- [ ] Cron `schedule:run` + `tasks:telegram-reminders`
+- [ ] Cron `schedule:run` + `tasks:telegram-reminders` + `opportunities:follow-up`
 - [ ] Após deploy: `config:cache`, `view:cache`; `route:cache` só se o root for `public/`
 
 ---
@@ -218,8 +219,10 @@ Cada fatia deve ter: migration (se preciso), UI, Telegram (se o comando existir)
 | Agenda expand | `resources/views/admin/tasks/partials/task-item.blade.php` |
 | Anexos / preview | `app/Http/Controllers/Admin/AttachmentController.php`, `resources/views/components/admin/attachments-panel.blade.php` |
 | Telegram | `app/Services/Telegram/TelegramBotService.php` |
-| Google Calendar / Meet | `app/Services/GoogleCalendarService.php` |
-| Contratos (hoje: upload no projecto) | `ProjectController`, `contract_path` em `Project` |
+| Google Calendar / Meet / Drive | `app/Services/GoogleCalendarService.php`, `GoogleDriveService.php` |
+| Histórico de estágio | `opportunity_stage_events`, `OpportunityObserver` |
+| Inbox / busca | `CrmInboxService`, `GET /admin/buscar` |
+| Contratos (hoje: upload no projecto + cópia Drive) | `ProjectController`, pasta Drive nas configurações |
 | Defaults marca | `config/buriti.php` |
 
 ---
@@ -227,5 +230,14 @@ Cada fatia deve ter: migration (se preciso), UI, Telegram (se o comando existir)
 ## 8. Conclusão
 
 O CRM já cobre o ciclo comercial completo para operação solo/pequena equipa. A consolidação que mais valor agrega agora **não** é mais features soltas — é **unificar empresa**, **fechar o loop mensagem→acção**, e **medir o funil** sem perder as regras de reunião/atividade recentemente afinadas.
+
+### Fatias concluídas (19/08/2026)
+
+- **P0** — empresa canónica (FK opcional na oportunidade; backfill artisan); inbox «Próximas acções»; follow-up Telegram (`opportunities:follow-up`); mensagem do site → lead + oportunidade.
+- **P1** — reorder no board de oportunidades; filtro empresa/busca; busca global; «Registar nota» na agenda (pré-preenche `task_id`).
+- **P2** — funil (valor, win rate, tempo médio); CSV; histórico de estágios; OAuth Google único (Calendar + Drive) sem `prompt=consent` em todo o connect; aviso de expiração aos 7 dias em modo Teste; cópia de modelo Drive na ficha da oportunidade.
+- **Home** — `featured_on_home` + `featured_sort` no admin para destacar/reordenar projectos.
+
+A geração assistida de contratos (prompt + revisão humana, secção 3.1) continua **futura**; nesta fatia ficou a base OAuth/pastas/cópia de modelo.
 
 Este documento deve ser actualizado quando cada fatia do roadmap for concluída (data + commit/tag).

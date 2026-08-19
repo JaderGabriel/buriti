@@ -82,6 +82,9 @@
                     <a href="{{ route('admin.contacts.show', $task->contact) }}#conducao" class="task-event__notes-link" draggable="false">
                         Ver ficha
                     </a>
+                    <a href="{{ route('admin.contacts.show', ['contact' => $task->contact, 'task_id' => $task->id]) }}#conducao" class="task-event__notes-link" draggable="false">
+                        Registar nota
+                    </a>
                 @endif
             </div>
 

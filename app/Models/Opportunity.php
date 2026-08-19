@@ -17,12 +17,15 @@ class Opportunity extends Model
 
     protected $fillable = [
         'contact_id',
+        'company_id',
+        'owner_id',
         'project_id',
         'title',
         'description',
         'stage',
         'value',
         'expected_close_at',
+        'sort_order',
     ];
 
     protected function casts(): array
@@ -39,6 +42,16 @@ class Opportunity extends Model
         return $this->belongsTo(Contact::class);
     }
 
+    public function clientCompany(): BelongsTo
+    {
+        return $this->belongsTo(Company::class, 'company_id');
+    }
+
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_id');
+    }
+
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
@@ -47,6 +60,19 @@ class Opportunity extends Model
     public function activities(): HasMany
     {
         return $this->hasMany(CrmActivity::class);
+    }
+
+    public function stageEvents(): HasMany
+    {
+        return $this->hasMany(OpportunityStageEvent::class)->orderByDesc('changed_at')->orderByDesc('id');
+    }
+
+    public function companyLabel(): ?string
+    {
+        $label = $this->clientCompany?->displayName()
+            ?: $this->contact?->companyLabel();
+
+        return filled($label) ? (string) $label : null;
     }
 
     public function scopeOpen(Builder $query): Builder

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\CompanyStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -41,9 +42,23 @@ class Company extends Model
         return $this->hasMany(Project::class);
     }
 
-    public function opportunities(): HasManyThrough
+    public function opportunities(): HasMany
+    {
+        return $this->hasMany(Opportunity::class);
+    }
+
+    public function contactOpportunities(): HasManyThrough
     {
         return $this->hasManyThrough(Opportunity::class, Contact::class);
+    }
+
+    /** Oportunidades com company_id ou via contacto da empresa. */
+    public function relatedOpportunities(): Builder
+    {
+        return Opportunity::query()->where(function (Builder $q) {
+            $q->where('company_id', $this->id)
+                ->orWhereHas('contact', fn (Builder $c) => $c->where('company_id', $this->id));
+        });
     }
 
     public function displayName(): string

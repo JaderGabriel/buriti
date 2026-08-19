@@ -415,7 +415,7 @@
                         <select name="task_id" class="mt-1.5 w-full rounded-sm border border-line bg-ink/40 px-3 py-2 text-snow">
                             <option value="">—</option>
                             @foreach($linkableTasks as $task)
-                                <option value="{{ $task->id }}">
+                                <option value="{{ $task->id }}" @selected((string) old('task_id', $prefillTaskId ?? '') === (string) $task->id)>
                                     {{ $task->title }}
                                     @if($task->status->isDone()) (concluída) @endif
                                 </option>

@@ -61,6 +61,20 @@
                 </header>
 
                 <label class="block text-sm">
+                    <span class="text-mist">Empresa (opcional)</span>
+                    <select name="company_id" class="mt-1.5 w-full rounded-sm border border-line bg-ink/40 px-3 py-2 text-snow">
+                        <option value="">— Sem empresa —</option>
+                        @foreach($companies as $company)
+                            <option value="{{ $company->id }}" @selected((string) old('company_id', $opportunity->company_id) === (string) $company->id)>
+                                {{ $company->displayName() }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <span class="mt-1 block text-xs text-mist">Pode ficar vazia. Não é obrigatório herdar a empresa do contacto.</span>
+                    @error('company_id') <p class="mt-1 text-xs text-red-400">{{ $message }}</p> @enderror
+                </label>
+
+                <label class="block text-sm">
                     <span class="text-mist">Contato</span>
                     <select name="contact_id" required class="mt-1.5 w-full rounded-sm border border-line bg-ink/40 px-3 py-2 text-snow">
                         <option value="">Selecione…</option>
@@ -103,6 +117,57 @@
                 </div>
             </section>
         </form>
+
+        @if($editing && ($stageEvents ?? collect())->isNotEmpty())
+            <section class="pm-panel mt-6 max-w-3xl">
+                <header class="pm-panel__head">
+                    <h2>Histórico de estágios</h2>
+                    <p>Quem moveu o card e quando</p>
+                </header>
+                <ol class="space-y-3 text-sm">
+                    @foreach($stageEvents as $event)
+                        <li class="rounded-sm border border-line/70 px-3 py-2">
+                            <p class="font-medium text-snow">
+                                @if($event->from_stage)
+                                    {{ $event->from_stage->label() }} → {{ $event->to_stage?->label() }}
+                                @else
+                                    Entrou em {{ $event->to_stage?->label() }}
+                                @endif
+                            </p>
+                            <p class="text-xs text-mist">
+                                {{ $event->changed_at?->format('d/m/Y H:i') }}
+                                @if($event->user) · {{ $event->user->name }} @endif
+                                @if($event->from_stage && $event->daysInPreviousStage() !== null)
+                                    · {{ $event->daysInPreviousStage() }} dia(s) no estágio anterior
+                                @endif
+                            </p>
+                        </li>
+                    @endforeach
+                </ol>
+            </section>
+        @endif
+
+        @if($editing && ($driveTemplates ?? []) !== [])
+            <section class="pm-panel mt-6 max-w-3xl">
+                <header class="pm-panel__head">
+                    <h2>Modelo no Drive</h2>
+                    <p>Copia um ficheiro da pasta de modelos para a pasta de contratos</p>
+                </header>
+                <form method="POST" action="{{ route('admin.opportunities.drive-copy', $opportunity) }}" class="flex flex-wrap items-end gap-3">
+                    @csrf
+                    <label class="block min-w-[16rem] flex-1 text-sm">
+                        <span class="text-mist">Modelo</span>
+                        <select name="drive_file_id" required class="mt-1.5 w-full rounded-sm border border-line bg-ink/40 px-3 py-2 text-snow">
+                            <option value="">Escolha…</option>
+                            @foreach($driveTemplates as $file)
+                                <option value="{{ $file['id'] }}">{{ $file['name'] }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <button type="submit" class="pm-btn pm-btn--primary">Copiar para contratos</button>
+                </form>
+            </section>
+        @endif
 
         @if($editing)
             <div class="mt-6 max-w-3xl">

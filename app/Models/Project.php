@@ -28,14 +28,17 @@ class Project extends Model
         'contract_path',
         'status',
         'is_public',
+        'featured_on_home',
         'repo_is_private',
         'sort_order',
+        'featured_sort',
     ];
 
     protected function casts(): array
     {
         return [
             'is_public' => 'boolean',
+            'featured_on_home' => 'boolean',
             'repo_is_private' => 'boolean',
             'status' => ProjectStatus::class,
             'stack' => 'array',
@@ -116,7 +119,16 @@ class Project extends Model
 
     public function scopeOrdered(Builder $query): Builder
     {
-        return $query->orderBy('sort_order')->orderByDesc('id');
+        return $query
+            ->orderByDesc('featured_on_home')
+            ->orderBy('featured_sort')
+            ->orderBy('sort_order')
+            ->orderByDesc('id');
+    }
+
+    public function scopeFeaturedOnHome(Builder $query): Builder
+    {
+        return $query->where('featured_on_home', true);
     }
 
     public function scopeOpenSource(Builder $query): Builder

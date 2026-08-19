@@ -29,6 +29,8 @@ class UpdateSettingsRequest extends FormRequest
             'google_auto_sync' => ['nullable', Rule::in(['0', '1'])],
             'google_client_id' => ['nullable', 'string', 'max:255'],
             'google_client_secret' => ['nullable', 'string', 'max:255'],
+            'google_drive_templates_folder_id' => ['nullable', 'string', 'max:128'],
+            'google_drive_contracts_folder_id' => ['nullable', 'string', 'max:128'],
         ];
     }
 }

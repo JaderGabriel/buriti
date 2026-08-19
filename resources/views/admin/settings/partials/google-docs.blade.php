@@ -25,14 +25,14 @@
         <summary>Nível 3 — API OAuth (sync + Meet no CRM)</summary>
         <ol>
             <li>Em <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a>, crie/selecione um projeto.</li>
-            <li>Ative <strong>Google Calendar API</strong>.</li>
-            <li>Tela de consentimento OAuth (Externo); em modo teste, adicione o seu Gmail em <strong>Utilizadores de teste</strong>.</li>
+            <li>Ative <strong>Google Calendar API</strong> e <strong>Google Drive API</strong>.</li>
+            <li>Tela de consentimento OAuth (Externo). Em modo <strong>Teste</strong> o refresh token expira aos <strong>7 dias</strong> — publique a app (estado Produção) para o CRM não pedir religação toda a semana. Enquanto estiver em teste, adicione o Gmail em <strong>Utilizadores de teste</strong>.</li>
             <li>Credenciais → cliente OAuth <strong>Aplicativo da Web</strong>.</li>
             <li>Em <strong>URIs de redirecionamento autorizados</strong>, adicione exactamente:
                 <code class="break-all">{{ $googleRedirectUri ?? (rtrim(config('app.url'), '/').'/admin/google/callback') }}</code>
             </li>
             <li>Copie Client ID e Secret para os campos à esquerda (ou para o <code>.env</code>) e <strong>Salve</strong>.</li>
-            <li>Clique em <strong>Ligar conta Google</strong>, autorize Calendar, e o Google devolve ao CRM.</li>
+            <li>Clique em <strong>Ligar conta Google</strong>, autorize Calendar e Drive. O CRM só pede <code>consent</code> de novo se faltar refresh token ou se usar «Reautorizar».</li>
             <li>Escolha a <strong>agenda correcta</strong> (Calendar ID = mesma do embed) e uma <strong>cor Google</strong> (1–11) na tarefa — o sync envia o <code>colorId</code> oficial.</li>
             <li>Preencha <strong>Calendar ID</strong> (<code>primary</code> ou o ID da agenda), marque <strong>Sincronizar automaticamente</strong> e salve.</li>
         </ol>

@@ -34,6 +34,8 @@ class AppServiceProvider extends ServiceProvider
         View::composer(['layouts.site', 'site.*'], SiteLayoutComposer::class);
         View::composer('layouts.admin', AdminLayoutComposer::class);
 
+        \App\Models\Opportunity::observe(\App\Observers\OpportunityObserver::class);
+
         if ($this->app->runningInConsole()) {
             Event::listen(CommandFinished::class, function (CommandFinished $event): void {
                 if (! in_array($event->command, ['route:cache', 'optimize', 'optimize:clear'], true)) {

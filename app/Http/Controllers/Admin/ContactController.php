@@ -206,6 +206,7 @@ class ContactController extends Controller
                 ->all(),
             'allProjects' => Project::query()->orderBy('name')->get(),
             'linkableTasks' => $this->linkableTasksForContact($contact),
+            'prefillTaskId' => $request->integer('task_id') ?: null,
             'pickerContacts' => Contact::query()
                 ->with('clientCompany:id,name')
                 ->orderBy('name')

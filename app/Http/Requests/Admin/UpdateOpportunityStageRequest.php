@@ -18,6 +18,8 @@ class UpdateOpportunityStageRequest extends FormRequest
     {
         return [
             'stage' => ['required', Rule::enum(OpportunityStage::class)],
+            'ordered_ids' => ['nullable', 'array'],
+            'ordered_ids.*' => ['integer', 'exists:opportunities,id'],
         ];
     }
 }

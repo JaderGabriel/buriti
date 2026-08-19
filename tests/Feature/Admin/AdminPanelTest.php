@@ -179,10 +179,12 @@ class AdminPanelTest extends TestCase
             'due_at' => now()->addDay()->startOfHour(),
         ]);
 
-        $response = $this->actingAs($this->admin)->post(route('admin.tasks.google', $task));
+        $response = $this->actingAs($this->admin)
+            ->from(route('admin.tasks.index'))
+            ->post(route('admin.tasks.google', $task));
 
-        $response->assertRedirect();
-        $this->assertStringContainsString('calendar.google.com/calendar/render', $response->headers->get('Location'));
+        $response->assertRedirect(route('admin.tasks.index'));
+        $response->assertSessionHas('error');
     }
 
     public function test_admin_can_export_month_agenda_as_ics(): void

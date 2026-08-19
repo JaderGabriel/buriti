@@ -19,6 +19,7 @@ class OpportunityFactory extends Factory
     {
         return [
             'contact_id' => Contact::factory(),
+            'company_id' => null,
             'project_id' => null,
             'title' => fake()->sentence(4),
             'description' => fake()->optional()->paragraph(),

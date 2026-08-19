@@ -132,8 +132,8 @@
 
         <div class="space-y-6">
             <article class="rounded-sm border border-line bg-panel p-5">
-                <h2 class="crm-detail__section-title">Oportunidades (via contatos)</h2>
-                <p class="mt-1 text-xs text-mist">Podem envolver só alguns contatos da empresa — aqui aparece o conjunto.</p>
+                <h2 class="crm-detail__section-title">Oportunidades</h2>
+                <p class="mt-1 text-xs text-mist">Ligadas a esta empresa ou a um dos contactos — a empresa no negócio é opcional.</p>
                 <ul class="mt-4 space-y-3">
                     @forelse($company->opportunities as $opportunity)
                         <li class="rounded-sm border border-line/70 px-3 py-2">

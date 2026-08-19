@@ -18,7 +18,11 @@ class GoogleCalendarService
     private const SCOPES = [
         'https://www.googleapis.com/auth/calendar',
         'https://www.googleapis.com/auth/calendar.events',
+        'https://www.googleapis.com/auth/drive.file',
+        'https://www.googleapis.com/auth/drive.readonly',
     ];
+
+    private const ACCESS_TOKEN_CACHE = 'buriti.google.access_token';
 
     public function __construct(private SettingService $settings) {}
 
@@ -101,15 +105,29 @@ class GoogleCalendarService
         $hasClientId = filled($this->clientId());
         $hasSecret = filled($this->clientSecret());
         $hasRefresh = filled($this->refreshToken());
+        $linkedAt = $this->settings->get('google_refresh_token_updated_at');
+        $testingWarning = null;
+        if ($hasRefresh && filled($linkedAt)) {
+            try {
+                $ageDays = now()->diffInDays(\Carbon\Carbon::parse($linkedAt));
+                if ($ageDays >= 6) {
+                    $testingWarning = 'O refresh token tem '.$ageDays.' dias. Em apps Google em modo «Teste» o token expira aos 7 dias — publique a app (ou religue a conta).';
+                }
+            } catch (\Throwable) {
+                $testingWarning = null;
+            }
+        }
 
         return match (true) {
             $hasClientId && $hasSecret && $hasRefresh => [
                 'state' => 'linked',
                 'label' => 'Conta Google ligada',
-                'message' => 'Refresh token presente. Use «Testar ligação» para validar o access token.',
+                'message' => $testingWarning
+                    ?: 'Refresh token presente (Calendar + Drive). Use «Testar ligação».',
                 'has_client_id' => true,
                 'has_secret' => true,
                 'has_refresh' => true,
+                'testing_warning' => $testingWarning,
             ],
             $hasClientId && $hasSecret && ! $hasRefresh => [
                 'state' => 'ready_to_link',
@@ -118,6 +136,7 @@ class GoogleCalendarService
                 'has_client_id' => true,
                 'has_secret' => true,
                 'has_refresh' => false,
+                'testing_warning' => null,
             ],
             $hasClientId && ! $hasSecret => [
                 'state' => 'missing_secret',
@@ -126,6 +145,7 @@ class GoogleCalendarService
                 'has_client_id' => true,
                 'has_secret' => false,
                 'has_refresh' => $hasRefresh,
+                'testing_warning' => null,
             ],
             default => [
                 'state' => 'missing_credentials',
@@ -134,6 +154,7 @@ class GoogleCalendarService
                 'has_client_id' => $hasClientId,
                 'has_secret' => $hasSecret,
                 'has_refresh' => $hasRefresh,
+                'testing_warning' => null,
             ],
         };
     }
@@ -285,22 +306,27 @@ class GoogleCalendarService
         return self::SCOPES;
     }
 
-    public function authorizationUrl(string $state): string
+    public function authorizationUrl(string $state, bool $forceConsent = true): string
     {
         if (! $this->oauthAppConfigured()) {
             throw new RuntimeException('Configure GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET antes de ligar a conta.');
         }
 
-        return 'https://accounts.google.com/o/oauth2/v2/auth?'.http_build_query([
+        $params = [
             'client_id' => $this->clientId(),
             'redirect_uri' => $this->redirectUri(),
             'response_type' => 'code',
             'scope' => implode(' ', self::SCOPES),
             'access_type' => 'offline',
-            'prompt' => 'consent',
             'include_granted_scopes' => 'true',
             'state' => $state,
-        ]);
+        ];
+
+        if ($forceConsent || ! filled($this->refreshToken())) {
+            $params['prompt'] = 'consent';
+        }
+
+        return 'https://accounts.google.com/o/oauth2/v2/auth?'.http_build_query($params);
     }
 
     /**
@@ -325,6 +351,8 @@ class GoogleCalendarService
 
         if (filled($refresh)) {
             $this->settings->putSecret('google_refresh_token', (string) $refresh);
+            $this->settings->putMany(['google_refresh_token_updated_at' => now()->toIso8601String()]);
+            Cache::forget(self::ACCESS_TOKEN_CACHE);
         } elseif (! filled($this->refreshToken())) {
             throw new RuntimeException(
                 'Google não devolveu refresh token. Revogue o acesso da app em myaccount.google.com/permissions e tente novamente.'
@@ -337,6 +365,8 @@ class GoogleCalendarService
     public function disconnect(): void
     {
         $this->settings->forgetSecret('google_refresh_token');
+        $this->settings->putMany(['google_refresh_token_updated_at' => null]);
+        Cache::forget(self::ACCESS_TOKEN_CACHE);
     }
 
     public function instantMeetUrl(): string
@@ -695,6 +725,11 @@ class GoogleCalendarService
         return null;
     }
 
+    public function freshAccessToken(): string
+    {
+        return $this->accessToken();
+    }
+
     private function accessToken(): string
     {
         if (! filled($this->refreshToken())) {
@@ -705,6 +740,11 @@ class GoogleCalendarService
             throw new RuntimeException('Client ID ou Secret em falta. Guarde as credenciais em Configurações.');
         }
 
+        $cached = Cache::get(self::ACCESS_TOKEN_CACHE);
+        if (is_string($cached) && $cached !== '') {
+            return $cached;
+        }
+
         $response = Http::asForm()->post('https://oauth2.googleapis.com/token', [
             'client_id' => $this->clientId(),
             'client_secret' => $this->clientSecret(),
@@ -713,8 +753,14 @@ class GoogleCalendarService
         ]);
 
         if ($response->successful() && filled($response->json('access_token'))) {
-            return (string) $response->json('access_token');
+            $token = (string) $response->json('access_token');
+            $ttl = max(60, ((int) $response->json('expires_in', 3600)) - 120);
+            Cache::put(self::ACCESS_TOKEN_CACHE, $token, now()->addSeconds($ttl));
+
+            return $token;
         }
+
+        Cache::forget(self::ACCESS_TOKEN_CACHE);
 
         $error = (string) ($response->json('error') ?? '');
         $description = (string) ($response->json('error_description') ?? '');

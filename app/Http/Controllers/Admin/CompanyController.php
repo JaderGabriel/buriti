@@ -76,10 +76,16 @@ class CompanyController extends Controller
         $company->load([
             'contacts' => fn ($q) => $q->withCount(['opportunities', 'projects'])->latest(),
             'projects' => fn ($q) => $q->with('contacts')->ordered(),
-            'opportunities' => fn ($q) => $q->with(['contact', 'project'])->latest(),
         ]);
 
-        $company->loadCount(['contacts', 'projects', 'opportunities']);
+        $relatedOpportunities = $company->relatedOpportunities()
+            ->with(['contact', 'project'])
+            ->latest()
+            ->get();
+
+        $company->loadCount(['contacts', 'projects']);
+        $company->setRelation('opportunities', $relatedOpportunities);
+        $company->opportunities_count = $relatedOpportunities->count();
 
         return view('admin.companies.show', [
             'company' => $company,

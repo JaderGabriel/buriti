@@ -18,10 +18,13 @@ class SiteController extends Controller
             ->take(18)
             ->get();
 
+        $featured = $projects->where('featured_on_home', true)->values();
+
         return view('site.home', [
             'projects' => $projects,
-            'openSourceProjects' => $projects->where('repo_is_private', false)->values(),
-            'privateRepoProjects' => $projects->where('repo_is_private', true)->values(),
+            'featuredProjects' => $featured,
+            'openSourceProjects' => $projects->where('repo_is_private', false)->where('featured_on_home', false)->values(),
+            'privateRepoProjects' => $projects->where('repo_is_private', true)->where('featured_on_home', false)->values(),
             'services' => config('buriti.services', []),
             'expertise' => config('buriti.expertise', []),
             'method' => config('buriti.method', []),

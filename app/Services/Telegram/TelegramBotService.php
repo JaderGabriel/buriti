@@ -797,6 +797,7 @@ HTML;
 
         $opportunity = Opportunity::query()->create([
             'contact_id' => $contact->id,
+            'company_id' => $contact->company_id,
             'title' => trim((string) $title),
             'stage' => $stage,
             'value' => $this->parseMoney($valueRaw),

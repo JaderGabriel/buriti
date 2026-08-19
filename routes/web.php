@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\ProjectController;
 use App\Http\Controllers\Admin\ProjectStepController;
 use App\Http\Controllers\Admin\GoogleOAuthController;
+use App\Http\Controllers\Admin\SearchController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\TaskController;
 use App\Http\Controllers\Admin\UserController;
@@ -57,6 +58,7 @@ Route::post('/admin/logout', [LoginController::class, 'destroy'])
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard');
+    Route::get('/buscar', SearchController::class)->name('search');
     Route::post('/ideias', [IdeaNoteController::class, 'store'])->name('idea-notes.store');
     Route::put('/ideias/{ideaNote}', [IdeaNoteController::class, 'update'])->name('idea-notes.update');
     Route::patch('/ideias/{ideaNote}/cor', [IdeaNoteController::class, 'updateColor'])->name('idea-notes.color');
@@ -124,12 +126,17 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::delete('/contatos/{contact}/projetos/{project}', [AdminContactController::class, 'detachProject'])
         ->name('contacts.projects.detach');
 
+    Route::get('/oportunidades/exportar.csv', [OpportunityController::class, 'export'])
+        ->name('opportunities.export');
     Route::resource('oportunidades', OpportunityController::class)
         ->parameters(['oportunidades' => 'opportunity'])
         ->except(['show'])
         ->names('opportunities');
     Route::patch('/oportunidades/{opportunity}/stage', [OpportunityController::class, 'updateStage'])
         ->name('opportunities.stage');
+    Route::post('/oportunidades/{opportunity}/drive-modelo', [OpportunityController::class, 'copyDriveTemplate'])
+        ->middleware('throttle:20,1')
+        ->name('opportunities.drive-copy');
 
     Route::resource('projetos', ProjectController::class)
         ->parameters(['projetos' => 'project'])

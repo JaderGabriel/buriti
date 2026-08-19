@@ -180,6 +180,18 @@
             </form>
         </div>
 
+        <form method="GET" action="{{ route('admin.search') }}" class="mx-3 mb-3">
+            <label class="sr-only" for="admin-search">Buscar no CRM</label>
+            <input
+                id="admin-search"
+                type="search"
+                name="q"
+                value="{{ request('q') }}"
+                placeholder="Buscar contacto, empresa…"
+                class="w-full rounded-sm border border-line bg-ink/40 px-3 py-2 text-sm text-snow placeholder:text-mist/70"
+            >
+        </form>
+
         <div class="mx-3 mb-4 flex items-center gap-3 rounded-sm border border-line bg-ink/40 px-3 py-3">
             @if(auth()->user()->avatarUrl())
                 <img src="{{ auth()->user()->avatarUrl() }}" alt="" class="h-10 w-10 rounded-sm object-cover">

@@ -21,6 +21,9 @@ class OpportunityRequest extends FormRequest
         if (! $this->filled('project_id')) {
             $this->merge(['project_id' => null]);
         }
+        if (! $this->filled('company_id')) {
+            $this->merge(['company_id' => null]);
+        }
         if (! $this->filled('expected_close_at')) {
             $this->merge(['expected_close_at' => null]);
         }
@@ -31,6 +34,7 @@ class OpportunityRequest extends FormRequest
     {
         return [
             'contact_id' => ['required', 'exists:contacts,id'],
+            'company_id' => ['nullable', 'exists:companies,id'],
             'project_id' => ['nullable', 'exists:projects,id'],
             'title' => ['required', 'string', 'max:180'],
             'description' => ['nullable', 'string', 'max:5000'],

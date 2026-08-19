@@ -99,6 +99,7 @@
                         </select>
                     </label>
                     <x-ui.input type="number" name="sort_order" label="Ordem no portfólio" :value="old('sort_order', $project->sort_order ?? 0)" min="0" />
+                    <x-ui.input type="number" name="featured_sort" label="Ordem no destaque da home" :value="old('featured_sort', $project->featured_sort ?? 0)" min="0" />
 
                     <div class="space-y-3 rounded-sm border border-line bg-ink/40 p-3">
                         <label class="flex items-start gap-2 text-sm text-mist">
@@ -106,6 +107,13 @@
                             <span>
                                 <strong class="text-snow">Exibir no site</strong>
                                 <span class="block text-xs">Aparece na seção Portfólio da landing.</span>
+                            </span>
+                        </label>
+                        <label class="flex items-start gap-2 text-sm text-mist">
+                            <input type="checkbox" name="featured_on_home" value="1" class="mt-1" @checked(old('featured_on_home', $project->featured_on_home))>
+                            <span>
+                                <strong class="text-snow">Destacar na home</strong>
+                                <span class="block text-xs">Sobe para a faixa «Em destaque». Use a ordem acima para posicionar.</span>
                             </span>
                         </label>
                         <label class="flex items-start gap-2 text-sm text-mist">

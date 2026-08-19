@@ -19,6 +19,20 @@
         @if($projects->isEmpty())
             <p class="mt-10 text-mist">Em breve, novos cases. Fale conosco para conhecer entregas sob NDA.</p>
         @else
+            @if(($featuredProjects ?? collect())->isNotEmpty())
+                <div class="mt-10">
+                    <div class="mb-5 flex items-end justify-between gap-3">
+                        <h3 class="font-display text-xl font-semibold text-snow">Em destaque</h3>
+                        <p class="text-xs text-mist">Seleção do painel admin</p>
+                    </div>
+                    <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                        @foreach($featuredProjects as $project)
+                            <x-site.project-card :project="$project" class="border-brand/35 bg-[linear-gradient(160deg,rgba(30,112,191,0.14),transparent_55%)]" />
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
             @if($openSourceProjects->isNotEmpty())
                 <div class="mt-10">
                     <div class="mb-5 flex items-end justify-between gap-3">

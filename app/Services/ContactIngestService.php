@@ -139,6 +139,7 @@ class ContactIngestService
 
         return Opportunity::query()->create([
             'contact_id' => $contact->id,
+            'company_id' => $contact->company_id,
             'title' => $subject !== ''
                 ? Str::limit($subject, 160)
                 : 'Lead do site — '.Str::limit($name, 120),

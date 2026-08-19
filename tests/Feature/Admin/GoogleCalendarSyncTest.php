@@ -138,6 +138,30 @@ class GoogleCalendarSyncTest extends TestCase
         $this->assertStringContainsString('accounts.google.com/o/oauth2/v2/auth', $target);
         $this->assertStringContainsString('client_id=test-client-id', $target);
         $this->assertTrue(session()->has('google_oauth_state'));
+        $this->assertStringContainsString('drive.file', $target);
+        $this->assertStringContainsString('prompt=consent', $target);
+    }
+
+    public function test_oauth_skips_consent_when_refresh_token_exists(): void
+    {
+        $this->settings->putSecret('google_refresh_token', 'refresh-token-test');
+
+        $response = $this->actingAs($this->admin)->get(route('admin.google.connect'));
+
+        $target = $response->headers->get('Location');
+        $this->assertNotNull($target);
+        $this->assertStringNotContainsString('prompt=consent', $target);
+    }
+
+    public function test_oauth_force_requests_consent_again(): void
+    {
+        $this->settings->putSecret('google_refresh_token', 'refresh-token-test');
+
+        $response = $this->actingAs($this->admin)->get(route('admin.google.connect', ['force' => 1]));
+
+        $target = $response->headers->get('Location');
+        $this->assertNotNull($target);
+        $this->assertStringContainsString('prompt=consent', $target);
     }
 
     public function test_agenda_shows_google_events_from_api(): void

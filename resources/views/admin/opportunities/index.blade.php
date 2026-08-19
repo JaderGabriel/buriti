@@ -9,6 +9,9 @@
             <p class="crm-workspace__lead">Arraste os cards entre etapas do funil — ou abra a ficha para editar.</p>
         </div>
         <div class="crm-workspace__actions">
+            <a href="{{ route('admin.opportunities.export', array_filter(['company_id' => $companyId, 'q' => $q, 'stage' => $stageFilter])) }}" class="pm-btn pm-btn--ghost">
+                Exportar CSV
+            </a>
             <a href="{{ route('admin.contacts.index') }}" class="pm-btn pm-btn--ghost">
                 <x-ui.icon name="contact" class="h-4 w-4" />
                 Contatos
@@ -50,14 +53,39 @@
             <span class="pm-stat__value">R$ {{ number_format($stats['pipeline_value'], 0, ',', '.') }}</span>
             <span class="pm-stat__label">Pipeline</span>
         </div>
+        <div class="pm-stat">
+            <span class="pm-stat__value">{{ $funnel['win_rate'] }}%</span>
+            <span class="pm-stat__label">Win rate</span>
+        </div>
     </div>
+
+    <form method="GET" action="{{ route('admin.opportunities.index') }}" class="pm-toolbar mb-4 flex flex-wrap items-end gap-3">
+        <input type="hidden" name="view" value="{{ $view }}">
+        @if($stageFilter)
+            <input type="hidden" name="stage" value="{{ $stageFilter }}">
+        @endif
+        <label class="text-sm text-mist">
+            Empresa
+            <select name="company_id" class="mt-1 block rounded-sm border border-line bg-ink/40 px-2 py-1.5 text-snow" onchange="this.form.submit()">
+                <option value="">Todas (incl. sem empresa)</option>
+                @foreach($companies as $company)
+                    <option value="{{ $company->id }}" @selected((string) $companyId === (string) $company->id)>{{ $company->displayName() }}</option>
+                @endforeach
+            </select>
+        </label>
+        <label class="text-sm text-mist">
+            Busca
+            <input type="search" name="q" value="{{ $q }}" class="mt-1 block rounded-sm border border-line bg-ink/40 px-2 py-1.5 text-snow">
+        </label>
+        <button type="submit" class="pm-btn pm-btn--ghost">Filtrar</button>
+    </form>
 
     <div class="pm-toolbar">
         <div class="pm-view-switch" role="tablist" aria-label="Vista do pipeline">
-            <a href="{{ route('admin.opportunities.index', array_filter(['view' => 'board', 'stage' => $stageFilter])) }}" @class(['is-active' => $view === 'board'])>Board</a>
-            <a href="{{ route('admin.opportunities.index', array_filter(['view' => 'list', 'stage' => $stageFilter])) }}" @class(['is-active' => $view === 'list'])>Lista</a>
+            <a href="{{ route('admin.opportunities.index', array_filter(['view' => 'board', 'stage' => $stageFilter, 'company_id' => $companyId, 'q' => $q])) }}" @class(['is-active' => $view === 'board'])>Board</a>
+            <a href="{{ route('admin.opportunities.index', array_filter(['view' => 'list', 'stage' => $stageFilter, 'company_id' => $companyId, 'q' => $q])) }}" @class(['is-active' => $view === 'list'])>Lista</a>
         </div>
-        @if($stageFilter)
+        @if($stageFilter || $companyId || $q !== '')
             <a href="{{ route('admin.opportunities.index', ['view' => $view]) }}" class="pm-chip">Limpar filtro</a>
         @endif
     </div>
@@ -101,7 +129,14 @@
                                     <a href="{{ route('admin.opportunities.edit', $opportunity) }}" draggable="false">{{ $opportunity->title }}</a>
                                 </h3>
                                 <p class="crm-deal__contact">
-                                    <a href="{{ route('admin.contacts.show', $opportunity->contact) }}" draggable="false">{{ $opportunity->contact->name }}</a>
+                                    @if($opportunity->contact)
+                                        <a href="{{ route('admin.contacts.show', $opportunity->contact) }}" draggable="false">{{ $opportunity->contact->name }}</a>
+                                    @else
+                                        Sem contacto
+                                    @endif
+                                    @if($opportunity->companyLabel())
+                                        · {{ $opportunity->companyLabel() }}
+                                    @endif
                                     @if($opportunity->project)
                                         · {{ $opportunity->project->name }}
                                     @endif
@@ -139,9 +174,15 @@
                                 <p class="pm-table__sub">{{ $opportunity->project?->name ?? 'Sem projeto' }}</p>
                             </td>
                             <td>
-                                <a href="{{ route('admin.contacts.show', $opportunity->contact) }}" class="text-brand-bright hover:underline">
-                                    {{ $opportunity->contact->name }}
-                                </a>
+                                @if($opportunity->contact)
+                                    <a href="{{ route('admin.contacts.show', $opportunity->contact) }}" class="text-brand-bright hover:underline">
+                                        {{ $opportunity->contact->name }}
+                                    </a>
+                                @else —
+                                @endif
+                                @if($opportunity->companyLabel())
+                                    <p class="pm-table__sub">{{ $opportunity->companyLabel() }}</p>
+                                @endif
                             </td>
                             <td><x-admin.crm-badge :stage="$opportunity->stage" /></td>
                             <td class="text-mist">

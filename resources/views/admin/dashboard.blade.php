@@ -8,6 +8,90 @@
 
     <x-admin.crm-journey class="mb-5" />
 
+    <form method="GET" action="{{ route('admin.dashboard') }}" class="mb-5 flex flex-wrap items-end gap-3">
+        <label class="text-sm text-mist">
+            Filtrar por empresa
+            <select name="company_id" class="mt-1 block rounded-sm border border-line bg-ink/40 px-2 py-1.5 text-snow" onchange="this.form.submit()">
+                <option value="">Todas</option>
+                @foreach($companies as $company)
+                    <option value="{{ $company->id }}" @selected((string) $companyId === (string) $company->id)>{{ $company->displayName() }}</option>
+                @endforeach
+            </select>
+        </label>
+        @if($companyId)
+            <a href="{{ route('admin.dashboard') }}" class="text-sm text-brand-bright hover:underline">Limpar</a>
+        @endif
+    </form>
+
+    <section class="dash-panel mb-6">
+        <header class="dash-panel__head">
+            <div class="dash-panel__title-wrap">
+                <span class="dash-panel__icon" aria-hidden="true"><x-ui.icon name="opportunity" class="h-5 w-5" /></span>
+                <div>
+                    <p class="dash-panel__eyebrow">Condução</p>
+                    <h2 class="dash-panel__title">Próximas acções</h2>
+                </div>
+            </div>
+        </header>
+        <div class="grid gap-4 p-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-mist">Mensagens</p>
+                <ul class="mt-2 space-y-1 text-sm">
+                    @forelse($inbox['unlinked_messages'] as $message)
+                        <li><a href="{{ route('admin.messages.show', $message) }}" class="text-brand-bright hover:underline">{{ $message->name }} — {{ $message->subject }}</a></li>
+                    @empty
+                        <li class="text-mist">Inbox comercial em dia.</li>
+                    @endforelse
+                </ul>
+            </div>
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-mist">Tarefas em atraso</p>
+                <ul class="mt-2 space-y-1 text-sm">
+                    @forelse($inbox['overdue_tasks'] as $task)
+                        <li><a href="{{ route('admin.tasks.index') }}" class="text-brand-bright hover:underline">{{ $task->title }}</a></li>
+                    @empty
+                        <li class="text-mist">Sem atrasos.</li>
+                    @endforelse
+                </ul>
+            </div>
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-mist">Oportunidades paradas</p>
+                <ul class="mt-2 space-y-1 text-sm">
+                    @forelse($inbox['stale_opportunities'] as $opportunity)
+                        <li><a href="{{ route('admin.opportunities.edit', $opportunity) }}" class="text-brand-bright hover:underline">{{ $opportunity->title }}</a></li>
+                    @empty
+                        <li class="text-mist">Funil com actividade recente.</li>
+                    @endforelse
+                </ul>
+            </div>
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-mist">Meet sem link</p>
+                <ul class="mt-2 space-y-1 text-sm">
+                    @forelse($inbox['meet_missing'] as $task)
+                        <li>{{ $task->title }}</li>
+                    @empty
+                        <li class="text-mist">Nada pendente.</li>
+                    @endforelse
+                </ul>
+            </div>
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-mist">Agenda sem sync Google</p>
+                <ul class="mt-2 space-y-1 text-sm">
+                    @forelse($inbox['google_unsynced'] as $task)
+                        <li>{{ $task->title }}</li>
+                    @empty
+                        <li class="text-mist">Nada pendente.</li>
+                    @endforelse
+                </ul>
+            </div>
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-mist">Funil</p>
+                <p class="mt-2 text-2xl font-semibold text-snow">{{ $funnel['win_rate'] }}%</p>
+                <p class="text-xs text-mist">Win rate ({{ $funnel['won'] }}/{{ $funnel['closed'] }} fechados)</p>
+            </div>
+        </div>
+    </section>
+
     <x-admin.crm-funnel
         :counts="$opportunityStageCounts"
         :filter-base="route('admin.opportunities.index', ['view' => 'board'])"

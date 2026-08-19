@@ -114,9 +114,26 @@
                     </label>
 
                     <div class="mt-6 space-y-3 rounded-2xl border border-line bg-ink/40 p-4">
+                        <h3 class="font-display text-base font-semibold">Google Drive (modelos e contratos)</h3>
+                        <p class="text-sm text-mist">
+                            A mesma conta OAuth serve Agenda e Drive. Cole o ID da pasta (na URL: <code>drive.google.com/drive/folders/<strong>ID</strong></code>).
+                        </p>
+                        <x-ui.input
+                            name="google_drive_templates_folder_id"
+                            label="Pasta de modelos (ID)"
+                            :value="old('google_drive_templates_folder_id', $settings['google_drive_templates_folder_id'] ?? '')"
+                        />
+                        <x-ui.input
+                            name="google_drive_contracts_folder_id"
+                            label="Pasta de contratos gerados (ID)"
+                            :value="old('google_drive_contracts_folder_id', $settings['google_drive_contracts_folder_id'] ?? '')"
+                        />
+                    </div>
+
+                    <div class="mt-6 space-y-3 rounded-2xl border border-line bg-ink/40 p-4">
                         <h3 class="font-display text-base font-semibold">API OAuth (nível 3)</h3>
                         <p class="text-sm text-mist">
-                            Preencha as credenciais do Cloud Console. Depois ligue a conta — o Google pede autorização uma vez e grava o refresh token no CRM.
+                            Preencha as credenciais do Cloud Console. Depois ligue a conta — o Google pede autorização e o CRM reutiliza o refresh token (não volta a pedir todas as semanas, excepto em apps em modo Teste).
                         </p>
 
                         @php($connection = $googleConnection ?? ['state' => 'missing_credentials', 'label' => 'Desconhecido', 'message' => '', 'has_secret' => false, 'has_refresh' => false])
@@ -124,6 +141,9 @@
                             {{ ($connection['state'] ?? '') === 'linked' ? 'border-brand/40 bg-brand/10 text-brand-bright' : 'border-amber-500/40 bg-amber-500/10 text-amber-100' }}">
                             <p class="font-semibold">{{ $connection['label'] }}</p>
                             <p class="mt-1 text-xs opacity-90">{{ $connection['message'] }}</p>
+                            @if(!empty($connection['testing_warning']))
+                                <p class="mt-2 text-xs text-amber-100">{{ $connection['testing_warning'] }}</p>
+                            @endif
                         </div>
 
                         <x-ui.input
@@ -166,10 +186,10 @@
                                     Desligar conta
                                 </button>
                                 <a
-                                    href="{{ route('admin.google.connect') }}"
+                                    href="{{ route('admin.google.connect', ['force' => 1]) }}"
                                     class="inline-flex rounded-full border border-line px-4 py-2 text-xs font-semibold text-mist hover:text-snow"
                                 >
-                                    Religar conta
+                                    Reautorizar (pedido de consentimento)
                                 </a>
                             @elseif($googleOauthAppReady)
                                 <a
