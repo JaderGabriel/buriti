@@ -4,6 +4,8 @@ namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use App\Support\PhoneNumber;
+use App\Support\WhatsAppLink;
 
 class UpdateSettingsRequest extends FormRequest
 {
@@ -12,13 +14,37 @@ class UpdateSettingsRequest extends FormRequest
         return $this->user() !== null;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $phoneParts = PhoneNumber::normalizeInput([
+            'phone_country' => $this->input('contact_phone_country'),
+            'phone_number' => $this->input('contact_phone_number'),
+            'phone' => $this->input('contact_phone'),
+        ]);
+
+        $telegramHandle = trim((string) $this->input('telegram_handle', ''));
+        if ($telegramHandle !== '' && ! str_starts_with($telegramHandle, '@')) {
+            $telegramHandle = '@'.$telegramHandle;
+        }
+
+        $this->merge([
+            'contact_phone' => $phoneParts['phone'],
+            'contact_whatsapp' => WhatsAppLink::normalize($this->input('contact_whatsapp')),
+            'telegram_handle' => $telegramHandle !== '' ? $telegramHandle : null,
+        ]);
+    }
+
     /** @return array<string, mixed> */
     public function rules(): array
     {
+        $isos = PhoneNumber::countries()->pluck('iso')->all();
+
         return [
             'contact_email' => ['nullable', 'email', 'max:180'],
+            'contact_phone_country' => ['nullable', 'string', Rule::in($isos)],
+            'contact_phone_number' => ['nullable', 'string', 'min:8', 'max:20', 'regex:/^[0-9]+$/'],
             'contact_phone' => ['nullable', 'string', 'max:40'],
-            'contact_whatsapp' => ['nullable', 'string', 'max:40'],
+            'contact_whatsapp' => ['nullable', 'string', 'max:60'],
             'linkedin_url' => ['nullable', 'url', 'max:255'],
             'github_url' => ['nullable', 'url', 'max:255'],
             'telegram_url' => ['nullable', 'url', 'max:255'],

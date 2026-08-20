@@ -6,6 +6,7 @@ use App\Enums\ContactSource;
 use App\Enums\ContactStatus;
 use App\Models\Concerns\HasAttachments;
 use App\Support\PhoneNumber;
+use App\Support\WhatsAppLink;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -23,6 +24,7 @@ class Contact extends Model
         'name',
         'email',
         'phone',
+        'whatsapp',
         'company',
         'company_id',
         'role',
@@ -107,9 +109,12 @@ class Contact extends Model
 
     public function whatsappUrl(): ?string
     {
-        $digits = PhoneNumber::digits($this->phone);
+        return WhatsAppLink::href($this->whatsapp ?: $this->phone);
+    }
 
-        return $digits ? 'https://wa.me/'.$digits : null;
+    public function whatsappLabel(): ?string
+    {
+        return WhatsAppLink::label($this->whatsapp ?: $this->phone);
     }
 
     public function telUrl(): ?string
@@ -117,5 +122,12 @@ class Contact extends Model
         $digits = PhoneNumber::digits($this->phone);
 
         return $digits ? 'tel:+'.$digits : null;
+    }
+
+    public function mailtoUrl(): ?string
+    {
+        $email = trim((string) $this->email);
+
+        return $email !== '' ? 'mailto:'.$email : null;
     }
 }

@@ -15,7 +15,7 @@
 
         <x-ui.input name="name" label="Razão / nome" :value="old('name', $company->name)" required placeholder="Empresa Exemplo Ltda" />
         <x-ui.input name="trade_name" label="Nome fantasia" :value="old('trade_name', $company->trade_name)" placeholder="Exemplo Tech" />
-        <x-ui.input name="document" label="CNPJ / documento" :value="old('document', $company->document)" placeholder="00.000.000/0001-00" />
+        <x-ui.document-field name="document" label="CPF / CNPJ" :value="old('document', $company->document)" />
         <x-ui.phone-field :value="old('phone', $company->phone)" />
             <div class="grid gap-4 sm:grid-cols-2">
             <x-ui.input type="email" name="email" label="E-mail" :value="old('email', $company->email)" placeholder="contato@exemplo.com" />

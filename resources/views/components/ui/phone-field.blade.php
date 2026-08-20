@@ -32,6 +32,7 @@
                 <select
                     name="{{ $countryName }}"
                     x-model="iso"
+                    x-on:change="onCountryChange()"
                     @required($required)
                     class="phone-field__select"
                 >
@@ -54,10 +55,11 @@
                         @required($required)
                         inputmode="numeric"
                         autocomplete="tel-national"
-                        placeholder="11 98765-4321"
+                        placeholder="(11) 98765-4321"
                         class="phone-field__input"
                         data-phone-national
                         x-on:input="formatNational($event)"
+                        x-on:blur="formatNational($event)"
                     >
                 </div>
             </label>

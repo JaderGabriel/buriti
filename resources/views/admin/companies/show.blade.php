@@ -23,7 +23,7 @@
                         <span>· {{ $company->name }}</span>
                     @endif
                     @if($company->document)
-                        <span>· {{ $company->document }}</span>
+                        <span>· {{ \App\Support\BrazilianDocument::format($company->document) }}</span>
                     @endif
                 </div>
             </div>
@@ -82,8 +82,8 @@
                         </dd>
                     </div>
                     <div>
-                        <dt class="text-mist">Documento</dt>
-                        <dd class="mt-1">{{ $company->document ?? '—' }}</dd>
+                        <dt class="text-mist">CPF / CNPJ</dt>
+                        <dd class="mt-1">{{ \App\Support\BrazilianDocument::format($company->document) ?? '—' }}</dd>
                     </div>
                 </dl>
                 @if($company->notes)
@@ -127,6 +127,9 @@
                         <x-ui.input type="email" name="email" label="E-mail" :value="old('email')" placeholder="maria.silva@exemplo.com" />
                         <div class="sm:col-span-2">
                             <x-ui.phone-field :value="old('phone')" />
+                        </div>
+                        <div class="sm:col-span-2">
+                            <x-ui.whatsapp-field name="whatsapp" :value="old('whatsapp')" hint="Opcional. Se vazio, usa o telefone." />
                         </div>
                         <x-ui.input name="role" label="Cargo" :value="old('role')" placeholder="Diretora de TI" />
                     </div>

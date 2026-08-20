@@ -299,31 +299,73 @@ function buritiPhoneCountryField(countries, iso) {
 
             return `${this.selected.flag || ''} +${this.selected.dial || ''}`.trim();
         },
+        digitsOnly(value) {
+            return String(value || '').replace(/\D+/g, '');
+        },
+        formatBrNational(digits) {
+            let local = this.digitsOnly(digits).slice(0, 11);
+            const len = local.length;
+
+            if (len === 0) {
+                return '';
+            }
+            if (len <= 2) {
+                return local;
+            }
+            if (len <= 6) {
+                return `(${local.slice(0, 2)}) ${local.slice(2)}`;
+            }
+            if (len <= 10) {
+                return `(${local.slice(0, 2)}) ${local.slice(2, len - 4)}-${local.slice(-4)}`;
+            }
+
+            return `(${local.slice(0, 2)}) ${local.slice(2, 7)}-${local.slice(7, 11)}`;
+        },
+        restoreCursor(input, digitsBefore) {
+            if (! (input instanceof HTMLInputElement)) {
+                return;
+            }
+
+            const value = String(input.value || '');
+            let seen = 0;
+            let index = value.length;
+
+            for (let i = 0; i < value.length; i += 1) {
+                if (/\d/.test(value[i])) {
+                    seen += 1;
+                    if (seen >= digitsBefore) {
+                        index = i + 1;
+                        break;
+                    }
+                }
+            }
+
+            requestAnimationFrame(() => {
+                try {
+                    input.setSelectionRange(index, index);
+                } catch {
+                    // ignore
+                }
+            });
+        },
         formatNational(event) {
             const input = event?.target;
             if (! (input instanceof HTMLInputElement)) {
                 return;
             }
 
-            let digits = String(input.value || '').replace(/\D+/g, '');
+            const selection = input.selectionStart ?? String(input.value || '').length;
+            const digitsBefore = this.digitsOnly(String(input.value || '').slice(0, selection)).length;
+
+            let digits = this.digitsOnly(input.value);
             const dial = String(this.selected?.dial || '');
             if (dial && digits.startsWith(dial) && digits.length > dial.length + 7) {
                 digits = digits.slice(dial.length);
             }
 
             if (this.iso === 'BR') {
-                if (digits.length > 11) {
-                    digits = digits.slice(0, 11);
-                }
-
-                if (digits.length > 6) {
-                    input.value = `${digits.slice(0, 2)} ${digits.slice(2, digits.length - 4)}-${digits.slice(-4)}`;
-                } else if (digits.length > 2) {
-                    input.value = `${digits.slice(0, 2)} ${digits.slice(2)}`;
-                } else {
-                    input.value = digits;
-                }
-
+                input.value = this.formatBrNational(digits);
+                this.restoreCursor(input, Math.min(digitsBefore, 11));
                 return;
             }
 
@@ -331,8 +373,185 @@ function buritiPhoneCountryField(countries, iso) {
                 digits = digits.slice(0, 15);
             }
             input.value = digits;
+            this.restoreCursor(input, Math.min(digitsBefore, digits.length));
+        },
+        onCountryChange() {
+            const root = this.$el;
+            const input = root?.querySelector?.('[data-phone-national]');
+            if (! (input instanceof HTMLInputElement)) {
+                return;
+            }
+
+            this.formatNational({ target: input });
         },
     };
+}
+
+function buritiWhatsAppField({ mode = 'phone', iso = 'BR', national = '', username = '', countries = [] } = {}) {
+    return {
+        mode: mode === 'username' ? 'username' : 'phone',
+        iso: iso || 'BR',
+        national: national || '',
+        username: username || '',
+        payload: '',
+        countries: Array.isArray(countries) ? countries : [],
+        get selected() {
+            return this.countries.find((country) => country.iso === this.iso) || this.countries[0] || null;
+        },
+        dialLabel() {
+            if (! this.selected) {
+                return '';
+            }
+
+            return `${this.selected.flag || ''} +${this.selected.dial || ''}`.trim();
+        },
+        digitsOnly(value) {
+            return String(value || '').replace(/\D+/g, '');
+        },
+        formatBrNational(digits) {
+            let local = this.digitsOnly(digits).slice(0, 11);
+            const len = local.length;
+            if (len === 0) {
+                return '';
+            }
+            if (len <= 2) {
+                return local;
+            }
+            if (len <= 6) {
+                return `(${local.slice(0, 2)}) ${local.slice(2)}`;
+            }
+            if (len <= 10) {
+                return `(${local.slice(0, 2)}) ${local.slice(2, len - 4)}-${local.slice(-4)}`;
+            }
+
+            return `(${local.slice(0, 2)}) ${local.slice(2, 7)}-${local.slice(7, 11)}`;
+        },
+        formatNational(event) {
+            const input = event?.target;
+            if (! (input instanceof HTMLInputElement)) {
+                return;
+            }
+
+            let digits = this.digitsOnly(input.value);
+            const dial = String(this.selected?.dial || '');
+            if (dial && digits.startsWith(dial) && digits.length > dial.length + 7) {
+                digits = digits.slice(dial.length);
+            }
+
+            if (this.iso === 'BR') {
+                input.value = this.formatBrNational(digits);
+                this.national = input.value;
+                return;
+            }
+
+            input.value = digits.slice(0, 15);
+            this.national = input.value;
+        },
+        setMode(next) {
+            this.mode = next === 'username' ? 'username' : 'phone';
+            this.sync();
+        },
+        sync() {
+            if (this.mode === 'username') {
+                const clean = String(this.username || '').trim().replace(/^@+/, '').toLowerCase();
+                this.payload = /^[a-z][a-z0-9._]{2,29}$/.test(clean) ? clean : clean;
+                return;
+            }
+
+            const dial = String(this.selected?.dial || '');
+            let local = this.digitsOnly(this.national);
+            if (dial && local.startsWith(dial) && local.length > dial.length + 7) {
+                local = local.slice(dial.length);
+            }
+
+            this.payload = local !== '' && dial !== '' ? `+${dial}${local}` : '';
+        },
+        init() {
+            this.sync();
+        },
+    };
+}
+
+function formatCpfCnpjMask(value) {
+    const digits = String(value || '').replace(/\D+/g, '').slice(0, 14);
+    const len = digits.length;
+
+    if (len === 0) {
+        return '';
+    }
+
+    if (len <= 11) {
+        if (len <= 3) {
+            return digits;
+        }
+        if (len <= 6) {
+            return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+        }
+        if (len <= 9) {
+            return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+        }
+
+        return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+    }
+
+    const base = `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}`;
+    if (len <= 12) {
+        return base;
+    }
+
+    return `${base}-${digits.slice(12)}`;
+}
+
+function restoreDigitCursor(input, digitsBefore) {
+    if (! (input instanceof HTMLInputElement)) {
+        return;
+    }
+
+    const value = String(input.value || '');
+    let seen = 0;
+    let index = value.length;
+
+    for (let i = 0; i < value.length; i += 1) {
+        if (/\d/.test(value[i])) {
+            seen += 1;
+            if (seen >= digitsBefore) {
+                index = i + 1;
+                break;
+            }
+        }
+    }
+
+    requestAnimationFrame(() => {
+        try {
+            input.setSelectionRange(index, index);
+        } catch {
+            // ignore
+        }
+    });
+}
+
+function initDocumentMasks(root = document) {
+    root.querySelectorAll('[data-document-mask]').forEach((input) => {
+        if (! (input instanceof HTMLInputElement) || input.dataset.maskBound === '1') {
+            return;
+        }
+        input.dataset.maskBound = '1';
+
+        const apply = () => {
+            if (/[A-Za-z]/.test(input.value)) {
+                return;
+            }
+
+            const selection = input.selectionStart ?? input.value.length;
+            const digitsBefore = String(input.value || '').slice(0, selection).replace(/\D+/g, '').length;
+            input.value = formatCpfCnpjMask(input.value);
+            restoreDigitCursor(input, Math.min(digitsBefore, 14));
+        };
+
+        input.addEventListener('input', apply);
+        input.addEventListener('blur', apply);
+        apply();
+    });
 }
 
 function createRandomPassword(length = 16) {
@@ -2496,10 +2715,12 @@ function initPhonebookSelection() {
 }
 
 window.buritiPhoneCountryField = buritiPhoneCountryField;
+window.buritiWhatsAppField = buritiWhatsAppField;
 window.taskDayCreate = taskDayCreate;
 
 document.addEventListener('alpine:init', () => {
     Alpine.data('buritiPhoneCountryField', buritiPhoneCountryField);
+    Alpine.data('buritiWhatsAppField', buritiWhatsAppField);
     Alpine.data('taskDayCreate', taskDayCreate);
 });
 
@@ -2725,6 +2946,7 @@ initBackToTop();
 initAdminShell();
 initAvatarPreviews();
 initPasswordFields();
+initDocumentMasks();
 initPasswordGenerators();
 initTelegramLogin();
 initTaskCreateDialog();

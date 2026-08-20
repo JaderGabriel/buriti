@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\CompanyStatus;
+use App\Support\BrazilianDocument;
 use App\Support\PhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -29,6 +30,10 @@ class CompanyRequest extends FormRequest
         } else {
             $this->merge(['website_url' => null]);
         }
+
+        $this->merge([
+            'document' => BrazilianDocument::normalize($this->input('document')),
+        ]);
 
         $this->merge(PhoneNumber::normalizeInput($this->all()));
     }

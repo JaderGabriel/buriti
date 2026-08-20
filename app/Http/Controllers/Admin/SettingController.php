@@ -41,7 +41,11 @@ class SettingController extends Controller
         $data = $request->validated();
         $data['google_auto_sync'] = $request->input('google_auto_sync', '0');
 
-        unset($data['google_client_secret']);
+        unset(
+            $data['google_client_secret'],
+            $data['contact_phone_country'],
+            $data['contact_phone_number'],
+        );
 
         $this->settings->putMany($data);
 

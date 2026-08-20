@@ -5,6 +5,8 @@
     $phoneLabel = \App\Support\PhoneNumber::format($contact->phone);
     $tel = $contact->telUrl();
     $wa = $contact->whatsappUrl();
+    $waLabel = $contact->whatsappLabel();
+    $mail = $contact->mailtoUrl();
     $initials = collect(preg_split('/\s+/', trim($contact->name)) ?: [])
         ->filter()
         ->take(2)
@@ -60,6 +62,16 @@
                             @endif
                         </li>
                     @endif
+                    @if($waLabel)
+                        <li>
+                            <x-ui.icon name="whatsapp" class="h-3.5 w-3.5" />
+                            @if($wa)
+                                <a href="{{ $wa }}" target="_blank" rel="noopener">{{ $waLabel }}</a>
+                            @else
+                                <span>{{ $waLabel }}</span>
+                            @endif
+                        </li>
+                    @endif
                     @if($contact->email)
                         <li>
                             <x-ui.icon name="mail" class="h-3.5 w-3.5" />
@@ -68,8 +80,7 @@
                     @endif
                     @if($contact->preferred_channel)
                         <li>
-                            <x-ui.icon name="whatsapp" class="h-3.5 w-3.5" />
-                            <span class="uppercase tracking-wide">{{ $contact->preferred_channel }}</span>
+                            <span class="uppercase tracking-wide text-mist">Canal: {{ $contact->preferred_channel }}</span>
                         </li>
                     @endif
                 </ul>
@@ -88,13 +99,13 @@
                 </a>
             @endif
             @if($wa)
-                <a href="{{ $wa }}" target="_blank" rel="noopener" class="contact-dossier__quick-btn contact-dossier__quick-btn--wa" title="WhatsApp">
+                <a href="{{ $wa }}" target="_blank" rel="noopener" class="contact-dossier__quick-btn contact-dossier__quick-btn--wa" title="WhatsApp{{ $waLabel ? ' '.$waLabel : '' }}">
                     <x-ui.icon name="whatsapp" class="h-4 w-4" />
                     WhatsApp
                 </a>
             @endif
-            @if($contact->email)
-                <a href="mailto:{{ $contact->email }}" class="contact-dossier__quick-btn contact-dossier__quick-btn--mail" title="E-mail">
+            @if($mail)
+                <a href="{{ $mail }}" class="contact-dossier__quick-btn contact-dossier__quick-btn--mail" title="E-mail">
                     <x-ui.icon name="mail" class="h-4 w-4" />
                     E-mail
                 </a>

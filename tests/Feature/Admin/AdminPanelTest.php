@@ -232,7 +232,7 @@ class AdminPanelTest extends TestCase
         $settings = app(SettingService::class)->all();
 
         $this->assertSame('jadergabriel8@gmail.com', $settings['contact_email']);
-        $this->assertSame('+55 38991758416', $settings['contact_whatsapp']);
+        $this->assertSame('+55 (38) 99175-8416', $settings['contact_whatsapp']);
         $this->assertSame('@JaderGabriel', $settings['telegram_handle']);
         // primary + embed específico → Calendar ID alinha ao src do embed
         $this->assertSame('example@group.calendar.google.com', $settings['google_calendar_id']);

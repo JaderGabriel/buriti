@@ -15,7 +15,8 @@
 
         <x-ui.input name="name" label="Nome" :value="old('name', $contact->name)" required placeholder="Maria Silva" />
         <x-ui.input type="email" name="email" label="E-mail" :value="old('email', $contact->email)" placeholder="maria.silva@exemplo.com" />
-        <x-ui.phone-field :value="old('phone', $contact->phone)" />
+        <x-ui.phone-field :value="old('phone', $contact->phone)" hint="Telefone para ligação (botão Ligar)." />
+        <x-ui.whatsapp-field name="whatsapp" :value="old('whatsapp', $contact->whatsapp)" hint="Se vazio, o botão WhatsApp usa o telefone acima." />
 
         <label class="block text-sm">
             <span class="text-mist">Empresa (existente)</span>

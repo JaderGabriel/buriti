@@ -7,6 +7,7 @@ use App\Enums\ContactStatus;
 use App\Models\Company;
 use App\Services\CompanyResolver;
 use App\Support\PhoneNumber;
+use App\Support\WhatsAppLink;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -28,6 +29,9 @@ class ContactRequest extends FormRequest
         }
 
         $this->merge(PhoneNumber::normalizeInput($this->all()));
+        $this->merge([
+            'whatsapp' => WhatsAppLink::normalize($this->input('whatsapp')),
+        ]);
     }
 
     /** @return array<string, mixed> */
@@ -47,6 +51,7 @@ class ContactRequest extends FormRequest
             'phone_country' => ['nullable', 'string', Rule::in($isos)],
             'phone_number' => ['nullable', 'string', 'min:8', 'max:20', 'regex:/^[0-9]+$/'],
             'phone' => ['nullable', 'string', 'max:40'],
+            'whatsapp' => ['nullable', 'string', 'max:60'],
             'company_id' => ['nullable', 'exists:companies,id'],
             'company' => ['nullable', 'string', 'max:180'],
             'role' => ['nullable', 'string', 'max:120'],

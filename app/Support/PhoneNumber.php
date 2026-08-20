@@ -125,17 +125,29 @@ class PhoneNumber
             return $digits;
         }
 
-        // Celular: AA 9XXXX-XXXX
+        // Celular: (AA) 9XXXX-XXXX
         if (preg_match('/^(\d{2})(9\d{4})(\d{4})$/', $digits, $m)) {
-            return $m[1].' '.$m[2].'-'.$m[3];
+            return '('.$m[1].') '.$m[2].'-'.$m[3];
         }
 
-        // Fixo: AA XXXX-XXXX
+        // Fixo: (AA) XXXX-XXXX
         if (preg_match('/^(\d{2})(\d{4})(\d{4})$/', $digits, $m)) {
-            return $m[1].' '.$m[2].'-'.$m[3];
+            return '('.$m[1].') '.$m[2].'-'.$m[3];
         }
 
-        return $digits;
+        // Progressivo enquanto digita
+        $len = strlen($digits);
+        if ($len <= 2) {
+            return $digits;
+        }
+        if ($len <= 6) {
+            return '('.$digits[0].$digits[1].') '.substr($digits, 2);
+        }
+        if ($len <= 10) {
+            return '('.$digits[0].$digits[1].') '.substr($digits, 2, $len - 6).'-'.substr($digits, -4);
+        }
+
+        return '('.$digits[0].$digits[1].') '.substr($digits, 2, 5).'-'.substr($digits, 7, 4);
     }
 
     /**

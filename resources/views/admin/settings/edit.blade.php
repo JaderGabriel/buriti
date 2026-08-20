@@ -18,17 +18,32 @@
                 </div>
             </div>
             <div class="grid gap-4 sm:grid-cols-2">
-                <x-ui.input type="email" name="contact_email" label="E-mail" :value="$settings['contact_email']" placeholder="contato@empresa.exemplo" />
-                <x-ui.input name="contact_phone" label="Telefone" :value="$settings['contact_phone']" placeholder="+55 11 90000-0000" />
-                <x-ui.input name="contact_whatsapp" label="WhatsApp" :value="$settings['contact_whatsapp']" placeholder="usuario.exemplo" />
+                <x-ui.input type="email" name="contact_email" label="E-mail (site)" :value="$settings['contact_email']" placeholder="contato@empresa.exemplo" />
+                <div>
+                    <x-ui.phone-field
+                        label="Telefone (interno)"
+                        :value="$settings['contact_phone']"
+                        country-name="contact_phone_country"
+                        number-name="contact_phone_number"
+                        hint="Não aparece nos botões públicos do site — só no painel."
+                    />
+                </div>
+                <div class="sm:col-span-2">
+                    <x-ui.whatsapp-field
+                        name="contact_whatsapp"
+                        label="WhatsApp (site)"
+                        :value="$settings['contact_whatsapp']"
+                        hint="Canal público: telefone internacional ou nome de usuário. Gera o botão WhatsApp no site."
+                    />
+                </div>
                 <x-ui.input type="url" name="linkedin_url" label="LinkedIn" :value="$settings['linkedin_url']" placeholder="https://www.linkedin.com/in/usuario-exemplo/" />
                 <x-ui.input type="url" name="github_url" label="GitHub" :value="$settings['github_url']" placeholder="https://github.com/usuario-exemplo" />
                 <x-ui.input type="url" name="telegram_url" label="Telegram (URL)" :value="$settings['telegram_url']" placeholder="https://t.me/usuario_exemplo" />
                 <x-ui.input name="telegram_handle" label="Telegram (handle)" :value="$settings['telegram_handle']" placeholder="@usuario_exemplo" />
             </div>
             <x-admin.inline-docs title="Canais públicos" class="mt-2">
-                <p>WhatsApp: use o <strong>nome de usuário</strong> (ex.: <code>usuario.exemplo</code> → <code>https://wa.me/usuario.exemplo</code>) ou um número internacional fictício no formato <code>+55 11 90000-0000</code>. O campo Telefone é interno; no site público o canal é WhatsApp.</p>
-                <p class="admin-docs__note mb-0">O identificador do Telegram alimenta o botão de contato; a URL completa é usada nos ícones sociais.</p>
+                <p>No site público aparecem apenas canais com valor válido: <strong>e-mail</strong> (<code>mailto:</code>), <strong>WhatsApp</strong> (<code>wa.me</code> por telefone ou usuário), LinkedIn, GitHub e Telegram. O campo Telefone é interno e <strong>não</strong> gera botão público.</p>
+                <p class="admin-docs__note mb-0">WhatsApp aceita usuário (ex.: <code>usuario.exemplo</code>) ou número com DDI. Se o valor for inválido, o botão some automaticamente.</p>
             </x-admin.inline-docs>
         </section>
 

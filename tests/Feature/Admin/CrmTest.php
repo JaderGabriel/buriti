@@ -43,7 +43,7 @@ class CrmTest extends TestCase
 
         $contact = Contact::query()->where('email', 'maria@cliente.com')->first();
         $this->assertNotNull($contact);
-        $this->assertSame('+55 38 99999-9999', $contact->phone);
+        $this->assertSame('+55 (38) 99999-9999', $contact->phone);
         $this->assertDatabaseHas('companies', ['name' => 'Cliente SA']);
         $this->assertNotNull($contact->company_id);
         $response->assertRedirect(route('admin.contacts.show', $contact));
@@ -61,12 +61,52 @@ class CrmTest extends TestCase
             ->assertSee('Agenda', false)
             ->assertSee('phonebook', false)
             ->assertSee('Maria Cliente', false)
-            ->assertSee('+55 38 99999-9999', false);
+            ->assertSee('+55 (38) 99999-9999', false);
 
         $this->actingAs($this->admin)
             ->get(route('admin.contacts.index', ['view' => 'phonebook', 'letter' => 'M']))
             ->assertOk()
             ->assertSee('Maria Cliente', false);
+    }
+
+    public function test_contact_whatsapp_accepts_username_or_phone_and_drives_button(): void
+    {
+        $this->actingAs($this->admin)->post(route('admin.contacts.store'), [
+            'name' => 'João WA',
+            'email' => 'joao.wa@exemplo.com',
+            'phone_country' => 'BR',
+            'phone_number' => '11988887777',
+            'whatsapp' => '@cliente.wa',
+            'status' => 'lead',
+            'source' => 'manual',
+        ])->assertRedirect();
+
+        $contact = Contact::query()->where('email', 'joao.wa@exemplo.com')->first();
+        $this->assertNotNull($contact);
+        $this->assertSame('cliente.wa', $contact->whatsapp);
+        $this->assertSame('https://wa.me/cliente.wa', $contact->whatsappUrl());
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.contacts.update', $contact), [
+                'name' => 'João WA',
+                'email' => 'joao.wa@exemplo.com',
+                'phone_country' => 'BR',
+                'phone_number' => '11988887777',
+                'whatsapp' => '+55 11 98888-7777',
+                'status' => 'lead',
+                'source' => 'manual',
+            ])
+            ->assertRedirect();
+
+        $contact->refresh();
+        $this->assertSame('+55 (11) 98888-7777', $contact->whatsapp);
+        $this->assertSame('https://wa.me/5511988887777', $contact->whatsappUrl());
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.contacts.show', $contact))
+            ->assertOk()
+            ->assertSee('https://wa.me/5511988887777', false)
+            ->assertSee('tel:+5511988887777', false);
     }
 
     public function test_admin_can_manage_company_with_contacts_projects_and_opportunities(): void
