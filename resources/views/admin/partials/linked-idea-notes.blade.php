@@ -39,7 +39,7 @@
                 @endphp
                 <a
                     href="{{ route('admin.dashboard') }}#ideia-{{ $note->id }}"
-                    class="idea-postit idea-postit--preview postit postit-{{ $color }} relative flex min-h-[11rem] flex-col p-4 pt-7 shadow-md transition duration-200 hover:-translate-y-0.5 hover:rotate-0 hover:shadow-lg {{ $tilt }}"
+                    class="idea-postit idea-postit--preview postit postit-{{ $color }} relative flex min-h-[11rem] min-w-0 max-w-full flex-col overflow-hidden p-4 pt-7 shadow-md transition duration-200 hover:-translate-y-0.5 hover:rotate-0 hover:shadow-lg {{ $tilt }}"
                     title="Abrir no mural"
                 >
                     <span class="postit-pin" aria-hidden="true"></span>

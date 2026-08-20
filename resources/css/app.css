@@ -611,28 +611,41 @@ html.dark .postit-lilac {
 .idea-postit {
     color: inherit;
     touch-action: none;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .idea-postit--preview {
     touch-action: auto;
     cursor: pointer;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 .idea-postit__preview-title {
     margin: 0;
+    max-width: 100%;
     font-family: var(--font-display, inherit);
     font-size: 1rem;
     font-weight: 700;
     line-height: 1.25;
     color: inherit;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    hyphens: auto;
 }
 
 .idea-postit__preview-body {
     margin: 0.55rem 0 0;
     flex: 1;
+    min-width: 0;
+    max-width: 100%;
     font-size: 0.85rem;
     line-height: 1.4;
     white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
     color: inherit;
     opacity: 0.88;
 }
@@ -648,10 +661,20 @@ html.dark .postit-lilac {
     font-size: 0.68rem;
     font-weight: 650;
     opacity: 0.72;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.idea-postit__preview-foot > span {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .idea-postit__preview-open {
     margin-left: auto;
+    flex-shrink: 0;
     text-decoration: underline;
     text-underline-offset: 2px;
 }
@@ -661,10 +684,13 @@ html.dark .postit-lilac {
     border-radius: 2px;
     background: var(--color-panel);
     padding: 1.25rem;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .linked-ideas__board {
     align-items: stretch;
+    min-width: 0;
 }
 
 .idea-postit.is-dragging {
@@ -825,6 +851,8 @@ html.dark .postit-lilac {
     line-height: 1.25;
     letter-spacing: -0.015em;
     color: inherit;
+    max-width: 100%;
+    overflow-wrap: anywhere;
     word-break: break-word;
 }
 
@@ -834,6 +862,8 @@ html.dark .postit-lilac {
     font-weight: 500;
     line-height: 1.5;
     color: inherit;
+    max-width: 100%;
+    overflow-wrap: anywhere;
     word-break: break-word;
 }
 
