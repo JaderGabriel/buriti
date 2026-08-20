@@ -197,6 +197,7 @@
 
             @include('admin.partials.linked-idea-notes', [
                 'notes' => $company->ideaNotes,
+                'companyId' => $company->id,
                 'hideCompany' => true,
             ])
         </div>

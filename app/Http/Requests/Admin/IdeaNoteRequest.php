@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\IdeaNoteColor;
+use App\Models\Contact;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -15,12 +16,20 @@ class IdeaNoteRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $companyId = $this->filled('company_id') ? (int) $this->input('company_id') : null;
+        $contactId = $this->filled('contact_id') ? (int) $this->input('contact_id') : null;
+
+        if ($contactId && ! $companyId) {
+            $companyId = Contact::query()->whereKey($contactId)->value('company_id');
+            $companyId = $companyId ? (int) $companyId : null;
+        }
+
         $this->merge([
             'title' => $this->filled('title') ? trim((string) $this->input('title')) : null,
             'body' => $this->filled('body') ? trim((string) $this->input('body')) : null,
             'color' => $this->input('color') ?: IdeaNoteColor::Amber->value,
-            'company_id' => $this->filled('company_id') ? $this->input('company_id') : null,
-            'contact_id' => $this->filled('contact_id') ? $this->input('contact_id') : null,
+            'company_id' => $companyId,
+            'contact_id' => $contactId,
         ]);
     }
 

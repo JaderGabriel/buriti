@@ -380,6 +380,8 @@
         <aside class="contact-dossier__aside">
             @include('admin.partials.linked-idea-notes', [
                 'notes' => $contact->ideaNotes,
+                'contactId' => $contact->id,
+                'companyId' => $contact->company_id,
                 'hideContact' => true,
             ])
 

@@ -966,6 +966,104 @@ function initIdeaPostitColors() {
     });
 }
 
+function initIdeaPostitRefs() {
+    if (document.documentElement.dataset.ideaRefsBound === '1') {
+        return;
+    }
+    document.documentElement.dataset.ideaRefsBound = '1';
+
+    const syncChip = (root, type, option) => {
+        const chips = root.querySelector('[data-idea-chips]');
+        const chip = root.querySelector(`[data-idea-chip="${type}"]`);
+        if (! (chips instanceof HTMLElement) || ! (chip instanceof HTMLElement)) {
+            return;
+        }
+
+        const label = option?.dataset?.label?.trim() || '';
+        const href = option?.dataset?.href || '';
+        const labelEl = chip.querySelector('[data-idea-chip-label]');
+        if (labelEl) {
+            labelEl.textContent = label || (type === 'company' ? 'Empresa' : 'Contato');
+        }
+
+        if (label && href) {
+            chip.hidden = false;
+            chip.setAttribute('href', href);
+            chip.dataset.href = href;
+        } else {
+            chip.hidden = true;
+            chip.setAttribute('href', '#');
+        }
+
+        const anyVisible = [...chips.querySelectorAll('[data-idea-chip]')].some((el) => ! el.hidden);
+        chips.hidden = ! anyVisible;
+    };
+
+    const filterContacts = (root, companyId, keepContactId = null) => {
+        const contactSelect = root.querySelector('[data-idea-contact]');
+        if (! (contactSelect instanceof HTMLSelectElement)) {
+            return;
+        }
+
+        [...contactSelect.options].forEach((option) => {
+            if (! option.value) {
+                option.hidden = false;
+                return;
+            }
+            const optionCompany = option.dataset.companyId || '';
+            const matches = ! companyId || optionCompany === '' || optionCompany === companyId;
+            option.hidden = ! matches;
+        });
+
+        const selected = contactSelect.selectedOptions[0];
+        if (selected?.hidden && keepContactId && String(contactSelect.value) === String(keepContactId)) {
+            // keep current selection even if filtered out of other companies
+            selected.hidden = false;
+        } else if (selected?.hidden) {
+            contactSelect.value = '';
+            syncChip(root, 'contact', null);
+        }
+    };
+
+    const bindRoot = (root) => {
+        if (! (root instanceof HTMLElement) || root.dataset.refsBound === '1') {
+            return;
+        }
+        root.dataset.refsBound = '1';
+
+        const companySelect = root.querySelector('[data-idea-company]');
+        const contactSelect = root.querySelector('[data-idea-contact]');
+        if (! (companySelect instanceof HTMLSelectElement) || ! (contactSelect instanceof HTMLSelectElement)) {
+            return;
+        }
+
+        filterContacts(root, companySelect.value || '', contactSelect.value || null);
+        syncChip(root, 'company', companySelect.selectedOptions[0] || null);
+        syncChip(root, 'contact', contactSelect.selectedOptions[0] || null);
+
+        companySelect.addEventListener('change', () => {
+            const option = companySelect.selectedOptions[0] || null;
+            syncChip(root, 'company', option?.value ? option : null);
+            filterContacts(root, companySelect.value || '');
+        });
+
+        contactSelect.addEventListener('change', () => {
+            const option = contactSelect.selectedOptions[0] || null;
+            syncChip(root, 'contact', option?.value ? option : null);
+
+            const contactCompanyId = option?.dataset?.companyId || '';
+            if (contactCompanyId && companySelect.value !== contactCompanyId) {
+                companySelect.value = contactCompanyId;
+                const companyOption = companySelect.selectedOptions[0] || null;
+                syncChip(root, 'company', companyOption?.value ? companyOption : null);
+                filterContacts(root, contactCompanyId, contactSelect.value);
+            }
+        });
+    };
+
+    document.querySelectorAll('[data-idea-refs]').forEach(bindRoot);
+}
+
 function initIdeaPostitBoard() {
     const board = document.querySelector('[data-idea-board]');
     if (! board || board.dataset.dndBound === '1') {
@@ -2631,6 +2729,7 @@ initHomeProjectBoard();
 initProjectCardMinimize();
 initOpportunityBoard();
 initIdeaPostitColors();
+initIdeaPostitRefs();
 initIdeaPostitBoard();
 initDriveViewer();
 

@@ -99,7 +99,10 @@ class DashboardController extends Controller
                 ->get(),
             'ideaColors' => IdeaNoteColor::options(),
             'ideaCompanies' => Company::query()->orderBy('name')->get(['id', 'name', 'trade_name']),
-            'ideaContacts' => Contact::query()->orderBy('name')->get(['id', 'name', 'company_id', 'company']),
+            'ideaContacts' => Contact::query()
+                ->with('clientCompany:id,name,trade_name')
+                ->orderBy('name')
+                ->get(['id', 'name', 'company_id', 'company']),
             'ideaReorderUrl' => route('admin.idea-notes.reorder'),
             'googleCalendarSrc' => $this->settings->calendarSrc(),
         ]);

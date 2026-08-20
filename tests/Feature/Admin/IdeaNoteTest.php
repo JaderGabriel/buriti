@@ -38,7 +38,10 @@ class IdeaNoteTest extends TestCase
             ->assertSee('Rascunho livre', false)
             ->assertSee('Novo post-it', false)
             ->assertSee('data-idea-board', false)
-            ->assertSee('data-idea-drag', false);
+            ->assertSee('data-idea-drag', false)
+            ->assertSee('Alocar a', false)
+            ->assertSee('name="company_id"', false)
+            ->assertSee('name="contact_id"', false);
     }
 
     public function test_admin_can_create_update_and_delete_blank_friendly_note(): void
@@ -87,19 +90,77 @@ class IdeaNoteTest extends TestCase
             ->assertOk()
             ->assertSee('Ideias / post-its', false)
             ->assertSee('App mobile', false)
-            ->assertSee('Explorar onboarding', false);
+            ->assertSee('Explorar onboarding', false)
+            ->assertSee('+ Novo post-it', false)
+            ->assertSee('postit-blue', false);
 
         $this->actingAs($this->admin)
             ->get(route('admin.contacts.show', $contact))
             ->assertOk()
             ->assertSee('Ideias / post-its', false)
-            ->assertSee('App mobile', false);
+            ->assertSee('App mobile', false)
+            ->assertSee('+ Novo post-it', false)
+            ->assertSee('postit-blue', false);
 
         $this->actingAs($this->admin)
             ->delete(route('admin.idea-notes.destroy', $note))
             ->assertRedirect(route('admin.dashboard'));
 
         $this->assertDatabaseMissing('idea_notes', ['id' => $note->id]);
+    }
+
+    public function test_contact_allocation_inherits_company(): void
+    {
+        $company = Company::factory()->create(['name' => 'Empresa Herdada']);
+        $contact = Contact::factory()->create([
+            'name' => 'Contato Herdado',
+            'company_id' => $company->id,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.idea-notes.store'), [
+                'title' => 'Só contato',
+                'body' => 'Herdar empresa',
+                'color' => 'mint',
+                'contact_id' => $contact->id,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('idea_notes', [
+            'title' => 'Só contato',
+            'contact_id' => $contact->id,
+            'company_id' => $company->id,
+        ]);
+    }
+
+    public function test_admin_can_create_note_from_company_or_contact_page(): void
+    {
+        $company = Company::factory()->create();
+        $contact = Contact::factory()->create(['company_id' => $company->id]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.idea-notes.store'), [
+                'color' => 'amber',
+                'company_id' => $company->id,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('idea_notes', [
+            'company_id' => $company->id,
+            'contact_id' => null,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.idea-notes.store'), [
+                'color' => 'amber',
+                'contact_id' => $contact->id,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('idea_notes', [
+            'contact_id' => $contact->id,
+            'company_id' => $company->id,
+        ]);
     }
 
     public function test_admin_can_change_idea_note_color_instantly(): void
