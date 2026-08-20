@@ -313,7 +313,7 @@
                     <span class="dash-panel__pill">{{ $recentActivities->count() }} recente{{ $recentActivities->count() === 1 ? '' : 's' }}</span>
                     <button type="button" class="dash-panel__action" data-bulk-activity-open>
                         <x-ui.icon name="task" class="h-3.5 w-3.5" />
-                        Registar atividade
+                        Registrar atividade
                     </button>
                     <a href="{{ route('admin.contacts.index') }}" class="dash-panel__link">Contatos</a>
                 </div>
@@ -389,7 +389,7 @@
                         <p class="dash-feed__empty-hint">Registe a primeira chamada, reunião ou nota para começar a condução.</p>
                         <button type="button" class="dash-panel__action dash-panel__action--primary mt-3" data-bulk-activity-open>
                             <x-ui.icon name="task" class="h-3.5 w-3.5" />
-                            Registar atividade
+                            Registrar atividade
                         </button>
                     </li>
                 @endforelse
@@ -397,12 +397,12 @@
         </section>
     </div>
 
-    <div class="mt-8">
+    <div class="mt-8" id="ideias">
         <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand-bright">Espaço livre</p>
-                <h2 class="font-display text-xl font-semibold sm:text-2xl">Ideias & rascunhos</h2>
-                <p class="mt-1 text-sm text-mist">Post-its para anotar ideias — nenhum campo é obrigatório.</p>
+                <h2 class="font-display text-xl font-semibold sm:text-2xl">Ideias e rascunhos</h2>
+                <p class="mt-1 text-sm text-mist">Post-its arrastáveis. Empresa e contato são opcionais e aparecem nas fichas correspondentes.</p>
             </div>
             <form method="POST" action="{{ route('admin.idea-notes.store') }}">
                 @csrf
@@ -413,19 +413,26 @@
             </form>
         </div>
 
-        <div class="postit-board idea-board grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        <div
+            class="postit-board idea-board grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+            data-idea-board
+            data-reorder-url="{{ $ideaReorderUrl }}"
+        >
             @forelse($ideaNotes as $index => $note)
                 @include('admin.dashboard.partials.idea-note', [
                     'note' => $note,
                     'index' => $index,
                     'ideaColors' => $ideaColors,
+                    'ideaCompanies' => $ideaCompanies,
+                    'ideaContacts' => $ideaContacts,
                 ])
             @empty
-                <div class="col-span-full rounded-sm border border-dashed border-line px-6 py-12 text-center text-sm text-mist">
+                <div class="col-span-full rounded-sm border border-dashed border-line px-6 py-12 text-center text-sm text-mist" data-idea-empty>
                     <p>Nenhuma ideia ainda. Crie um post-it e use como quiser.</p>
                 </div>
             @endforelse
         </div>
+        <p class="mt-3 text-xs text-mist" data-idea-board-status>Arraste pelo ícone ⋮⋮ para reordenar. As alterações de ordem são salvas ao soltar.</p>
     </div>
 
     <div class="mt-8">

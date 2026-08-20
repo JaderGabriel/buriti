@@ -133,7 +133,7 @@
                     <div class="mt-6 space-y-3 rounded-2xl border border-line bg-ink/40 p-4">
                         <h3 class="font-display text-base font-semibold">API OAuth (nível 3)</h3>
                         <p class="text-sm text-mist">
-                            Preencha as credenciais do Cloud Console. Depois ligue a conta — o Google pede autorização e o CRM reutiliza o refresh token (não volta a pedir todas as semanas, excepto em apps em modo Teste).
+                            Preencha as credenciais do Cloud Console. Depois ligue a conta — o Google pede autorização e o CRM reutiliza o refresh token (não volta a pedir todas as semanas, exceto em apps em modo Teste).
                         </p>
 
                         @php($connection = $googleConnection ?? ['state' => 'missing_credentials', 'label' => 'Desconhecido', 'message' => '', 'has_secret' => false, 'has_refresh' => false])
@@ -154,7 +154,7 @@
                             placeholder="123456789-xxxxx.apps.googleusercontent.com"
                         />
                         <label class="mt-3 block text-sm">
-                            <span class="text-mist">Client Secret {{ !empty($connection['has_secret']) ? '(já guardado — deixe em branco para manter)' : '(obrigatório)' }}</span>
+                            <span class="text-mist">Client Secret {{ !empty($connection['has_secret']) ? '(já salvo — deixe em branco para manter)' : '(obrigatório)' }}</span>
                             <input
                                 type="password"
                                 name="google_client_secret"
@@ -165,7 +165,7 @@
                             >
                         </label>
                         <p class="text-xs text-mist">
-                            URI de redirecionamento a registar no Google Cloud:
+                            URI de redirecionamento a cadastrar no Google Cloud:
                             <code class="break-all text-brand-bright">{{ $googleRedirectUri }}</code>
                         </p>
                         <div class="flex flex-wrap items-center gap-2 pt-1">
@@ -176,7 +176,7 @@
                                     form="google-test-form"
                                     class="rounded-full border border-brand/40 px-4 py-2 text-xs font-semibold text-brand-bright hover:bg-brand/10"
                                 >
-                                    Testar ligação
+                                    Testar conexão
                                 </button>
                                 <button
                                     type="submit"

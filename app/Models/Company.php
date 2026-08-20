@@ -47,12 +47,17 @@ class Company extends Model
         return $this->hasMany(Opportunity::class);
     }
 
+    public function ideaNotes(): HasMany
+    {
+        return $this->hasMany(IdeaNote::class)->orderByDesc('sort_order')->orderByDesc('id');
+    }
+
     public function contactOpportunities(): HasManyThrough
     {
         return $this->hasManyThrough(Opportunity::class, Contact::class);
     }
 
-    /** Oportunidades com company_id ou via contacto da empresa. */
+    /** Oportunidades com company_id ou via contato da empresa. */
     public function relatedOpportunities(): Builder
     {
         return Opportunity::query()->where(function (Builder $q) {

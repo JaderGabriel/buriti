@@ -123,7 +123,7 @@ class GoogleCalendarService
                 'state' => 'linked',
                 'label' => 'Conta Google ligada',
                 'message' => $testingWarning
-                    ?: 'Refresh token presente (Calendar + Drive). Use «Testar ligação».',
+                    ?: 'Refresh token presente (Calendar + Drive). Use «Testar conexão».',
                 'has_client_id' => true,
                 'has_secret' => true,
                 'has_refresh' => true,
@@ -149,7 +149,7 @@ class GoogleCalendarService
             ],
             default => [
                 'state' => 'missing_credentials',
-                'label' => 'Credenciais em falta',
+                'label' => 'Credenciais ausentes',
                 'message' => 'Preencha Client ID e Client Secret do Cloud Console e salve.',
                 'has_client_id' => $hasClientId,
                 'has_secret' => $hasSecret,
@@ -737,7 +737,7 @@ class GoogleCalendarService
         }
 
         if (! filled($this->clientId()) || ! filled($this->clientSecret())) {
-            throw new RuntimeException('Client ID ou Secret em falta. Guarde as credenciais em Configurações.');
+            throw new RuntimeException('Client ID ou Secret ausente. Guarde as credenciais em Configurações.');
         }
 
         $cached = Cache::get(self::ACCESS_TOKEN_CACHE);
@@ -773,7 +773,7 @@ class GoogleCalendarService
 
         $hint = match ($error) {
             'invalid_client' => 'Client ID/Secret inválidos (confirme se o ID não tem ponto a mais no início).',
-            'invalid_grant' => 'Refresh token inválido ou revogado — desligue e volte a «Ligar conta Google».',
+            'invalid_grant' => 'Refresh token inválido ou revogado — desconecte e volte a «Ligar conta Google».',
             'unauthorized_client' => 'Este cliente OAuth não permite refresh token — use tipo «Aplicativo da Web».',
             default => 'Religue a conta em Configurações.',
         };

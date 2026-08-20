@@ -61,6 +61,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::get('/buscar', SearchController::class)->name('search');
     Route::post('/ideias', [IdeaNoteController::class, 'store'])->name('idea-notes.store');
+    Route::put('/ideias/ordenar', [IdeaNoteController::class, 'reorder'])->name('idea-notes.reorder');
     Route::put('/ideias/{ideaNote}', [IdeaNoteController::class, 'update'])->name('idea-notes.update');
     Route::patch('/ideias/{ideaNote}/cor', [IdeaNoteController::class, 'updateColor'])->name('idea-notes.color');
     Route::delete('/ideias/{ideaNote}', [IdeaNoteController::class, 'destroy'])->name('idea-notes.destroy');

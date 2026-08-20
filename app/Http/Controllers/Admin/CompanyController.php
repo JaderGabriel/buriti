@@ -76,6 +76,7 @@ class CompanyController extends Controller
         $company->load([
             'contacts' => fn ($q) => $q->withCount(['opportunities', 'projects'])->latest(),
             'projects' => fn ($q) => $q->with('contacts')->ordered(),
+            'ideaNotes' => fn ($q) => $q->with(['contact', 'user']),
         ]);
 
         $relatedOpportunities = $company->relatedOpportunities()

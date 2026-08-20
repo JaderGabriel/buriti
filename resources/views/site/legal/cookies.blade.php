@@ -51,7 +51,7 @@
                                 </tr>
                                 <tr>
                                     <td class="px-3 py-3 text-snow">buriti-cookie-consent (localStorage)</td>
-                                    <td class="px-3 py-3">Registar o seu reconhecimento do aviso de cookies</td>
+                                    <td class="px-3 py-3">Registrar o seu reconhecimento do aviso de cookies</td>
                                     <td class="px-3 py-3">Até limpar dados do navegador</td>
                                     <td class="px-3 py-3">Sim</td>
                                 </tr>

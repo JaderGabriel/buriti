@@ -2,16 +2,28 @@
     $tilts = ['-rotate-1', 'rotate-1', 'rotate-0', '-rotate-2', 'rotate-2'];
     $tilt = $tilts[$index % count($tilts)];
     $color = $note->color?->value ?? 'amber';
+    $ideaCompanies = $ideaCompanies ?? collect();
+    $ideaContacts = $ideaContacts ?? collect();
 @endphp
 
 <article
     id="ideia-{{ $note->id }}"
     class="idea-postit postit postit-{{ $color }} relative flex min-h-[14rem] flex-col p-4 pt-7 shadow-md {{ $tilt }}"
     data-idea-note
+    data-idea-note-id="{{ $note->id }}"
     data-idea-color="{{ $color }}"
     data-color-url="{{ route('admin.idea-notes.color', $note) }}"
 >
     <span class="postit-pin" aria-hidden="true"></span>
+    <button
+        type="button"
+        class="idea-postit__drag"
+        data-idea-drag
+        title="Arrastar para reordenar"
+        aria-label="Arrastar post-it"
+    >
+        ⋮⋮
+    </button>
 
     <form method="POST" action="{{ route('admin.idea-notes.update', $note) }}" class="flex flex-1 flex-col gap-2">
         @csrf
@@ -28,10 +40,40 @@
 
         <textarea
             name="body"
-            rows="5"
+            rows="4"
             placeholder="Escreva a ideia, rascunho ou lembrete…"
             class="idea-postit__body w-full flex-1 resize-none border-0 bg-transparent text-inherit focus:outline-none focus:ring-0"
         >{{ old('body', $note->body) }}</textarea>
+
+        <div class="idea-postit__refs grid gap-1.5">
+            <label class="sr-only" for="idea-company-{{ $note->id }}">Empresa (opcional)</label>
+            <select
+                id="idea-company-{{ $note->id }}"
+                name="company_id"
+                class="idea-postit__select"
+            >
+                <option value="">Empresa (opcional)</option>
+                @foreach($ideaCompanies as $company)
+                    <option value="{{ $company->id }}" @selected((string) old('company_id', $note->company_id) === (string) $company->id)>
+                        {{ $company->displayName() }}
+                    </option>
+                @endforeach
+            </select>
+
+            <label class="sr-only" for="idea-contact-{{ $note->id }}">Contato (opcional)</label>
+            <select
+                id="idea-contact-{{ $note->id }}"
+                name="contact_id"
+                class="idea-postit__select"
+            >
+                <option value="">Contato (opcional)</option>
+                @foreach($ideaContacts as $contact)
+                    <option value="{{ $contact->id }}" @selected((string) old('contact_id', $note->contact_id) === (string) $contact->id)>
+                        {{ $contact->name }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
 
         <div class="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-2">
             <div class="idea-postit__colors" role="radiogroup" aria-label="Cor do post-it" data-idea-colors>

@@ -194,6 +194,11 @@
                     </form>
                 @endif
             </article>
+
+            @include('admin.partials.linked-idea-notes', [
+                'notes' => $company->ideaNotes,
+                'hideCompany' => true,
+            ])
         </div>
     </div>
 @endsection

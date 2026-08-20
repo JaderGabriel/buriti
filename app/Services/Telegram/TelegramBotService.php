@@ -1248,7 +1248,7 @@ HTML;
         $item->update($data);
         $item->refresh()->load(['project', 'contact']);
 
-        return $this->taskFormatter->card($item, '✏️ <b>Tarefa actualizada</b>');
+        return $this->taskFormatter->card($item, '✏️ <b>Tarefa atualizada</b>');
     }
 
     private function deleteTask(string $argument): string
@@ -1383,7 +1383,7 @@ HTML;
             $lines[] = $this->activityFormatter->listLine($item);
         }
         $lines[] = '';
-        $lines[] = 'Detalhe: <code>/atividade ID</code> · Registar: <code>/atividade add contato|tipo|assunto</code>';
+        $lines[] = 'Detalhe: <code>/atividade ID</code> · Registrar: <code>/atividade add contato|tipo|assunto</code>';
 
         return implode("\n", $lines);
     }
@@ -1546,7 +1546,7 @@ HTML;
         $item->update($data);
         $item->refresh()->load(['contact', 'task', 'opportunity', 'user']);
 
-        return $this->activityFormatter->card($item, '✏️ <b>Atividade actualizada</b>');
+        return $this->activityFormatter->card($item, '✏️ <b>Atividade atualizada</b>');
     }
 
     private function deleteActivity(string $argument): string

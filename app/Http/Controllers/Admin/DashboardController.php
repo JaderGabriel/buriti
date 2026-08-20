@@ -93,11 +93,14 @@ class DashboardController extends Controller
                 ->where('due_at', '<=', now()->addDay())
                 ->count(),
             'ideaNotes' => IdeaNote::query()
-                ->with('user')
+                ->with(['user', 'company', 'contact'])
                 ->orderByDesc('sort_order')
                 ->orderByDesc('id')
                 ->get(),
             'ideaColors' => IdeaNoteColor::options(),
+            'ideaCompanies' => Company::query()->orderBy('name')->get(['id', 'name', 'trade_name']),
+            'ideaContacts' => Contact::query()->orderBy('name')->get(['id', 'name', 'company_id', 'company']),
+            'ideaReorderUrl' => route('admin.idea-notes.reorder'),
             'googleCalendarSrc' => $this->settings->calendarSrc(),
         ]);
     }

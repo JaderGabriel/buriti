@@ -77,6 +77,11 @@ class Contact extends Model
         return $this->belongsToMany(Project::class)->withTimestamps();
     }
 
+    public function ideaNotes(): HasMany
+    {
+        return $this->hasMany(IdeaNote::class)->orderByDesc('sort_order')->orderByDesc('id');
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('status', ContactStatus::Active);

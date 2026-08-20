@@ -67,7 +67,7 @@ class GoogleOAuthController extends Controller
             return redirect()
                 ->route('admin.settings.edit')
                 ->withFragment('google-integration')
-                ->with('error', 'Código de autorização Google em falta.');
+                ->with('error', 'Código de autorização Google ausente.');
         }
 
         try {
@@ -94,7 +94,7 @@ class GoogleOAuthController extends Controller
         return redirect()
             ->route('admin.settings.edit')
             ->withFragment('google-integration')
-            ->with('success', 'Conta Google desligada. O sync automático pela API fica inativo.');
+            ->with('success', 'Conta Google desconectada. O sync automático pela API fica inativo.');
     }
 
     public function test(): RedirectResponse

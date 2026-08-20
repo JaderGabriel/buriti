@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\IdeaNoteColor;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\IdeaNoteRequest;
+use App\Http\Requests\Admin\ReorderIdeaNotesRequest;
 use App\Http\Requests\Admin\UpdateIdeaNoteColorRequest;
 use App\Models\IdeaNote;
 use App\Services\AuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 
 class IdeaNoteController extends Controller
 {
@@ -64,6 +66,30 @@ class IdeaNoteController extends Controller
             'ok' => true,
             'id' => $ideaNote->id,
             'color' => $color->value,
+        ]);
+    }
+
+    public function reorder(ReorderIdeaNotesRequest $request): JsonResponse
+    {
+        $ids = array_values(array_unique(array_map('intval', $request->validated('ids'))));
+        $total = count($ids);
+
+        DB::transaction(function () use ($ids, $total) {
+            foreach ($ids as $index => $id) {
+                IdeaNote::query()->whereKey($id)->update([
+                    'sort_order' => ($total - $index) * 10,
+                ]);
+            }
+        });
+
+        $this->audit->record('idea_note.reordered', null, [
+            'summary' => 'Ordem dos post-its',
+            'ids' => $ids,
+        ]);
+
+        return response()->json([
+            'ok' => true,
+            'ids' => $ids,
         ]);
     }
 

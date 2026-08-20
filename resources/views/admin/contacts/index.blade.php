@@ -15,7 +15,7 @@
         <div class="crm-workspace__actions">
             <button type="button" class="pm-btn pm-btn--ghost" data-bulk-activity-open>
                 <x-ui.icon name="task" class="h-4 w-4" />
-                Registar atividade
+                Registrar atividade
             </button>
             <a href="{{ route('admin.companies.index') }}" class="pm-btn pm-btn--ghost">
                 <x-ui.icon name="company" class="h-4 w-4" />
@@ -134,7 +134,7 @@
                     <span data-phonebook-selection-count>0 selecionados</span>
                     <button type="button" class="pm-btn pm-btn--primary" data-bulk-activity-open data-bulk-activity-from-selection>
                         <x-ui.icon name="task" class="h-4 w-4" />
-                        Registar atividade nos selecionados
+                        Registrar atividade nos selecionados
                     </button>
                     <button type="button" class="phonebook-selection__clear" data-phonebook-selection-clear>Limpar seleção</button>
                 </div>
@@ -189,8 +189,8 @@
                                                 <button
                                                     type="button"
                                                     class="phonebook__action"
-                                                    title="Registar atividade"
-                                                    aria-label="Registar atividade para {{ $contact->name }}"
+                                                    title="Registrar atividade"
+                                                    aria-label="Registrar atividade para {{ $contact->name }}"
                                                     data-bulk-activity-open
                                                     data-bulk-activity-ids="{{ $contact->id }}"
                                                 >
@@ -202,7 +202,7 @@
                                             <button
                                                 type="button"
                                                 class="phonebook__action"
-                                                title="Registar atividade"
+                                                title="Registrar atividade"
                                                 data-bulk-activity-open
                                                 data-bulk-activity-ids="{{ $contact->id }}"
                                             >

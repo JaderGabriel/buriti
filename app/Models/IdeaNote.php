@@ -16,6 +16,9 @@ class IdeaNote extends Model
         'title',
         'body',
         'color',
+        'company_id',
+        'contact_id',
+        'sort_order',
     ];
 
     protected function casts(): array
@@ -30,6 +33,16 @@ class IdeaNote extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    public function contact(): BelongsTo
+    {
+        return $this->belongsTo(Contact::class);
+    }
+
     public function displayTitle(): string
     {
         $title = trim((string) $this->title);
@@ -40,5 +53,18 @@ class IdeaNote extends Model
     public function isBlank(): bool
     {
         return trim((string) $this->title) === '' && trim((string) $this->body) === '';
+    }
+
+    public function referenceLabel(): ?string
+    {
+        $parts = [];
+        if ($this->company) {
+            $parts[] = $this->company->displayName();
+        }
+        if ($this->contact) {
+            $parts[] = $this->contact->name;
+        }
+
+        return $parts === [] ? null : implode(' · ', $parts);
     }
 }

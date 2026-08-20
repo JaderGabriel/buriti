@@ -610,6 +610,59 @@ html.dark .postit-lilac {
 
 .idea-postit {
     color: inherit;
+    touch-action: none;
+}
+
+.idea-postit.is-dragging {
+    opacity: 0.45;
+}
+
+.idea-postit.is-drop-slot {
+    outline: 1px dashed color-mix(in oklab, var(--color-brand-bright) 55%, transparent);
+}
+
+.idea-postit__drag {
+    position: absolute;
+    left: 0.55rem;
+    top: 0.45rem;
+    z-index: 2;
+    cursor: grab;
+    border: 0;
+    background: transparent;
+    padding: 0.15rem 0.35rem;
+    font-size: 0.7rem;
+    letter-spacing: -0.08em;
+    line-height: 1;
+    opacity: 0.45;
+    color: inherit;
+}
+
+.idea-postit__drag:hover,
+.idea-postit__drag:focus-visible {
+    opacity: 0.9;
+}
+
+.idea-postit.is-dragging .idea-postit__drag {
+    cursor: grabbing;
+}
+
+.idea-postit__refs {
+    margin-top: 0.15rem;
+}
+
+.idea-postit__select {
+    width: 100%;
+    border: 1px solid color-mix(in oklab, currentColor 18%, transparent);
+    border-radius: 2px;
+    background: color-mix(in oklab, #fff 35%, transparent);
+    color: inherit;
+    font-size: 0.7rem;
+    line-height: 1.2;
+    padding: 0.35rem 0.45rem;
+}
+
+.idea-postit__select:focus {
+    outline: 1px solid color-mix(in oklab, currentColor 35%, transparent);
 }
 
 .idea-postit__colors {
@@ -3313,7 +3366,8 @@ button.task-agenda__date:hover {
 }
 
 .pm-board [data-project-id],
-.crm-board [data-opportunity-id] {
+.crm-board [data-opportunity-id],
+.home-board [data-home-project-id] {
     cursor: grab;
     touch-action: none;
     user-select: none;
@@ -3321,7 +3375,8 @@ button.task-agenda__date:hover {
 }
 
 .pm-board [data-project-id]:active,
-.crm-board [data-opportunity-id]:active {
+.crm-board [data-opportunity-id]:active,
+.home-board [data-home-project-id]:active {
     cursor: grabbing;
 }
 
@@ -3329,7 +3384,9 @@ button.task-agenda__date:hover {
 .pm-card a,
 .pm-card img,
 .crm-deal a,
-.crm-deal img {
+.crm-deal img,
+.home-board__card a,
+.home-board__card img {
     -webkit-user-drag: none;
     user-drag: none;
 }
@@ -3347,7 +3404,9 @@ button.task-agenda__date:hover {
 .pm-board.is-dragging-card .pm-card:not(.is-dragging),
 .pm-board.is-dragging-card .pm-board__empty,
 .crm-board.is-dragging-card .crm-deal:not(.is-dragging),
-.crm-board.is-dragging-card .pm-board__empty {
+.crm-board.is-dragging-card .pm-board__empty,
+.home-board.is-dragging-card .home-board__card:not(.is-dragging),
+.home-board.is-dragging-card .pm-board__empty {
     pointer-events: none;
 }
 
@@ -7300,7 +7359,9 @@ button.task-agenda__date:hover {
 .home-board__column--hidden { border-top: 2px solid color-mix(in oklab, var(--color-mist) 50%, transparent); }
 
 .home-board__column.is-drop-target {
-    outline: 1px dashed color-mix(in oklab, var(--color-brand-bright) 55%, transparent);
+    border-color: color-mix(in oklab, var(--color-brand-bright) 55%, var(--color-line));
+    background: color-mix(in oklab, var(--color-brand) 12%, var(--color-panel));
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-brand-bright) 35%, transparent);
 }
 
 .home-board__header {
@@ -7332,46 +7393,6 @@ button.task-agenda__date:hover {
     min-height: 8rem;
 }
 
-.home-board__card {
-    cursor: grab;
-    border: 1px solid var(--color-line);
-    border-radius: 2px;
-    background: var(--color-panel);
-    padding: 0.7rem 0.8rem;
-}
-
-.home-board__card.is-dragging { opacity: 0.45; }
-.home-board__card.is-drop-slot { outline: 1px solid var(--color-brand-bright); }
-
-.home-board__card-top {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.65rem;
-}
-
-.home-board__logo {
-    width: 2.25rem;
-    height: 2.25rem;
-    border-radius: 2px;
-    object-fit: cover;
-    flex-shrink: 0;
-}
-
-.home-board__logo--fallback {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--color-line);
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: var(--color-brand-bright);
-}
-
-.home-board__name {
-    font-weight: 600;
-    font-size: 0.9rem;
-}
-
 .home-board__meta {
     font-size: 0.7rem;
     color: var(--color-mist);
@@ -7379,10 +7400,16 @@ button.task-agenda__date:hover {
 
 .home-board__star {
     flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.55rem;
+    height: 1.55rem;
     border: 1px solid var(--color-line);
-    border-radius: 999px;
-    padding: 0.3rem;
+    border-radius: 2px;
+    padding: 0;
     color: var(--color-mist);
+    background: color-mix(in oklab, var(--color-ink) 40%, transparent);
 }
 
 .home-board__star.is-on {
@@ -7395,11 +7422,9 @@ button.task-agenda__date:hover {
     fill: currentColor;
 }
 
-.home-board__open {
-    display: inline-block;
-    margin-top: 0.45rem;
-    font-size: 0.75rem;
-    color: var(--color-brand-bright);
+.home-board__star:hover {
+    color: var(--color-snow);
+    border-color: color-mix(in oklab, var(--color-brand-bright) 40%, var(--color-line));
 }
 
 .home-featured {

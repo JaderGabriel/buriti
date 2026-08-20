@@ -966,6 +966,173 @@ function initIdeaPostitColors() {
     });
 }
 
+function initIdeaPostitBoard() {
+    const board = document.querySelector('[data-idea-board]');
+    if (! board || board.dataset.dndBound === '1') {
+        return;
+    }
+    board.dataset.dndBound = '1';
+
+    const reorderUrl = board.dataset.reorderUrl || '';
+    const MOVE_THRESHOLD = 8;
+    const statusEl = document.querySelector('[data-idea-board-status]');
+    /** @type {null | {
+     *   card: HTMLElement,
+     *   pointerId: number,
+     *   startX: number,
+     *   startY: number,
+     *   offsetX: number,
+     *   offsetY: number,
+     *   moved: boolean,
+     *   ghost: HTMLElement | null,
+     * }} */
+    let drag = null;
+
+    const noteIds = () => [...board.querySelectorAll('[data-idea-note-id]')]
+        .map((el) => Number(el.dataset.ideaNoteId))
+        .filter((id) => Number.isFinite(id) && id > 0);
+
+    const saveOrder = async () => {
+        if (! reorderUrl) {
+            return;
+        }
+        if (statusEl) {
+            statusEl.textContent = 'Salvando ordem…';
+        }
+        try {
+            const response = await fetch(reorderUrl, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    ...csrfHeaders(),
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ ids: noteIds() }),
+            });
+            if (! response.ok) {
+                throw new Error(`Falha ao gravar (${response.status})`);
+            }
+            if (statusEl) {
+                statusEl.textContent = 'Ordem dos post-its atualizada.';
+            }
+        } catch (error) {
+            console.error(error);
+            if (statusEl) {
+                statusEl.textContent = 'Não foi possível salvar a ordem. Recarregue a página.';
+            }
+        }
+    };
+
+    const insertBeforeCard = (clientY, draggedCard) => {
+        const cards = [...board.querySelectorAll('[data-idea-note-id]')].filter((el) => el !== draggedCard);
+        for (const card of cards) {
+            const rect = card.getBoundingClientRect();
+            if (clientY < rect.top + rect.height / 2) {
+                return card;
+            }
+        }
+
+        return null;
+    };
+
+    const placeCard = (card, clientY) => {
+        board.querySelector('[data-idea-empty]')?.remove();
+        board.querySelectorAll('.is-drop-slot').forEach((el) => el.classList.remove('is-drop-slot'));
+        const before = insertBeforeCard(clientY, card);
+        if (before) {
+            before.classList.add('is-drop-slot');
+            board.insertBefore(card, before);
+        } else {
+            board.appendChild(card);
+        }
+    };
+
+    board.addEventListener('pointerdown', (event) => {
+        if (event.pointerType === 'mouse' && event.button !== 0) {
+            return;
+        }
+        const handle = event.target.closest?.('[data-idea-drag]');
+        if (! (handle instanceof HTMLElement) || ! board.contains(handle)) {
+            return;
+        }
+        const card = handle.closest('[data-idea-note]');
+        if (! (card instanceof HTMLElement)) {
+            return;
+        }
+        event.preventDefault();
+        const rect = card.getBoundingClientRect();
+        drag = {
+            card,
+            pointerId: event.pointerId,
+            startX: event.clientX,
+            startY: event.clientY,
+            offsetX: event.clientX - rect.left,
+            offsetY: event.clientY - rect.top,
+            moved: false,
+            ghost: null,
+        };
+    });
+
+    board.addEventListener('pointermove', (event) => {
+        if (! drag || event.pointerId !== drag.pointerId) {
+            return;
+        }
+        const dx = event.clientX - drag.startX;
+        const dy = event.clientY - drag.startY;
+        if (! drag.moved && Math.hypot(dx, dy) < MOVE_THRESHOLD) {
+            return;
+        }
+        if (! drag.moved) {
+            drag.moved = true;
+            board.setPointerCapture(event.pointerId);
+            const rect = drag.card.getBoundingClientRect();
+            const ghost = /** @type {HTMLElement} */ (drag.card.cloneNode(true));
+            ghost.classList.add('pm-card--ghost');
+            ghost.style.width = `${rect.width}px`;
+            ghost.style.left = `${rect.left}px`;
+            ghost.style.top = `${rect.top}px`;
+            ghost.querySelectorAll('a, button, input, textarea, select').forEach((el) => el.setAttribute('tabindex', '-1'));
+            document.body.appendChild(ghost);
+            drag.ghost = ghost;
+            drag.card.classList.add('is-dragging');
+            board.classList.add('is-dragging-card');
+        }
+        event.preventDefault();
+        if (drag.ghost) {
+            drag.ghost.style.left = `${event.clientX - drag.offsetX}px`;
+            drag.ghost.style.top = `${event.clientY - drag.offsetY}px`;
+        }
+        placeCard(drag.card, event.clientY);
+    });
+
+    const finish = (event) => {
+        if (! drag || event.pointerId !== drag.pointerId) {
+            return;
+        }
+        const moved = drag.moved;
+        drag.card.classList.remove('is-dragging');
+        board.classList.remove('is-dragging-card');
+        board.querySelectorAll('.is-drop-slot').forEach((el) => el.classList.remove('is-drop-slot'));
+        drag.ghost?.remove();
+        try {
+            if (board.hasPointerCapture?.(drag.pointerId)) {
+                board.releasePointerCapture(drag.pointerId);
+            }
+        } catch {
+            // ignore
+        }
+        drag = null;
+        if (moved) {
+            void saveOrder();
+        }
+    };
+
+    board.addEventListener('pointerup', finish);
+    board.addEventListener('pointercancel', finish);
+}
+
 function initProjectCardMinimize() {
     const board = document.querySelector('[data-project-board]');
     if (! board) {
@@ -1072,6 +1239,7 @@ function initHomeProjectBoard() {
     const saveUrl = board.dataset.saveUrl || '';
     const MOVE_THRESHOLD = 8;
     const statusEl = document.querySelector('[data-home-board-status]');
+    const STORAGE_KEY = 'buriti.home-card.minimized';
     /** @type {null | {
      *   card: HTMLElement,
      *   pointerId: number,
@@ -1083,6 +1251,89 @@ function initHomeProjectBoard() {
      *   ghost: HTMLElement | null,
      * }} */
     let drag = null;
+
+    const readMinimized = () => {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            const parsed = raw ? JSON.parse(raw) : [];
+            return new Set(Array.isArray(parsed) ? parsed.map(String) : []);
+        } catch {
+            return new Set();
+        }
+    };
+
+    const writeMinimized = (ids) => {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify([...ids]));
+        } catch {
+            // ignore quota / private mode
+        }
+    };
+
+    const applyMinimized = (card, minimized) => {
+        card.classList.toggle('is-minimized', minimized);
+        const btn = card.querySelector('[data-home-minimize]');
+        if (btn) {
+            btn.setAttribute('aria-expanded', minimized ? 'false' : 'true');
+            btn.title = minimized ? 'Expandir card' : 'Minimizar card';
+            const name = card.querySelector('.pm-card__title')?.textContent?.trim() || 'projeto';
+            btn.setAttribute('aria-label', `${minimized ? 'Expandir' : 'Minimizar'} ${name}`);
+        }
+        const compact = card.querySelector('.pm-card__compact');
+        if (compact) {
+            compact.setAttribute('aria-hidden', minimized ? 'false' : 'true');
+        }
+    };
+
+    let minimized = readMinimized();
+    board.querySelectorAll('[data-home-card][data-home-project-id]').forEach((card) => {
+        const id = String(card.dataset.homeProjectId || '');
+        applyMinimized(card, minimized.has(id));
+    });
+
+    board.addEventListener('click', (event) => {
+        const btn = event.target.closest?.('[data-home-minimize]');
+        if (! (btn instanceof HTMLElement) || ! board.contains(btn)) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        const card = btn.closest('[data-home-card][data-home-project-id]');
+        if (! (card instanceof HTMLElement)) {
+            return;
+        }
+        const id = String(card.dataset.homeProjectId || '');
+        if (! id) {
+            return;
+        }
+        const next = ! card.classList.contains('is-minimized');
+        if (next) {
+            minimized.add(id);
+        } else {
+            minimized.delete(id);
+        }
+        writeMinimized(minimized);
+        applyMinimized(card, next);
+    });
+
+    document.querySelector('[data-home-minimize-all]')?.addEventListener('click', () => {
+        board.querySelectorAll('[data-home-card][data-home-project-id]').forEach((card) => {
+            const id = String(card.dataset.homeProjectId || '');
+            if (id) {
+                minimized.add(id);
+                applyMinimized(card, true);
+            }
+        });
+        writeMinimized(minimized);
+    });
+
+    document.querySelector('[data-home-expand-all]')?.addEventListener('click', () => {
+        minimized.clear();
+        board.querySelectorAll('[data-home-card][data-home-project-id]').forEach((card) => {
+            applyMinimized(card, false);
+        });
+        writeMinimized(minimized);
+    });
 
     const laneIds = (lane) => {
         const list = board.querySelector(`[data-home-lane="${lane}"] [data-column-list]`);
@@ -1121,6 +1372,17 @@ function initHomeProjectBoard() {
             star?.classList.toggle('is-on', featured);
             star?.setAttribute('aria-pressed', featured ? 'true' : 'false');
             star?.setAttribute('title', featured ? 'Tirar estrela' : 'Destacar com estrela');
+
+            const featuredFlag = card.querySelector('[data-home-featured-flag]');
+            if (featuredFlag instanceof HTMLElement) {
+                featuredFlag.classList.toggle('hidden', ! featured);
+                featuredFlag.toggleAttribute('hidden', ! featured);
+            }
+            const compactFeatured = card.querySelector('[data-home-compact-featured]');
+            if (compactFeatured instanceof HTMLElement) {
+                compactFeatured.classList.toggle('hidden', ! featured);
+                compactFeatured.toggleAttribute('hidden', ! featured);
+            }
         });
     };
 
@@ -1131,10 +1393,34 @@ function initHomeProjectBoard() {
         if (lane === 'restricted') {
             card.dataset.repoPrivate = '1';
         }
+        if (lane === 'hidden') {
+            // keep repo flag; visibility changes via server
+        }
+
+        const category = card.dataset.category || 'Sem categoria';
+        const privateRepo = card.dataset.repoPrivate === '1';
+        const metaText = privateRepo ? `${category} · repo privado` : category;
+
         const meta = card.querySelector('[data-home-card-meta]');
         if (meta) {
-            const category = card.dataset.category || 'Sem categoria';
-            meta.textContent = card.dataset.repoPrivate === '1' ? `${category} · repo privado` : category;
+            meta.textContent = metaText;
+        }
+        const compactMeta = card.querySelector('[data-home-compact-meta]');
+        if (compactMeta) {
+            compactMeta.textContent = metaText;
+        }
+
+        const repoFlag = card.querySelector('[data-home-repo-flag]');
+        if (repoFlag instanceof HTMLElement) {
+            repoFlag.classList.toggle('hidden', ! privateRepo);
+            repoFlag.toggleAttribute('hidden', ! privateRepo);
+        }
+
+        const publicFlag = card.querySelector('[data-home-public-flag]');
+        if (publicFlag instanceof HTMLElement) {
+            const onSite = lane !== 'hidden';
+            publicFlag.textContent = onSite ? 'No site' : 'Interno';
+            publicFlag.classList.toggle('pm-flag--public', onSite);
         }
     };
 
@@ -1178,6 +1464,12 @@ function initHomeProjectBoard() {
         }
     };
 
+    const clearDropTargets = () => {
+        board.querySelectorAll('.is-drop-target, .is-drop-slot').forEach((el) => {
+            el.classList.remove('is-drop-target', 'is-drop-slot');
+        });
+    };
+
     const insertBeforeCard = (list, clientY, draggedCard) => {
         const cards = [...list.querySelectorAll('[data-home-project-id]')].filter((el) => el !== draggedCard);
         for (const card of cards) {
@@ -1194,7 +1486,7 @@ function initHomeProjectBoard() {
         const column = board.querySelector(`[data-home-lane="${lane}"]`);
         const list = column?.querySelector('[data-column-list]');
         if (! list) {
-            return;
+            return null;
         }
         list.querySelector('[data-empty]')?.remove();
         const before = insertBeforeCard(list, clientY, card);
@@ -1205,6 +1497,8 @@ function initHomeProjectBoard() {
         }
         applyLaneToCard(card, lane);
         refreshCounts();
+
+        return before;
     };
 
     const columnFromPoint = (x, y) => {
@@ -1233,7 +1527,7 @@ function initHomeProjectBoard() {
         if (event.pointerType === 'mouse' && event.button !== 0) {
             return;
         }
-        if (event.target.closest?.('a, button')) {
+        if (event.target.closest?.('a, button, input, textarea, select, form, label')) {
             return;
         }
         const card = event.target.closest?.('[data-home-project-id]');
@@ -1271,7 +1565,12 @@ function initHomeProjectBoard() {
             ghost.style.width = `${rect.width}px`;
             ghost.style.left = `${rect.left}px`;
             ghost.style.top = `${rect.top}px`;
-            ghost.querySelectorAll('a, button').forEach((el) => el.setAttribute('tabindex', '-1'));
+            ghost.querySelectorAll('a, button, form').forEach((el) => {
+                el.setAttribute('tabindex', '-1');
+                if (el instanceof HTMLAnchorElement) {
+                    el.removeAttribute('href');
+                }
+            });
             document.body.appendChild(ghost);
             drag.ghost = ghost;
             drag.card.classList.add('is-dragging');
@@ -1282,10 +1581,13 @@ function initHomeProjectBoard() {
             drag.ghost.style.left = `${event.clientX - drag.offsetX}px`;
             drag.ghost.style.top = `${event.clientY - drag.offsetY}px`;
         }
-        board.querySelectorAll('.is-drop-target').forEach((el) => el.classList.remove('is-drop-target'));
+        clearDropTargets();
         const column = columnFromPoint(event.clientX, event.clientY);
         column?.classList.add('is-drop-target');
         if (column) {
+            const list = column.querySelector('[data-column-list]');
+            const before = list ? insertBeforeCard(list, event.clientY, drag.card) : null;
+            before?.classList.add('is-drop-slot');
             placeInLane(column.dataset.homeLane || '', drag.card, event.clientY);
         }
     });
@@ -1297,7 +1599,7 @@ function initHomeProjectBoard() {
         const moved = drag.moved;
         drag.card.classList.remove('is-dragging');
         board.classList.remove('is-dragging-card');
-        board.querySelectorAll('.is-drop-target').forEach((el) => el.classList.remove('is-drop-target'));
+        clearDropTargets();
         drag.ghost?.remove();
         try {
             if (board.hasPointerCapture?.(drag.pointerId)) {
@@ -2329,6 +2631,7 @@ initHomeProjectBoard();
 initProjectCardMinimize();
 initOpportunityBoard();
 initIdeaPostitColors();
+initIdeaPostitBoard();
 initDriveViewer();
 
 try {

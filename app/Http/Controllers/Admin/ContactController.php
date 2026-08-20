@@ -185,6 +185,7 @@ class ContactController extends Controller
             'messages' => fn ($q) => $q->latest()->limit(20),
             'tasks.project',
             'activities' => fn ($q) => $q->with(['user', 'opportunity', 'task'])->latest('happened_at')->limit(40),
+            'ideaNotes' => fn ($q) => $q->with(['company', 'user']),
             'attachments',
             'trashedAttachments.deleter',
         ]);

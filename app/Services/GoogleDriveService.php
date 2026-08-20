@@ -137,7 +137,7 @@ class GoogleDriveService
 
         return [
             'ok' => true,
-            'message' => 'Drive OK — '.$n.' ficheiro(s) visíveis na pasta consultada.',
+            'message' => 'Drive OK — '.$n.' arquivo(s) visíveis na pasta consultada.',
         ];
     }
 }

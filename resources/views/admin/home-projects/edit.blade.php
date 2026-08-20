@@ -12,6 +12,10 @@
             </p>
         </div>
         <div class="pm-workspace__actions">
+            <div class="pm-density" data-home-density>
+                <button type="button" class="pm-chip" data-home-minimize-all title="Só visual — não altera dados">Minimizar todos</button>
+                <button type="button" class="pm-chip" data-home-expand-all title="Só visual — não altera dados">Expandir todos</button>
+            </div>
             <a href="{{ route('home') }}#projetos" target="_blank" rel="noopener" class="pm-btn pm-btn--ghost">
                 <x-ui.icon name="external" class="h-4 w-4" />
                 Ver site

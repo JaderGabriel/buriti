@@ -19,7 +19,7 @@
         <header class="bulk-activity-dialog__header">
             <div>
                 <p class="bulk-activity-dialog__eyebrow">Condução comercial</p>
-                <h2 id="bulk-activity-title" class="bulk-activity-dialog__title">Registar atividade</h2>
+                <h2 id="bulk-activity-title" class="bulk-activity-dialog__title">Registrar atividade</h2>
                 <p class="bulk-activity-dialog__lead">Marque um ou vários contatos — a mesma atividade é replicada em cada ficha.</p>
             </div>
             <button type="button" class="bulk-activity-dialog__close" data-bulk-activity-close aria-label="Fechar">✕</button>

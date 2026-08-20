@@ -506,7 +506,7 @@ class CrmTest extends TestCase
         $this->actingAs($this->admin)
             ->put(route('admin.contacts.activities.update', [$contact, $activity]), [
                 'type' => 'meeting',
-                'subject' => 'Reunião actualizada',
+                'subject' => 'Reunião atualizada',
                 'body' => 'Escopo fechado',
                 'task_id' => $task->id,
                 'happened_at' => now()->format('Y-m-d H:i:s'),
@@ -516,7 +516,7 @@ class CrmTest extends TestCase
         $this->assertDatabaseHas('crm_activities', [
             'id' => $activity->id,
             'type' => 'meeting',
-            'subject' => 'Reunião actualizada',
+            'subject' => 'Reunião atualizada',
             'body' => 'Escopo fechado',
             'task_id' => $task->id,
         ]);

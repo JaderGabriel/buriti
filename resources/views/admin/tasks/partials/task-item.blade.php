@@ -83,7 +83,7 @@
                         Ver ficha
                     </a>
                     <a href="{{ route('admin.contacts.show', ['contact' => $task->contact, 'task_id' => $task->id]) }}#conducao" class="task-event__notes-link" draggable="false">
-                        Registar nota
+                        Registrar nota
                     </a>
                 @endif
             </div>

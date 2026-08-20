@@ -378,11 +378,16 @@
         </div>
 
         <aside class="contact-dossier__aside">
+            @include('admin.partials.linked-idea-notes', [
+                'notes' => $contact->ideaNotes,
+                'hideContact' => true,
+            ])
+
             <article class="contact-activity-form">
                 <header class="contact-activity-form__head">
                     <span class="contact-activity-form__icon"><x-ui.icon name="task" class="h-5 w-5" /></span>
                     <div>
-                        <h2>Registar atividade</h2>
+                        <h2>Registrar atividade</h2>
                         <p>Fica neste contato. Para vários, use o botão Atividade.</p>
                     </div>
                 </header>
