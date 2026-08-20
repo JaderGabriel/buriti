@@ -61,9 +61,17 @@
             @foreach($companies as $company)
                 <a href="{{ route('admin.companies.show', $company) }}" class="crm-card">
                     <div class="flex items-start justify-between gap-3">
-                        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm bg-brand/15 text-sm font-semibold text-brand-bright">
-                            {{ $company->initials() ?: '?' }}
-                        </span>
+                        @if($company->logoUrl())
+                            <img
+                                src="{{ $company->logoUrl() }}"
+                                alt=""
+                                class="h-11 w-11 shrink-0 rounded-sm border border-line bg-white object-contain p-1"
+                            >
+                        @else
+                            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm bg-brand/15 text-sm font-semibold text-brand-bright">
+                                {{ $company->initials() ?: '?' }}
+                            </span>
+                        @endif
                         <x-admin.crm-badge :status="$company->status" compact />
                     </div>
                     <div>

@@ -21,7 +21,13 @@ class CompanyRequest extends FormRequest
         }
 
         if ($this->filled('website_url')) {
-            $this->merge(['website_url' => trim((string) $this->input('website_url'))]);
+            $website = trim((string) $this->input('website_url'));
+            if ($website !== '' && ! preg_match('#^https?://#i', $website)) {
+                $website = 'https://'.$website;
+            }
+            $this->merge(['website_url' => $website !== '' ? $website : null]);
+        } else {
+            $this->merge(['website_url' => null]);
         }
 
         $this->merge(PhoneNumber::normalizeInput($this->all()));

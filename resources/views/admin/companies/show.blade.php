@@ -2,17 +2,30 @@
 
 @section('content')
     <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
-        <div>
-            <a href="{{ route('admin.companies.index') }}" class="text-sm text-mist hover:text-snow">← Empresas</a>
-            <h1 class="crm-detail__title">{{ $company->displayName() }}</h1>
-            <div class="mt-2 flex flex-wrap items-center gap-2 text-sm text-mist">
-                <x-admin.crm-badge :status="$company->status" />
-                @if($company->trade_name && $company->trade_name !== $company->name)
-                    <span>· {{ $company->name }}</span>
-                @endif
-                @if($company->document)
-                    <span>· {{ $company->document }}</span>
-                @endif
+        <div class="flex min-w-0 items-start gap-4">
+            @if($company->logoUrl())
+                <img
+                    src="{{ $company->logoUrl() }}"
+                    alt=""
+                    class="h-14 w-14 shrink-0 rounded-sm border border-line bg-white object-contain p-1.5"
+                >
+            @else
+                <span class="flex h-14 w-14 shrink-0 items-center justify-center rounded-sm bg-brand/15 text-lg font-semibold text-brand-bright">
+                    {{ $company->initials() ?: '?' }}
+                </span>
+            @endif
+            <div class="min-w-0">
+                <a href="{{ route('admin.companies.index') }}" class="text-sm text-mist hover:text-snow">← Empresas</a>
+                <h1 class="crm-detail__title">{{ $company->displayName() }}</h1>
+                <div class="mt-2 flex flex-wrap items-center gap-2 text-sm text-mist">
+                    <x-admin.crm-badge :status="$company->status" />
+                    @if($company->trade_name && $company->trade_name !== $company->name)
+                        <span>· {{ $company->name }}</span>
+                    @endif
+                    @if($company->document)
+                        <span>· {{ $company->document }}</span>
+                    @endif
+                </div>
             </div>
         </div>
         <div class="flex flex-wrap gap-2">

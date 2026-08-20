@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Support\Facades\Storage;
 
 class Company extends Model
 {
@@ -21,6 +22,7 @@ class Company extends Model
         'email',
         'phone',
         'website_url',
+        'logo_path',
         'status',
         'notes',
     ];
@@ -69,6 +71,24 @@ class Company extends Model
     public function displayName(): string
     {
         return $this->trade_name ?: $this->name;
+    }
+
+    public function logoUrl(): ?string
+    {
+        $path = $this->logo_path;
+        if (! $path) {
+            return null;
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        if (str_starts_with($path, 'images/')) {
+            return asset($path);
+        }
+
+        return Storage::disk('public')->url($path);
     }
 
     public function initials(): string

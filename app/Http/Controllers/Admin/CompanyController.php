@@ -14,13 +14,19 @@ use App\Models\Company;
 use App\Models\Contact;
 use App\Models\Project;
 use App\Services\AuditLogger;
+use App\Services\CompanyFaviconService;
+use App\Services\ProjectFileService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class CompanyController extends Controller
 {
-    public function __construct(private AuditLogger $audit) {}
+    public function __construct(
+        private AuditLogger $audit,
+        private CompanyFaviconService $favicons,
+        private ProjectFileService $files,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -61,6 +67,7 @@ class CompanyController extends Controller
     public function store(CompanyRequest $request): RedirectResponse
     {
         $company = Company::query()->create($request->companyData());
+        $this->favicons->syncFromWebsite($company);
 
         $this->audit->record('company.created', $company, [
             'summary' => $company->name,
@@ -110,7 +117,9 @@ class CompanyController extends Controller
 
     public function update(CompanyRequest $request, Company $company): RedirectResponse
     {
+        $previousWebsite = $company->website_url;
         $company->update($request->companyData());
+        $this->favicons->syncFromWebsite($company->fresh(), $previousWebsite);
 
         Contact::query()
             ->where('company_id', $company->id)
@@ -128,6 +137,7 @@ class CompanyController extends Controller
     public function destroy(Company $company): RedirectResponse
     {
         $summary = $company->name;
+        $this->files->delete($company->logo_path);
         $company->delete();
 
         $this->audit->record('company.deleted', null, [

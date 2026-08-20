@@ -17,9 +17,18 @@
         <x-ui.input name="trade_name" label="Nome fantasia" :value="old('trade_name', $company->trade_name)" placeholder="Exemplo Tech" />
         <x-ui.input name="document" label="CNPJ / documento" :value="old('document', $company->document)" placeholder="00.000.000/0001-00" />
         <x-ui.phone-field :value="old('phone', $company->phone)" />
-        <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid gap-4 sm:grid-cols-2">
             <x-ui.input type="email" name="email" label="E-mail" :value="old('email', $company->email)" placeholder="contato@exemplo.com" />
-            <x-ui.input type="url" name="website_url" label="Site" :value="old('website_url', $company->website_url)" placeholder="https://www.exemplo.com" />
+            <div>
+                <x-ui.input type="url" name="website_url" label="Site" :value="old('website_url', $company->website_url)" placeholder="https://www.exemplo.com" />
+                <p class="mt-1.5 text-xs text-mist">Ao salvar, o favicon do site vira a imagem da empresa.</p>
+                @if($editing && $company->logoUrl())
+                    <div class="mt-3 flex items-center gap-3">
+                        <img src="{{ $company->logoUrl() }}" alt="" class="h-10 w-10 rounded-sm border border-line bg-white object-contain p-1">
+                        <span class="text-xs text-mist">Imagem atual</span>
+                    </div>
+                @endif
+            </div>
         </div>
 
         <label class="block text-sm">
