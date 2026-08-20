@@ -715,11 +715,9 @@ html.dark .postit-lilac {
     opacity: 0.72;
 }
 
-.idea-postit__refs-hint {
-    margin: 0;
-    font-size: 0.62rem;
-    line-height: 1.25;
-    opacity: 0.65;
+.idea-postit__contact-wrap {
+    display: grid;
+    gap: 0.4rem;
 }
 
 .idea-postit__chips {

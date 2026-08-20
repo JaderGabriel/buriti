@@ -40,6 +40,7 @@ class IdeaNoteTest extends TestCase
             ->assertSee('data-idea-board', false)
             ->assertSee('data-idea-drag', false)
             ->assertSee('Alocar a', false)
+            ->assertSee('Pessoas sem empresa', false)
             ->assertSee('name="company_id"', false)
             ->assertSee('name="contact_id"', false);
     }
@@ -107,6 +108,30 @@ class IdeaNoteTest extends TestCase
             ->assertRedirect(route('admin.dashboard'));
 
         $this->assertDatabaseMissing('idea_notes', ['id' => $note->id]);
+    }
+
+    public function test_loose_people_allocation_keeps_company_null(): void
+    {
+        $contact = Contact::factory()->create([
+            'name' => 'Avulso',
+            'company_id' => null,
+            'company' => null,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.idea-notes.store'), [
+                'title' => 'Pessoa avulsa',
+                'color' => 'rose',
+                'company_id' => 'none',
+                'contact_id' => $contact->id,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('idea_notes', [
+            'title' => 'Pessoa avulsa',
+            'contact_id' => $contact->id,
+            'company_id' => null,
+        ]);
     }
 
     public function test_contact_allocation_inherits_company(): void

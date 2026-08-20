@@ -402,7 +402,7 @@
             <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand-bright">Espaço livre</p>
                 <h2 class="font-display text-xl font-semibold sm:text-2xl">Ideias e rascunhos</h2>
-                <p class="mt-1 text-sm text-mist">Post-its arrastáveis. Aloque a uma empresa e/ou contato para ver nas fichas do CRM.</p>
+                <p class="mt-1 text-sm text-mist">Post-its arrastáveis. Aloque a uma empresa e, se quiser, a um contato dela.</p>
             </div>
             <form method="POST" action="{{ route('admin.idea-notes.store') }}">
                 @csrf

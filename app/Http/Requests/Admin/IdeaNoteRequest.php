@@ -16,10 +16,17 @@ class IdeaNoteRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $companyId = $this->filled('company_id') ? (int) $this->input('company_id') : null;
+        $rawCompany = $this->input('company_id');
+        $loosePeople = $rawCompany === 'none';
+        $companyId = null;
+
+        if ($this->filled('company_id') && ! $loosePeople) {
+            $companyId = (int) $rawCompany;
+        }
+
         $contactId = $this->filled('contact_id') ? (int) $this->input('contact_id') : null;
 
-        if ($contactId && ! $companyId) {
+        if ($contactId && ! $companyId && ! $loosePeople) {
             $companyId = Contact::query()->whereKey($contactId)->value('company_id');
             $companyId = $companyId ? (int) $companyId : null;
         }

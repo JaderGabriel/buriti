@@ -999,11 +999,25 @@ function initIdeaPostitRefs() {
         chips.hidden = ! anyVisible;
     };
 
-    const filterContacts = (root, companyId, keepContactId = null) => {
+    const applyCompanyFilter = (root, companyValue, keepContactId = null) => {
+        const contactWrap = root.querySelector('[data-idea-contact-wrap]');
         const contactSelect = root.querySelector('[data-idea-contact]');
         if (! (contactSelect instanceof HTMLSelectElement)) {
             return;
         }
+
+        const showContacts = companyValue !== '';
+        if (contactWrap instanceof HTMLElement) {
+            contactWrap.hidden = ! showContacts;
+        }
+
+        if (! showContacts) {
+            contactSelect.value = '';
+            syncChip(root, 'contact', null);
+            return;
+        }
+
+        const looseOnly = companyValue === 'none';
 
         [...contactSelect.options].forEach((option) => {
             if (! option.value) {
@@ -1011,13 +1025,12 @@ function initIdeaPostitRefs() {
                 return;
             }
             const optionCompany = option.dataset.companyId || '';
-            const matches = ! companyId || optionCompany === '' || optionCompany === companyId;
+            const matches = looseOnly ? optionCompany === '' : optionCompany === companyValue;
             option.hidden = ! matches;
         });
 
         const selected = contactSelect.selectedOptions[0];
         if (selected?.hidden && keepContactId && String(contactSelect.value) === String(keepContactId)) {
-            // keep current selection even if filtered out of other companies
             selected.hidden = false;
         } else if (selected?.hidden) {
             contactSelect.value = '';
@@ -1037,27 +1050,21 @@ function initIdeaPostitRefs() {
             return;
         }
 
-        filterContacts(root, companySelect.value || '', contactSelect.value || null);
-        syncChip(root, 'company', companySelect.selectedOptions[0] || null);
-        syncChip(root, 'contact', contactSelect.selectedOptions[0] || null);
+        applyCompanyFilter(root, companySelect.value || '', contactSelect.value || null);
+
+        const companyOption = companySelect.selectedOptions[0] || null;
+        syncChip(root, 'company', companyOption?.value && companyOption.value !== 'none' ? companyOption : null);
+        syncChip(root, 'contact', contactSelect.selectedOptions[0]?.value ? contactSelect.selectedOptions[0] : null);
 
         companySelect.addEventListener('change', () => {
             const option = companySelect.selectedOptions[0] || null;
-            syncChip(root, 'company', option?.value ? option : null);
-            filterContacts(root, companySelect.value || '');
+            syncChip(root, 'company', option?.value && option.value !== 'none' ? option : null);
+            applyCompanyFilter(root, companySelect.value || '');
         });
 
         contactSelect.addEventListener('change', () => {
             const option = contactSelect.selectedOptions[0] || null;
             syncChip(root, 'contact', option?.value ? option : null);
-
-            const contactCompanyId = option?.dataset?.companyId || '';
-            if (contactCompanyId && companySelect.value !== contactCompanyId) {
-                companySelect.value = contactCompanyId;
-                const companyOption = companySelect.selectedOptions[0] || null;
-                syncChip(root, 'company', companyOption?.value ? companyOption : null);
-                filterContacts(root, contactCompanyId, contactSelect.value);
-            }
         });
     };
 

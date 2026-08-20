@@ -4,7 +4,6 @@
     $color = $note->color?->value ?? 'amber';
     $ideaCompanies = $ideaCompanies ?? collect();
     $ideaContacts = $ideaContacts ?? collect();
-    $selectedCompanyId = old('company_id', $note->company_id);
     $selectedContactId = old('contact_id', $note->contact_id);
     $companyLabel = $note->company?->displayName();
     $contactLabel = $note->contact?->name;
@@ -73,6 +72,20 @@
                 </a>
             </div>
 
+            @php
+                $companySelectValue = old('company_id');
+                if ($companySelectValue === null) {
+                    if ($note->company_id) {
+                        $companySelectValue = (string) $note->company_id;
+                    } elseif ($note->contact_id) {
+                        $companySelectValue = 'none';
+                    } else {
+                        $companySelectValue = '';
+                    }
+                }
+                $showContacts = $companySelectValue !== '' && $companySelectValue !== null;
+            @endphp
+
             <label class="sr-only" for="idea-company-{{ $note->id }}">Empresa</label>
             <select
                 id="idea-company-{{ $note->id }}"
@@ -80,43 +93,50 @@
                 class="idea-postit__select"
                 data-idea-company
             >
-                <option value="">Sem empresa</option>
+                <option value="" data-skip-contacts="1">Escolher empresa…</option>
+                <option
+                    value="none"
+                    data-loose="1"
+                    data-label="Pessoas sem empresa"
+                    @selected((string) $companySelectValue === 'none')
+                >
+                    Pessoas sem empresa
+                </option>
                 @foreach($ideaCompanies as $company)
                     <option
                         value="{{ $company->id }}"
                         data-label="{{ $company->displayName() }}"
                         data-href="{{ route('admin.companies.show', $company) }}"
-                        @selected((string) $selectedCompanyId === (string) $company->id)
+                        @selected((string) $companySelectValue === (string) $company->id)
                     >
                         {{ $company->displayName() }}
                     </option>
                 @endforeach
             </select>
 
-            <label class="sr-only" for="idea-contact-{{ $note->id }}">Contato</label>
-            <select
-                id="idea-contact-{{ $note->id }}"
-                name="contact_id"
-                class="idea-postit__select"
-                data-idea-contact
-            >
-                <option value="">Sem contato</option>
-                @foreach($ideaContacts as $contact)
-                    @php
-                        $contactCompanyLabel = $contact->companyLabel();
-                    @endphp
-                    <option
-                        value="{{ $contact->id }}"
-                        data-company-id="{{ $contact->company_id ?: '' }}"
-                        data-label="{{ $contact->name }}"
-                        data-href="{{ route('admin.contacts.show', $contact) }}"
-                        @selected((string) $selectedContactId === (string) $contact->id)
-                    >
-                        {{ $contact->name }}@if($contactCompanyLabel) · {{ $contactCompanyLabel }}@endif
-                    </option>
-                @endforeach
-            </select>
-            <p class="idea-postit__refs-hint">Escolha empresa e/ou contato — aparece na ficha correspondente.</p>
+            <div class="idea-postit__contact-wrap" data-idea-contact-wrap @unless($showContacts) hidden @endunless>
+                <label class="sr-only" for="idea-contact-{{ $note->id }}">Contato</label>
+                <select
+                    id="idea-contact-{{ $note->id }}"
+                    name="contact_id"
+                    class="idea-postit__select"
+                    data-idea-contact
+                >
+                    <option value="">Sem contato</option>
+                    @foreach($ideaContacts as $contact)
+                        <option
+                            value="{{ $contact->id }}"
+                            data-company-id="{{ $contact->company_id ?: '' }}"
+                            data-label="{{ $contact->name }}"
+                            data-href="{{ route('admin.contacts.show', $contact) }}"
+                            @selected((string) $selectedContactId === (string) $contact->id)
+                        >
+                            {{ $contact->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <p class="idea-postit__refs-hint">Escolha a empresa; em seguida o contato dessa empresa.</p>
         </div>
 
         <div class="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-2">

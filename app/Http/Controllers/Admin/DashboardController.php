@@ -101,6 +101,7 @@ class DashboardController extends Controller
             'ideaCompanies' => Company::query()->orderBy('name')->get(['id', 'name', 'trade_name']),
             'ideaContacts' => Contact::query()
                 ->with('clientCompany:id,name,trade_name')
+                ->orderByRaw('company_id is null desc')
                 ->orderBy('name')
                 ->get(['id', 'name', 'company_id', 'company']),
             'ideaReorderUrl' => route('admin.idea-notes.reorder'),
