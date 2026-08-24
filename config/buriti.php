@@ -41,8 +41,8 @@ return [
         ],
         [
             'icon' => 'train',
-            'title' => 'Treinamentos',
-            'description' => 'Capacitação prática para a equipe aproveitar melhor o que já foi contratado.',
+            'title' => 'Moodle e educação corporativa',
+            'description' => 'Implementação e operação de AVA/LMS, jornadas de aprendizagem em escala e capacitação de gestores e colaboradores.',
         ],
     ],
 
@@ -266,6 +266,33 @@ return [
     */
     'expertise' => [
         'intro' => 'Atuação que une gestão de projetos e capacitação com entrega técnica — sistemas, aprendizagem, conteúdo, dados e indicadores — do diagnóstico à operação.',
+        /*
+        | Experiência consolidada (trajetória / LinkedIn), distinta do portfólio de projetos abertos.
+        */
+        'consolidated' => [
+            'eyebrow' => 'Trajetória consolidada',
+            'title' => 'Educação corporativa e Moodle na prática',
+            'intro' => 'Não são cases de repositório aberto: é experiência operacional e consultiva já entregue — AVA em escala, implementação Moodle e capacitação — alinhada ao LinkedIn.',
+            'note' => 'Detalhes de período e contexto estão na trajetória pública.',
+            'linkedin_label' => 'Ver no LinkedIn',
+            'items' => [
+                [
+                    'icon' => 'train',
+                    'title' => 'Educação corporativa em escala',
+                    'description' => 'Jornadas de aprendizagem para dezenas de milhares de colaboradores, reporting para gestão e operação contínua do ambiente de capacitação.',
+                ],
+                [
+                    'icon' => 'code',
+                    'title' => 'Implementação e gestão de Moodle (AVA/LMS)',
+                    'description' => 'Implantação, administração e evolução de Moodle: cursos, papéis, integrações e suporte — inclusive consultoria (ex.: PISAC e clientes em segurança do trabalho).',
+                ],
+                [
+                    'icon' => 'project',
+                    'title' => 'Conteúdo, WordPress e integrações',
+                    'description' => 'Pontes entre Moodle, WordPress, ecommerce educacional e bases de gestão — do conteúdo à operação do dia a dia.',
+                ],
+            ],
+        ],
         'managerial' => [
             [
                 'title' => 'Análise de Sistemas e Projetos',

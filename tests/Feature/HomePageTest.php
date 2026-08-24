@@ -123,6 +123,9 @@ class HomePageTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Gestão e tecnologia na prática', false);
+        $response->assertSee('Educação corporativa e Moodle na prática', false);
+        $response->assertSee('Trajetória consolidada', false);
+        $response->assertSee('Moodle e educação corporativa', false);
         $response->assertSee('Power BI', false);
         $response->assertSee('Servlitcys Destaque', false);
         $response->assertSee('BI &amp; Painéis', false);

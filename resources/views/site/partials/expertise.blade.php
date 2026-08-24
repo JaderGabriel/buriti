@@ -6,6 +6,42 @@
             <p class="mt-4 text-sm leading-relaxed text-mist sm:text-base">{{ $expertise['intro'] }}</p>
         </div>
 
+        @if (! empty($expertise['consolidated']))
+            @php($consolidated = $expertise['consolidated'])
+            <div class="mt-12 overflow-hidden rounded-[1.5rem] border border-brand/35 bg-panel/80">
+                <div class="border-b border-line bg-[radial-gradient(ellipse_at_top_left,rgba(30,112,191,0.18),transparent_55%)] px-6 py-7 sm:px-8 sm:py-8">
+                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand">{{ $consolidated['eyebrow'] }}</p>
+                    <h3 class="mt-2 font-display text-2xl font-semibold text-snow sm:text-3xl">{{ $consolidated['title'] }}</h3>
+                    <p class="mt-3 max-w-3xl text-sm leading-relaxed text-mist sm:text-base">{{ $consolidated['intro'] }}</p>
+                    @if (! empty($linkedinUrl))
+                        <p class="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-mist">
+                            <span>{{ $consolidated['note'] ?? '' }}</span>
+                            <a
+                                href="{{ $linkedinUrl }}"
+                                target="_blank"
+                                rel="noopener"
+                                class="font-semibold text-brand-bright underline-offset-2 hover:underline"
+                            >{{ $consolidated['linkedin_label'] ?? 'LinkedIn' }}</a>
+                        </p>
+                    @endif
+                </div>
+                <div class="grid gap-0 sm:grid-cols-3">
+                    @foreach ($consolidated['items'] as $item)
+                        <article @class([
+                            'border-t border-line p-6 sm:border-t-0 sm:p-7',
+                            'sm:border-l sm:border-line' => ! $loop->first,
+                        ])>
+                            <span class="inline-flex h-10 w-10 items-center justify-center rounded-sm border border-line text-brand-bright">
+                                <x-ui.icon :name="$item['icon'] ?? 'train'" class="h-5 w-5" />
+                            </span>
+                            <h4 class="mt-4 font-display text-lg font-semibold text-snow">{{ $item['title'] }}</h4>
+                            <p class="mt-2 text-sm leading-relaxed text-mist">{{ $item['description'] }}</p>
+                        </article>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         <div class="mt-12 grid gap-8 lg:grid-cols-2">
             <div class="rounded-[1.5rem] border border-line bg-panel/70 p-6 sm:p-8">
                 <h3 class="font-display text-xl font-semibold">Visão gerencial</h3>

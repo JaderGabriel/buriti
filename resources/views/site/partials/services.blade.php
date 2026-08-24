@@ -3,7 +3,7 @@
         <div class="max-w-2xl">
             <p class="section-kicker">O que fazemos</p>
             <h2 class="section-title">Serviços para contratar com clareza</h2>
-            <p class="mt-4 text-sm text-mist sm:text-base">Consultoria, sistemas, indicadores e suporte — o conjunto que sustenta o contrato no dia a dia.</p>
+            <p class="mt-4 text-sm text-mist sm:text-base">Consultoria, sistemas, Moodle/educação corporativa, indicadores e suporte — o conjunto que sustenta o contrato no dia a dia.</p>
         </div>
 
         <div class="mt-12 grid gap-x-8 gap-y-10 sm:grid-cols-2 xl:grid-cols-3">
