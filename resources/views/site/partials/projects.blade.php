@@ -1,11 +1,11 @@
 <section id="projetos" class="section-shell">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div class="max-w-2xl">
+            <div class="max-w-3xl">
                 <p class="section-kicker">Portfólio</p>
                 <h2 class="section-title">Projetos e entregas reais</h2>
-                <p class="mt-4 text-sm text-mist sm:text-base">
-                    Projetos com código aberto e entregas sob contrato. Você vê o que fazemos; o que é confidencial permanece protegido.
+                <p class="section-lead">
+                    Projetos com código aberto e entregas sob contrato. O que é público aparece aqui; o que é confidencial permanece protegido.
                 </p>
             </div>
             @if($githubUrl ?? false)
@@ -24,7 +24,7 @@
                         <div>
                             <p class="section-kicker">Destaques</p>
                             <h3 class="font-display text-2xl font-semibold text-snow sm:text-3xl">Projetos em destaque</h3>
-                            <p class="mt-2 max-w-2xl text-sm text-mist">O que queremos que você veja primeiro.</p>
+                            <p class="mt-2 max-w-2xl text-sm leading-relaxed text-mist">Entregas públicas que representam o trabalho atual.</p>
                         </div>
                         <span class="home-featured__badge" aria-hidden="true">★</span>
                     </div>
@@ -44,7 +44,7 @@
                 <div class="mt-10">
                     <div class="mb-5 flex items-end justify-between gap-3">
                         <h3 class="font-display text-xl font-semibold text-snow">Código aberto</h3>
-                        <p class="text-xs text-mist">Com links quando existirem</p>
+                        <p class="text-xs text-mist">Repositórios com código visível</p>
                     </div>
                     <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                         @foreach($openSourceProjects as $project)
@@ -60,7 +60,7 @@
                         <div>
                             <h3 class="font-display text-xl font-semibold text-snow">Projetos confidenciais</h3>
                             <p class="mt-1 max-w-2xl text-sm text-mist">
-                                Stack e resultado descritos no site, sem expor código nem endereços internos.
+                                Tecnologias e resultado descritos no site, sem expor código nem endereços internos.
                             </p>
                         </div>
                         <span class="text-xs font-semibold uppercase tracking-[0.14em] text-brand">Contrato / NDA</span>

@@ -10,7 +10,7 @@
             <p class="section-kicker">Equipe</p>
             <h2 class="section-title">Quem entrega o trabalho</h2>
             @if($intro)
-                <p class="mt-4 text-sm text-mist sm:text-base">{{ $intro }}</p>
+                <p class="section-lead">{{ $intro }}</p>
             @endif
         </div>
 

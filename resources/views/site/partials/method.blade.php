@@ -3,8 +3,8 @@
         <div class="max-w-3xl">
             <p class="section-kicker">Como trabalhamos</p>
             <h2 class="section-title">Do primeiro contato à operação no dia a dia</h2>
-            <p class="mt-4 text-sm text-mist sm:text-base">
-                Um caminho transparente: cada etapa tem objetivo, responsável e entrega visível — para você acompanhar o contrato com segurança.
+            <p class="section-lead">
+                Cada etapa tem objetivo, responsável e entrega visível — para acompanhar o contrato com clareza.
             </p>
         </div>
 

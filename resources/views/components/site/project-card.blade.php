@@ -12,7 +12,7 @@
         <div class="min-w-0 flex-1">
             <div class="flex flex-wrap items-center gap-2">
                 @if($featured)
-                    <span class="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200">
+                    <span class="inline-flex items-center gap-1 rounded-sm border border-amber-400/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200">
                         ★ Destaque
                     </span>
                 @endif
@@ -20,7 +20,7 @@
                     <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand">{{ $project->category }}</p>
                 @endif
                 @if($project->repo_is_private)
-                    <span class="rounded-full border border-line px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-mist">Repo privado</span>
+                    <span class="rounded-sm border border-line px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-mist">Repo privado</span>
                 @endif
             </div>
             <h3 class="font-display text-lg font-semibold sm:text-xl">{{ $project->name }}</h3>
@@ -32,7 +32,7 @@
     @if(!empty($project->stack))
         <div class="flex flex-wrap gap-2">
             @foreach($project->stack as $tech)
-                <span class="rounded-full border border-line px-2.5 py-0.5 text-[11px] text-mist">{{ $tech }}</span>
+                <span class="rounded-sm border border-line px-2.5 py-0.5 text-[11px] text-mist">{{ $tech }}</span>
             @endforeach
         </div>
     @endif

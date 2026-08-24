@@ -3,14 +3,14 @@
 
     <div class="relative mx-auto flex min-h-[calc(88svh-1rem)] max-w-7xl flex-col justify-center px-4 py-20 sm:px-6 lg:px-8">
         <div class="reveal max-w-4xl">
-            <p class="section-kicker">Consultoria · Sistemas · AVA · Indicadores</p>
-            <h1 class="mt-5 font-display text-4xl font-extrabold leading-[1.02] tracking-tight sm:text-5xl lg:text-6xl xl:text-[4.25rem]">
+            <p class="section-kicker">Consultoria · Sistemas · Moodle · Indicadores</p>
+            <h1 class="mt-5 font-display text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl xl:text-[4.25rem]">
                 Tecnologia que o gestor entende
                 <span class="text-brand-bright"> e a operação usa</span>.
             </h1>
-            <p class="mt-4 text-lg font-medium tracking-wide text-[#7eb6e8] sm:text-xl">BURI-TI — Tecnologia para Pessoas</p>
+            <p class="mt-4 text-lg font-medium text-[#7eb6e8] sm:text-xl">BURI-TI — Tecnologia para Pessoas</p>
             <p class="reveal-delay-1 mt-6 max-w-2xl text-base leading-relaxed text-mist sm:text-lg">
-                Consultoria, sistemas, educação corporativa (Moodle) e painéis de indicadores. Da proposta à operação: escopo claro, engenharia sólida e acompanhamento próximo.
+                Consultoria, sistemas, Moodle e painéis de indicadores. Da proposta à operação, com escopo claro e acompanhamento próximo.
             </p>
             <div class="reveal-delay-2 mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                 <x-ui.button href="#contato" class="min-w-[11rem]">Pedir proposta</x-ui.button>
@@ -21,7 +21,7 @@
         <div class="reveal-delay-3 mt-16 grid gap-6 border-t border-white/15 pt-8 sm:grid-cols-3">
             @foreach ([
                 ['icon' => 'diagnose', 'label' => 'Diagnóstico', 'text' => 'Escopo e prioridades'],
-                ['icon' => 'code', 'label' => 'Sistemas', 'text' => 'Laravel, dados e integrações'],
+                ['icon' => 'code', 'label' => 'Sistemas', 'text' => 'Laravel, Moodle e integrações'],
                 ['icon' => 'bi', 'label' => 'Indicadores', 'text' => 'Números para decidir'],
             ] as $item)
                 <div class="flex items-start gap-3">

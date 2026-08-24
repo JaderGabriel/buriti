@@ -118,7 +118,7 @@
                     <img src="{{ asset('images/logo-buriti.png') }}" alt="" class="h-9 w-9 object-contain">
                     <span class="font-display text-lg font-bold tracking-wide">BURI-TI</span>
                 </div>
-                <p class="mt-3 max-w-sm text-sm text-mist">Software, dados e indicadores para operações que precisam de resultado claro — da proposta ao dia a dia.</p>
+                <p class="mt-3 max-w-sm text-sm leading-relaxed text-mist">Software, dados e indicadores para operações que precisam de resultado claro — da proposta ao dia a dia.</p>
             </div>
             <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.16em] text-mist">Navegação</p>

@@ -2,8 +2,8 @@
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="cta-band mb-10 overflow-hidden rounded-sm border px-6 py-8 sm:px-8 sm:py-10 md:px-10">
             <p class="section-kicker">Próximo passo</p>
-            <h2 class="mt-3 font-display text-2xl font-bold text-snow sm:text-3xl md:text-4xl">Pronto para o próximo passo digital?</h2>
-            <p class="mt-3 max-w-2xl text-sm text-mist sm:text-base">
+            <h2 class="mt-3 font-display text-2xl font-bold leading-tight text-snow sm:text-3xl md:text-4xl">Pronto para o próximo passo digital?</h2>
+            <p class="mt-3 max-w-2xl text-sm leading-relaxed text-mist sm:text-base">
                 Proposta objetiva, escopo claro e acompanhamento próximo — da conversa inicial à operação.
             </p>
         </div>
@@ -12,7 +12,7 @@
             <div>
                 <p class="section-kicker">Contato comercial</p>
                 <h3 class="section-title">Vamos estruturar sua próxima entrega</h3>
-                <p class="mt-4 text-sm text-mist sm:text-base">
+                <p class="section-lead">
                     Informe nome, e-mail, WhatsApp e o melhor canal. Respondemos com o próximo passo: diagnóstico, proposta ou suporte.
                 </p>
 
@@ -81,7 +81,7 @@
 
                     <div class="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
                         <p class="text-xs text-mist">Usamos o WhatsApp para retorno comercial rápido. Sem envio em massa.</p>
-                        <x-ui.button type="submit" class="w-full sm:w-auto">Enviar pedido de contato</x-ui.button>
+                        <x-ui.button type="submit" class="w-full sm:w-auto">Enviar mensagem</x-ui.button>
                     </div>
                 </form>
             </div>

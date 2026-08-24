@@ -37,12 +37,12 @@ return [
         [
             'icon' => 'support',
             'title' => 'Suporte e Integrações',
-            'description' => 'Suporte contínuo, ligações entre sistemas (i-Educar, biometria, catracas) e operação estável.',
+            'description' => 'Suporte contínuo, integrações entre sistemas (i-Educar, biometria, catracas) e operação estável.',
         ],
         [
             'icon' => 'train',
             'title' => 'Moodle e educação corporativa',
-            'description' => 'Implementação e operação de AVA/LMS, jornadas de aprendizagem em escala e capacitação de gestores e colaboradores.',
+            'description' => 'Implementação e operação de AVA Moodle, jornadas de aprendizagem em escala e capacitação de equipes.',
         ],
     ],
 
@@ -55,7 +55,7 @@ return [
                 'initials' => 'JG',
                 'featured' => true,
                 'photo' => 'images/team/jader-gabriel.jpg',
-                'bio' => 'CEO da BURI-TI: software, BI, Moodle, WordPress e operação educacional. Une diagnóstico de negócio, engenharia (PHP/Laravel, Rails) e plataformas de aprendizagem para transformar requisito em entrega mensurável.',
+                'bio' => 'CEO da BURI-TI: une diagnóstico de negócio, engenharia (PHP/Laravel) e plataformas de aprendizagem — Moodle, WordPress, BI e operação educacional — para transformar requisito em entrega mensurável.',
                 'focus' => [
                     'Consultoria e governança de TI',
                     'Laravel, Moodle, WordPress e i-Educar',
@@ -72,7 +72,7 @@ return [
                     'headline' => 'Trajetória que o contratante precisa ver',
                     'summary' => 'Analista e desenvolvedor full-stack com atuação em educação corporativa, governança de TI e plataformas digitais. Experiência em escala (AVAs Moodle, integrações WordPress e sistemas educacionais) e entrega técnica prática em PHP/Laravel, indicadores e operações.',
                     'attractors' => [
-                        'Domínio prático de Moodle (AVA/LMS), WordPress e integrações entre ecommerce, dados e aprendizagem.',
+                        'Domínio prático de Moodle (AVA), WordPress e integrações entre e-commerce, dados e aprendizagem.',
                         'Experiência com educação corporativa em escala — jornadas com dezenas de milhares de colaboradores e reporting para gestão.',
                         'Stack madura: PHP/Laravel senior, Rails, i-Educar, Power BI, SQL, Linux/AWS e DevOps.',
                         'Perfil híbrido: fala a linguagem do negócio e entrega código, painéis e operação estável.',
@@ -84,7 +84,7 @@ return [
                     */
                     'practice' => [
                         'title' => 'Como o resultado é produzido',
-                        'intro' => 'Além da stack: o modo de trabalhar — alinhamento, versionamento, testes, monitoramento e responsabilidade sobre o código.',
+                        'intro' => 'Além das ferramentas: o modo de trabalhar — alinhamento, versionamento, testes, monitoramento e responsabilidade sobre o código.',
                         'pillars' => [
                             [
                                 'title' => 'Experiência técnica',
@@ -126,7 +126,7 @@ return [
                         [
                             'period' => 'Educação corporativa',
                             'title' => 'Gestão de AVA Moodle e plataformas web',
-                            'detail' => 'Operação de Moodle, WordPress, integrações com ecommerce e bases de gestão — inclusive jornadas corporativas de grande porte.',
+                            'detail' => 'Operação de Moodle, WordPress, integrações com e-commerce e bases de gestão — inclusive jornadas corporativas de grande porte.',
                         ],
                         [
                             'period' => 'Consultoria',
@@ -154,7 +154,7 @@ return [
                 */
                 'technologies' => [
                     'title' => 'Tecnologias, sistemas e operação',
-                    'intro' => 'Stack usada e entregue em projetos — com o tipo de experiência em cada item.',
+                    'intro' => 'Tecnologias usadas na entrega — com o tipo de experiência em cada item.',
                     'levels' => [
                         'direct' => [
                             'label' => 'Experiência direta',
@@ -242,17 +242,17 @@ return [
         [
             'icon' => 'proposal',
             'title' => 'Propor',
-            'description' => 'Escopo claro, prioridades e proposta objetiva de valor.',
+            'description' => 'Escopo, prioridades e uma proposta objetiva de valor.',
         ],
         [
             'icon' => 'delivery',
             'title' => 'Construir',
-            'description' => 'Software, integrações e painéis com entrega incremental.',
+            'description' => 'Software, integrações e painéis, com entrega incremental.',
         ],
         [
             'icon' => 'bi',
             'title' => 'Medir',
-            'description' => 'BI e indicadores para acompanhar resultado gerencial.',
+            'description' => 'Indicadores para acompanhar o resultado da gestão.',
         ],
         [
             'icon' => 'operate',
@@ -265,31 +265,31 @@ return [
     | Modelagem gerencial + técnica da experiência BURI-TI / Jader Gabriel
     */
     'expertise' => [
-        'intro' => 'Atuação que une gestão de projetos e capacitação com entrega técnica — sistemas, aprendizagem, conteúdo, dados e indicadores — do diagnóstico à operação.',
+        'intro' => 'Gestão de projetos e capacitação com entrega técnica: sistemas, aprendizagem, dados e indicadores — do diagnóstico à operação.',
         /*
         | Experiência consolidada (trajetória / LinkedIn), distinta do portfólio de projetos abertos.
         */
         'consolidated' => [
             'eyebrow' => 'Trajetória consolidada',
             'title' => 'Educação corporativa e Moodle na prática',
-            'intro' => 'Não são cases de repositório aberto: é experiência operacional e consultiva já entregue — AVA em escala, implementação Moodle e capacitação — alinhada ao LinkedIn.',
-            'note' => 'Detalhes de período e contexto estão na trajetória pública.',
+            'intro' => 'Experiência operacional e consultiva já entregue: ambientes Moodle em escala, implementação de AVA e capacitação de equipes. A trajetória completa está no LinkedIn.',
+            'note' => 'Períodos e contexto na trajetória pública.',
             'linkedin_label' => 'Ver no LinkedIn',
             'items' => [
                 [
                     'icon' => 'train',
                     'title' => 'Educação corporativa em escala',
-                    'description' => 'Jornadas de aprendizagem para dezenas de milhares de colaboradores, reporting para gestão e operação contínua do ambiente de capacitação.',
+                    'description' => 'Jornadas de aprendizagem para dezenas de milhares de colaboradores, indicadores para a gestão e operação contínua do ambiente de capacitação.',
                 ],
                 [
                     'icon' => 'code',
-                    'title' => 'Implementação e gestão de Moodle (AVA/LMS)',
-                    'description' => 'Implantação, administração e evolução de Moodle: cursos, papéis, integrações e suporte — inclusive consultoria (ex.: PISAC e clientes em segurança do trabalho).',
+                    'title' => 'Implementação e gestão de Moodle',
+                    'description' => 'Implantação, administração e evolução do AVA: cursos, papéis, integrações e suporte — inclusive consultoria em educação corporativa e segurança do trabalho.',
                 ],
                 [
                     'icon' => 'project',
                     'title' => 'Conteúdo, WordPress e integrações',
-                    'description' => 'Pontes entre Moodle, WordPress, ecommerce educacional e bases de gestão — do conteúdo à operação do dia a dia.',
+                    'description' => 'Integrações entre Moodle, WordPress, e-commerce educacional e bases de gestão — do conteúdo à operação.',
                 ],
             ],
         ],
@@ -305,9 +305,9 @@ return [
                 'description' => 'Planejamento, acompanhamento e comunicação com stakeholders em ciclos curtos.',
             ],
             [
-                'title' => 'Educação corporativa e AVA',
+                'title' => 'Educação corporativa e Moodle',
                 'level' => 92,
-                'description' => 'Gestão de Moodle/LMS, jornadas de aprendizagem em escala e capacitação de equipes.',
+                'description' => 'Gestão de AVA Moodle, jornadas de aprendizagem em escala e capacitação de equipes.',
             ],
             [
                 'title' => 'Governança de dados educacionais',
@@ -322,7 +322,7 @@ return [
             ],
             [
                 'group' => 'LMS, CMS e conteúdo',
-                'items' => ['Moodle', 'WordPress', 'Integração Moodle ↔ WordPress', 'Ecommerce educacional', 'AVAs corporativos'],
+                'items' => ['Moodle', 'WordPress', 'Integração Moodle e WordPress', 'E-commerce educacional', 'AVAs corporativos'],
             ],
             [
                 'group' => 'Dados e BI',
@@ -348,11 +348,11 @@ return [
             ],
             [
                 'title' => 'Servlitcys — análise municipal',
-                'description' => 'Plataforma Laravel com painéis por município e ligação a bases i-Educar (MySQL/PostgreSQL).',
+                'description' => 'Plataforma Laravel com painéis por município e conexão a bases i-Educar.',
             ],
             [
                 'title' => 'Moodle e aprendizagem corporativa',
-                'description' => 'Operação e consultoria de AVA Moodle, reporting para gestores e integração com conteúdos WordPress.',
+                'description' => 'Operação e consultoria de AVA Moodle, indicadores para gestores e integração com conteúdo WordPress.',
             ],
             [
                 'title' => 'Importação Educacenso',
