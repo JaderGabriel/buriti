@@ -5,6 +5,7 @@ Site institucional e painel administrativo da **BURI-TI** — *Tecnologia para P
 Stack: **Laravel 13**, **Blade**, **Vite**, **Tailwind CSS 4**, **Alpine.js**, MySQL.
 
 - Site: [buriti.dev.br](https://buriti.dev.br)
+- GitHub Pages (portfólio estático): [jadergabriel.github.io/buriti](https://jadergabriel.github.io/buriti/)
 - GitHub: [JaderGabriel](https://github.com/JaderGabriel)
 - LinkedIn: [jadergabriel](https://www.linkedin.com/in/jadergabriel/)
 
