@@ -24,7 +24,7 @@ class GoogleOAuthController extends Controller
             return redirect()
                 ->route('admin.settings.edit')
                 ->withFragment('google-integration')
-                ->with('error', 'Preencha Client ID e Client Secret antes de ligar a conta Google.');
+                ->with('error', 'Preencha Client ID e Client Secret antes de conectar a conta Google.');
         }
 
         $state = Str::random(40);
@@ -52,7 +52,7 @@ class GoogleOAuthController extends Controller
             return redirect()
                 ->route('admin.settings.edit')
                 ->withFragment('google-integration')
-                ->with('error', 'Estado OAuth inválido. Tente ligar a conta Google novamente.');
+                ->with('error', 'Estado OAuth inválido. Tente conectar a conta Google novamente.');
         }
 
         if ($request->filled('error')) {
@@ -84,7 +84,7 @@ class GoogleOAuthController extends Controller
         return redirect()
             ->route('admin.settings.edit')
             ->withFragment('google-integration')
-            ->with('success', 'Conta Google ligada (Agenda + Drive). O CRM reutiliza o refresh token até o Google o invalidar — em modo Teste do Cloud Console isso acontece aos 7 dias; publique a app para evitar religar toda a semana.');
+            ->with('success', 'Conta Google conectada (Agenda + Drive). O CRM reutiliza o refresh token até o Google o invalidar — em modo Teste do Cloud Console isso acontece aos 7 dias; publique o aplicativo para evitar reconectar toda a semana.');
     }
 
     public function disconnect(): RedirectResponse

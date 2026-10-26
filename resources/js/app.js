@@ -902,6 +902,7 @@ function initBackToTop() {
 
     button.addEventListener('click', () => {
         window.scrollTo({ top: 0, behavior: 'auto' });
+        sync();
     });
 
     window.addEventListener('scroll', sync, { passive: true });

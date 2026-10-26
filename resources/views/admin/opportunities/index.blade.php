@@ -55,7 +55,7 @@
         </div>
         <div class="pm-stat">
             <span class="pm-stat__value">{{ $funnel['win_rate'] }}%</span>
-            <span class="pm-stat__label">Win rate</span>
+            <span class="pm-stat__label">Taxa de ganho</span>
         </div>
     </div>
 

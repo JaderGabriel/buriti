@@ -16,7 +16,7 @@
             {{ $activity->type->label() }}
             · #{{ $activity->id }}
             @if($activity->user)
-                · registada por {{ $activity->user->name }}
+                · registrada por {{ $activity->user->name }}
             @endif
         </p>
     </div>
@@ -122,7 +122,7 @@
             @if($relatedActivities->isNotEmpty())
                 <div class="activity-trend rounded-sm border border-line bg-panel p-4">
                     <p class="text-xs font-semibold uppercase tracking-[0.14em] text-mist">Histórico nesta reunião</p>
-                    <p class="mt-1 text-xs text-mist">Notas e actividades no mesmo compromisso, em ordem.</p>
+                    <p class="mt-1 text-xs text-mist">Notas e atividades no mesmo compromisso, em ordem.</p>
                     <ol class="activity-trend__list">
                         @foreach($relatedActivities as $related)
                             <li class="activity-trend__item activity-trend__item--{{ $related->type->tone() }} {{ $related->id === $activity->id ? 'is-current' : '' }}">

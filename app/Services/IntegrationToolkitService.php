@@ -135,7 +135,7 @@ class IntegrationToolkitService
                 'tools' => ['Site', 'CRM', 'Telegram', 'Notion'],
                 'items' => [
                     'Formulário de contato cria lead no CRM, atividade automática e avisa o bot Telegram.',
-                    'No Telegram, use /contato e /oportunidade para registar leads em movimento.',
+                    'No Telegram, use /contato e /oportunidade para registrar leads em movimento.',
                     'No Notion, abra uma página “Brief do lead” com contexto e perguntas de discovery.',
                 ],
             ],

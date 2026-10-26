@@ -33,24 +33,24 @@
         @endif
     </form>
 
-    <section class="dash-panel mb-6">
+    <section class="dash-panel dash-panel--actions mb-6">
         <header class="dash-panel__head">
             <div class="dash-panel__title-wrap">
                 <span class="dash-panel__icon" aria-hidden="true"><x-ui.icon name="opportunity" class="h-5 w-5" /></span>
                 <div>
                     <p class="dash-panel__eyebrow">Condução</p>
-                    <h2 class="dash-panel__title">Próximas acções</h2>
+                    <h2 class="dash-panel__title">Próximas ações</h2>
                 </div>
             </div>
         </header>
-        <div class="grid gap-4 p-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div class="dash-actions">
             <div>
                 <p class="text-xs font-semibold uppercase tracking-wide text-mist">Mensagens</p>
                 <ul class="mt-2 space-y-1 text-sm">
                     @forelse($inbox['unlinked_messages'] as $message)
                         <li><a href="{{ route('admin.messages.show', $message) }}" class="text-brand-bright hover:underline">{{ $message->name }} — {{ $message->subject }}</a></li>
                     @empty
-                        <li class="text-mist">Inbox comercial em dia.</li>
+                        <li class="text-mist">Caixa de entrada comercial em dia.</li>
                     @endforelse
                 </ul>
             </div>
@@ -70,7 +70,7 @@
                     @forelse($inbox['stale_opportunities'] as $opportunity)
                         <li><a href="{{ route('admin.opportunities.edit', $opportunity) }}" class="text-brand-bright hover:underline">{{ $opportunity->title }}</a></li>
                     @empty
-                        <li class="text-mist">Funil com actividade recente.</li>
+                        <li class="text-mist">Funil com atividade recente.</li>
                     @endforelse
                 </ul>
             </div>
@@ -97,7 +97,7 @@
             <div>
                 <p class="text-xs font-semibold uppercase tracking-wide text-mist">Funil</p>
                 <p class="mt-2 text-2xl font-semibold text-snow">{{ $funnel['win_rate'] }}%</p>
-                <p class="text-xs text-mist">Win rate ({{ $funnel['won'] }}/{{ $funnel['closed'] }} fechados)</p>
+                <p class="text-xs text-mist">Taxa de ganho ({{ $funnel['won'] }}/{{ $funnel['closed'] }} fechados)</p>
             </div>
         </div>
     </section>
@@ -322,7 +322,7 @@
                     <div>
                         <p class="dash-panel__eyebrow">Condução</p>
                         <h2 class="dash-panel__title">Atividades dos contatos</h2>
-                        <p class="dash-panel__lead">Chamadas, reuniões, e-mails e notas registadas nas fichas.</p>
+                        <p class="dash-panel__lead">Chamadas, reuniões, e-mails e notas registradas nas fichas.</p>
                     </div>
                 </div>
                 <div class="dash-panel__meta">
@@ -401,7 +401,7 @@
                     </li>
                 @empty
                     <li class="dash-feed__empty">
-                        <p>Nenhuma atividade registada ainda.</p>
+                        <p>Nenhuma atividade registrada ainda.</p>
                         <p class="dash-feed__empty-hint">Registe a primeira chamada, reunião ou nota para começar a condução.</p>
                         <button type="button" class="dash-panel__action dash-panel__action--primary mt-3" data-bulk-activity-open>
                             <x-ui.icon name="task" class="h-3.5 w-3.5" />

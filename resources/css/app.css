@@ -6790,9 +6790,53 @@ button.task-agenda__date:hover {
 .dash-panel {
     border: 1px solid var(--color-line);
     background: var(--color-panel);
-    min-height: 100%;
     display: flex;
     flex-direction: column;
+    height: auto;
+    min-height: 0;
+    align-self: start;
+}
+
+.dash-panels > .dash-panel {
+    min-height: 0;
+    align-self: start;
+}
+
+.dash-panel--actions {
+    min-height: 0;
+    height: auto;
+    align-self: start;
+}
+
+.dash-panel--actions > .dash-actions {
+    flex: 0 0 auto;
+}
+
+.dash-actions {
+    display: grid;
+    gap: 0.55rem 1rem;
+    padding: 0.65rem 0.95rem 0.8rem;
+    align-items: start;
+}
+
+.dash-actions > * {
+    min-height: 0;
+}
+
+.dash-actions ul {
+    margin-top: 0.35rem;
+}
+
+@media (min-width: 640px) {
+    .dash-actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1100px) {
+    .dash-actions {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
 }
 
 .dash-panel__head {

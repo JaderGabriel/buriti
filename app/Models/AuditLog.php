@@ -52,7 +52,7 @@ class AuditLog extends Model
             'attachment.created' => 'Anexo adicionado',
             'attachment.trashed' => 'Anexo ocultado',
             'attachment.restored' => 'Anexo recuperado',
-            'attachment.purged' => 'Anexo eliminado em definitivo',
+            'attachment.purged' => 'Anexo excluído em definitivo',
             'contact.created' => 'Contato criado',
             'contact.updated' => 'Contato atualizado',
             'contact.deleted' => 'Contato removido',

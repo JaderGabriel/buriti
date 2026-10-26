@@ -98,7 +98,7 @@ class CrmConsolidationTest extends TestCase
         $this->actingAs($this->admin)
             ->get(route('admin.dashboard'))
             ->assertOk()
-            ->assertSee('Próximas acções', false);
+            ->assertSee('Próximas ações', false);
 
         $this->actingAs($this->admin)
             ->get(route('admin.search', ['q' => 'Zelia']))

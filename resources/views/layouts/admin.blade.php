@@ -230,5 +230,16 @@
             @yield('content')
         </div>
     </div>
+
+    <button
+        type="button"
+        class="back-to-top"
+        data-back-to-top
+        aria-label="Voltar ao topo"
+        title="Voltar ao topo"
+        hidden
+    >
+        <x-ui.icon name="arrow-up" class="h-5 w-5" />
+    </button>
 </div>
 @endsection

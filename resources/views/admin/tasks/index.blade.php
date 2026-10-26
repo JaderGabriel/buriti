@@ -10,7 +10,7 @@
         <div>
             <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand-bright">Agenda operacional</p>
             <h1 class="font-display text-2xl font-bold sm:text-3xl">Calendário de atividades</h1>
-            <p class="mt-1 text-mist">Clique num dia para criar um compromisso — no estilo da Google Agenda.</p>
+            <p class="mt-1 text-mist">Clique em um dia para criar um compromisso — no estilo da Google Agenda.</p>
         </div>
         <div class="flex flex-wrap gap-2">
             <button
@@ -96,7 +96,7 @@
             </div>
         @elseif(!empty($googleApiReady) && ($stats['google_month'] ?? 0) > 0)
             <p class="mb-3 text-xs text-mist">
-                Calendário CRM + <strong class="text-snow">{{ $stats['google_month'] }}</strong> evento(s) Google neste mês (etiqueta «Google»).
+                Calendário CRM + <strong class="text-snow">{{ $stats['google_month'] }}</strong> evento(s) Google neste mês (etiqueta “Google”).
             </p>
         @endif
         @include('admin.tasks.partials.calendar')

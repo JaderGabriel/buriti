@@ -123,7 +123,7 @@
                         @if($task->contact)
                             Sem atividades ligadas a este compromisso. Registe na ficha de {{ $task->contact->name }} e vincule esta tarefa.
                         @else
-                            Sem atividades. Associe um contato e registe a atividade na ficha CRM.
+                            Sem atividades. Associe um contato e registre a atividade na ficha CRM.
                         @endif
                     </li>
                 @endforelse

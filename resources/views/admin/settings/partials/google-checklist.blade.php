@@ -27,12 +27,12 @@
         ],
         [
             'done' => $hasRefresh,
-            'label' => 'Conta Google ligada',
-            'hint' => $hasRefresh ? 'Refresh token gravado' : 'Clique em «Ligar conta Google»',
+            'label' => 'Conta Google conectada',
+            'hint' => $hasRefresh ? 'Refresh token gravado' : 'Clique em “Conectar conta Google”',
         ],
         [
             'done' => $calendarIdOk,
-            'label' => 'Calendar ID da agenda correcta',
+            'label' => 'Calendar ID da agenda correta',
             'hint' => $calendarAligned
                 ? ($googleResolvedCalendarId ?? 'ok')
                 : 'Confirme o ID (deve coincidir com o embed)',
@@ -40,7 +40,7 @@
         [
             'done' => $autoSync,
             'label' => 'Sincronizar automaticamente',
-            'hint' => $autoSync ? 'Activo' : 'Marque a opção e salve',
+            'hint' => $autoSync ? 'Ativo' : 'Marque a opção e salve',
         ],
         [
             'done' => $apiReady,

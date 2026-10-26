@@ -307,7 +307,7 @@
                             @empty
                                 <li class="contact-conduct__empty">
                                     <x-ui.icon name="journey" class="h-8 w-8 opacity-40" />
-                                    <p>Sem atividades — registe a primeira para começar a condução.</p>
+                                    <p>Sem atividades — registre a primeira para começar a condução.</p>
                                 </li>
                             @endforelse
                         </ol>

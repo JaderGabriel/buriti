@@ -63,12 +63,12 @@
                         </ol>
                         <p class="mt-2 text-xs text-mist">
                             API pronta neste ambiente:
-                            <span class="{{ $googleApiReady ? 'text-brand-bright' : 'text-mist' }}">{{ $googleApiReady ? 'sim — sync e Meet automáticos' : 'não — complete Client ID/Secret e ligue a conta' }}</span>
+                            <span class="{{ $googleApiReady ? 'text-brand-bright' : 'text-mist' }}">{{ $googleApiReady ? 'sim — sync e Meet automáticos' : 'não — complete Client ID/Secret e conecte a conta' }}</span>
                         </p>
                     </div>
 
                     <h3 class="font-display text-base font-semibold">Dados da Agenda</h3>
-                    <p class="text-sm text-mist">Cole a URL do iframe (ou o HTML completo). Só domínios Google são aceites.</p>
+                    <p class="text-sm text-mist">Cole a URL do iframe (ou o HTML completo). Só domínios Google são aceitos.</p>
                     <x-ui.input type="url" name="google_calendar_url" label="URL da agenda" :value="$settings['google_calendar_url']" class="mt-2" />
 
                     <div class="mt-4 space-y-2">
@@ -81,7 +81,7 @@
                                     </option>
                                 @endforeach
                             </select>
-                            <p class="text-xs text-mist">Agendas com permissão de escrita da conta ligada. ID activo: <code class="break-all text-brand-bright">{{ $googleResolvedCalendarId }}</code></p>
+                            <p class="text-xs text-mist">Agendas com permissão de escrita da conta conectada. ID ativo: <code class="break-all text-brand-bright">{{ $googleResolvedCalendarId }}</code></p>
                         @else
                             <input
                                 type="text"
@@ -91,7 +91,7 @@
                                 placeholder="primary ou email da agenda"
                             >
                             <p class="text-xs text-mist">
-                                Deve coincidir com o <code>src</code> do embed. Actual:
+                                Deve coincidir com o <code>src</code> do embed. Atual:
                                 <code class="break-all text-brand-bright">{{ $googleResolvedCalendarId ?? $settings['google_calendar_id'] }}</code>
                                 @if(($googleIntegration['calendar_matches_embed'] ?? null) === false)
                                     <span class="text-amber-200"> — difere do embed; os eventos podem não aparecer na agenda embutida.</span>
@@ -198,7 +198,7 @@
                                     form="google-disconnect-form"
                                     class="rounded-full border border-red-500/40 px-4 py-2 text-xs font-semibold text-red-300 hover:bg-red-500/10"
                                 >
-                                    Desligar conta
+                                    Desconectar conta
                                 </button>
                                 <a
                                     href="{{ route('admin.google.connect', ['force' => 1]) }}"
@@ -211,10 +211,10 @@
                                     href="{{ route('admin.google.connect') }}"
                                     class="inline-flex rounded-full bg-brand px-4 py-2 text-xs font-semibold text-white hover:bg-brand-bright"
                                 >
-                                    Ligar conta Google
+                                    Conectar conta Google
                                 </a>
                             @else
-                                <span class="text-xs text-mist">Salve Client ID e Secret para activar «Ligar conta Google».</span>
+                                <span class="text-xs text-mist">Salve Client ID e Secret para ativar “Conectar conta Google”.</span>
                             @endif
                         </div>
                     </div>

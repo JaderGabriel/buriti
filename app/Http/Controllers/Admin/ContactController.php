@@ -368,12 +368,12 @@ class ContactController extends Controller
             'user_id' => $request->user()->id,
         ]);
 
-        $message = 'Atividade registada.';
+        $message = 'Atividade registrada.';
         if ($task && $completeTask) {
             $task->forceFill([
                 'status' => TaskStatus::Done,
             ])->save();
-            $message = 'Atividade registada e tarefa marcada como concluída.';
+            $message = 'Atividade registrada e tarefa marcada como concluída.';
         }
 
         return back()->with('success', $message);
@@ -412,8 +412,8 @@ class ContactController extends Controller
         }
 
         $message = $created === 1
-            ? 'Atividade registada em 1 contato.'
-            : "Atividade registada em {$created} contatos.";
+            ? 'Atividade registrada em 1 contato.'
+            : "Atividade registrada em {$created} contatos.";
 
         if ($task && $completeTask) {
             $message .= ' Tarefa marcada como concluída.';

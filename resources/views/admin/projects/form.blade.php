@@ -113,7 +113,7 @@
                             <input type="checkbox" name="featured_on_home" value="1" class="mt-1" @checked(old('featured_on_home', $project->featured_on_home))>
                             <span>
                                 <strong class="text-snow">Destacar na home</strong>
-                                <span class="block text-xs">Sobe para a faixa «Em destaque». Use a ordem acima para posicionar.</span>
+                                <span class="block text-xs">Sobe para a faixa “Em destaque”. Use a ordem acima para posicionar.</span>
                             </span>
                         </label>
                         <label class="flex items-start gap-2 text-sm text-mist">

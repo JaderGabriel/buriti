@@ -278,7 +278,7 @@ class CrmTest extends TestCase
             'task_id' => $task->id,
             'happened_at' => now()->format('Y-m-d\TH:i'),
         ])->assertRedirect()
-            ->assertSessionHas('success', 'Atividade registada.');
+            ->assertSessionHas('success', 'Atividade registrada.');
 
         $this->assertDatabaseHas('crm_activities', [
             'contact_id' => $contact->id,
@@ -307,7 +307,7 @@ class CrmTest extends TestCase
             'complete_task' => '1',
             'happened_at' => now()->format('Y-m-d\TH:i'),
         ])->assertRedirect()
-            ->assertSessionHas('success', 'Atividade registada e tarefa marcada como concluída.');
+            ->assertSessionHas('success', 'Atividade registrada e tarefa marcada como concluída.');
 
         $this->assertSame(TaskStatus::Done, $task->fresh()->status);
     }

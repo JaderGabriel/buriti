@@ -92,7 +92,7 @@
         <p class="text-xs font-semibold uppercase tracking-[0.14em] text-brand">Senha gerada</p>
         <p class="mt-2 break-all font-mono text-base tracking-wide" data-password-display></p>
         <p class="mt-2 text-xs text-mist">
-            Os dois campos foram preenchidos. Guarde a senha num sítio seguro antes de salvar — depois só o hash fica no sistema.
+            Os dois campos foram preenchidos. Salve a senha em um lugar seguro antes de confirmar — depois só o hash fica no sistema.
         </p>
     </div>
 </div>

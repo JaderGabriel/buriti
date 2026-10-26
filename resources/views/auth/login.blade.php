@@ -61,7 +61,7 @@
                         </div>
 
                         <p class="text-xs leading-relaxed text-mist">
-                            Login seguro por desafio temporário no bot — sem widget de terceiros. Conta Telegram tem de estar vinculada com <code class="text-snow/80">/login email | senha</code>.
+                            Login seguro por desafio temporário no bot — sem widget de terceiros. A conta Telegram precisa estar vinculada com <code class="text-snow/80">/login email | senha</code>.
                         </p>
                     </div>
 

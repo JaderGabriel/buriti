@@ -63,9 +63,9 @@ class GoogleCalendarService
         ];
 
         $next = match (true) {
-            $api => 'Eventos vão para a agenda «'.$calendarId.'» com cores Google e Meet no CRM.',
-            $oauthApp => 'Clique em «Ligar conta Google» para autorizar a Agenda e o Meet.',
-            $level >= 2 => 'Preencha Client ID e Secret (abaixo ou .env) e ligue a conta Google.',
+            $api => 'Eventos vão para a agenda “'.$calendarId.'” com cores Google e Meet no CRM.',
+            $oauthApp => 'Clique em “Conectar conta Google” para autorizar a Agenda e o Meet.',
+            $level >= 2 => 'Preencha Client ID e Secret (abaixo ou .env) e conecte a conta Google.',
             $level === 1 => 'Publique a agenda (embed) e configure a API OAuth para sync no CRM.',
             default => 'Cole o embed da Agenda e a URL em Configurações.',
         };
@@ -111,7 +111,7 @@ class GoogleCalendarService
             try {
                 $ageDays = now()->diffInDays(\Carbon\Carbon::parse($linkedAt));
                 if ($ageDays >= 6) {
-                    $testingWarning = 'O refresh token tem '.$ageDays.' dias. Em apps Google em modo «Teste» o token expira aos 7 dias — publique a app (ou religue a conta).';
+                    $testingWarning = 'O refresh token tem '.$ageDays.' dias. Em apps Google em modo “Teste” o token expira aos 7 dias — publique o aplicativo (ou reconecte a conta).';
                 }
             } catch (\Throwable) {
                 $testingWarning = null;
@@ -121,9 +121,9 @@ class GoogleCalendarService
         return match (true) {
             $hasClientId && $hasSecret && $hasRefresh => [
                 'state' => 'linked',
-                'label' => 'Conta Google ligada',
+                'label' => 'Conta Google conectada',
                 'message' => $testingWarning
-                    ?: 'Refresh token presente (Calendar + Drive). Use «Testar conexão».',
+                    ?: 'Refresh token presente (Calendar + Drive). Use “Testar conexão”.',
                 'has_client_id' => true,
                 'has_secret' => true,
                 'has_refresh' => true,
@@ -131,8 +131,8 @@ class GoogleCalendarService
             ],
             $hasClientId && $hasSecret && ! $hasRefresh => [
                 'state' => 'ready_to_link',
-                'label' => 'Pronto para ligar',
-                'message' => 'Client ID e Secret ok — falta clicar em «Ligar conta Google» para gravar o refresh token.',
+                'label' => 'Pronto para conectar',
+                'message' => 'Client ID e Secret ok — falta clicar em “Conectar conta Google” para gravar o refresh token.',
                 'has_client_id' => true,
                 'has_secret' => true,
                 'has_refresh' => false,
@@ -141,7 +141,7 @@ class GoogleCalendarService
             $hasClientId && ! $hasSecret => [
                 'state' => 'missing_secret',
                 'label' => 'Falta o Client Secret',
-                'message' => 'O Client ID está guardado, mas o Secret não. Cole o Secret, salve e depois ligue a conta.',
+                'message' => 'O Client ID está salvo, mas o Secret não. Cole o Secret, salve e depois conecte a conta.',
                 'has_client_id' => true,
                 'has_secret' => false,
                 'has_refresh' => $hasRefresh,
@@ -178,7 +178,7 @@ class GoogleCalendarService
 
             return [
                 'ok' => true,
-                'message' => 'Ligação OK — access token obtido. Eventos serão criados na agenda «'.$this->shortCalendarLabel($this->resolvedCalendarId()).'».',
+                'message' => 'Conexão OK — access token obtido. Eventos serão criados na agenda “'.$this->shortCalendarLabel($this->resolvedCalendarId()).'”.',
             ];
         } catch (RuntimeException $e) {
             return [
@@ -309,7 +309,7 @@ class GoogleCalendarService
     public function authorizationUrl(string $state, bool $forceConsent = true): string
     {
         if (! $this->oauthAppConfigured()) {
-            throw new RuntimeException('Configure GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET antes de ligar a conta.');
+            throw new RuntimeException('Configure GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET antes de conectar a conta.');
         }
 
         $params = [
@@ -419,8 +419,8 @@ class GoogleCalendarService
                 'mode' => 'error',
                 'url' => $this->createEventUrl($task, (bool) $task->want_meet),
                 'message' => $this->oauthAppConfigured()
-                    ? 'Conta Google ainda não ligada. Vá a Configurações → Integração Google e clique em «Ligar conta Google».'
-                    : 'API Google incompleta. Preencha Client ID/Secret e ligue a conta em Configurações.',
+                    ? 'Conta Google ainda não conectada. Vá em Configurações → Integração Google e clique em “Conectar conta Google”.'
+                    : 'API Google incompleta. Preencha Client ID/Secret e conecte a conta em Configurações.',
             ];
         }
 
@@ -470,9 +470,9 @@ class GoogleCalendarService
                 'google_color_id' => $colorId,
             ])->save();
 
-            $parts = ['Evento sincronizado na agenda «'.$this->shortCalendarLabel($calendarId).'»'];
+            $parts = ['Evento sincronizado na agenda “'.$this->shortCalendarLabel($calendarId).'”'];
             if ($meetUrl) {
-                $parts[] = 'Meet gerado e guardado no CRM';
+                $parts[] = 'Meet gerado e salvo no CRM';
             }
             if (filled($colorId) && ($color = GoogleEventColor::tryFromMixed($colorId))) {
                 $parts[] = 'cor '.$color->label();
@@ -733,11 +733,11 @@ class GoogleCalendarService
     private function accessToken(): string
     {
         if (! filled($this->refreshToken())) {
-            throw new RuntimeException('Conta Google sem refresh token. Clique em «Ligar conta Google» em Configurações.');
+            throw new RuntimeException('Conta Google sem refresh token. Clique em “Conectar conta Google” em Configurações.');
         }
 
         if (! filled($this->clientId()) || ! filled($this->clientSecret())) {
-            throw new RuntimeException('Client ID ou Secret ausente. Guarde as credenciais em Configurações.');
+            throw new RuntimeException('Client ID ou Secret ausente. Salve as credenciais em Configurações.');
         }
 
         $cached = Cache::get(self::ACCESS_TOKEN_CACHE);
@@ -773,9 +773,9 @@ class GoogleCalendarService
 
         $hint = match ($error) {
             'invalid_client' => 'Client ID/Secret inválidos (confirme se o ID não tem ponto a mais no início).',
-            'invalid_grant' => 'Refresh token inválido ou revogado — desconecte e volte a «Ligar conta Google».',
-            'unauthorized_client' => 'Este cliente OAuth não permite refresh token — use tipo «Aplicativo da Web».',
-            default => 'Religue a conta em Configurações.',
+            'invalid_grant' => 'Refresh token inválido ou revogado — desconecte e volte a “Conectar conta Google”.',
+            'unauthorized_client' => 'Este cliente OAuth não permite refresh token — use tipo “Aplicativo da Web”.',
+            default => 'Reconecte a conta em Configurações.',
         };
 
         throw new RuntimeException(trim('Não foi possível obter access token Google. '.$hint.($description !== '' ? ' ('.$description.')' : '')));
@@ -789,11 +789,11 @@ class GoogleCalendarService
         }
 
         if (str_contains($raw, 'invalid_grant')) {
-            return 'Token inválido — religue a conta Google.';
+            return 'Token inválido — reconecte a conta Google.';
         }
 
         if (str_contains($raw, 'Not Found') || str_contains($raw, '404')) {
-            return 'Agenda não encontrada — confira o Calendar ID (tem de coincidir com a agenda embutida).';
+            return 'Agenda não encontrada — confira o Calendar ID (precisa coincidir com a agenda embutida).';
         }
 
         if (str_contains($raw, 'access_denied') || str_contains($raw, '403')) {

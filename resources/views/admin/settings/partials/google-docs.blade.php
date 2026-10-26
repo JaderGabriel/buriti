@@ -15,7 +15,7 @@
         <ol>
             <li>Na Agenda: engrenagem → agenda → <strong>Integrar calendário</strong>.</li>
             <li>Copie a URL do iframe (<code>calendar.google.com/calendar/embed?src=...</code>) ou o HTML completo.</li>
-            <li>Cole em <strong>Embed</strong> (só domínios Google são aceites).</li>
+            <li>Cole em <strong>Embed</strong> (só domínios Google são aceitos).</li>
             <li>Em Acesso da agenda, use “Disponível publicamente” (ou só disponibilidade).</li>
             <li>Salve e abra <a href="{{ route('admin.tasks.index') }}">Admin → Agenda</a>.</li>
         </ol>
@@ -26,21 +26,21 @@
         <ol>
             <li>Em <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a>, crie/selecione um projeto.</li>
             <li>Ative <strong>Google Calendar API</strong> e <strong>Google Drive API</strong>.</li>
-            <li>Tela de consentimento OAuth (Externo). Em modo <strong>Teste</strong> o refresh token expira aos <strong>7 dias</strong> — publique a app (estado Produção) para o CRM não pedir religação toda a semana. Enquanto estiver em teste, adicione o Gmail em <strong>Utilizadores de teste</strong>.</li>
+            <li>Tela de consentimento OAuth (Externo). Em modo <strong>Teste</strong> o refresh token expira aos <strong>7 dias</strong> — publique o aplicativo (estado Produção) para o CRM não pedir reconexão toda semana. Enquanto estiver em teste, adicione o Gmail em <strong>Usuários de teste</strong>.</li>
             <li>Credenciais → cliente OAuth <strong>Aplicativo da Web</strong>.</li>
-            <li>Em <strong>URIs de redirecionamento autorizados</strong>, adicione exactamente:
+            <li>Em <strong>URIs de redirecionamento autorizados</strong>, adicione exatamente:
                 <code class="break-all">{{ $googleRedirectUri ?? (rtrim(config('app.url'), '/').'/admin/google/callback') }}</code>
             </li>
             <li>Copie Client ID e Secret para os campos à esquerda (ou para o <code>.env</code>) e <strong>Salve</strong>.</li>
-            <li>Clique em <strong>Ligar conta Google</strong>, autorize Calendar e Drive. O CRM só pede <code>consent</code> de novo se faltar refresh token ou se usar «Reautorizar».</li>
-            <li>Escolha a <strong>agenda correcta</strong> (Calendar ID = mesma do embed) e uma <strong>cor Google</strong> (1–11) na tarefa — o sync envia o <code>colorId</code> oficial.</li>
+            <li>Clique em <strong>Conectar conta Google</strong>, autorize Calendar e Drive. O CRM só pede <code>consent</code> de novo se faltar refresh token ou se usar “Reautorizar”.</li>
+            <li>Escolha a <strong>agenda correta</strong> (Calendar ID = mesma do embed) e uma <strong>cor Google</strong> (1–11) na tarefa — o sync envia o <code>colorId</code> oficial.</li>
             <li>Preencha <strong>Calendar ID</strong> (<code>primary</code> ou o ID da agenda), marque <strong>Sincronizar automaticamente</strong> e salve.</li>
         </ol>
         <p class="admin-docs__note">
             Depois disso, ao criar uma tarefa com Meet, o CRM cria o evento pela API, gera o link Meet e guarda em <code>meet_url</code> — sem sair do site.
         </p>
         <p class="admin-docs__note">
-            Se aparecer <strong>Erro 400: redirect_uri_mismatch</strong>, a URI no Console tem de coincidir com a mostrada acima (incluindo <code>/public</code> se estiver no APP_URL).
+            Se aparecer <strong>Erro 400: redirect_uri_mismatch</strong>, a URI no Console precisa coincidir com a mostrada acima (incluindo <code>/public</code> se estiver no APP_URL).
         </p>
         <p class="admin-docs__note">Fuso dos eventos: <code>APP_TIMEZONE=America/Sao_Paulo</code>.</p>
     </details>
