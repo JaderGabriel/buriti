@@ -1,6 +1,6 @@
 <section id="contato" class="section-shell">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="cta-band mb-10 overflow-hidden rounded-sm border px-6 py-8 sm:px-8 sm:py-10 md:px-10">
+        <div class="cta-band mb-8 overflow-hidden px-6 py-8 sm:px-8 sm:py-9 md:px-10">
             <p class="section-kicker">Próximo passo</p>
             <h2 class="mt-3 font-display text-2xl font-bold leading-tight text-snow sm:text-3xl md:text-4xl">Pronto para o próximo passo digital?</h2>
             <p class="mt-3 max-w-2xl text-sm leading-relaxed text-mist sm:text-base">
@@ -28,7 +28,7 @@
                 </div>
             </div>
 
-            <div class="rounded-sm border border-line bg-panel p-5 sm:p-7 md:p-8">
+            <div class="site-card p-5 sm:p-7 md:p-8">
                 <x-ui.flash :message="session('contact_success')" />
 
                 <form method="POST" action="{{ route('contact.store') }}" class="relative space-y-4">
@@ -55,7 +55,7 @@
 
                     <label class="block text-sm">
                         <span class="text-mist">Canal preferido de contato</span>
-                        <select name="preferred_channel" required class="mt-1.5 w-full rounded-sm border border-line bg-ink px-3 py-2.5 text-snow outline-none ring-brand-bright focus:ring-1">
+                        <select name="preferred_channel" required class="mt-1.5 w-full rounded-xl border border-line bg-ink px-3 py-2.5 text-snow outline-none ring-brand-bright focus:ring-1">
                             <option value="whatsapp" @selected(old('preferred_channel', 'whatsapp') === 'whatsapp')>WhatsApp</option>
                             <option value="email" @selected(old('preferred_channel') === 'email')>E-mail</option>
                         </select>
@@ -81,7 +81,7 @@
 
                     <div class="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
                         <p class="text-xs text-mist">Usamos o WhatsApp para retorno comercial rápido. Sem envio em massa.</p>
-                        <x-ui.button type="submit" class="w-full sm:w-auto">Enviar mensagem</x-ui.button>
+                        <x-ui.button type="submit" class="w-full rounded-full sm:w-auto">Enviar mensagem</x-ui.button>
                     </div>
                 </form>
             </div>

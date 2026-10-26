@@ -6,21 +6,8 @@
         ? '#'.$id
         : route('home').'#'.$id;
 @endphp
-    <div class="oracle-topbar hidden border-b border-line bg-panel text-xs text-mist sm:block">
-        <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-2 sm:px-6 lg:px-8">
-            <div class="flex flex-wrap gap-4">
-                <a href="{{ $sectionHref('servicos') }}" class="hover:text-snow">Serviços</a>
-                <a href="{{ $sectionHref('projetos') }}" class="hover:text-snow">Portfólio</a>
-                <a href="{{ $sectionHref('contato') }}" class="hover:text-snow">Contato</a>
-            </div>
-            <x-site.admin-link class="inline-flex items-center gap-1.5 font-semibold text-brand-bright hover:text-snow">
-                <x-ui.icon name="admin" class="h-3.5 w-3.5" />
-                @auth Painel admin @else Área admin @endauth
-            </x-site.admin-link>
-        </div>
-    </div>
-
-    <header class="sticky top-0 z-50 border-b border-line bg-panel" data-site-header>
+<div class="site-shell" data-site-shell>
+    <header class="sticky top-0 z-50 border-b border-line" data-site-header>
         <div class="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
             <a href="{{ route('home') }}" class="flex min-w-0 items-center gap-2.5 sm:gap-3">
                 <img src="{{ asset('images/logo-buriti.png') }}" alt="BURI-TI" class="h-9 w-9 object-contain sm:h-10 sm:w-10">
@@ -30,20 +17,20 @@
                 </div>
             </a>
 
-            <nav class="hidden items-center gap-6 text-sm font-medium text-mist xl:flex">
-                <a href="{{ $sectionHref('metodo') }}" class="transition hover:text-snow">Como trabalhamos</a>
-                <a href="{{ $sectionHref('servicos') }}" class="transition hover:text-snow">Serviços</a>
-                <a href="{{ $sectionHref('expertise') }}" class="transition hover:text-snow">Experiência</a>
-                <a href="{{ $sectionHref('projetos') }}" class="transition hover:text-snow">Portfólio</a>
-                <a href="{{ $sectionHref('equipe') }}" class="transition hover:text-snow">Equipe</a>
-                <a href="{{ $sectionHref('contato') }}" class="transition hover:text-snow">Contato</a>
+            <nav class="hidden items-center gap-1 text-sm font-medium text-mist xl:flex" data-site-nav>
+                <a href="{{ $sectionHref('metodo') }}">Como trabalhamos</a>
+                <a href="{{ $sectionHref('servicos') }}">Serviços</a>
+                <a href="{{ $sectionHref('expertise') }}">Experiência</a>
+                <a href="{{ $sectionHref('projetos') }}">Portfólio</a>
+                <a href="{{ $sectionHref('equipe') }}">Equipe</a>
+                <a href="{{ $sectionHref('contato') }}">Contato</a>
             </nav>
 
             <div class="flex items-center gap-2">
                 <button
                     type="button"
                     data-theme-toggle
-                    class="inline-flex h-10 w-10 items-center justify-center rounded-sm border border-line bg-panel text-snow transition hover:border-brand-bright/50 hover:text-brand-bright"
+                    class="site-theme-btn"
                     aria-label="Ativar modo escuro"
                     aria-pressed="false"
                     title="Modo escuro"
@@ -52,14 +39,19 @@
                     <svg class="block h-4 w-4 dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 14.3A8.1 8.1 0 1 1 9.7 3 6.5 6.5 0 0 0 21 14.3z"/></svg>
                 </button>
 
+                <x-site.admin-link class="hidden items-center gap-1.5 rounded-[0.95rem] px-2.5 py-2 text-sm font-semibold text-brand-bright transition hover:text-snow xl:inline-flex">
+                    <x-ui.icon name="admin" class="h-3.5 w-3.5" />
+                    @auth Painel admin @else Área admin @endauth
+                </x-site.admin-link>
+
                 <a
                     href="{{ $sectionHref('contato') }}"
-                    class="hidden items-center justify-center rounded-sm bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-bright xl:inline-flex"
+                    class="site-cta"
                 >Pedir proposta</a>
 
                 <button
                     type="button"
-                    class="inline-flex h-10 w-10 items-center justify-center rounded-sm border border-line text-snow xl:hidden"
+                    class="inline-flex site-icon-btn xl:hidden"
                     data-nav-toggle
                     aria-expanded="false"
                     aria-controls="mobile-nav"
@@ -71,7 +63,7 @@
             </div>
         </div>
 
-        <div id="mobile-nav" class="hidden border-t border-line bg-panel xl:hidden" data-nav-panel hidden>
+        <div id="mobile-nav" class="hidden border-t border-line xl:hidden" data-nav-panel hidden>
             <nav class="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-4 text-sm sm:px-6">
                 <a href="{{ $sectionHref('metodo') }}" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Como trabalhamos</a>
                 <a href="{{ $sectionHref('servicos') }}" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Serviços</a>
@@ -111,7 +103,7 @@
         <x-ui.icon name="arrow-up" class="h-5 w-5" />
     </button>
 
-    <footer class="site-footer border-t border-line bg-panel">
+    <footer class="site-footer border-t border-line">
         <div class="mx-auto grid max-w-7xl grid-cols-2 gap-8 px-4 py-12 sm:gap-10 sm:px-6 md:grid-cols-3 lg:px-8">
             <div class="col-span-2 md:col-span-1">
                 <div class="flex items-center gap-3">
@@ -163,4 +155,5 @@
     </footer>
 
     <x-site.cookie-banner />
+</div>
 @endsection

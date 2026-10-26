@@ -32,12 +32,7 @@
                     $modalId = 'career-modal-'.$index;
                 @endphp
 
-                <article
-                    @class([
-                        'border border-line bg-panel/80',
-                        'rounded-sm' => true,
-                    ])
-                >
+                <article class="site-card overflow-hidden">
                     <div @class([
                         'grid gap-0',
                         'lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]' => $featured,
@@ -52,10 +47,10 @@
                                     <img
                                         src="{{ asset($person['photo']) }}"
                                         alt="{{ $person['name'] }}"
-                                        class="h-28 w-28 rounded-sm object-cover object-top ring-1 ring-line sm:h-32 sm:w-32"
+                                        class="h-28 w-28 rounded-2xl object-cover object-top ring-1 ring-line sm:h-32 sm:w-32"
                                     >
                                 @else
-                                    <div class="inline-flex h-28 w-28 items-center justify-center rounded-sm border border-brand/40 bg-ink/40 font-display text-3xl font-bold tracking-wide text-brand-bright sm:h-32 sm:w-32 sm:text-4xl">
+                                    <div class="inline-flex h-28 w-28 items-center justify-center rounded-2xl border border-brand/40 bg-ink/40 font-display text-3xl font-bold tracking-wide text-brand-bright sm:h-32 sm:w-32 sm:text-4xl">
                                         {{ $person['initials'] ?? collect(explode(' ', $person['name']))->map(fn ($w) => mb_substr($w, 0, 1))->take(2)->implode('') }}
                                     </div>
                                 @endif
@@ -126,7 +121,7 @@
                                 @if($career)
                                     <button
                                         type="button"
-                                        class="inline-flex items-center justify-center rounded-sm bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-bright"
+                                        class="inline-flex items-center justify-center rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-bright"
                                         data-dialog-open="{{ $modalId }}"
                                         aria-haspopup="dialog"
                                         aria-controls="{{ $modalId }}"
@@ -134,7 +129,7 @@
                                         Ver trajetória completa
                                     </button>
                                 @endif
-                                <a href="#contato" class="inline-flex items-center justify-center rounded-sm border border-line px-5 py-2.5 text-sm font-semibold text-snow transition hover:border-brand-bright/50">
+                                <a href="#contato" class="inline-flex items-center justify-center rounded-full border border-line px-5 py-2.5 text-sm font-semibold text-snow transition hover:border-brand-bright/50">
                                     Falar com {{ explode(' ', $person['name'])[0] }}
                                 </a>
                                 @if(! empty($links['linkedin']))
@@ -357,7 +352,7 @@
                                         @endif
 
                                         <div class="flex flex-wrap gap-3 border-t border-line pt-5">
-                                            <a href="#contato" class="inline-flex items-center justify-center rounded-sm bg-brand px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-bright" data-dialog-close>
+                                            <a href="#contato" class="inline-flex items-center justify-center rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-bright" data-dialog-close>
                                                 Solicitar proposta
                                             </a>
                                             @if(! empty($links['linkedin']))

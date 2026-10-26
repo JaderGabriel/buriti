@@ -43,12 +43,19 @@ class AdminPanelTest extends TestCase
             'read_at' => null,
         ]);
 
-        $this->actingAs($this->admin)
+        $html = $this->actingAs($this->admin)
             ->get(route('admin.messages.index'))
             ->assertOk()
             ->assertSee('Mensagens', false)
             ->assertSee('Mensageria BURI-TI', false)
-            ->assertSee('Assunto importante', false);
+            ->assertSee('Assunto importante', false)
+            ->getContent();
+
+        $this->assertStringContainsString('class="messenger-shell"', $html);
+        $this->assertDoesNotMatchRegularExpression(
+            '/class="[^"]*messenger-shell[^"]*-mx-/',
+            $html,
+        );
 
         $this->actingAs($this->admin)
             ->get(route('admin.messages.show', $message))

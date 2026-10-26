@@ -1,6 +1,6 @@
 @props(['project', 'featured' => false])
 
-<article {{ $attributes->merge(['class' => 'group flex h-full flex-col gap-4 rounded-[1.25rem] border border-line bg-panel/60 p-5 transition hover:border-brand/40 sm:p-6'.($featured ? ' home-featured__card' : '')]) }}>
+<article {{ $attributes->merge(['class' => 'site-card group flex h-full flex-col gap-4 p-5 transition sm:p-6'.($featured ? ' home-featured__card' : '')]) }}>
     <div class="flex items-start gap-4">
         @if($project->logoUrl())
             <img src="{{ $project->logoUrl() }}" alt="" class="h-12 w-12 shrink-0 rounded-xl object-cover sm:h-14 sm:w-14">
@@ -12,7 +12,7 @@
         <div class="min-w-0 flex-1">
             <div class="flex flex-wrap items-center gap-2">
                 @if($featured)
-                    <span class="inline-flex items-center gap-1 rounded-sm border border-amber-400/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200">
+                    <span class="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-200">
                         ★ Destaque
                     </span>
                 @endif

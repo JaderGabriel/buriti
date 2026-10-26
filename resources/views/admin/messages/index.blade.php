@@ -6,7 +6,7 @@
         $phoneDigits = $selected?->phone ? preg_replace('/\D+/', '', $selected->phone) : null;
     @endphp
 
-    <div class="messenger-shell -mx-4 -mb-6 sm:-mx-6 md:-mx-8 md:-mb-8">
+    <div class="messenger-shell">
         <div @class([
             'messenger',
             'messenger--open' => $isOpen,

@@ -13,8 +13,8 @@
                 analista de sistemas e projetos, com foco em educação corporativa, gestão e entrega técnica.
             </p>
         </div>
-        <div class="relative overflow-hidden rounded-[1.5rem] border border-line bg-panel p-6 sm:p-8">
-            <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(30,112,191,0.22),transparent_55%)]"></div>
+        <div class="site-card site-stat relative overflow-hidden p-6 sm:p-8">
+            <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(47,107,255,0.16),transparent_55%)]"></div>
             <div class="relative grid gap-5 sm:block sm:space-y-5">
                 <div>
                     <p class="font-display text-3xl font-bold text-brand-bright sm:text-4xl">+10</p>

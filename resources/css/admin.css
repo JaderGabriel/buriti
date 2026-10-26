@@ -600,6 +600,7 @@ html.dark .admin-orbit {
 }
 
 .admin-content {
+    min-width: 0;
     padding: 1.15rem 1rem 4.75rem;
 }
 
@@ -1012,13 +1013,29 @@ html.dark [data-admin-shell] .dash-stat--tasks .dash-stat__spark { color: #fdba7
     background: rgba(47, 107, 255, 0.1);
 }
 
+.admin-content:has(.messenger-shell) {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding-bottom: 0.5rem;
+}
+
 [data-admin-shell] .messenger-shell {
-    min-height: calc(100dvh - 7.5rem);
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    min-height: calc(100dvh - 11rem);
+}
+
+[data-admin-shell] .messenger {
+    min-width: 0;
+    max-width: 100%;
 }
 
 @media (min-width: 1024px) {
     [data-admin-shell] .messenger-shell {
-        min-height: calc(100dvh - 6.5rem);
+        min-height: calc(100dvh - 8.25rem);
     }
 }
 

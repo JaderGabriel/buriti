@@ -8,7 +8,7 @@
 
         @if (! empty($expertise['consolidated']))
             @php($consolidated = $expertise['consolidated'])
-            <div class="mt-12 overflow-hidden rounded-[1.5rem] border border-brand/35 bg-panel/80">
+            <div class="site-card mt-10 overflow-hidden">
                 <div class="relative border-b border-line px-6 py-7 sm:px-8 sm:py-8">
                     <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(30,112,191,0.18),transparent_55%)]"></div>
                     <div class="relative">
@@ -46,8 +46,8 @@
             </div>
         @endif
 
-        <div class="mt-12 grid items-stretch gap-8 lg:grid-cols-2">
-            <div class="flex h-full flex-col rounded-[1.5rem] border border-line bg-panel/70 p-6 sm:p-8">
+        <div class="mt-10 grid items-stretch gap-5 lg:grid-cols-2">
+            <div class="site-card flex h-full flex-col p-6 sm:p-8">
                 <h3 class="font-display text-xl font-semibold">Visão gerencial</h3>
                 <p class="mt-2 text-sm leading-relaxed text-mist">Como conduzimos projetos, processos e capacitação com foco em resultado.</p>
                 <ul class="mt-8 flex flex-1 flex-col gap-6">
@@ -66,7 +66,7 @@
                 </ul>
             </div>
 
-            <div class="flex h-full flex-col rounded-[1.5rem] border border-line bg-panel/70 p-6 sm:p-8">
+            <div class="site-card flex h-full flex-col p-6 sm:p-8">
                 <h3 class="font-display text-xl font-semibold">Tecnologias e ferramentas</h3>
                 <p class="mt-2 text-sm leading-relaxed text-mist">Linguagens, plataformas e ferramentas usadas na entrega do dia a dia.</p>
                 <div class="mt-8 flex flex-1 flex-col gap-6">
@@ -84,12 +84,12 @@
             </div>
         </div>
 
-        <div class="mt-12">
+        <div class="mt-10">
             <h3 class="font-display text-xl font-semibold">Indicadores e dados</h3>
             <p class="mt-2 max-w-3xl text-sm leading-relaxed text-mist">Do dado operacional ao número que a gestão usa — Power BI, importações e plataformas no contexto educacional.</p>
-            <div class="mt-8 grid gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach($expertise['bi'] as $item)
-                    <article class="border-b border-line pb-5">
+                    <article class="site-card p-5">
                         <h4 class="font-display text-lg font-semibold text-snow">{{ $item['title'] }}</h4>
                         <p class="mt-2 text-sm leading-relaxed text-mist">{{ $item['description'] }}</p>
                     </article>

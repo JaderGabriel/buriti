@@ -8,7 +8,7 @@
             </p>
         </div>
 
-        <ol class="method-flow mt-12">
+        <ol class="method-flow mt-10">
             @foreach($method as $index => $step)
                 @php $stepNumber = str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT); @endphp
                 <li class="method-step">
