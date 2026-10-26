@@ -2,6 +2,7 @@
 
 namespace App\View\Composers;
 
+use App\Models\ContactMessage;
 use App\Services\GoogleCalendarService;
 use Illuminate\View\View;
 
@@ -11,6 +12,9 @@ class AdminLayoutComposer
 
     public function compose(View $view): void
     {
-        $view->with('instantMeetUrl', $this->google->instantMeetUrl());
+        $view->with([
+            'instantMeetUrl' => $this->google->instantMeetUrl(),
+            'adminUnreadMessages' => ContactMessage::query()->unread()->count(),
+        ]);
     }
 }

@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './admin.css';
 
 /* Dark mode via class on <html>, not OS preference */
 @custom-variant dark (&:where(.dark, .dark *));

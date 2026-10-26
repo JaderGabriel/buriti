@@ -1,9 +1,19 @@
 @extends('layouts.admin')
 
 @section('content')
-    <div class="mb-8">
-        <h1 class="font-display text-2xl font-bold sm:text-3xl">Início</h1>
-        <p class="mt-1 text-mist">Visão rápida da operação BURI-TI</p>
+    @php
+        $adminFirstName = explode(' ', trim(auth()->user()->name))[0] ?? 'olá';
+    @endphp
+    <div class="admin-hero">
+        <div>
+            <p class="admin-hero__kicker">Início</p>
+            <h1 class="admin-hero__title">Bem-vindo de volta, {{ $adminFirstName }}!</h1>
+            <p class="admin-hero__lead">Visão rápida da operação BURI-TI</p>
+        </div>
+        <div class="admin-hero__date" title="{{ now()->isoFormat('dddd, D [de] MMMM [de] YYYY') }}">
+            <strong>{{ now()->translatedFormat('d M Y') }}</strong>
+            <span>Hoje</span>
+        </div>
     </div>
 
     <x-admin.crm-journey class="mb-5" />
@@ -100,19 +110,25 @@
 
     <div class="dash-stats">
         @foreach ([
-            ['Mensagens novas', $unreadMessages, route('admin.messages.index'), 'messages'],
-            ['Total mensagens', $totalMessages, route('admin.messages.index'), null],
-            ['Contatos CRM', $contactsCount, route('admin.contacts.index'), 'contacts'],
-            ['Oportunidades abertas', $openOpportunities, route('admin.opportunities.index'), 'opps'],
-            ['Projetos', $projectsCount, route('admin.projects.index'), 'projects'],
-            ['Tarefas abertas', $openTasksCount, route('admin.tasks.index'), 'tasks'],
-        ] as [$label, $value, $href, $tone])
+            ['Mensagens novas', $unreadMessages, route('admin.messages.index'), 'messages', 'message'],
+            ['Total mensagens', $totalMessages, route('admin.messages.index'), 'inbox', 'mail'],
+            ['Contatos CRM', $contactsCount, route('admin.contacts.index'), 'contacts', 'contact'],
+            ['Oportunidades abertas', $openOpportunities, route('admin.opportunities.index'), 'opps', 'opportunity'],
+            ['Projetos', $projectsCount, route('admin.projects.index'), 'projects', 'project'],
+            ['Tarefas abertas', $openTasksCount, route('admin.tasks.index'), 'tasks', 'task'],
+        ] as [$label, $value, $href, $tone, $icon])
             <a
                 href="{{ $href }}"
-                @class(['dash-stat', $tone ? 'dash-stat--'.$tone : null])
+                class="dash-stat dash-stat--{{ $tone }}"
             >
-                <span class="dash-stat__value">{{ $value }}</span>
+                <span class="dash-stat__icon" aria-hidden="true">
+                    <x-ui.icon :name="$icon" class="h-4 w-4" />
+                </span>
                 <span class="dash-stat__label">{{ $label }}</span>
+                <span class="dash-stat__value">{{ $value }}</span>
+                <svg class="dash-stat__spark" viewBox="0 0 72 28" aria-hidden="true">
+                    <path d="M1 20 C12 18 16 8 26 11 S42 24 52 14 66 6 71 10" />
+                </svg>
             </a>
         @endforeach
     </div>
@@ -407,7 +423,7 @@
             <form method="POST" action="{{ route('admin.idea-notes.store') }}">
                 @csrf
                 <input type="hidden" name="color" value="amber">
-                <button type="submit" class="inline-flex items-center gap-2 rounded-sm bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-bright">
+                <button type="submit" class="admin-btn admin-btn--primary">
                     + Novo post-it
                 </button>
             </form>
