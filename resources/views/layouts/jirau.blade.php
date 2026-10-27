@@ -101,8 +101,8 @@
                     <x-jirau.action tone="board" icon="plus" data-jirau-toggle="new-board">Novo quadro</x-jirau.action>
                 @endif
                 <div class="admin-topbar__account">
-                    @include('admin.partials.chrome')
                     @include('admin.partials.notifications')
+                    @include('admin.partials.chrome')
                     <span class="admin-user admin-user--chip">
                         @if($jirauUser->avatarUrl())
                             <img src="{{ $jirauUser->avatarUrl() }}" alt="" class="admin-user__avatar">

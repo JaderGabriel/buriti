@@ -95,16 +95,19 @@ class AdminPanelTest extends TestCase
         $meetings = strpos($html, 'admin-meetings');
         $topbar = strpos($html, 'admin-topbar__account');
         $chrome = strpos($html, 'admin-chrome');
+        $bell = strpos($html, 'admin-notify');
 
         $this->assertNotFalse($sidebar);
         $this->assertNotFalse($stage);
         $this->assertNotFalse($meetings);
         $this->assertNotFalse($topbar);
         $this->assertNotFalse($chrome);
+        $this->assertNotFalse($bell);
         $this->assertGreaterThan($sidebar, $meetings);
         $this->assertLessThan($stage, $meetings);
         $this->assertGreaterThan($stage, $topbar);
-        $this->assertGreaterThan($topbar, $chrome);
+        $this->assertGreaterThan($topbar, $bell);
+        $this->assertGreaterThan($bell, $chrome);
         $this->assertSame(1, substr_count($html, 'admin-chrome'));
         $this->assertSame(1, substr_count($html, 'admin-meetings'));
         $this->assertSame(0, substr_count($html, 'admin-shortcuts'));

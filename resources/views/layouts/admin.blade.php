@@ -85,8 +85,8 @@
 
             <div class="admin-topbar__right">
                 <div class="admin-topbar__account">
-                    @include('admin.partials.chrome')
                     @include('admin.partials.notifications')
+                    @include('admin.partials.chrome')
                     <a href="{{ route('admin.profile.edit') }}" class="admin-user admin-user--chip" title="Perfil">
                         @if($adminUser->avatarUrl())
                             <img src="{{ $adminUser->avatarUrl() }}" alt="" class="admin-user__avatar">

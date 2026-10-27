@@ -35,17 +35,23 @@ class NotificationInboxTest extends TestCase
         );
 
         $account = strpos($html, 'admin-topbar__account');
-        $chrome = strpos($html, 'admin-chrome');
         $bell = strpos($html, 'admin-notify');
+        $theme = strpos($html, 'data-theme-toggle');
+        $site = strpos($html, 'admin-icon-btn--site');
+        $logout = strpos($html, 'admin-icon-btn--logout');
         $chip = strpos($html, 'admin-user--chip');
 
         $this->assertNotFalse($account);
-        $this->assertNotFalse($chrome);
         $this->assertNotFalse($bell);
+        $this->assertNotFalse($theme);
+        $this->assertNotFalse($site);
+        $this->assertNotFalse($logout);
         $this->assertNotFalse($chip);
-        $this->assertLessThan($chrome, $account);
-        $this->assertLessThan($bell, $chrome);
-        $this->assertLessThan($chip, $bell);
+        $this->assertLessThan($bell, $account);
+        $this->assertLessThan($theme, $bell);
+        $this->assertLessThan($site, $theme);
+        $this->assertLessThan($logout, $site);
+        $this->assertLessThan($chip, $logout);
     }
 
     public function test_jirau_staff_sees_notifications_in_topbar_and_inbox(): void
