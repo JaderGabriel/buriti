@@ -1981,6 +1981,53 @@ html.dark .postit-lilac {
     color: var(--color-mist);
 }
 
+.task-planner__split {
+    display: grid;
+    gap: 1.1rem;
+}
+
+@media (min-width: 1100px) {
+    .task-planner__split {
+        grid-template-columns: minmax(0, 1fr) minmax(18rem, 1fr);
+        align-items: stretch;
+    }
+
+    .task-planner__crm,
+    .task-planner__google {
+        display: flex;
+        flex-direction: column;
+        min-height: 32rem;
+    }
+
+    .task-planner__crm > .task-calendar,
+    .task-planner__crm > .task-agenda,
+    .task-planner__crm > .task-board,
+    .task-planner__crm > .task-list {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    .task-planner__google .calendar-embed--fill {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+}
+
+.calendar-embed {
+    display: flex;
+    flex-direction: column;
+}
+
+.calendar-embed--fill {
+    height: 100%;
+    min-height: 22rem;
+}
+
+.calendar-embed--fill .calendar-embed__frame {
+    flex: 1 1 auto;
+    min-height: 18rem;
+}
+
 .task-calendar__toolbar,
 .task-agenda__toolbar {
     display: flex;
@@ -6893,6 +6940,14 @@ button.task-agenda__date:hover {
     background: color-mix(in oklab, var(--color-brand) 8%, var(--color-panel));
 }
 
+.dash-stat__value-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.45rem;
+    min-width: 0;
+}
+
 .dash-stat__value {
     display: block;
     font-family: var(--font-display);
@@ -6901,6 +6956,61 @@ button.task-agenda__date:hover {
     color: var(--color-snow);
     line-height: 1;
     font-variant-numeric: tabular-nums;
+}
+
+.dash-stat__delta {
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-mist);
+    white-space: nowrap;
+}
+
+.dash-stat__spark {
+    width: 100%;
+    height: 1.55rem;
+    margin-top: 0.1rem;
+    overflow: visible;
+}
+
+.dash-stat__spark-line {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.dash-stat__spark-area {
+    stroke: none;
+    fill: currentColor;
+    opacity: 0.16;
+}
+
+.dash-stat[data-kpi-polarity="up-good"].is-up .dash-stat__delta,
+.dash-stat[data-kpi-polarity="up-good"].is-up .dash-stat__spark {
+    color: #16a34a;
+}
+
+.dash-stat[data-kpi-polarity="up-good"].is-down .dash-stat__delta,
+.dash-stat[data-kpi-polarity="up-good"].is-down .dash-stat__spark {
+    color: #dc2626;
+}
+
+.dash-stat[data-kpi-polarity="up-bad"].is-up .dash-stat__delta,
+.dash-stat[data-kpi-polarity="up-bad"].is-up .dash-stat__spark {
+    color: #dc2626;
+}
+
+.dash-stat[data-kpi-polarity="up-bad"].is-down .dash-stat__delta,
+.dash-stat[data-kpi-polarity="up-bad"].is-down .dash-stat__spark {
+    color: #16a34a;
+}
+
+.dash-stat.is-flat .dash-stat__delta,
+.dash-stat.is-flat .dash-stat__spark {
+    color: var(--color-mist);
 }
 
 .dash-stat__label {
@@ -6980,10 +7090,11 @@ button.task-agenda__date:hover {
     .dash-board.dash-panels {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         grid-auto-flow: dense;
+        align-items: start;
     }
 }
 
-@media (min-width: 1100px) {
+@media (min-width: 1480px) {
     .dash-board.dash-panels {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
@@ -6998,6 +7109,17 @@ button.task-agenda__date:hover {
 .dash-widget {
     position: relative;
     min-width: 0;
+    height: auto;
+    align-self: start;
+}
+
+.dash-widget .dash-feed,
+.dash-widget .dash-conduct {
+    flex: 0 0 auto;
+}
+
+.dash-widget[data-span="1"] .dash-conduct {
+    grid-template-columns: 1fr;
 }
 
 .dash-board.is-packed .dash-widget {
@@ -7062,6 +7184,35 @@ button.task-agenda__date:hover {
     z-index: 4;
     box-shadow: 0 18px 40px rgba(15, 27, 45, 0.18);
     opacity: 0.92;
+}
+
+.dash-widget--end {
+    min-height: 28rem;
+}
+
+.dash-widget--end .calendar-embed {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    height: 100%;
+}
+
+.dash-widget--end .calendar-embed--fill,
+.dash-widget--end .idea-board {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.dash-widget--end .idea-board {
+    padding: 1rem 1.1rem;
+}
+
+.dash-widget--end [data-idea-board-status] {
+    padding: 0 1.1rem 1rem;
+}
+
+.dash-widget .calendar-embed__head {
+    padding-left: 2.55rem;
 }
 
 .dash-panel {
@@ -7192,6 +7343,10 @@ button.task-agenda__date:hover {
 @media (min-width: 900px) {
     .dash-conduct {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .dash-widget[data-span="1"] .dash-conduct {
+        grid-template-columns: 1fr;
     }
 }
 

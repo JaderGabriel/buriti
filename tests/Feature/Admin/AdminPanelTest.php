@@ -221,6 +221,8 @@ class AdminPanelTest extends TestCase
             ->assertOk()
             ->assertSee('Calendário de atividades', false)
             ->assertSee('task-calendar', false)
+            ->assertSee('task-planner__split', false)
+            ->assertSee('task-planner__google', false)
             ->assertSee('Exportar agenda', false)
             ->assertSee('Reunião de escopo', false);
 
@@ -281,6 +283,11 @@ class AdminPanelTest extends TestCase
             ->assertSee('data-dash-widget="contacts"', false)
             ->assertSee('data-dash-widget="tasks"', false)
             ->assertSee('data-dash-widget="conduct"', false)
+            ->assertSee('data-dash-widget="ideas"', false)
+            ->assertSee('data-dash-widget="calendar"', false)
+            ->assertSee('data-dash-storage="buriti-dash-end-v1"', false)
+            ->assertSee('data-span="1"', false)
+            ->assertSee('data-span-default="1"', false)
             ->assertSee('data-dash-handle', false)
             ->assertSee('Repor disposição', false);
     }

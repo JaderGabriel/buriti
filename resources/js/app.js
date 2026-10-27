@@ -3306,31 +3306,51 @@ function initTaskEditDialog() {
 }
 
 function initDashBoard() {
-    const board = document.querySelector('[data-dash-board]');
-    if (! board) {
+    const boards = [...document.querySelectorAll('[data-dash-board]')];
+    if (boards.length === 0) {
         return;
     }
 
-    const storageKey = 'buriti-dash-layout';
-    const defaults = {
-        messages: { span: 1 },
-        contacts: { span: 1 },
-        tasks: { span: 1 },
-        conduct: { span: 3 },
-    };
-    const gap = 18;
-    const widgets = () => [...board.querySelectorAll('[data-dash-widget]')];
+    const instances = boards.map((board) => bindDashBoard(board));
 
-    const colCount = () => {
+    document.querySelectorAll('[data-dash-reset]').forEach((button) => {
+        button.addEventListener('click', (event) => {
+            event.preventDefault();
+            instances.forEach((instance) => instance.reset());
+        });
+    });
+}
+
+function bindDashBoard(board) {
+    const storageKey = board.getAttribute('data-dash-storage') || 'buriti-dash-layout-v2';
+    const gap = 18;
+    const widgets = () => [...board.querySelectorAll(':scope > [data-dash-widget]')];
+    const originalOrder = widgets().map((el) => el.dataset.dashWidget);
+
+    const maxColsForWidth = () => {
         const width = board.clientWidth;
         if (width < 720) {
             return 1;
         }
-        if (width < 1100) {
+        if (width < 1480) {
             return 2;
         }
 
         return 3;
+    };
+
+    const colCount = () => {
+        const max = maxColsForWidth();
+        if (max <= 1) {
+            return 1;
+        }
+
+        const singles = widgets().filter((el) => Number(el.dataset.span || 1) <= 1).length;
+        if (singles >= 2 && singles <= max) {
+            return Math.min(max, Math.max(2, singles - 1));
+        }
+
+        return max;
     };
 
     const load = () => {
@@ -3338,13 +3358,13 @@ function initDashBoard() {
             const raw = JSON.parse(localStorage.getItem(storageKey) || 'null');
             if (raw && Array.isArray(raw.order)) {
                 raw.order.forEach((id) => {
-                    const el = board.querySelector(`[data-dash-widget="${id}"]`);
+                    const el = board.querySelector(`:scope > [data-dash-widget="${id}"]`);
                     if (el) {
                         board.appendChild(el);
                     }
                 });
                 Object.entries(raw.spans || {}).forEach(([id, span]) => {
-                    const el = board.querySelector(`[data-dash-widget="${id}"]`);
+                    const el = board.querySelector(`:scope > [data-dash-widget="${id}"]`);
                     const value = Number(span);
                     if (el && value >= 1 && value <= 3) {
                         el.dataset.span = String(value);
@@ -3359,7 +3379,7 @@ function initDashBoard() {
     const save = () => {
         const spans = {};
         widgets().forEach((el) => {
-            spans[el.dataset.dashWidget] = Number(el.dataset.span || defaults[el.dataset.dashWidget]?.span || 1);
+            spans[el.dataset.dashWidget] = Number(el.dataset.span || el.dataset.spanDefault || 1);
         });
         localStorage.setItem(storageKey, JSON.stringify({
             order: widgets().map((el) => el.dataset.dashWidget),
@@ -3381,8 +3401,10 @@ function initDashBoard() {
 
         items.forEach((el) => {
             const span = Math.min(Math.max(Number(el.dataset.span || 1), 1), n);
+            el.style.gridColumn = 'auto';
             el.style.width = `${span * colW + (span - 1) * gap}px`;
             el.style.maxWidth = '100%';
+            el.style.height = 'auto';
 
             let best = 0;
             let bestTop = Infinity;
@@ -3412,14 +3434,31 @@ function initDashBoard() {
             }
         });
 
+        const rows = new Map();
+        items.forEach((el) => {
+            const top = Math.round(parseFloat(el.style.top) || 0);
+            const group = rows.get(top) || [];
+            group.push(el);
+            rows.set(top, group);
+        });
+        rows.forEach((group) => {
+            if (group.length < 2) {
+                return;
+            }
+            const rowHeight = Math.max(...group.map((el) => el.offsetHeight));
+            group.forEach((el) => {
+                el.style.height = `${rowHeight}px`;
+            });
+        });
+
         board.style.height = `${Math.max(0, Math.max(0, ...heights) - gap)}px`;
     };
 
     const reset = () => {
-        Object.entries(defaults).forEach(([id, conf]) => {
-            const el = board.querySelector(`[data-dash-widget="${id}"]`);
+        originalOrder.forEach((id) => {
+            const el = board.querySelector(`:scope > [data-dash-widget="${id}"]`);
             if (el) {
-                el.dataset.span = String(conf.span);
+                el.dataset.span = el.dataset.spanDefault || '1';
                 board.appendChild(el);
             }
         });
@@ -3442,11 +3481,6 @@ function initDashBoard() {
         observer.observe(board);
         widgets().forEach((el) => observer.observe(el));
     }
-
-    document.querySelector('[data-dash-reset]')?.addEventListener('click', (event) => {
-        event.preventDefault();
-        reset();
-    });
 
     let drag = null;
 
@@ -3544,6 +3578,8 @@ function initDashBoard() {
 
     board.addEventListener('pointerup', endDrag);
     board.addEventListener('pointercancel', endDrag);
+
+    return { reset, pack };
 }
 
 function initDriveViewer() {

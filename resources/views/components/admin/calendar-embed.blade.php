@@ -1,9 +1,9 @@
-@props(['src' => null, 'title' => 'Google Agenda'])
+@props(['src' => null, 'title' => 'Google Agenda', 'fill' => false])
 
 @if($src)
-    <div {{ $attributes->merge(['class' => 'overflow-hidden rounded-2xl border border-line bg-panel']) }}>
-        <div class="border-b border-line px-5 py-3 text-sm text-mist">{{ $title }}</div>
-        <div class="aspect-[16/10] w-full bg-ink sm:aspect-[16/9]">
+    <div {{ $attributes->merge(['class' => 'calendar-embed overflow-hidden rounded-2xl border border-line bg-panel'.($fill ? ' calendar-embed--fill' : '')]) }}>
+        <div class="calendar-embed__head border-b border-line px-5 py-3 text-sm text-mist">{{ $title }}</div>
+        <div @class(['calendar-embed__frame w-full bg-ink', 'aspect-[16/10] sm:aspect-[16/9]' => ! $fill])>
             <iframe
                 src="{{ $src }}"
                 title="{{ $title }}"

@@ -15,6 +15,7 @@ use App\Models\Opportunity;
 use App\Models\Project;
 use App\Models\Task;
 use App\Services\CrmInboxService;
+use App\Services\DashboardKpiService;
 use App\Services\FunnelMetricsService;
 use App\Services\SettingService;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -27,6 +28,7 @@ class DashboardController extends Controller
         private SettingService $settings,
         private CrmInboxService $inbox,
         private FunnelMetricsService $funnel,
+        private DashboardKpiService $kpis,
     ) {}
 
     public function __invoke(Request $request): View
@@ -38,6 +40,7 @@ class DashboardController extends Controller
             'companies' => Company::query()->orderBy('name')->get(['id', 'name', 'trade_name']),
             'inbox' => $this->inbox->nextActions($companyId),
             'funnel' => $this->funnel->snapshot($companyId),
+            'kpiCards' => $this->kpis->cards($companyId),
             'unreadMessages' => ContactMessage::query()->unread()->count(),
             'totalMessages' => ContactMessage::query()->count(),
             'projectsCount' => Project::query()->count(),

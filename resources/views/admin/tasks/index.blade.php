@@ -64,31 +64,12 @@
         </div>
     </div>
 
-    <div class="mb-6 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+    <div class="mb-4">
         @include('admin.tasks.partials.view-switcher')
-
-        <div class="min-w-0 flex-1 xl:max-w-md">
-            @if($googleCalendarSrc)
-                <div class="overflow-hidden rounded-sm border border-line">
-                    <x-admin.calendar-embed :src="$googleCalendarSrc" title="Google Agenda" />
-                </div>
-            @else
-                <div class="rounded-sm border border-dashed border-line px-4 py-4 text-sm text-mist">
-                    <p class="font-medium text-snow">{{ $googleIntegration['label'] }}</p>
-                    <p class="mt-1">{{ $googleIntegration['next_step'] }}</p>
-                    <a href="{{ route('admin.settings.edit') }}#google-integration" class="mt-2 inline-flex text-sm font-semibold text-brand-bright hover:underline">Configurar integração →</a>
-                </div>
-            @endif
-            <x-admin.inline-docs title="Agenda + lembretes Telegram" class="mt-3">
-                <p>Com a API Google ligada, a agenda do CRM também lista eventos da Agenda Google (só leitura), além das tarefas locais.</p>
-                <p class="admin-docs__note mb-0">
-                    Tarefas com prazo recebem aviso no Telegram ~10 min antes para quem as criou.
-                    Bot + cron: ver <a href="{{ route('admin.integrations.edit') }}#telegram">Integrações → Telegram</a>.
-                </p>
-            </x-admin.inline-docs>
-        </div>
     </div>
 
+    <div class="task-planner__split mb-6">
+        <div class="task-planner__crm min-w-0">
     @if($view === 'calendar')
         @if(!empty($googleEventsError))
             <div class="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
@@ -107,6 +88,27 @@
     @else
         @include('admin.tasks.partials.list')
     @endif
+        </div>
+
+        <aside class="task-planner__google min-w-0">
+            @if($googleCalendarSrc)
+                <x-admin.calendar-embed :src="$googleCalendarSrc" title="Google Agenda" fill />
+            @else
+                <div class="flex h-full min-h-[22rem] flex-col justify-center rounded-sm border border-dashed border-line px-4 py-4 text-sm text-mist">
+                    <p class="font-medium text-snow">{{ $googleIntegration['label'] }}</p>
+                    <p class="mt-1">{{ $googleIntegration['next_step'] }}</p>
+                    <a href="{{ route('admin.settings.edit') }}#google-integration" class="mt-2 inline-flex text-sm font-semibold text-brand-bright hover:underline">Configurar integração →</a>
+                </div>
+            @endif
+            <x-admin.inline-docs title="Agenda + lembretes Telegram" class="mt-3">
+                <p>Com a API Google ligada, a agenda do CRM também lista eventos da Agenda Google (só leitura), além das tarefas locais.</p>
+                <p class="admin-docs__note mb-0">
+                    Tarefas com prazo recebem aviso no Telegram ~10 min antes para quem as criou.
+                    Bot + cron: ver <a href="{{ route('admin.integrations.edit') }}#telegram">Integrações → Telegram</a>.
+                </p>
+            </x-admin.inline-docs>
+        </aside>
+    </div>
 
     @include('admin.tasks.partials.create-dialog', [
         'view' => $view,

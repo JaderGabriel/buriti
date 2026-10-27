@@ -109,36 +109,37 @@
     />
 
     <div class="dash-stats">
-        @foreach ([
-            ['Mensagens novas', $unreadMessages, route('admin.messages.index'), 'messages', 'message'],
-            ['Total mensagens', $totalMessages, route('admin.messages.index'), 'inbox', 'mail'],
-            ['Contatos CRM', $contactsCount, route('admin.contacts.index'), 'contacts', 'contact'],
-            ['Oportunidades abertas', $openOpportunities, route('admin.opportunities.index'), 'opps', 'opportunity'],
-            ['Projetos', $projectsCount, route('admin.projects.index'), 'projects', 'project'],
-            ['Tarefas abertas', $openTasksCount, route('admin.tasks.index'), 'tasks', 'task'],
-        ] as [$label, $value, $href, $tone, $icon])
+        @foreach ($kpiCards as $card)
             <a
-                href="{{ $href }}"
-                class="dash-stat dash-stat--{{ $tone }}"
+                href="{{ $card['href'] }}"
+                class="dash-stat dash-stat--{{ $card['tone'] }} is-{{ $card['direction'] }}"
+                data-kpi-polarity="{{ $card['polarity'] }}"
+                data-kpi-dir="{{ $card['direction'] }}"
+                aria-label="{{ $card['aria'] }}"
+                title="{{ $card['aria'] }}"
             >
                 <span class="dash-stat__icon" aria-hidden="true">
-                    <x-ui.icon :name="$icon" class="h-4 w-4" />
+                    <x-ui.icon :name="$card['icon']" class="h-4 w-4" />
                 </span>
-                <span class="dash-stat__label">{{ $label }}</span>
-                <span class="dash-stat__value">{{ $value }}</span>
+                <span class="dash-stat__label">{{ $card['label'] }}</span>
+                <span class="dash-stat__value-row">
+                    <span class="dash-stat__value">{{ $card['value'] }}</span>
+                    <span class="dash-stat__delta">{{ $card['delta_label'] }}</span>
+                </span>
                 <svg class="dash-stat__spark" viewBox="0 0 72 28" aria-hidden="true">
-                    <path d="M1 20 C12 18 16 8 26 11 S42 24 52 14 66 6 71 10" />
+                    <path class="dash-stat__spark-area" d="{{ $card['area'] }}" />
+                    <path class="dash-stat__spark-line" d="{{ $card['path'] }}" />
                 </svg>
             </a>
         @endforeach
     </div>
 
     <div class="dash-board-toolbar mt-8">
-        <p>Arraste o cabeçalho para mover os cartões. O canto inferior direito muda a largura (1, 2 ou 3 colunas). O painel empilha pela coluna mais baixa para não deixar buracos.</p>
+        <p>Arraste o cabeçalho para mover. O canto inferior direito muda a largura. Cartões baixos empilham na mesma coluna. Espaço livre e Google Agenda começam a meio, na última linha.</p>
         <button type="button" class="dash-board-toolbar__reset" data-dash-reset>Repor disposição</button>
     </div>
-    <div class="dash-panels dash-board" data-dash-board>
-        <section class="dash-panel dash-panel--messages dash-widget" data-dash-widget="messages" data-span="1">
+    <div class="dash-panels dash-board" data-dash-board data-dash-storage="buriti-dash-layout-v2">
+        <section class="dash-panel dash-panel--messages dash-widget" data-dash-widget="messages" data-span="1" data-span-default="1">
             @include('admin.dashboard.partials.widget-tools', ['label' => 'Mensagens'])
             <header class="dash-panel__head">
                 <div class="dash-panel__title-wrap">
@@ -201,7 +202,7 @@
             </ul>
         </section>
 
-        <section class="dash-panel dash-panel--contacts dash-widget" data-dash-widget="contacts" data-span="1">
+        <section class="dash-panel dash-panel--contacts dash-widget" data-dash-widget="contacts" data-span="1" data-span-default="1">
             @include('admin.dashboard.partials.widget-tools', ['label' => 'Contatos'])
             <header class="dash-panel__head">
                 <div class="dash-panel__title-wrap">
@@ -259,7 +260,7 @@
             </ul>
         </section>
 
-        <section class="dash-panel dash-panel--tasks dash-widget" data-dash-widget="tasks" data-span="1">
+        <section class="dash-panel dash-panel--tasks dash-widget" data-dash-widget="tasks" data-span="1" data-span-default="1">
             @include('admin.dashboard.partials.widget-tools', ['label' => 'Tarefas'])
             <header class="dash-panel__head">
                 <div class="dash-panel__title-wrap">
@@ -322,7 +323,7 @@
             </ul>
         </section>
 
-        <section class="dash-panel dash-panel--conduct dash-widget" data-dash-widget="conduct" data-span="3">
+        <section class="dash-panel dash-panel--conduct dash-widget" data-dash-widget="conduct" data-span="1" data-span-default="1">
             @include('admin.dashboard.partials.widget-tools', ['label' => 'Atividades'])
             <header class="dash-panel__head">
                 <div class="dash-panel__title-wrap">
@@ -421,46 +422,58 @@
         </section>
     </div>
 
-    <div class="mt-8" id="ideias">
-        <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand-bright">Espaço livre</p>
-                <h2 class="font-display text-xl font-semibold sm:text-2xl">Ideias e rascunhos</h2>
-                <p class="mt-1 text-sm text-mist">Post-its arrastáveis. Aloque a uma empresa e, se quiser, a um contato dela.</p>
-            </div>
-            <form method="POST" action="{{ route('admin.idea-notes.store') }}">
-                @csrf
-                <input type="hidden" name="color" value="amber">
-                <button type="submit" class="admin-btn admin-btn--primary">
-                    + Novo post-it
-                </button>
-            </form>
-        </div>
-
-        <div
-            class="postit-board idea-board grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
-            data-idea-board
-            data-reorder-url="{{ $ideaReorderUrl }}"
-        >
-            @forelse($ideaNotes as $index => $note)
-                @include('admin.dashboard.partials.idea-note', [
-                    'note' => $note,
-                    'index' => $index,
-                    'ideaColors' => $ideaColors,
-                    'ideaCompanies' => $ideaCompanies,
-                    'ideaContacts' => $ideaContacts,
-                ])
-            @empty
-                <div class="col-span-full rounded-sm border border-dashed border-line px-6 py-12 text-center text-sm text-mist" data-idea-empty>
-                    <p>Nenhuma ideia ainda. Crie um post-it e use como quiser.</p>
+    <div class="dash-panels dash-board mt-8" data-dash-board data-dash-storage="buriti-dash-end-v1">
+        <section class="dash-panel dash-widget dash-widget--end" id="ideias" data-dash-widget="ideas" data-span="1" data-span-default="1">
+            @include('admin.dashboard.partials.widget-tools', ['label' => 'Espaço livre'])
+            <header class="dash-panel__head">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand-bright">Espaço livre</p>
+                    <h2 class="font-display text-xl font-semibold sm:text-2xl">Ideias e rascunhos</h2>
+                    <p class="mt-1 text-sm text-mist">Post-its arrastáveis. Aloque a uma empresa e, se quiser, a um contato dela.</p>
                 </div>
-            @endforelse
-        </div>
-        <p class="mt-3 text-xs text-mist" data-idea-board-status>Arraste pelo ícone ⋮⋮ para reordenar. As alterações de ordem são salvas ao soltar.</p>
-    </div>
+                <form method="POST" action="{{ route('admin.idea-notes.store') }}">
+                    @csrf
+                    <input type="hidden" name="color" value="amber">
+                    <button type="submit" class="admin-btn admin-btn--primary">
+                        + Novo post-it
+                    </button>
+                </form>
+            </header>
 
-    <div class="mt-8">
-        <x-admin.calendar-embed :src="$googleCalendarSrc" />
+            <div
+                class="postit-board idea-board grid gap-5 sm:grid-cols-2"
+                data-idea-board
+                data-reorder-url="{{ $ideaReorderUrl }}"
+            >
+                @forelse($ideaNotes as $index => $note)
+                    @include('admin.dashboard.partials.idea-note', [
+                        'note' => $note,
+                        'index' => $index,
+                        'ideaColors' => $ideaColors,
+                        'ideaCompanies' => $ideaCompanies,
+                        'ideaContacts' => $ideaContacts,
+                    ])
+                @empty
+                    <div class="col-span-full rounded-sm border border-dashed border-line px-6 py-12 text-center text-sm text-mist" data-idea-empty>
+                        <p>Nenhuma ideia ainda. Crie um post-it e use como quiser.</p>
+                    </div>
+                @endforelse
+            </div>
+            <p class="mt-3 text-xs text-mist" data-idea-board-status>Arraste pelo ícone ⋮⋮ para reordenar. As alterações de ordem são salvas ao soltar.</p>
+        </section>
+
+        <section class="dash-panel dash-widget dash-widget--end" data-dash-widget="calendar" data-span="1" data-span-default="1">
+            @include('admin.dashboard.partials.widget-tools', ['label' => 'Google Agenda'])
+            @if($googleCalendarSrc)
+                <x-admin.calendar-embed :src="$googleCalendarSrc" title="Google Agenda" fill />
+            @else
+                <div class="flex h-full min-h-[22rem] flex-1 flex-col justify-center rounded-sm border border-dashed border-line px-4 py-4 pl-12 text-sm text-mist">
+                    <p class="font-medium text-snow">Google Agenda</p>
+                    <p class="mt-1">Ligue o embed da Agenda nas configurações para ver o calendário aqui, ao lado do espaço livre.</p>
+                    <a href="{{ route('admin.settings.edit') }}#google-integration" class="mt-2 inline-flex text-sm font-semibold text-brand-bright hover:underline">Configurar integração →</a>
+                </div>
+            @endif
+        </section>
     </div>
 
     @include('admin.contacts.partials.bulk-activity-dialog', [
