@@ -85,10 +85,10 @@ class UserSecurityTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        $this->assertStringContainsString('Usuários', $html);
-        $this->assertStringContainsString('Integrações', $html);
         $this->assertStringContainsString('Sistema', $html);
         $this->assertStringContainsString('Comercial', $html);
+        $this->assertStringContainsString('Entrega', $html);
+        $this->assertStringContainsString('Jirau', $html);
         $this->assertStringNotContainsString('Segurança / Perfil', $html);
         $this->assertStringNotContainsString('Meu perfil', $html);
         $this->assertStringNotContainsString('CRM / Contatos', $html);

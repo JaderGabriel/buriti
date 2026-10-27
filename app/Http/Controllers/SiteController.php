@@ -15,7 +15,7 @@ class SiteController extends Controller
         $projects = Project::query()
             ->public()
             ->ordered()
-            ->take(18)
+            ->take(24)
             ->get();
 
         $featured = $projects->where('featured_on_home', true)->values();

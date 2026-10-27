@@ -25,6 +25,32 @@ class AdminPanelTest extends TestCase
         $this->admin = User::factory()->create();
     }
 
+    public function test_sidebar_lists_modules_and_topbar_lists_submodules(): void
+    {
+        $this->actingAs($this->admin)
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('aria-label="Módulos"', false)
+            ->assertSee('data-admin-module-pin', false)
+            ->assertSee('Módulo Início', false)
+            ->assertSee('Comercial', false)
+            ->assertSee('Entrega', false)
+            ->assertSee('Jirau', false)
+            ->assertSee('Sistema', false)
+            ->assertDontSee('admin-nav__text">Mensagens', false)
+            ->assertDontSee('admin-nav__text">Usuários', false);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.messages.index'))
+            ->assertOk()
+            ->assertSee('admin-modulebar', false)
+            ->assertSee('Módulo Comercial', false)
+            ->assertSee('>Mensagens</span>', false)
+            ->assertSee('>Empresas</span>', false)
+            ->assertSee('>Contatos</span>', false)
+            ->assertSee('>Oportunidades</span>', false);
+    }
+
     public function test_dashboard_loads_for_authenticated_user(): void
     {
         ContactMessage::factory()->create();
@@ -44,7 +70,7 @@ class AdminPanelTest extends TestCase
         $html = $this->actingAs($this->admin)
             ->get(route('admin.dashboard'))
             ->assertOk()
-            ->assertSee('Configurações', false)
+            ->assertSee('Sistema', false)
             ->assertSee('admin-versions', false)
             ->assertSee('Laravel '.$versions['laravel'], false)
             ->assertSee('PHP '.$versions['php'], false)
@@ -55,12 +81,17 @@ class AdminPanelTest extends TestCase
             ->assertSee('admin-modulebar', false)
             ->getContent();
 
-        $settingsPos = strpos($html, '>Configurações<');
+        $sistemaPos = strpos($html, '>Sistema<');
         $versionsPos = strpos($html, 'admin-versions');
 
-        $this->assertNotFalse($settingsPos);
+        $this->assertNotFalse($sistemaPos);
         $this->assertNotFalse($versionsPos);
-        $this->assertGreaterThan($settingsPos, $versionsPos);
+        $this->assertGreaterThan($sistemaPos, $versionsPos);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.settings.edit'))
+            ->assertOk()
+            ->assertSee('Configurações', false);
     }
 
     public function test_admin_can_read_and_mark_contact_messages(): void

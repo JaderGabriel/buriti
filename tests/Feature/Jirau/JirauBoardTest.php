@@ -354,6 +354,8 @@ class JirauBoardTest extends TestCase
         $this->followingRedirects()
             ->get(route('jirau.home'))
             ->assertOk()
-            ->assertSee('Jirau', false);
+            ->assertSee('Jirau', false)
+            ->assertSee('data-admin-module-pin', false)
+            ->assertSee('Módulo Jirau', false);
     }
 }

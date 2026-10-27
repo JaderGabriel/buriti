@@ -4,146 +4,13 @@
 
 @section('body')
 @php
-    /**
-     * Fluxo: visão → comercial (entrada) → entrega → sistema.
-     * Mensagem do site → Contato CRM → Oportunidade → Projeto → Tarefa.
-     */
-    $navGroups = [
-        [
-            'label' => null,
-            'items' => [
-                [
-                    'route' => 'admin.dashboard',
-                    'label' => 'Início',
-                    'pattern' => 'admin.dashboard',
-                    'icon' => 'dashboard',
-                ],
-            ],
-        ],
-        [
-            'label' => 'Comercial',
-            'items' => [
-                [
-                    'route' => 'admin.messages.index',
-                    'label' => 'Mensagens',
-                    'pattern' => 'admin.messages.*',
-                    'icon' => 'message',
-                    'badge' => (int) ($adminUnreadMessages ?? 0),
-                ],
-                [
-                    'route' => 'admin.companies.index',
-                    'label' => 'Empresas',
-                    'pattern' => 'admin.companies.*',
-                    'icon' => 'company',
-                ],
-                [
-                    'route' => 'admin.contacts.index',
-                    'label' => 'Contatos',
-                    'pattern' => 'admin.contacts.*',
-                    'icon' => 'contact',
-                ],
-                [
-                    'route' => 'admin.opportunities.index',
-                    'label' => 'Oportunidades',
-                    'pattern' => 'admin.opportunities.*',
-                    'icon' => 'opportunity',
-                ],
-            ],
-        ],
-        [
-            'label' => 'Entrega',
-            'items' => [
-                [
-                    'route' => 'admin.projects.index',
-                    'label' => 'Projetos',
-                    'pattern' => ['admin.projects.index', 'admin.projects.create', 'admin.projects.store', 'admin.projects.edit', 'admin.projects.update'],
-                    'icon' => 'project',
-                ],
-                [
-                    'route' => 'admin.home-projects.edit',
-                    'label' => 'Site',
-                    'pattern' => 'admin.home-projects.*',
-                    'icon' => 'star',
-                ],
-                [
-                    'route' => 'admin.tasks.index',
-                    'label' => 'Agenda',
-                    'pattern' => 'admin.tasks.*',
-                    'icon' => 'task',
-                ],
-            ],
-        ],
-        [
-            'label' => 'Jirau',
-            'class' => 'admin-nav__group--jirau',
-            'items' => [
-                [
-                    'route' => 'jirau.home',
-                    'label' => 'Quadros',
-                    'pattern' => ['jirau.home', 'jirau.show', 'jirau.cards.*', 'jirau.demands.*', 'jirau.members.*', 'jirau.steps.*', 'jirau.status'],
-                    'icon' => 'jirau',
-                ],
-                [
-                    'route' => 'jirau.overview',
-                    'label' => 'Quadro geral',
-                    'pattern' => 'jirau.overview',
-                    'icon' => 'flow',
-                ],
-                [
-                    'route' => 'jirau.analytics',
-                    'label' => 'Analítica',
-                    'pattern' => ['jirau.analytics', 'jirau.analytics.show'],
-                    'icon' => 'bi',
-                ],
-                [
-                    'route' => 'jirau.staff',
-                    'label' => 'Equipe',
-                    'pattern' => ['jirau.staff', 'jirau.staff.store'],
-                    'icon' => 'users',
-                ],
-            ],
-        ],
-        [
-            'label' => 'Sistema',
-            'items' => array_values(array_filter([
-                auth()->user()->is_admin
-                    ? [
-                        'route' => 'admin.users.index',
-                        'label' => 'Usuários',
-                        'pattern' => 'admin.users.*',
-                        'icon' => 'users',
-                    ]
-                    : null,
-                [
-                    'route' => 'admin.integrations.edit',
-                    'label' => 'Integrações',
-                    'pattern' => 'admin.integrations.*',
-                    'icon' => 'integrations',
-                ],
-                [
-                    'route' => 'admin.settings.edit',
-                    'label' => 'Configurações',
-                    'pattern' => 'admin.settings.*',
-                    'icon' => 'settings',
-                ],
-            ])),
-        ],
-    ];
     $adminUser = auth()->user();
     $adminFirstName = explode(' ', trim($adminUser->name))[0] ?? 'olá';
     $runtimeVersions = $runtimeVersions ?? \App\Support\RuntimeVersions::labels();
-    $moduleGroup = collect($navGroups)->first(function (array $group) {
-        foreach ($group['items'] as $item) {
-            $pattern = $item['pattern'];
-            if (is_array($pattern) ? request()->routeIs(...$pattern) : request()->routeIs($pattern)) {
-                return true;
-            }
-        }
-
-        return false;
-    });
-    $moduleItems = $moduleGroup['items'] ?? [];
-    $moduleLabel = $moduleGroup['label'] ?? 'Painel';
+    $modules = \App\Support\AdminNavigation::modules($adminUser, (int) ($adminUnreadMessages ?? 0));
+    $currentModule = \App\Support\AdminNavigation::current($modules);
+    $moduleItems = $currentModule['items'] ?? [];
+    $moduleLabel = $currentModule['label'] ?? 'Painel';
 @endphp
 
 <div class="admin-shell" data-admin-shell>
@@ -183,7 +50,10 @@
             </button>
         </div>
 
-        @include('admin.partials.shortcuts')
+        <div class="admin-rail-tools">
+            @include('admin.partials.shortcuts')
+            @include('admin.partials.module-pin', ['currentModule' => $currentModule])
+        </div>
 
         <form method="GET" action="{{ route('admin.search') }}" class="admin-search admin-search--sidebar">
             <label class="sr-only" for="admin-search">Buscar no CRM</label>
@@ -200,38 +70,7 @@
             >
         </form>
 
-        <nav class="admin-nav" aria-label="Menu do painel">
-            @foreach($navGroups as $group)
-                <div @class(['admin-nav__group', $group['class'] ?? null])>
-                    @if($group['label'])
-                        <p class="admin-nav__label">{{ $group['label'] }}</p>
-                    @endif
-                    @foreach($group['items'] as $item)
-                        @php $active = is_array($item['pattern']) ? request()->routeIs(...$item['pattern']) : request()->routeIs($item['pattern']); @endphp
-                        <a
-                            href="{{ route($item['route']) }}"
-                            data-admin-close
-                            title="{{ $item['label'] }}"
-                            @class(['admin-nav__link', 'is-active' => $active])
-                        >
-                            <span class="admin-nav__icon">
-                                <x-ui.icon :name="$item['icon']" class="h-4 w-4" />
-                            </span>
-                            <span class="admin-nav__text">{{ $item['label'] }}</span>
-                            @if(! empty($item['badge']))
-                                <span class="admin-nav__badge">{{ $item['badge'] > 99 ? '99+' : $item['badge'] }}</span>
-                            @endif
-                        </a>
-                    @endforeach
-                </div>
-            @endforeach
-            <p class="admin-versions" aria-label="Versões do ambiente">
-                <span>Laravel {{ $runtimeVersions['laravel'] }}</span>
-                <span>PHP {{ $runtimeVersions['php'] }}</span>
-                <span>Server {{ $runtimeVersions['server'] }}</span>
-                <span>{{ $runtimeVersions['release'] }}</span>
-            </p>
-        </nav>
+        @include('admin.partials.module-nav', ['modules' => $modules, 'runtimeVersions' => $runtimeVersions])
 
         <a href="{{ route('admin.profile.edit') }}" class="admin-user" data-admin-close>
             @if($adminUser->avatarUrl())

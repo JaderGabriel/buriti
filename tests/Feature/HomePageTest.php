@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Project;
+use Database\Seeders\PortfolioSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -64,6 +65,34 @@ class HomePageTest extends TestCase
         );
     }
 
+    public function test_home_page_turns_project_types_as_books(): void
+    {
+        Project::factory()->public()->create([
+            'name' => 'Livro Integração Um',
+            'category' => 'Integração',
+            'featured_on_home' => false,
+            'repo_is_private' => false,
+            'sort_order' => 1,
+        ]);
+        Project::factory()->public()->create([
+            'name' => 'Livro Integração Dois',
+            'category' => 'Integração',
+            'featured_on_home' => false,
+            'repo_is_private' => false,
+            'sort_order' => 2,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('data-project-book', false)
+            ->assertSee('Páginas de Código aberto', false)
+            ->assertSee('Página anterior', false)
+            ->assertSee('Próxima página', false)
+            ->assertSee('Livro Integração Um', false)
+            ->assertSee('Livro Integração Dois', false)
+            ->assertSee('Cada tipo vira como um caderno', false);
+    }
+
     public function test_home_page_shows_public_projects_only(): void
     {
         $public = Project::factory()->public()->create(['name' => 'Projeto Público BURITI']);
@@ -89,7 +118,7 @@ class HomePageTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Case NDA Municipal', false);
-        $response->assertSee('Projetos confidenciais', false);
+        $response->assertSee('Projetos restritos', false);
         $response->assertSee('Código confidencial', false);
         $response->assertDontSee('https://github.com/JaderGabriel/secret-repo', false);
         $response->assertDontSee('https://internal.example/secret', false);
@@ -152,9 +181,9 @@ class HomePageTest extends TestCase
 
     public function test_home_page_features_public_advanced_reports_package(): void
     {
-        $this->seed(\Database\Seeders\PortfolioSeeder::class);
+        $this->seed(PortfolioSeeder::class);
 
-        $project = \App\Models\Project::query()->where('name', 'i-Educar Relatórios Avançados')->first();
+        $project = Project::query()->where('name', 'i-Educar Relatórios Avançados')->first();
 
         $this->assertNotNull($project);
         $this->assertTrue($project->is_public);
@@ -171,9 +200,9 @@ class HomePageTest extends TestCase
 
     public function test_servlitcys_uses_bundled_favicon_as_logo(): void
     {
-        $this->seed(\Database\Seeders\PortfolioSeeder::class);
+        $this->seed(PortfolioSeeder::class);
 
-        $project = \App\Models\Project::query()->where('name', 'Servlitcys')->first();
+        $project = Project::query()->where('name', 'Servlitcys')->first();
 
         $this->assertNotNull($project);
         $this->assertSame('images/projects/servlitcys.svg', $project->logo_path);

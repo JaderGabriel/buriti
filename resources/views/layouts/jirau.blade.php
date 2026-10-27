@@ -6,41 +6,19 @@
 @php
     $jirauUser = auth()->user();
     $jirauFirstName = explode(' ', trim($jirauUser->name))[0] ?? 'olá';
+    $runtimeVersions = $runtimeVersions ?? \App\Support\RuntimeVersions::labels();
     $navJiraus = ($jirauUser->is_admin || $jirauUser->jirau_role)
         ? \App\Models\Jirau::query()->with('project')->orderBy('name')->get()
         : $jirauUser->jiraus()->with('project')->orderBy('name')->get();
     $currentJirau = $jirau ?? null;
-    $moduleLabel = 'Jirau';
+    $modules = \App\Support\AdminNavigation::modules($jirauUser, (int) ($adminUnreadMessages ?? 0));
+    $currentModule = \App\Support\AdminNavigation::current($modules);
+    $moduleLabel = $currentModule['label'] ?? 'Jirau';
     $moduleItems = $jirauUser->is_admin
-        ? [
-            [
-                'route' => 'jirau.home',
-                'label' => 'Quadros',
-                'pattern' => 'jirau.home',
-                'icon' => 'jirau',
-            ],
-            [
-                'route' => 'jirau.overview',
-                'label' => 'Quadro geral',
-                'pattern' => 'jirau.overview',
-                'icon' => 'flow',
-            ],
-            [
-                'route' => 'jirau.analytics',
-                'label' => 'Analítica',
-                'pattern' => ['jirau.analytics', 'jirau.analytics.show'],
-                'icon' => 'bi',
-            ],
-            [
-                'route' => 'jirau.staff',
-                'label' => 'Equipe',
-                'pattern' => ['jirau.staff', 'jirau.staff.store'],
-                'icon' => 'users',
-            ],
-        ]
+        ? ($currentModule['items'] ?? [])
         : $navJiraus->map(fn ($navBoard) => [
             'url' => route('jirau.show', $navBoard),
-            'label' => $navBoard->project?->name ?? $navBoard->name,
+            'label' => $navBoard->name,
             'active' => $currentJirau && (int) $currentJirau->id === (int) $navBoard->id,
             'icon' => 'jirau',
         ])->all();
@@ -79,105 +57,12 @@
             </button>
         </div>
 
-        <div class="admin-shortcuts">
-            @if($jirauUser->is_admin)
-                <a href="{{ route('admin.dashboard') }}" class="admin-icon-btn" title="Painel admin" aria-label="Painel admin">
-                    <x-ui.icon name="dashboard" class="h-4 w-4" />
-                </a>
-            @endif
-            <button
-                type="button"
-                data-theme-toggle
-                class="admin-icon-btn admin-icon-btn--theme"
-                aria-label="Ativar modo escuro"
-                aria-pressed="false"
-                title="Alternar tema"
-            >
-                <x-ui.icon name="sun" class="hidden h-4 w-4 dark:block" />
-                <x-ui.icon name="moon" class="block h-4 w-4 dark:hidden" />
-            </button>
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit" class="admin-icon-btn admin-icon-btn--logout" title="Sair" aria-label="Sair">
-                    <x-ui.icon name="logout" class="h-4 w-4" />
-                </button>
-            </form>
+        <div class="admin-rail-tools">
+            @include('admin.partials.shortcuts')
+            @include('admin.partials.module-pin', ['currentModule' => $currentModule])
         </div>
 
-        <nav class="admin-nav" aria-label="Jiraus">
-            @if($jirauUser->is_admin)
-                <div class="admin-nav__group admin-nav__group--jirau">
-                    <p class="admin-nav__label">Jirau</p>
-                    <a
-                        href="{{ route('jirau.home') }}"
-                        data-admin-close
-                        title="Quadros"
-                        @class(['admin-nav__link', 'is-active' => request()->routeIs('jirau.home')])
-                    >
-                        <span class="admin-nav__icon">
-                            <x-ui.icon name="jirau" class="h-4 w-4" />
-                        </span>
-                        <span class="admin-nav__text">Quadros</span>
-                    </a>
-                    <a
-                        href="{{ route('jirau.overview') }}"
-                        data-admin-close
-                        title="Quadro geral"
-                        @class(['admin-nav__link', 'is-active' => request()->routeIs('jirau.overview')])
-                    >
-                        <span class="admin-nav__icon">
-                            <x-ui.icon name="flow" class="h-4 w-4" />
-                        </span>
-                        <span class="admin-nav__text">Quadro geral</span>
-                    </a>
-                    <a
-                        href="{{ route('jirau.analytics') }}"
-                        data-admin-close
-                        title="Analítica"
-                        @class(['admin-nav__link', 'is-active' => request()->routeIs('jirau.analytics', 'jirau.analytics.show')])
-                    >
-                        <span class="admin-nav__icon">
-                            <x-ui.icon name="bi" class="h-4 w-4" />
-                        </span>
-                        <span class="admin-nav__text">Analítica</span>
-                    </a>
-                    <a
-                        href="{{ route('jirau.staff') }}"
-                        data-admin-close
-                        title="Equipe"
-                        @class(['admin-nav__link', 'is-active' => request()->routeIs('jirau.staff', 'jirau.staff.store')])
-                    >
-                        <span class="admin-nav__icon">
-                            <x-ui.icon name="users" class="h-4 w-4" />
-                        </span>
-                        <span class="admin-nav__text">Equipe</span>
-                    </a>
-                </div>
-            @endif
-            <div class="admin-nav__group">
-                <p class="admin-nav__label">Quadros</p>
-                @forelse($navJiraus as $navBoard)
-                    <a
-                        href="{{ route('jirau.show', $navBoard) }}"
-                        data-admin-close
-                        title="{{ $navBoard->project?->name ?? $navBoard->name }}"
-                        @class(['admin-nav__link', 'is-active' => $currentJirau && (int) $currentJirau->id === (int) $navBoard->id])
-                    >
-                        <span class="admin-nav__icon">
-                            <x-ui.icon name="jirau" class="h-4 w-4" />
-                        </span>
-                        <span class="admin-nav__text">
-                            {{ $navBoard->project?->name ?? $navBoard->name }}
-                            @unless($navBoard->is_active)
-                                <small>inativo</small>
-                            @endunless
-                        </span>
-                    </a>
-                @empty
-                    <p class="admin-nav__label" style="font-weight:500;text-transform:none;letter-spacing:0">Nenhum Jirau ainda.</p>
-                @endforelse
-            </div>
-        </nav>
+        @include('admin.partials.module-nav', ['modules' => $modules, 'runtimeVersions' => $jirauUser->is_admin ? $runtimeVersions : null])
 
         <div class="admin-user">
             @if($jirauUser->avatarUrl())

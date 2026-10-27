@@ -3449,6 +3449,117 @@ function initJirauBoard() {
     board.addEventListener('pointercancel', onPointerUp);
 }
 
+function initProjectBooks() {
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    document.querySelectorAll('[data-project-book]').forEach((book) => {
+        const pages = [...book.querySelectorAll('[data-book-page]')];
+        if (pages.length < 2) {
+            return;
+        }
+
+        let index = 0;
+        let busy = false;
+        let pointer = null;
+
+        const folio = book.querySelector('[data-book-folio]');
+        const gotoButtons = [...book.querySelectorAll('[data-book-goto]')];
+
+        const render = () => {
+            pages.forEach((page, i) => {
+                page.classList.toggle('is-current', i === index);
+                page.classList.toggle('is-prev', i < index);
+                page.classList.toggle('is-next', i === index + 1);
+                page.classList.toggle('is-after', i > index + 1);
+                page.toggleAttribute('inert', i !== index);
+                page.setAttribute('aria-hidden', i === index ? 'false' : 'true');
+            });
+
+            gotoButtons.forEach((button) => {
+                const active = Number(button.dataset.bookGoto) === index;
+                button.classList.toggle('is-active', active);
+                if (active) {
+                    button.setAttribute('aria-current', 'page');
+                } else {
+                    button.removeAttribute('aria-current');
+                }
+            });
+
+            if (folio) {
+                folio.textContent = `${index + 1} / ${pages.length}`;
+            }
+
+            book.dataset.page = String(index);
+        };
+
+        const goTo = (next) => {
+            const total = pages.length;
+            const target = ((next % total) + total) % total;
+            if (target === index || busy) {
+                return;
+            }
+
+            busy = true;
+            index = target;
+            render();
+            window.setTimeout(() => {
+                busy = false;
+            }, reduceMotion ? 40 : 640);
+        };
+
+        book.querySelector('[data-book-prev]')?.addEventListener('click', () => goTo(index - 1));
+        book.querySelector('[data-book-next]')?.addEventListener('click', () => goTo(index + 1));
+
+        gotoButtons.forEach((button) => {
+            button.addEventListener('click', () => goTo(Number(button.dataset.bookGoto)));
+        });
+
+        book.addEventListener('keydown', (event) => {
+            if (event.target.closest('a, input, textarea, select')) {
+                return;
+            }
+            if (event.key === 'ArrowRight') {
+                event.preventDefault();
+                goTo(index + 1);
+            }
+            if (event.key === 'ArrowLeft') {
+                event.preventDefault();
+                goTo(index - 1);
+            }
+        });
+
+        const stage = book.querySelector('[data-book-stage]');
+        if (! stage) {
+            return;
+        }
+
+        stage.addEventListener('pointerdown', (event) => {
+            if (event.button !== 0 || event.target.closest('a, button')) {
+                return;
+            }
+            pointer = { id: event.pointerId, x: event.clientX };
+        });
+
+        stage.addEventListener('pointerup', (event) => {
+            if (! pointer || event.pointerId !== pointer.id) {
+                return;
+            }
+            const delta = event.clientX - pointer.x;
+            pointer = null;
+            if (Math.abs(delta) < 42) {
+                return;
+            }
+            goTo(delta < 0 ? index + 1 : index - 1);
+        });
+
+        stage.addEventListener('pointercancel', () => {
+            pointer = null;
+        });
+
+        render();
+    });
+}
+
 window.Alpine = Alpine;
 
 // Modal / nav / cookies / avatar / password must not depend on Alpine succeeding.
@@ -3456,6 +3567,7 @@ initDialogs();
 syncThemeToggleButtons();
 initSiteNav();
 initInPageAnchors();
+initProjectBooks();
 initCookieBanner();
 initBackToTop();
 initAdminShell();

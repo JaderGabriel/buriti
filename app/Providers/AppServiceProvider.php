@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\Opportunity;
+use App\Observers\OpportunityObserver;
 use App\Services\SettingService;
 use App\Support\SubdirectoryRouteCacheGuard;
 use App\View\Composers\AdminLayoutComposer;
@@ -32,9 +34,9 @@ class AppServiceProvider extends ServiceProvider
         Password::defaults(fn () => Password::min(8)->letters()->numbers());
 
         View::composer(['layouts.site', 'site.*'], SiteLayoutComposer::class);
-        View::composer('layouts.admin', AdminLayoutComposer::class);
+        View::composer(['layouts.admin', 'layouts.jirau'], AdminLayoutComposer::class);
 
-        \App\Models\Opportunity::observe(\App\Observers\OpportunityObserver::class);
+        Opportunity::observe(OpportunityObserver::class);
 
         if ($this->app->runningInConsole()) {
             Event::listen(CommandFinished::class, function (CommandFinished $event): void {

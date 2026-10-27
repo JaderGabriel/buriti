@@ -185,40 +185,31 @@ html.dark .admin-orbit {
     }
 
     .admin-shell[data-admin-collapsed='true'] .admin-brand {
-        flex-direction: column;
         justify-content: center;
-        gap: 0.45rem;
-        padding: 0;
+        padding: 0.1rem 0 0;
     }
 
-    .admin-shell[data-admin-collapsed='true'] .admin-brand__text,
-    .admin-shell[data-admin-collapsed='true'] .admin-nav__label,
-    .admin-shell[data-admin-collapsed='true'] .admin-nav__text,
-    .admin-shell[data-admin-collapsed='true'] .admin-nav__badge,
-    .admin-shell[data-admin-collapsed='true'] .admin-user__meta,
-    .admin-shell[data-admin-collapsed='true'] .admin-versions,
+    .admin-shell[data-admin-collapsed='true'] .admin-brand__link,
+    .admin-shell[data-admin-collapsed='true'] .admin-nav,
+    .admin-shell[data-admin-collapsed='true'] .admin-sidebar .admin-user,
     .admin-shell[data-admin-collapsed='true'] .admin-search--sidebar {
         display: none;
     }
 
+    .admin-shell[data-admin-collapsed='true'] .admin-rail-tools {
+        gap: 0.55rem;
+        flex: 1;
+        align-content: start;
+    }
+
     .admin-shell[data-admin-collapsed='true'] .admin-shortcuts {
         grid-template-columns: 1fr;
-        gap: 0.35rem;
+        gap: 0.4rem;
+        flex: none;
     }
 
-    .admin-shell[data-admin-collapsed='true'] .admin-nav__group--jirau {
-        padding: 0.25rem 0.1rem;
-    }
-
-    .admin-shell[data-admin-collapsed='true'] .admin-nav__link {
-        justify-content: center;
-        padding: 0.38rem 0.3rem;
-        gap: 0;
-    }
-
-    .admin-shell[data-admin-collapsed='true'] .admin-user {
-        justify-content: center;
-        padding: 0.4rem;
+    .admin-shell[data-admin-collapsed='true'] .admin-icon-btn[data-admin-module-pin] {
+        display: inline-flex;
     }
 }
 
@@ -267,6 +258,12 @@ html.dark .admin-orbit {
     margin-top: 0.12rem;
     font-size: 0.68rem;
     color: var(--admin-muted);
+}
+
+.admin-rail-tools {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
 }
 
 .admin-shortcuts {
@@ -332,6 +329,30 @@ html.dark .admin-orbit {
 
 .admin-icon-btn--logout {
     color: #e11d48;
+}
+
+.admin-icon-btn[data-admin-module-pin] {
+    display: none;
+    position: relative;
+    color: #fff;
+    background: linear-gradient(180deg, #4d83ff 0%, var(--admin-blue) 100%);
+    border-color: transparent;
+    box-shadow: 0 10px 22px rgba(47, 107, 255, 0.28);
+}
+
+.admin-icon-btn[data-admin-module-pin]:hover {
+    color: #fff;
+    background: linear-gradient(180deg, #5b8cff 0%, var(--admin-blue-deep) 100%);
+    box-shadow: 0 12px 24px rgba(47, 107, 255, 0.32);
+}
+
+.admin-nav__badge--pin {
+    position: absolute;
+    top: -0.2rem;
+    right: -0.2rem;
+    min-width: 1.05rem;
+    padding: 0.02rem 0.28rem;
+    font-size: 0.58rem;
 }
 
 .admin-search {
@@ -662,10 +683,21 @@ html.dark .admin-orbit {
 }
 
 .admin-modulebar {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    align-items: center;
+    gap: 0.28rem;
+    overflow-x: auto;
+    padding: 0.05rem 0.15rem;
+}
+
+.admin-topbar:has(.admin-modulebar) .admin-topbar__title {
     display: none;
 }
 
 .admin-modulebar__label {
+    display: none;
     margin: 0 0.15rem 0 0.25rem;
     font-size: 0.62rem;
     font-weight: 800;
@@ -673,6 +705,12 @@ html.dark .admin-orbit {
     text-transform: uppercase;
     color: color-mix(in oklab, var(--admin-muted) 80%, transparent);
     white-space: nowrap;
+}
+
+@media (min-width: 1024px) {
+    .admin-modulebar__label {
+        display: block;
+    }
 }
 
 .admin-modulebar__link {
@@ -742,16 +780,6 @@ html.dark .admin-orbit {
         background: var(--admin-glass-strong);
         box-shadow: var(--admin-shadow);
         backdrop-filter: blur(22px);
-    }
-
-    .admin-shell[data-admin-collapsed='true'] .admin-modulebar {
-        display: flex;
-        min-width: 0;
-        flex: 1;
-        align-items: center;
-        gap: 0.28rem;
-        overflow-x: auto;
-        padding: 0.05rem 0.15rem;
     }
 
     .admin-shell[data-admin-collapsed='true'] .admin-search--top {
