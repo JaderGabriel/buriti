@@ -497,14 +497,28 @@ body:has(#cookie-banner:not([hidden])) .back-to-top {
     padding-bottom: 1.25rem;
 }
 
-/* Reserva espaço para o FAB "Pedir proposta" e o botão voltar ao topo no mobile */
+/* Reserva espaço no rodapé inteiro (versões inclusas) para o FAB e o voltar ao topo. */
+.site-footer {
+    padding-bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px));
+}
+
 @media (max-width: 1279px) {
     .site-footer {
-        padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+        padding-bottom: calc(6.75rem + env(safe-area-inset-bottom, 0px));
     }
 
     .site-footer__legal {
-        padding-bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+        padding-bottom: 1.25rem;
+    }
+}
+
+body:has(#cookie-banner:not([hidden])) .site-footer {
+    padding-bottom: calc(12.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 1280px) {
+    body:has(#cookie-banner:not([hidden])) .site-footer {
+        padding-bottom: calc(10.5rem + env(safe-area-inset-bottom, 0px));
     }
 }
 

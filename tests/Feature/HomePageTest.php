@@ -128,6 +128,7 @@ class HomePageTest extends TestCase
         $this->assertStringContainsString($versions['php'], $html);
         $this->assertStringContainsString($versions['laravel'], $html);
         $this->assertStringContainsString(RuntimeVersions::short(), $html);
+        $this->assertStringContainsString('data-back-to-top', $html);
     }
 
     public function test_home_page_shows_public_projects_only(): void

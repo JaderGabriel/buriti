@@ -52,6 +52,8 @@ class NotificationInboxTest extends TestCase
         $this->assertLessThan($site, $theme);
         $this->assertLessThan($logout, $site);
         $this->assertLessThan($chip, $logout);
+        $this->assertSame(1, substr_count($html, 'admin-user--chip'));
+        $this->assertStringContainsString('@'.$admin->username, $html);
     }
 
     public function test_jirau_staff_sees_notifications_in_topbar_and_inbox(): void

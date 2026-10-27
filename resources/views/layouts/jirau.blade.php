@@ -5,7 +5,6 @@
 @section('body')
 @php
     $jirauUser = auth()->user();
-    $jirauFirstName = explode(' ', trim($jirauUser->name))[0] ?? 'olá';
     $runtimeVersions = $runtimeVersions ?? \App\Support\RuntimeVersions::labels();
     $navJiraus = ($jirauUser->is_admin || $jirauUser->jirau_role)
         ? \App\Models\Jirau::query()->with('project')->orderBy('sort_order')->orderBy('name')->get()
@@ -73,18 +72,6 @@
         </div>
 
         @include('admin.partials.module-nav', ['modules' => $modules, 'runtimeVersions' => $jirauUser->is_admin ? $runtimeVersions : null])
-
-        <div class="admin-user">
-            @if($jirauUser->avatarUrl())
-                <img src="{{ $jirauUser->avatarUrl() }}" alt="" class="admin-user__avatar">
-            @else
-                <span class="admin-user__avatar admin-user__avatar--fallback">{{ $jirauUser->initials() }}</span>
-            @endif
-            <span class="admin-user__meta">
-                <span class="admin-user__name">{{ $jirauUser->name }}</span>
-                <span class="admin-user__handle">{{ $jirauUser->jirauTeamLabel() }}</span>
-            </span>
-        </div>
     </aside>
 
     <div class="admin-stage">
@@ -98,22 +85,16 @@
             </div>
             <div class="admin-topbar__right">
                 @if($jirauUser->is_admin)
-                    <x-jirau.action tone="board" icon="plus" data-jirau-toggle="new-board">Novo quadro</x-jirau.action>
+                    <x-jirau.action tone="board" icon="plus" data-jirau-toggle="new-board" aria-label="Novo quadro">Novo quadro</x-jirau.action>
                 @endif
                 <div class="admin-topbar__account">
                     @include('admin.partials.notifications')
                     @include('admin.partials.chrome')
-                    <span class="admin-user admin-user--chip">
-                        @if($jirauUser->avatarUrl())
-                            <img src="{{ $jirauUser->avatarUrl() }}" alt="" class="admin-user__avatar">
-                        @else
-                            <span class="admin-user__avatar admin-user__avatar--fallback">{{ $jirauUser->initials() }}</span>
-                        @endif
-                        <span class="admin-user__meta">
-                            <span class="admin-user__name">{{ $jirauFirstName }}</span>
-                            <span class="admin-user__handle">{{ $jirauUser->jirauTeamLabel() }}</span>
-                        </span>
-                    </span>
+                    @include('admin.partials.profile-card', [
+                        'user' => $jirauUser,
+                        'handle' => $jirauUser->jirauTeamLabel(),
+                        'href' => $jirauUser->is_admin ? route('admin.profile.edit') : null,
+                    ])
                 </div>
             </div>
         </header>

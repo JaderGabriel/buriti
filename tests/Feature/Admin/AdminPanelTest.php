@@ -112,6 +112,13 @@ class AdminPanelTest extends TestCase
         $this->assertSame(1, substr_count($html, 'admin-chrome'));
         $this->assertSame(1, substr_count($html, 'admin-meetings'));
         $this->assertSame(0, substr_count($html, 'admin-shortcuts'));
+
+        $sidebarHtml = substr($html, $sidebar, $stage - $sidebar);
+        $this->assertStringNotContainsString('admin-user', $sidebarHtml);
+        $this->assertSame(1, substr_count($html, 'admin-user--chip'));
+        $this->assertStringContainsString('aria-label="Perfil '.$this->admin->name.'"', $html);
+        $this->assertStringContainsString('@'.$this->admin->username, $html);
+        $this->assertGreaterThan(strpos($html, 'admin-topbar__account'), strpos($html, 'admin-user--chip'));
     }
 
     public function test_sidebar_shows_runtime_versions_below_settings(): void

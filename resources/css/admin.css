@@ -206,7 +206,6 @@ html.dark .admin-orbit {
 
     .admin-shell[data-admin-collapsed='true'] .admin-brand__link,
     .admin-shell[data-admin-collapsed='true'] .admin-nav,
-    .admin-shell[data-admin-collapsed='true'] .admin-sidebar .admin-user,
     .admin-shell[data-admin-collapsed='true'] .admin-search--sidebar {
         display: none;
     }
@@ -820,7 +819,8 @@ html.dark .admin-nav__group {
     justify-content: space-between;
     gap: 0.55rem;
     overflow: visible;
-    padding: 0.7rem 0.85rem;
+    padding: 0.55rem max(0.7rem, env(safe-area-inset-right)) 0.55rem max(0.7rem, env(safe-area-inset-left));
+    padding-top: max(0.55rem, env(safe-area-inset-top));
     background: var(--admin-glass-strong);
     border-bottom: 1px solid var(--admin-glass-border);
     backdrop-filter: blur(18px);
@@ -841,9 +841,8 @@ html.dark .admin-nav__group {
 }
 
 .admin-topbar__right {
-    flex: 0 0 auto;
-    flex-shrink: 0;
-    min-width: max-content;
+    flex: 0 1 auto;
+    min-width: 0;
 }
 
 .admin-topbar__title {
@@ -856,8 +855,19 @@ html.dark .admin-nav__group {
     font-weight: 700;
 }
 
-@media (max-width: 479px) {
-    .admin-topbar__title {
+@media (max-width: 639px) {
+    .admin-topbar {
+        gap: 0.4rem;
+    }
+
+    .admin-topbar__left,
+    .admin-topbar__right,
+    .admin-topbar__account,
+    .admin-chrome {
+        gap: 0.28rem;
+    }
+
+    .admin-topbar .admin-modulebar {
         display: none;
     }
 
@@ -865,6 +875,17 @@ html.dark .admin-nav__group {
     .admin-topbar .admin-icon-btn {
         width: 2.25rem;
         height: 2.25rem;
+    }
+
+    .admin-topbar .jirau-action {
+        width: 2.25rem;
+        height: 2.25rem;
+        padding: 0;
+        gap: 0;
+    }
+
+    .admin-topbar .jirau-action > span {
+        display: none;
     }
 }
 
@@ -903,15 +924,9 @@ html.dark .admin-nav__group {
 }
 
 .admin-user--chip {
-    display: none;
+    display: flex;
     margin-top: 0;
-    padding: 0.3rem 0.7rem 0.3rem 0.3rem;
-}
-
-.admin-user--chip .admin-user__avatar {
-    height: 2rem;
-    width: 2rem;
-    border-radius: 999px;
+    max-width: 13.5rem;
 }
 
 .admin-topbar__account {
@@ -919,7 +934,43 @@ html.dark .admin-nav__group {
     align-items: center;
     gap: 0.4rem;
     flex-shrink: 0;
-    min-width: max-content;
+    min-width: 0;
+}
+
+@media (max-width: 1023px) {
+    .admin-user--chip .admin-user__handle {
+        display: none;
+    }
+}
+
+@media (max-width: 639px) {
+    .admin-user--chip {
+        max-width: none;
+        gap: 0;
+        padding: 0.28rem;
+    }
+
+    .admin-user--chip .admin-user__meta {
+        display: none;
+    }
+
+    .admin-user--chip .admin-user__avatar {
+        height: 2.1rem;
+        width: 2.1rem;
+    }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+    .admin-user--chip {
+        max-width: 10.5rem;
+        padding: 0.4rem 0.55rem;
+        gap: 0.5rem;
+    }
+
+    .admin-user--chip .admin-user__avatar {
+        height: 2.15rem;
+        width: 2.15rem;
+    }
 }
 
 .admin-notify {
@@ -965,6 +1016,19 @@ html.dark .admin-nav__group {
     background: var(--admin-glass-strong);
     box-shadow: var(--admin-shadow);
     backdrop-filter: blur(22px);
+}
+
+@media (max-width: 639px) {
+    .admin-notify__panel {
+        position: fixed;
+        top: auto;
+        right: 0.5rem;
+        left: 0.5rem;
+        width: auto;
+        max-width: none;
+        max-height: min(28rem, calc(100dvh - 5.5rem));
+        inset-block-start: calc(env(safe-area-inset-top, 0px) + 3.85rem);
+    }
 }
 
 .admin-notify__panel[hidden] {
@@ -1211,11 +1275,15 @@ html.dark .admin-nav__group {
     align-items: center;
     gap: 0.28rem;
     overflow-x: auto;
+    overscroll-behavior-x: contain;
     padding: 0.05rem 0.15rem;
+    scrollbar-width: thin;
 }
 
-.admin-topbar:has(.admin-modulebar) .admin-topbar__title {
-    display: none;
+@media (min-width: 640px) {
+    .admin-topbar:has(.admin-modulebar) .admin-topbar__title {
+        display: none;
+    }
 }
 
 .admin-modulebar__label {
@@ -1290,8 +1358,13 @@ html.dark .admin-nav__group {
         backdrop-filter: blur(22px);
     }
 
-    .admin-date-chip,
-    .admin-user--chip {
+    .admin-topbar__right,
+    .admin-topbar__account {
+        flex: 0 0 auto;
+        min-width: 0;
+    }
+
+    .admin-date-chip {
         display: flex;
     }
 

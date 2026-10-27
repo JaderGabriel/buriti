@@ -5,7 +5,6 @@
 @section('body')
 @php
     $adminUser = auth()->user();
-    $adminFirstName = explode(' ', trim($adminUser->name))[0] ?? 'olá';
     $runtimeVersions = $runtimeVersions ?? \App\Support\RuntimeVersions::labels();
     $modules = \App\Support\AdminNavigation::modules($adminUser, (int) ($adminUnreadMessages ?? 0));
     $currentModule = \App\Support\AdminNavigation::current($modules);
@@ -58,18 +57,6 @@
         @include('admin.partials.search', ['id' => 'admin-search', 'class' => 'admin-search--sidebar'])
 
         @include('admin.partials.module-nav', ['modules' => $modules, 'runtimeVersions' => $runtimeVersions])
-
-        <a href="{{ route('admin.profile.edit') }}" class="admin-user" data-admin-close>
-            @if($adminUser->avatarUrl())
-                <img src="{{ $adminUser->avatarUrl() }}" alt="" class="admin-user__avatar">
-            @else
-                <span class="admin-user__avatar admin-user__avatar--fallback">{{ $adminUser->initials() }}</span>
-            @endif
-            <span class="admin-user__meta">
-                <span class="admin-user__name">{{ $adminUser->name }}</span>
-                <span class="admin-user__handle">{{ '@'.$adminUser->username }}</span>
-            </span>
-        </a>
     </aside>
 
     <div class="admin-stage">
@@ -87,17 +74,11 @@
                 <div class="admin-topbar__account">
                     @include('admin.partials.notifications')
                     @include('admin.partials.chrome')
-                    <a href="{{ route('admin.profile.edit') }}" class="admin-user admin-user--chip" title="Perfil">
-                        @if($adminUser->avatarUrl())
-                            <img src="{{ $adminUser->avatarUrl() }}" alt="" class="admin-user__avatar">
-                        @else
-                            <span class="admin-user__avatar admin-user__avatar--fallback">{{ $adminUser->initials() }}</span>
-                        @endif
-                        <span class="admin-user__meta">
-                            <span class="admin-user__name">{{ $adminFirstName }}</span>
-                            <span class="admin-user__handle">Perfil</span>
-                        </span>
-                    </a>
+                    @include('admin.partials.profile-card', [
+                        'user' => $adminUser,
+                        'handle' => '@'.$adminUser->username,
+                        'href' => route('admin.profile.edit'),
+                    ])
                 </div>
             </div>
         </header>
