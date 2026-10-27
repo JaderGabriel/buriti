@@ -17,35 +17,47 @@ class AuthTest extends TestCase
 
     public function test_admin_can_authenticate_with_email(): void
     {
-        $user = User::factory()->create([
+        $this->fakeTelegramApi();
+
+        $user = User::factory()->telegramLinked()->create([
             'email' => 'admin@buriti.dev.br',
             'username' => 'adminuser',
             'password' => 'secret123',
         ]);
 
-        $response = $this->post(route('login'), [
+        $this->post(route('login'), [
             'login' => $user->email,
             'password' => 'secret123',
-        ]);
+        ])->assertRedirect(route('login.two-factor'));
 
-        $response->assertRedirect(route('admin.dashboard'));
+        $this->assertGuest();
+
+        $this->post(route('login.two-factor.confirm'), [
+            'code' => $this->lastTelegramTwoFactorCode(),
+        ])->assertRedirect(route('admin.dashboard'));
+
         $this->assertAuthenticatedAs($user);
     }
 
     public function test_admin_can_authenticate_with_username(): void
     {
-        $user = User::factory()->create([
+        $this->fakeTelegramApi();
+
+        $user = User::factory()->telegramLinked()->create([
             'email' => 'admin2@buriti.dev.br',
             'username' => 'jadergabriel',
             'password' => 'secret123',
         ]);
 
-        $response = $this->post(route('login'), [
+        $this->post(route('login'), [
             'login' => 'jadergabriel',
             'password' => 'secret123',
-        ]);
+        ])->assertRedirect(route('login.two-factor'));
 
-        $response->assertRedirect(route('admin.dashboard'));
+        $this->post(route('login.two-factor.confirm'), [
+            'code' => $this->lastTelegramTwoFactorCode(),
+        ])->assertRedirect(route('admin.dashboard'));
+
         $this->assertAuthenticatedAs($user);
     }
 

@@ -39,6 +39,16 @@ Route::middleware('guest')->group(function () {
     Route::get('/admin/login', [LoginController::class, 'create'])->name('login');
     Route::post('/admin/login', [LoginController::class, 'store'])
         ->middleware('throttle:5,1');
+    Route::get('/admin/login/2fa', [LoginController::class, 'twoFactor'])
+        ->name('login.two-factor');
+    Route::post('/admin/login/2fa', [LoginController::class, 'confirmTwoFactor'])
+        ->middleware('throttle:10,1')
+        ->name('login.two-factor.confirm');
+    Route::post('/admin/login/2fa/reenviar', [LoginController::class, 'resendTwoFactor'])
+        ->middleware('throttle:4,1')
+        ->name('login.two-factor.resend');
+    Route::post('/admin/login/2fa/cancelar', [LoginController::class, 'cancelTwoFactor'])
+        ->name('login.two-factor.cancel');
     Route::post('/admin/login/telegram/start', [LoginController::class, 'startTelegram'])
         ->middleware('throttle:10,1')
         ->name('login.telegram.start');

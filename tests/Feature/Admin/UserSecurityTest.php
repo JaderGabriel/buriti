@@ -212,9 +212,16 @@ class UserSecurityTest extends TestCase
 
     public function test_successful_login_records_activity(): void
     {
+        $this->fakeTelegramApi();
+        $this->admin->forceFill(['telegram_chat_id' => '999001'])->save();
+
         $this->post(route('login'), [
             'login' => $this->admin->email,
             'password' => 'password',
+        ])->assertRedirect(route('login.two-factor'));
+
+        $this->post(route('login.two-factor.confirm'), [
+            'code' => $this->lastTelegramTwoFactorCode(),
         ])->assertRedirect(route('admin.dashboard'));
 
         $this->assertAuthenticatedAs($this->admin);

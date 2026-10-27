@@ -3242,6 +3242,150 @@ button.task-agenda__date:hover {
     background: var(--color-line);
 }
 
+.login-panel-inner--otp {
+    max-width: 24.5rem;
+}
+
+.otp-form {
+    position: relative;
+}
+
+.otp-value {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.otp-track {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+}
+
+.otp-gap {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--color-brand-bright) 55%, var(--color-line));
+    flex-shrink: 0;
+}
+
+.otp-cell {
+    display: inline-flex;
+    height: 3.15rem;
+    width: 2.45rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-line);
+    border-radius: 0.95rem;
+    background: color-mix(in oklab, var(--color-ink) 70%, var(--color-panel));
+    color: var(--color-snow);
+    font-family: var(--font-display);
+    font-size: 1.45rem;
+    font-weight: 700;
+    line-height: 1;
+    box-shadow: 0 8px 18px rgba(15, 27, 45, 0.08);
+    transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+
+@media (min-width: 400px) {
+    .otp-cell {
+        height: 3.4rem;
+        width: 2.7rem;
+        font-size: 1.6rem;
+    }
+}
+
+.otp-cell.is-filled {
+    border-color: color-mix(in oklab, #2f6bff 45%, var(--color-line));
+    background: color-mix(in oklab, #2f6bff 10%, var(--color-panel));
+}
+
+.otp-cell.is-active {
+    transform: translateY(-2px) scale(1.04);
+    border-color: #2f6bff;
+    box-shadow: 0 0 0 3px color-mix(in oklab, #2f6bff 28%, transparent);
+}
+
+.otp-form.is-error .otp-cell {
+    animation: otp-shake 0.42s ease;
+    border-color: color-mix(in oklab, #ef4444 50%, var(--color-line));
+}
+
+@keyframes otp-shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-5px); }
+    40% { transform: translateX(5px); }
+    60% { transform: translateX(-3px); }
+    80% { transform: translateX(3px); }
+}
+
+.otp-keypad {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.65rem;
+    margin-top: 1.5rem;
+}
+
+.otp-key {
+    display: inline-flex;
+    min-height: 3.35rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-line);
+    border-radius: 1.15rem;
+    background: color-mix(in oklab, var(--color-panel) 88%, transparent);
+    color: var(--color-snow);
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    font-weight: 700;
+    box-shadow: 0 10px 22px rgba(15, 27, 45, 0.08);
+    backdrop-filter: blur(12px);
+    transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+}
+
+.otp-key:hover {
+    border-color: color-mix(in oklab, #2f6bff 40%, var(--color-line));
+    background: color-mix(in oklab, #2f6bff 10%, var(--color-panel));
+}
+
+.otp-key:active {
+    transform: scale(0.96);
+}
+
+.otp-key--ghost {
+    font-size: 1.15rem;
+    color: var(--color-mist);
+}
+
+.otp-key--confirm {
+    background: linear-gradient(180deg, #4d83ff, #2f6bff);
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 12px 24px rgba(47, 107, 255, 0.28);
+}
+
+.otp-key--confirm:hover {
+    background: #1d4ed8;
+    color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .otp-cell,
+    .otp-key,
+    .otp-form.is-error .otp-cell {
+        animation: none;
+        transition: none;
+    }
+}
+
 
 /* —— Project management workspace —— */
 .pm-workspace__header,

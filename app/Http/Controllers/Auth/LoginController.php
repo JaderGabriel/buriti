@@ -4,12 +4,15 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\User;
+use App\Services\Auth\PasswordTwoFactorService;
 use App\Services\AuthSecurityService;
 use App\Services\Telegram\TelegramWebAuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
 class LoginController extends Controller
@@ -17,31 +20,31 @@ class LoginController extends Controller
     public function __construct(
         private AuthSecurityService $security,
         private TelegramWebAuthService $telegramWebAuth,
+        private PasswordTwoFactorService $twoFactor,
     ) {}
 
-    public function create(): View
+    public function create(Request $request): View
     {
         return view('auth.login', [
             'telegramLoginEnabled' => $this->telegramWebAuth->enabled(),
+            'twoFactorPending' => $this->twoFactor->hasChallenge($request),
         ]);
     }
 
     public function store(LoginRequest $request): RedirectResponse
     {
-        if (! Auth::attempt($request->credentials(), $request->boolean('remember'))) {
-            $this->security->recordLoginAttempt($request, null, false);
+        $field = $request->loginField();
+        $user = User::query()->where($field, $request->input('login'))->first();
+
+        if (! $user || ! Hash::check((string) $request->input('password'), (string) $user->password)) {
+            $this->security->recordLoginAttempt($request, $user, false);
 
             return back()
                 ->withInput($request->only('login', 'remember'))
                 ->withErrors(['login' => 'Credenciais inválidas.']);
         }
 
-        $user = $request->user();
-
-        if ($user && $user->is_admin === false) {
-            Auth::logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
+        if ($user->is_admin === false) {
             $this->security->recordLoginAttempt($request, $user, false);
 
             return back()
@@ -49,10 +52,7 @@ class LoginController extends Controller
                 ->withErrors(['login' => 'Esta conta não tem acesso ao painel admin.']);
         }
 
-        if ($user && $user->is_active === false) {
-            Auth::logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
+        if ($user->is_active === false) {
             $this->security->recordLoginAttempt($request, $user, false);
 
             return back()
@@ -60,10 +60,92 @@ class LoginController extends Controller
                 ->withErrors(['login' => 'Esta conta está desativada.']);
         }
 
+        $started = $this->twoFactor->start($user, $request->boolean('remember'), $request);
+
+        if (! ($started['ok'] ?? false)) {
+            $this->security->recordLoginAttempt($request, $user, false);
+
+            return back()
+                ->withInput($request->only('login', 'remember'))
+                ->withErrors(['login' => $started['message'] ?? 'Não foi possível iniciar a verificação.']);
+        }
+
+        return redirect()->route('login.two-factor');
+    }
+
+    public function twoFactor(Request $request): View|RedirectResponse
+    {
+        if (! $this->twoFactor->hasChallenge($request)) {
+            return redirect()
+                ->route('login')
+                ->withErrors(['login' => 'A verificação expirou. Entre com usuário e senha de novo.']);
+        }
+
+        $payload = $this->twoFactor->payload($request) ?? [];
+
+        return view('auth.two-factor', [
+            'resendWait' => $this->twoFactor->resendWait($payload),
+        ]);
+    }
+
+    public function confirmTwoFactor(Request $request): RedirectResponse
+    {
+        $code = preg_replace('/\D+/', '', (string) $request->input('code')) ?? '';
+        $request->merge(['code' => $code]);
+
+        $request->validate([
+            'code' => ['required', 'string', 'size:6'],
+        ], [
+            'code.required' => 'Informe o código de 6 dígitos.',
+            'code.size' => 'O código precisa ter 6 dígitos.',
+        ]);
+
+        $result = $this->twoFactor->verify($request, $code);
+
+        if (! ($result['ok'] ?? false)) {
+            $this->security->recordLoginAttempt($request, null, false);
+
+            if ($result['locked'] ?? false) {
+                return redirect()
+                    ->route('login')
+                    ->withErrors(['login' => $result['message'] ?? 'A verificação falhou.']);
+            }
+
+            return back()->withErrors(['code' => $result['message'] ?? 'Código inválido.']);
+        }
+
+        /** @var User $user */
+        $user = $result['user'];
+
+        Auth::login($user, (bool) ($result['remember'] ?? false));
         $request->session()->regenerate();
         $this->security->markSuccessfulLogin($user, $request);
 
         return redirect()->intended(route('admin.dashboard'));
+    }
+
+    public function resendTwoFactor(Request $request): RedirectResponse
+    {
+        $result = $this->twoFactor->resend($request);
+
+        if (! ($result['ok'] ?? false)) {
+            if (! $this->twoFactor->hasChallenge($request)) {
+                return redirect()
+                    ->route('login')
+                    ->withErrors(['login' => $result['message'] ?? 'A verificação expirou.']);
+            }
+
+            return back()->withErrors(['code' => $result['message'] ?? 'Não foi possível reenviar.']);
+        }
+
+        return back()->with('status', 'Enviamos um novo código no Telegram.');
+    }
+
+    public function cancelTwoFactor(Request $request): RedirectResponse
+    {
+        $this->twoFactor->forget($request);
+
+        return redirect()->route('login');
     }
 
     public function startTelegram(Request $request): JsonResponse|RedirectResponse

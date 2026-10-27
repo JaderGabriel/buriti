@@ -783,6 +783,122 @@ function initAvatarPreviews() {
     });
 }
 
+function initOtpChallenge() {
+    const form = document.querySelector('[data-otp-form]');
+    if (! form) {
+        return;
+    }
+
+    const valueInput = form.querySelector('[data-otp-value]');
+    const cells = [...form.querySelectorAll('[data-otp-cell]')];
+    const keypad = form.querySelector('[data-otp-keypad]');
+    const resend = document.querySelector('[data-otp-resend]');
+    const length = cells.length;
+    let digits = String(valueInput?.value || '').replace(/\D+/g, '').slice(0, length).split('');
+    let submitting = false;
+
+    const paint = () => {
+        cells.forEach((cell, index) => {
+            const digit = digits[index] || '';
+            cell.textContent = digit;
+            cell.classList.toggle('is-filled', digit !== '');
+            cell.classList.toggle('is-active', index === Math.min(digits.length, length - 1));
+        });
+        if (valueInput) {
+            valueInput.value = digits.join('');
+        }
+    };
+
+    const submitIfComplete = () => {
+        if (submitting || digits.length !== length) {
+            return;
+        }
+        submitting = true;
+        form.requestSubmit();
+    };
+
+    const pushDigit = (digit) => {
+        if (! /^\d$/.test(digit) || digits.length >= length) {
+            return;
+        }
+        digits.push(digit);
+        paint();
+        submitIfComplete();
+    };
+
+    const popDigit = () => {
+        digits.pop();
+        paint();
+    };
+
+    const setFromString = (raw) => {
+        digits = String(raw || '').replace(/\D+/g, '').slice(0, length).split('');
+        paint();
+        submitIfComplete();
+    };
+
+    form.addEventListener('click', () => valueInput?.focus());
+
+    valueInput?.addEventListener('input', () => {
+        setFromString(valueInput.value);
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (! form.contains(document.activeElement) && document.activeElement !== document.body) {
+            return;
+        }
+        if (event.key === 'Backspace') {
+            event.preventDefault();
+            popDigit();
+            return;
+        }
+        if (/^\d$/.test(event.key)) {
+            event.preventDefault();
+            pushDigit(event.key);
+        }
+    });
+
+    keypad?.addEventListener('click', (event) => {
+        const key = event.target.closest('[data-otp-key]');
+        if (! key) {
+            return;
+        }
+        const action = key.getAttribute('data-otp-key');
+        if (action === 'back') {
+            event.preventDefault();
+            popDigit();
+            return;
+        }
+        if (action === 'submit') {
+            return;
+        }
+        event.preventDefault();
+        pushDigit(action);
+    });
+
+    if (resend) {
+        let wait = Number(resend.getAttribute('data-otp-resend-wait') || 0);
+        const label = resend.textContent?.trim() || 'Reenviar código';
+        const tick = () => {
+            if (wait <= 0) {
+                resend.disabled = false;
+                resend.textContent = label;
+                return;
+            }
+            resend.disabled = true;
+            resend.textContent = `Reenviar em ${wait}s`;
+            wait -= 1;
+            window.setTimeout(tick, 1000);
+        };
+        if (wait > 0) {
+            tick();
+        }
+    }
+
+    paint();
+    window.setTimeout(() => valueInput?.focus(), 50);
+}
+
 function initTelegramLogin() {
     const root = document.querySelector('[data-telegram-login]');
     const startBtn = root?.querySelector('[data-telegram-start]');
@@ -2949,6 +3065,7 @@ initAvatarPreviews();
 initPasswordFields();
 initDocumentMasks();
 initPasswordGenerators();
+initOtpChallenge();
 initTelegramLogin();
 initTaskCreateDialog();
 initBulkActivityDialog();

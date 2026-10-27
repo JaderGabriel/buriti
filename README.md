@@ -50,6 +50,7 @@ Jornada: **Mensagem → Contato → Oportunidade → Projeto → Tarefa**.
 - Senha mínima com letras e números (regra `Password::defaults`)
 - Honeypot no contacto público
 - Login admin também via Telegram (desafio temporário no bot — sem widget)
+- Login por usuário/senha exige 2FA: código de 6 dígitos enviado no Telegram vinculado à conta
 
 ## Requisitos
 

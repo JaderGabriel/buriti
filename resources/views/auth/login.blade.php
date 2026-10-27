@@ -29,13 +29,20 @@
                 <div class="mb-8">
                     <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-bright">Acesso admin</p>
                     <h1 id="login-heading" class="mt-2 font-display text-2xl font-bold text-snow sm:text-3xl">Entrar no painel</h1>
-                    <p class="mt-2 text-sm text-mist">Use e-mail/username ou confirme pelo bot Telegram (desafio único).</p>
+                    <p class="mt-2 text-sm text-mist">Use e-mail/username — depois confirmamos com um código de 6 dígitos no Telegram — ou entre pelo bot (desafio único).</p>
                 </div>
 
                 @if ($errors->has('telegram'))
                     <div class="mb-5 rounded-sm border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-sm text-red-300" role="alert">
                         {{ $errors->first('telegram') }}
                     </div>
+                @endif
+
+                @if (! empty($twoFactorPending))
+                    <p class="mb-5 text-sm text-mist">
+                        Há uma verificação em andamento.
+                        <a href="{{ route('login.two-factor') }}" class="font-semibold text-brand-bright hover:text-snow">Informar o código</a>
+                    </p>
                 @endif
 
                 @if ($telegramLoginEnabled)

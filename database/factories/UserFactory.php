@@ -67,4 +67,11 @@ class UserFactory extends Factory
             $user->forceFill(['is_active' => false]);
         });
     }
+
+    public function telegramLinked(string $chatId = '999001'): static
+    {
+        return $this->afterMaking(function (User $user) use ($chatId) {
+            $user->forceFill(['telegram_chat_id' => $chatId]);
+        });
+    }
 }

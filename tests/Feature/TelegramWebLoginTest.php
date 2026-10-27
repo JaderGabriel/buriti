@@ -144,6 +144,7 @@ class TelegramWebLoginTest extends TestCase
         $bot = \Mockery::mock(TelegramBotService::class);
         $bot->shouldReceive('configured')->andReturn(true);
         $bot->shouldReceive('handleUpdate')->once()->andThrow(new \RuntimeException('boom'));
+        $bot->shouldReceive('notifyProcessingError')->once();
         $this->app->instance(TelegramBotService::class, $bot);
 
         $this->postWebhook([
