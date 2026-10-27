@@ -17,6 +17,7 @@
     href="{{ route('admin.tasks.index', array_filter(['view' => $view, 'month' => $month, 'focus' => $task->id])) }}#task-{{ $task->id }}"
     class="task-chip task-chip--{{ $task->status->value }} {{ $isDone ? 'task-chip--success' : '' }}"
     data-task-event
+    data-task-open="{{ $task->id }}"
     title="{{ $isDone ? 'Concluída · ' : '' }}{{ $task->title }}{{ $summary ? ' — '.$summary : '' }}{{ $activityPreview !== '' ? ' — '.$activityPreview : '' }}"
 >
     @if($isDone)

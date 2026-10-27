@@ -56,6 +56,7 @@
         'journey' => 'M5 12h14M5 12a2 2 0 1 1 0-4h14a2 2 0 1 1 0 4M5 12a2 2 0 1 0 0 4h14a2 2 0 1 0 0-4',
         'jirau' => 'M4 14h16M6 10h12M8 6h8M5 18h14',
         'roadmap' => 'M3 6h7v4H3zM14 6h7v7h-7zM3 14h7v6H3zM14 17h7v3h-7z',
+        'grip' => 'M9 5v14M15 5v14',
     ];
     $d = $paths[$name] ?? $paths['code'];
 @endphp

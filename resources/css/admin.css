@@ -1338,6 +1338,21 @@ html.dark [data-admin-shell] .dash-stat--tasks .dash-stat__spark { color: #fdba7
     height: auto;
 }
 
+[data-admin-shell] .dash-board-toolbar p {
+    color: var(--admin-muted);
+}
+
+[data-admin-shell] .dash-board-toolbar__reset {
+    border-color: var(--admin-glass-border);
+    background: var(--admin-chip);
+}
+
+[data-admin-shell] .dash-widget__handle {
+    border-color: var(--admin-glass-border);
+    background: var(--admin-glass-strong);
+    color: var(--admin-muted);
+}
+
 [data-admin-shell] .dash-panel--actions {
     min-height: 0;
     height: auto;

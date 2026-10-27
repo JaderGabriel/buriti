@@ -4,7 +4,7 @@
     @php
         $adminFirstName = explode(' ', trim(auth()->user()->name))[0] ?? 'olá';
     @endphp
-    <div class="admin-hero">
+    <div class="admin-hero" data-admin-dashboard>
         <div>
             <p class="admin-hero__kicker">Início</p>
             <h1 class="admin-hero__title">Bem-vindo de volta, {{ $adminFirstName }}!</h1>
@@ -58,7 +58,7 @@
                 <p class="text-xs font-semibold uppercase tracking-wide text-mist">Tarefas em atraso</p>
                 <ul class="mt-2 space-y-1 text-sm">
                     @forelse($inbox['overdue_tasks'] as $task)
-                        <li><a href="{{ route('admin.tasks.index') }}" class="text-brand-bright hover:underline">{{ $task->title }}</a></li>
+                        <li><a href="{{ route('admin.tasks.index', ['view' => 'agenda']) }}" class="text-brand-bright hover:underline" data-task-open="{{ $task->id }}">{{ $task->title }}</a></li>
                     @empty
                         <li class="text-mist">Sem atrasos.</li>
                     @endforelse
@@ -78,7 +78,7 @@
                 <p class="text-xs font-semibold uppercase tracking-wide text-mist">Meet sem link</p>
                 <ul class="mt-2 space-y-1 text-sm">
                     @forelse($inbox['meet_missing'] as $task)
-                        <li>{{ $task->title }}</li>
+                        <li><a href="{{ route('admin.tasks.index', ['view' => 'agenda']) }}" class="text-brand-bright hover:underline" data-task-open="{{ $task->id }}">{{ $task->title }}</a></li>
                     @empty
                         <li class="text-mist">Nada pendente.</li>
                     @endforelse
@@ -88,7 +88,7 @@
                 <p class="text-xs font-semibold uppercase tracking-wide text-mist">Agenda sem sync Google</p>
                 <ul class="mt-2 space-y-1 text-sm">
                     @forelse($inbox['google_unsynced'] as $task)
-                        <li>{{ $task->title }}</li>
+                        <li><a href="{{ route('admin.tasks.index', ['view' => 'agenda']) }}" class="text-brand-bright hover:underline" data-task-open="{{ $task->id }}">{{ $task->title }}</a></li>
                     @empty
                         <li class="text-mist">Nada pendente.</li>
                     @endforelse
@@ -133,8 +133,13 @@
         @endforeach
     </div>
 
-    <div class="dash-panels mt-8">
-        <section class="dash-panel dash-panel--messages">
+    <div class="dash-board-toolbar mt-8">
+        <p>Arraste o cabeçalho para mover os cartões. O canto inferior direito muda a largura (1, 2 ou 3 colunas). O painel empilha pela coluna mais baixa para não deixar buracos.</p>
+        <button type="button" class="dash-board-toolbar__reset" data-dash-reset>Repor disposição</button>
+    </div>
+    <div class="dash-panels dash-board" data-dash-board>
+        <section class="dash-panel dash-panel--messages dash-widget" data-dash-widget="messages" data-span="1">
+            @include('admin.dashboard.partials.widget-tools', ['label' => 'Mensagens'])
             <header class="dash-panel__head">
                 <div class="dash-panel__title-wrap">
                     <span class="dash-panel__icon" aria-hidden="true"><x-ui.icon name="message" class="h-5 w-5" /></span>
@@ -196,7 +201,8 @@
             </ul>
         </section>
 
-        <section class="dash-panel dash-panel--contacts">
+        <section class="dash-panel dash-panel--contacts dash-widget" data-dash-widget="contacts" data-span="1">
+            @include('admin.dashboard.partials.widget-tools', ['label' => 'Contatos'])
             <header class="dash-panel__head">
                 <div class="dash-panel__title-wrap">
                     <span class="dash-panel__icon" aria-hidden="true"><x-ui.icon name="contact" class="h-5 w-5" /></span>
@@ -253,7 +259,8 @@
             </ul>
         </section>
 
-        <section class="dash-panel dash-panel--tasks">
+        <section class="dash-panel dash-panel--tasks dash-widget" data-dash-widget="tasks" data-span="1">
+            @include('admin.dashboard.partials.widget-tools', ['label' => 'Tarefas'])
             <header class="dash-panel__head">
                 <div class="dash-panel__title-wrap">
                     <span class="dash-panel__icon" aria-hidden="true"><x-ui.icon name="task" class="h-5 w-5" /></span>
@@ -276,7 +283,7 @@
                 @forelse($upcomingTasks as $task)
                     @php $urgency = $task->dueUrgency(); @endphp
                     <li>
-                        <a href="{{ route('admin.tasks.index', ['view' => 'agenda']) }}" class="dash-feed__item dash-feed__item--task" data-urgency="{{ $urgency }}">
+                        <a href="{{ route('admin.tasks.index', ['view' => 'agenda']) }}" class="dash-feed__item dash-feed__item--task" data-urgency="{{ $urgency }}" data-task-open="{{ $task->id }}">
                             <span class="dash-feed__due" aria-hidden="true">
                                 @if($task->due_at)
                                     <strong>{{ $task->due_at->format('d') }}</strong>
@@ -315,7 +322,8 @@
             </ul>
         </section>
 
-        <section class="dash-panel dash-panel--conduct">
+        <section class="dash-panel dash-panel--conduct dash-widget" data-dash-widget="conduct" data-span="3">
+            @include('admin.dashboard.partials.widget-tools', ['label' => 'Atividades'])
             <header class="dash-panel__head">
                 <div class="dash-panel__title-wrap">
                     <span class="dash-panel__icon" aria-hidden="true"><x-ui.icon name="journey" class="h-5 w-5" /></span>

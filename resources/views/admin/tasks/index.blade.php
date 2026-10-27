@@ -5,12 +5,12 @@
     $defaultDay = now()->format('Y-m-d');
     $defaultDueAt = now()->setTime(9, 0)->format('Y-m-d\TH:i');
 @endphp
-<div data-task-shell>
+<div data-task-shell data-task-view="{{ $view }}" data-task-month="{{ $month }}">
     <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
             <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand-bright">Agenda operacional</p>
             <h1 class="font-display text-2xl font-bold sm:text-3xl">Calendário de atividades</h1>
-            <p class="mt-1 text-mist">Clique em um dia para criar um compromisso — no estilo da Google Agenda.</p>
+            <p class="mt-1 text-mist">Clique num dia para criar. Clique numa tarefa para editar ou marcar conclusão.</p>
         </div>
         <div class="flex flex-wrap gap-2">
             <button

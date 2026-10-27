@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Data\GoogleCalendarEvent;
+use App\Enums\GoogleEventColor;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Http\Controllers\Controller;
@@ -18,6 +20,7 @@ use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class TaskController extends Controller
@@ -91,9 +94,9 @@ class TaskController extends Controller
             $excludeGoogleIds
         );
 
-        /** @var \Illuminate\Support\Collection<string, \Illuminate\Support\Collection<int, \App\Data\GoogleCalendarEvent>> $googleEventsByDate */
+        /** @var Collection<string, Collection<int, GoogleCalendarEvent>> $googleEventsByDate */
         $googleEventsByDate = $googlePull['events']
-            ->groupBy(fn (\App\Data\GoogleCalendarEvent $event) => $event->dateKey())
+            ->groupBy(fn (GoogleCalendarEvent $event) => $event->dateKey())
             ->map(fn ($dayEvents) => $dayEvents->values());
 
         $calendarDays = $calendarDays->map(function (array $day) use ($googleEventsByDate) {
@@ -125,7 +128,7 @@ class TaskController extends Controller
             'googleCalendarUrl' => $this->google->calendarHomeUrl(),
             'googleIntegration' => $this->google->integrationStatus(),
             'instantMeetUrl' => $this->google->instantMeetUrl(),
-            'googleEventColors' => \App\Enums\GoogleEventColor::palette(),
+            'googleEventColors' => GoogleEventColor::palette(),
             'googleEventsCount' => $googlePull['events']->count(),
             'googleEventsError' => $googlePull['error'],
             'googleApiReady' => $this->google->apiConfigured(),
@@ -138,7 +141,7 @@ class TaskController extends Controller
                 )->count(),
                 'undated' => $undatedTasks->count(),
                 'google_month' => $googlePull['events']->filter(
-                    fn (\App\Data\GoogleCalendarEvent $event) => $event->start?->isSameMonth($cursor)
+                    fn (GoogleCalendarEvent $event) => $event->start?->isSameMonth($cursor)
                 )->count(),
             ],
         ]);
@@ -167,6 +170,29 @@ class TaskController extends Controller
         return response($ics, 200, [
             'Content-Type' => 'text/calendar; charset=utf-8',
             'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        ]);
+    }
+
+    public function edit(Request $request, Task $task): View
+    {
+        $task->load([
+            'project',
+            'contact',
+            'activities' => fn ($q) => $q->with(['contact', 'user'])->orderBy('happened_at')->orderBy('id')->limit(20),
+        ]);
+
+        $month = $request->query('return_month', $request->query('month'));
+
+        return view('admin.tasks.partials.edit-dialog-body', [
+            'task' => $task,
+            'view' => $this->resolveView((string) $request->query('return_view', $request->query('view'))),
+            'month' => is_string($month) && $month !== '' ? $month : null,
+            'returnTo' => $request->query('return_to') === 'dashboard' ? 'dashboard' : null,
+            'statusLabels' => TaskStatus::options(),
+            'priorityLabels' => TaskPriority::options(),
+            'projects' => Project::query()->orderBy('name')->get(),
+            'contacts' => Contact::query()->orderBy('name')->get(),
+            'googleEventColors' => GoogleEventColor::palette(),
         ]);
     }
 
@@ -213,6 +239,27 @@ class TaskController extends Controller
         }
 
         return $this->tasksRedirect()->with('success', 'Tarefa atualizada.');
+    }
+
+    public function complete(Task $task): RedirectResponse
+    {
+        $task->status = $task->status->isDone() ? TaskStatus::Todo : TaskStatus::Done;
+        $task->save();
+
+        $this->audit->record('task.updated', $task, [
+            'summary' => $task->title,
+            'status' => $task->status->value,
+        ]);
+
+        $message = $task->status->isDone() ? 'Tarefa concluída.' : 'Tarefa reaberta.';
+
+        if ($this->shouldAutoSync()) {
+            $result = $this->google->syncTask($task->fresh());
+
+            return $this->syncFlashRedirect($result, $message);
+        }
+
+        return $this->tasksRedirect()->with('success', $message);
     }
 
     public function destroy(Task $task): RedirectResponse
@@ -276,6 +323,10 @@ class TaskController extends Controller
 
     private function tasksRedirect(): RedirectResponse
     {
+        if (request('return_to') === 'dashboard') {
+            return redirect()->route('admin.dashboard');
+        }
+
         $params = [];
 
         if (request()->filled('return_view') || request()->filled('view')) {

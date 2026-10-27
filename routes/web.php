@@ -246,7 +246,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/tarefas', [TaskController::class, 'index'])->name('tasks.index');
     Route::get('/tarefas/exportar.ics', [TaskController::class, 'export'])->name('tasks.export');
     Route::post('/tarefas', [TaskController::class, 'store'])->name('tasks.store');
+    Route::get('/tarefas/{task}/editar', [TaskController::class, 'edit'])->name('tasks.edit');
     Route::put('/tarefas/{task}', [TaskController::class, 'update'])->name('tasks.update');
+    Route::post('/tarefas/{task}/concluir', [TaskController::class, 'complete'])->name('tasks.complete');
     Route::post('/tarefas/{task}/google', [TaskController::class, 'syncGoogle'])->name('tasks.google');
     Route::delete('/tarefas/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
 

@@ -107,6 +107,8 @@
         </div>
     </div>
 
+    @include('admin.tasks.partials.edit-dialog')
+
     <button
         type="button"
         class="back-to-top"

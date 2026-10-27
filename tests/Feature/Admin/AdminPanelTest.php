@@ -244,7 +244,45 @@ class AdminPanelTest extends TestCase
         $this->actingAs($this->admin)
             ->get(route('admin.tasks.index', ['view' => 'list']))
             ->assertOk()
-            ->assertSee('task-list', false);
+            ->assertSee('task-list', false)
+            ->assertSee('data-task-open', false)
+            ->assertSee('task-edit-dialog', false);
+    }
+
+    public function test_task_click_opens_edit_modal_and_can_complete(): void
+    {
+        $task = Task::factory()->create([
+            'title' => 'Revisar proposta modal',
+            'status' => 'todo',
+            'due_at' => now()->addDay()->startOfHour(),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.tasks.edit', $task))
+            ->assertOk()
+            ->assertSee('Revisar proposta modal', false)
+            ->assertSee('Marcar concluída', false)
+            ->assertSee('Salvar', false);
+
+        $this->actingAs($this->admin)
+            ->from(route('admin.dashboard'))
+            ->post(route('admin.tasks.complete', $task), [
+                'return_to' => 'dashboard',
+            ])
+            ->assertRedirect(route('admin.dashboard'));
+
+        $this->assertTrue($task->fresh()->status->isDone());
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('data-dash-board', false)
+            ->assertSee('data-dash-widget="messages"', false)
+            ->assertSee('data-dash-widget="contacts"', false)
+            ->assertSee('data-dash-widget="tasks"', false)
+            ->assertSee('data-dash-widget="conduct"', false)
+            ->assertSee('data-dash-handle', false)
+            ->assertSee('Repor disposição', false);
     }
 
     public function test_task_google_sync_redirects_to_calendar_when_api_missing(): void

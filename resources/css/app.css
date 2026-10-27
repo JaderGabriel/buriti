@@ -2840,6 +2840,11 @@ button.task-agenda__date:hover {
     }
 }
 
+.task-create-dialog__panel--edit {
+    width: min(100%, 38rem);
+    max-height: min(92vh, 52rem);
+}
+
 .task-agenda__items {
     display: grid;
     gap: 0.65rem;
@@ -6935,6 +6940,130 @@ button.task-agenda__date:hover {
     }
 }
 
+.dash-board-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.75rem 1.25rem;
+    margin-bottom: 0.85rem;
+}
+
+.dash-board-toolbar p {
+    margin: 0;
+    max-width: 46rem;
+    font-size: 0.8rem;
+    color: var(--color-mist);
+}
+
+.dash-board-toolbar__reset {
+    appearance: none;
+    border: 1px solid var(--color-line);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 650;
+    padding: 0.35rem 0.7rem;
+    border-radius: 99px;
+    cursor: pointer;
+}
+
+.dash-board.dash-panels {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.1rem;
+    align-items: start;
+}
+
+@media (min-width: 900px) {
+    .dash-board.dash-panels {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-auto-flow: dense;
+    }
+}
+
+@media (min-width: 1100px) {
+    .dash-board.dash-panels {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+.dash-board.dash-panels.is-packed {
+    display: block;
+    position: relative;
+    grid-template-columns: none;
+}
+
+.dash-widget {
+    position: relative;
+    min-width: 0;
+}
+
+.dash-board.is-packed .dash-widget {
+    position: absolute;
+    margin: 0;
+}
+
+.dash-board .dash-panel--conduct {
+    grid-column: auto;
+}
+
+@media (min-width: 900px) {
+    .dash-board:not(.is-packed) .dash-widget[data-span="3"] {
+        grid-column: 1 / -1;
+    }
+}
+
+.dash-widget__handle {
+    position: absolute;
+    top: 0.8rem;
+    left: 0.65rem;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.7rem;
+    height: 1.7rem;
+    border: 1px solid var(--color-line);
+    border-radius: 0.55rem;
+    background: color-mix(in oklab, var(--color-panel) 80%, transparent);
+    color: var(--color-mist);
+    cursor: grab;
+    touch-action: none;
+}
+
+.dash-widget__handle:active {
+    cursor: grabbing;
+}
+
+.dash-widget .dash-panel__head {
+    padding-left: 2.55rem;
+}
+
+.dash-widget__resize {
+    position: absolute;
+    right: 0.2rem;
+    bottom: 0.2rem;
+    z-index: 3;
+    width: 0.95rem;
+    height: 0.95rem;
+    cursor: nwse-resize;
+    touch-action: none;
+    background:
+        linear-gradient(135deg, transparent 45%, currentColor 45% 52%, transparent 52%),
+        linear-gradient(135deg, transparent 68%, currentColor 68% 75%, transparent 75%);
+    color: var(--color-mist);
+    opacity: 0.55;
+}
+
+.dash-widget.is-dragging,
+.dash-widget.is-resizing {
+    z-index: 4;
+    box-shadow: 0 18px 40px rgba(15, 27, 45, 0.18);
+    opacity: 0.92;
+}
+
 .dash-panel {
     border: 1px solid var(--color-line);
     background: var(--color-panel);
@@ -7034,7 +7163,7 @@ button.task-agenda__date:hover {
     border-color: color-mix(in oklab, #d4a017 35%, var(--color-line));
 }
 
-.dash-panel--conduct {
+.dash-panels:not(.dash-board) .dash-panel--conduct {
     grid-column: 1 / -1;
 }
 

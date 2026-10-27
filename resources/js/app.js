@@ -3161,7 +3161,7 @@ function initTaskCreateDialog() {
             return;
         }
 
-        if (event.target.closest?.('[data-task-event]')) {
+        if (event.target.closest?.('[data-task-event], [data-task-open], #task-edit-dialog')) {
             return;
         }
 
@@ -3200,6 +3200,350 @@ function initTaskCreateDialog() {
 
 function initTaskDayCreateFallback() {
     // Mantido vazio: criação de tarefas usa initTaskCreateDialog (vanilla).
+}
+
+function initTaskEditDialog() {
+    const dialog = document.getElementById('task-edit-dialog');
+    if (! dialog) {
+        return;
+    }
+
+    if (dialog.parentElement !== document.body) {
+        document.body.appendChild(dialog);
+    }
+
+    const body = dialog.querySelector('[data-task-edit-body]');
+    const base = (dialog.getAttribute('data-edit-base') || '/admin/tarefas').replace(/\/$/, '');
+    let seq = 0;
+
+    const closeDialog = () => {
+        dialog.hidden = true;
+        dialog.classList.remove('is-open');
+        dialog.setAttribute('aria-hidden', 'true');
+        document.documentElement.classList.remove('overflow-hidden');
+    };
+
+    const openDialog = async (id) => {
+        const taskId = String(id || '').replace(/\D+/g, '');
+        if (! taskId || ! body) {
+            return;
+        }
+
+        const params = new URLSearchParams();
+        const shell = document.querySelector('[data-task-shell]');
+        if (document.querySelector('[data-admin-dashboard]')) {
+            params.set('return_to', 'dashboard');
+        }
+        if (shell?.getAttribute('data-task-view')) {
+            params.set('return_view', shell.getAttribute('data-task-view'));
+        }
+        if (shell?.getAttribute('data-task-month')) {
+            params.set('return_month', shell.getAttribute('data-task-month'));
+        }
+
+        dialog.hidden = false;
+        dialog.classList.add('is-open');
+        dialog.setAttribute('aria-hidden', 'false');
+        document.documentElement.classList.add('overflow-hidden');
+        body.innerHTML = '<p class="text-sm text-mist">A carregar tarefa…</p>';
+
+        const ticket = ++seq;
+        try {
+            const query = params.toString();
+            const response = await fetch(`${base}/${taskId}/editar${query ? `?${query}` : ''}`, {
+                headers: {
+                    Accept: 'text/html',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+            if (! response.ok) {
+                throw new Error('fail');
+            }
+            const html = await response.text();
+            if (ticket !== seq) {
+                return;
+            }
+            body.innerHTML = html;
+            body.querySelector('[data-task-edit-close]')?.focus();
+        } catch (error) {
+            if (ticket !== seq) {
+                return;
+            }
+            body.innerHTML = '<p class="text-sm text-red-300">Não foi possível abrir a tarefa.</p>';
+        }
+    };
+
+    document.addEventListener('click', (event) => {
+        const closer = event.target.closest?.('[data-task-edit-close]');
+        if (closer) {
+            event.preventDefault();
+            closeDialog();
+            return;
+        }
+
+        const trigger = event.target.closest?.('[data-task-open]');
+        if (! trigger) {
+            return;
+        }
+
+        const id = trigger.getAttribute('data-task-open');
+        if (! id) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        openDialog(id);
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && dialog.classList.contains('is-open')) {
+            closeDialog();
+        }
+    });
+
+    window.buritiOpenTaskEdit = openDialog;
+}
+
+function initDashBoard() {
+    const board = document.querySelector('[data-dash-board]');
+    if (! board) {
+        return;
+    }
+
+    const storageKey = 'buriti-dash-layout';
+    const defaults = {
+        messages: { span: 1 },
+        contacts: { span: 1 },
+        tasks: { span: 1 },
+        conduct: { span: 3 },
+    };
+    const gap = 18;
+    const widgets = () => [...board.querySelectorAll('[data-dash-widget]')];
+
+    const colCount = () => {
+        const width = board.clientWidth;
+        if (width < 720) {
+            return 1;
+        }
+        if (width < 1100) {
+            return 2;
+        }
+
+        return 3;
+    };
+
+    const load = () => {
+        try {
+            const raw = JSON.parse(localStorage.getItem(storageKey) || 'null');
+            if (raw && Array.isArray(raw.order)) {
+                raw.order.forEach((id) => {
+                    const el = board.querySelector(`[data-dash-widget="${id}"]`);
+                    if (el) {
+                        board.appendChild(el);
+                    }
+                });
+                Object.entries(raw.spans || {}).forEach(([id, span]) => {
+                    const el = board.querySelector(`[data-dash-widget="${id}"]`);
+                    const value = Number(span);
+                    if (el && value >= 1 && value <= 3) {
+                        el.dataset.span = String(value);
+                    }
+                });
+            }
+        } catch (error) {
+            // keep defaults
+        }
+    };
+
+    const save = () => {
+        const spans = {};
+        widgets().forEach((el) => {
+            spans[el.dataset.dashWidget] = Number(el.dataset.span || defaults[el.dataset.dashWidget]?.span || 1);
+        });
+        localStorage.setItem(storageKey, JSON.stringify({
+            order: widgets().map((el) => el.dataset.dashWidget),
+            spans,
+        }));
+    };
+
+    const pack = () => {
+        const items = widgets();
+        const n = colCount();
+        const width = board.clientWidth;
+        if (width < 40 || items.length === 0) {
+            return;
+        }
+
+        board.classList.add('is-packed');
+        const colW = (width - gap * (n - 1)) / n;
+        const heights = Array.from({ length: n }, () => 0);
+
+        items.forEach((el) => {
+            const span = Math.min(Math.max(Number(el.dataset.span || 1), 1), n);
+            el.style.width = `${span * colW + (span - 1) * gap}px`;
+            el.style.maxWidth = '100%';
+
+            let best = 0;
+            let bestTop = Infinity;
+            if (span >= n) {
+                best = 0;
+                bestTop = Math.max(0, ...heights);
+            } else {
+                for (let i = 0; i <= n - span; i += 1) {
+                    let top = 0;
+                    for (let j = 0; j < span; j += 1) {
+                        top = Math.max(top, heights[i + j]);
+                    }
+                    if (top < bestTop) {
+                        bestTop = top;
+                        best = i;
+                    }
+                }
+            }
+
+            el.style.left = `${best * (colW + gap)}px`;
+            el.style.top = `${bestTop}px`;
+
+            const height = el.offsetHeight;
+            const next = bestTop + height + gap;
+            for (let j = 0; j < span; j += 1) {
+                heights[best + j] = next;
+            }
+        });
+
+        board.style.height = `${Math.max(0, Math.max(0, ...heights) - gap)}px`;
+    };
+
+    const reset = () => {
+        Object.entries(defaults).forEach(([id, conf]) => {
+            const el = board.querySelector(`[data-dash-widget="${id}"]`);
+            if (el) {
+                el.dataset.span = String(conf.span);
+                board.appendChild(el);
+            }
+        });
+        localStorage.removeItem(storageKey);
+        pack();
+    };
+
+    load();
+    pack();
+
+    let packTimer = 0;
+    const schedulePack = () => {
+        window.clearTimeout(packTimer);
+        packTimer = window.setTimeout(pack, 40);
+    };
+
+    window.addEventListener('resize', schedulePack);
+    if (window.ResizeObserver) {
+        const observer = new ResizeObserver(schedulePack);
+        observer.observe(board);
+        widgets().forEach((el) => observer.observe(el));
+    }
+
+    document.querySelector('[data-dash-reset]')?.addEventListener('click', (event) => {
+        event.preventDefault();
+        reset();
+    });
+
+    let drag = null;
+
+    board.addEventListener('pointerdown', (event) => {
+        const handle = event.target.closest?.('[data-dash-handle]');
+        const resize = event.target.closest?.('[data-dash-resize]');
+        const widget = event.target.closest?.('[data-dash-widget]');
+        if (! widget || ! board.contains(widget)) {
+            return;
+        }
+
+        if (resize) {
+            event.preventDefault();
+            event.stopPropagation();
+            drag = {
+                type: 'resize',
+                widget,
+                startX: event.clientX,
+                startSpan: Number(widget.dataset.span || 1),
+            };
+            widget.classList.add('is-resizing');
+            resize.setPointerCapture?.(event.pointerId);
+            return;
+        }
+
+        if (! handle) {
+            return;
+        }
+
+        event.preventDefault();
+        drag = {
+            type: 'move',
+            widget,
+            startX: event.clientX,
+            startY: event.clientY,
+            moved: false,
+        };
+        handle.setPointerCapture?.(event.pointerId);
+    });
+
+    board.addEventListener('pointermove', (event) => {
+        if (! drag) {
+            return;
+        }
+
+        if (drag.type === 'resize') {
+            const delta = event.clientX - drag.startX;
+            let span = drag.startSpan;
+            if (delta > 140) {
+                span = 3;
+            } else if (delta > 64) {
+                span = Math.min(3, drag.startSpan + 1);
+            } else if (delta < -140) {
+                span = 1;
+            } else if (delta < -64) {
+                span = Math.max(1, drag.startSpan - 1);
+            }
+            if (Number(drag.widget.dataset.span) !== span) {
+                drag.widget.dataset.span = String(span);
+                pack();
+            }
+            return;
+        }
+
+        const dist = Math.abs(event.clientX - drag.startX) + Math.abs(event.clientY - drag.startY);
+        if (! drag.moved && dist < 8) {
+            return;
+        }
+        drag.moved = true;
+        drag.widget.classList.add('is-dragging');
+
+        const over = document.elementFromPoint(event.clientX, event.clientY)?.closest?.('[data-dash-widget]');
+        if (over && over !== drag.widget && board.contains(over)) {
+            const rect = over.getBoundingClientRect();
+            if (event.clientY > rect.top + rect.height / 2) {
+                over.after(drag.widget);
+            } else {
+                over.before(drag.widget);
+            }
+            pack();
+        }
+    });
+
+    const endDrag = () => {
+        if (! drag) {
+            return;
+        }
+        drag.widget.classList.remove('is-dragging', 'is-resizing');
+        if (drag.moved || drag.type === 'resize') {
+            save();
+            pack();
+        }
+        drag = null;
+    };
+
+    board.addEventListener('pointerup', endDrag);
+    board.addEventListener('pointercancel', endDrag);
 }
 
 function initDriveViewer() {
@@ -3771,6 +4115,8 @@ initPasswordGenerators();
 initOtpChallenge();
 initTelegramLogin();
 initTaskCreateDialog();
+initTaskEditDialog();
+initDashBoard();
 initBulkActivityDialog();
 initPhonebookSelection();
 initTaskDayCreateFallback();
@@ -3790,10 +4136,12 @@ try {
     console.error('Alpine failed to start', error);
 }
 
-document.querySelectorAll('[data-confirm]').forEach((el) => {
-    el.addEventListener('submit', (event) => {
-        if (!confirm(el.dataset.confirm || 'Confirmar esta ação?')) {
-            event.preventDefault();
-        }
-    });
+document.addEventListener('submit', (event) => {
+    const form = event.target.closest?.('[data-confirm]');
+    if (! form) {
+        return;
+    }
+    if (! confirm(form.dataset.confirm || 'Confirmar esta ação?')) {
+        event.preventDefault();
+    }
 });
