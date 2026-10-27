@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Account\NotificationController;
 use App\Http\Controllers\Admin\AttachmentController;
 use App\Http\Controllers\Admin\CompanyController;
 use App\Http\Controllers\Admin\ContactController as AdminContactController;
@@ -79,6 +80,18 @@ Route::middleware('guest')->group(function () {
 Route::post('/admin/logout', [LoginController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
+
+Route::prefix('conta')->name('account.')->middleware(['auth'])->group(function () {
+    Route::get('/notificacoes', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notificacoes/lidas', [NotificationController::class, 'markAllRead'])
+        ->middleware('throttle:30,1')
+        ->name('notifications.read-all');
+    Route::get('/notificacoes/{notification}', [NotificationController::class, 'open'])
+        ->name('notifications.open');
+    Route::post('/notificacoes/{notification}/lida', [NotificationController::class, 'markRead'])
+        ->middleware('throttle:60,1')
+        ->name('notifications.read');
+});
 
 Route::prefix('jirau')->name('jirau.')->middleware(['auth', 'jirau'])->group(function () {
     Route::get('/', [JirauBoardController::class, 'home'])->name('home');

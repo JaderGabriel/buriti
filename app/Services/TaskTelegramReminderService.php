@@ -2,9 +2,10 @@
 
 namespace App\Services;
 
+use App\Enums\NotificationType;
 use App\Models\Task;
-use App\Services\Telegram\TelegramApiClient;
 use App\Services\Telegram\TaskTelegramFormatter;
+use App\Services\Telegram\TelegramApiClient;
 use Illuminate\Support\Facades\Log;
 
 class TaskTelegramReminderService
@@ -18,6 +19,7 @@ class TaskTelegramReminderService
     public function __construct(
         private TelegramApiClient $api,
         private TaskTelegramFormatter $formatter,
+        private UserNotificationService $notifications,
     ) {}
 
     /**
@@ -58,6 +60,10 @@ class TaskTelegramReminderService
                     'task_id' => $task->id,
                     'user_id' => $task->user_id,
                 ]);
+                $this->pushInbox($task);
+                $task->forceFill([
+                    'telegram_reminder_sent_at' => $now->copy(),
+                ])->save();
                 $skipped++;
 
                 continue;
@@ -75,6 +81,7 @@ class TaskTelegramReminderService
                 continue;
             }
 
+            $this->pushInbox($task);
             $task->forceFill([
                 'telegram_reminder_sent_at' => $now->copy(),
             ])->save();
@@ -86,5 +93,26 @@ class TaskTelegramReminderService
             'sent' => $sent,
             'skipped' => $skipped,
         ];
+    }
+
+    private function pushInbox(Task $task): void
+    {
+        if (! $task->user) {
+            return;
+        }
+
+        $due = $task->due_at?->timezone((string) config('app.timezone'));
+
+        $this->notifications->notify(
+            [$task->user],
+            NotificationType::Task,
+            'Lembrete de agenda',
+            $task->title,
+            route('admin.tasks.index', array_filter([
+                'view' => 'agenda',
+                'month' => $due?->format('Y-m'),
+                'focus' => $task->id,
+            ])).'#task-'.$task->id,
+        );
     }
 }

@@ -82,6 +82,11 @@ class User extends Authenticatable
         return $this->hasMany(LoginActivity::class);
     }
 
+    public function inboxNotifications(): HasMany
+    {
+        return $this->hasMany(UserNotification::class);
+    }
+
     public function jiraus(): BelongsToMany
     {
         return $this->belongsToMany(Jirau::class, 'jirau_members')

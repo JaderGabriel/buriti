@@ -2,6 +2,7 @@
 
 namespace App\Services\Jirau;
 
+use App\Enums\NotificationType;
 use App\Models\Jirau;
 use App\Models\JirauCard;
 use App\Models\JirauColumn;
@@ -9,6 +10,7 @@ use App\Models\JirauComment;
 use App\Models\User;
 use App\Services\SettingService;
 use App\Services\Telegram\TelegramApiClient;
+use App\Services\UserNotificationService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -17,6 +19,7 @@ class JirauNotifier
     public function __construct(
         private TelegramApiClient $telegram,
         private SettingService $settings,
+        private UserNotificationService $inbox,
     ) {}
 
     public function demandCreated(Jirau $jirau, JirauCard $card, User $actor): void
@@ -27,7 +30,7 @@ class JirauNotifier
 
         $card->loadMissing(['column.watchers', 'assignee', 'responsibles']);
 
-        $this->deliver($this->cardMessage(
+        $this->notifyCard(
             'Nova demanda no Jirau',
             $jirau,
             $card,
@@ -36,7 +39,9 @@ class JirauNotifier
                 'Tipo: '.$this->escape($card->type->label()).' · Prioridade: '.$this->escape($card->priority->label()),
                 $card->column ? 'Coluna: '.$this->escape($card->column->name) : null,
             ],
-        ), $this->columnWatchers($card->column));
+            $this->columnWatchers($card->column),
+            actor: $actor,
+        );
     }
 
     public function cardCreated(Jirau $jirau, JirauCard $card, User $actor): void
@@ -47,7 +52,7 @@ class JirauNotifier
 
         $card->loadMissing(['column.watchers', 'assignee', 'responsibles']);
 
-        $this->deliver($this->cardMessage(
+        $this->notifyCard(
             'Cartão criado no Jirau',
             $jirau,
             $card,
@@ -56,7 +61,9 @@ class JirauNotifier
                 'Tipo: '.$this->escape($card->type->label()).' · Prioridade: '.$this->escape($card->priority->label()),
                 $card->column ? 'Coluna: '.$this->escape($card->column->name) : null,
             ],
-        ), $this->priorityForCard($card));
+            $this->priorityForCard($card),
+            actor: $actor,
+        );
     }
 
     public function cardUpdated(Jirau $jirau, JirauCard $card, User $actor, array $changes): void
@@ -67,7 +74,7 @@ class JirauNotifier
 
         $card->loadMissing(['column.watchers', 'assignee', 'responsibles']);
 
-        $this->deliver($this->cardMessage(
+        $this->notifyCard(
             'Cartão atualizado no Jirau',
             $jirau,
             $card,
@@ -75,7 +82,9 @@ class JirauNotifier
                 ['Por: '.$this->escape($actor->name)],
                 $changes,
             ),
-        ), $this->priorityForCard($card));
+            $this->priorityForCard($card),
+            actor: $actor,
+        );
     }
 
     public function cardMoved(Jirau $jirau, JirauCard $card, User $actor, JirauColumn $from, JirauColumn $to, bool $cataloged): void
@@ -91,7 +100,7 @@ class JirauNotifier
 
         $due = $card->due_at?->timezone(config('app.timezone'))?->format('d/m/Y H:i');
 
-        $this->deliver($this->cardMessage(
+        $this->notifyCard(
             $title,
             $jirau,
             $card,
@@ -100,7 +109,9 @@ class JirauNotifier
                 $this->escape($from->name).' → '.$this->escape($to->name),
                 $due ? 'Prazo: '.$this->escape($due) : null,
             ],
-        ), $this->mergeUsers($to->watchers, $card->responsiblePeople()));
+            $this->mergeUsers($to->watchers, $card->responsiblePeople()),
+            actor: $actor,
+        );
     }
 
     public function cardArchived(Jirau $jirau, JirauCard $card, User $actor): void
@@ -111,12 +122,14 @@ class JirauNotifier
 
         $card->loadMissing(['column.watchers', 'assignee', 'responsibles']);
 
-        $this->deliver($this->cardMessage(
+        $this->notifyCard(
             'Cartão arquivado no Jirau',
             $jirau,
             $card,
             ['Por: '.$this->escape($actor->name)],
-        ), $this->priorityForCard($card));
+            $this->priorityForCard($card),
+            actor: $actor,
+        );
     }
 
     public function commentFromMember(Jirau $jirau, JirauCard $card, JirauComment $comment, User $actor): void
@@ -127,15 +140,17 @@ class JirauNotifier
 
         $card->loadMissing(['column.watchers', 'assignee', 'responsibles']);
 
-        $this->deliver($this->cardMessage(
+        $this->notifyCard(
             'Comentário no Jirau',
             $jirau,
             $card,
             [
                 $this->escape($actor->name).': '.$this->escape(Str::limit($comment->body, 180)),
             ],
-            'Abrir cartão',
-        ), $this->priorityForCard($card));
+            $this->priorityForCard($card),
+            cta: 'Abrir cartão',
+            actor: $actor,
+        );
     }
 
     public function dueReminder(Jirau $jirau, JirauCard $card): void
@@ -147,7 +162,7 @@ class JirauNotifier
         $card->loadMissing(['column.watchers', 'assignee', 'responsibles']);
         $due = $card->due_at?->timezone(config('app.timezone'))?->format('d/m/Y H:i');
 
-        $this->deliver($this->cardMessage(
+        $this->notifyCard(
             'Prazo do Jirau em breve',
             $jirau,
             $card,
@@ -155,7 +170,51 @@ class JirauNotifier
                 $due ? 'Vence '.$this->escape($due) : null,
                 $card->column ? 'Coluna: '.$this->escape($card->column->name) : null,
             ],
-        ), $this->priorityForCard($card), afterResponse: false);
+            $this->priorityForCard($card),
+            afterResponse: false,
+        );
+    }
+
+    /**
+     * @param  list<string|null>  $lines
+     * @param  iterable<int, User>|Collection<int, User>  $priorityUsers
+     */
+    private function notifyCard(
+        string $title,
+        Jirau $jirau,
+        JirauCard $card,
+        array $lines,
+        iterable $priorityUsers = [],
+        bool $afterResponse = true,
+        string $cta = 'Abrir no Jirau',
+        ?User $actor = null,
+    ): void {
+        $this->deliver($this->cardMessage($title, $jirau, $card, $lines, $cta), $priorityUsers, $afterResponse);
+
+        $plain = collect($lines)
+            ->filter(fn ($line) => is_string($line) && $line !== '')
+            ->map(fn (string $line) => html_entity_decode(strip_tags($line), ENT_QUOTES | ENT_HTML5, 'UTF-8'))
+            ->filter()
+            ->all();
+
+        $this->inbox->notify(
+            $this->inboxRecipients($priorityUsers, $actor),
+            NotificationType::Jirau,
+            $title,
+            implode(' · ', array_filter([
+                $card->key().' '.$card->title,
+                ...$plain,
+            ])),
+            route('jirau.show', ['jirau' => $jirau, 'cartao' => $card->id]),
+        );
+    }
+
+    /** @return Collection<int, User> */
+    private function inboxRecipients(iterable $priorityUsers, ?User $actor = null): Collection
+    {
+        return $this->mergeUsers(User::assignableOnJirau()->get(), $priorityUsers)
+            ->reject(fn (User $user) => $actor && (int) $user->id === (int) $actor->id)
+            ->values();
     }
 
     /**

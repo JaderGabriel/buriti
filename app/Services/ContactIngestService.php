@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\ContactSource;
 use App\Enums\ContactStatus;
 use App\Enums\CrmActivityType;
+use App\Enums\NotificationType;
 use App\Enums\OpportunityStage;
 use App\Models\Contact;
 use App\Models\ContactMessage;
@@ -20,6 +21,7 @@ class ContactIngestService
     public function __construct(
         private TelegramBotService $telegram,
         private CompanyResolver $companies,
+        private UserNotificationService $notifications,
     ) {}
 
     /**
@@ -73,6 +75,20 @@ class ContactIngestService
             $this->telegram->notifyContactMessage($message);
         } catch (\Throwable $e) {
             Log::warning('Falha ao notificar Telegram sobre mensagem do site', [
+                'message_id' => $message->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        try {
+            $this->notifications->notifyAdmins(
+                NotificationType::Message,
+                'Nova mensagem do site',
+                $message->name.': '.$message->subject,
+                route('admin.messages.show', $message),
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Falha ao registrar notificação da mensagem do site', [
                 'message_id' => $message->id,
                 'error' => $e->getMessage(),
             ]);

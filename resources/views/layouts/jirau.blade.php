@@ -100,17 +100,20 @@
                 @if($jirauUser->is_admin)
                     <x-jirau.action tone="board" icon="plus" data-jirau-toggle="new-board">Novo quadro</x-jirau.action>
                 @endif
-                <span class="admin-user admin-user--chip">
-                    @if($jirauUser->avatarUrl())
-                        <img src="{{ $jirauUser->avatarUrl() }}" alt="" class="admin-user__avatar">
-                    @else
-                        <span class="admin-user__avatar admin-user__avatar--fallback">{{ $jirauUser->initials() }}</span>
-                    @endif
-                    <span class="admin-user__meta">
-                        <span class="admin-user__name">{{ $jirauFirstName }}</span>
-                        <span class="admin-user__handle">{{ $jirauUser->jirauTeamLabel() }}</span>
+                <div class="admin-topbar__account">
+                    @include('admin.partials.notifications')
+                    <span class="admin-user admin-user--chip">
+                        @if($jirauUser->avatarUrl())
+                            <img src="{{ $jirauUser->avatarUrl() }}" alt="" class="admin-user__avatar">
+                        @else
+                            <span class="admin-user__avatar admin-user__avatar--fallback">{{ $jirauUser->initials() }}</span>
+                        @endif
+                        <span class="admin-user__meta">
+                            <span class="admin-user__name">{{ $jirauFirstName }}</span>
+                            <span class="admin-user__handle">{{ $jirauUser->jirauTeamLabel() }}</span>
+                        </span>
                     </span>
-                </span>
+                </div>
             </div>
         </header>
 

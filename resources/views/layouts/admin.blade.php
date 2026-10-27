@@ -87,17 +87,20 @@
                 <div class="admin-mobile-only">
                     @include('admin.partials.shortcuts', ['compact' => true])
                 </div>
-                <a href="{{ route('admin.profile.edit') }}" class="admin-user admin-user--chip" title="Perfil">
-                    @if($adminUser->avatarUrl())
-                        <img src="{{ $adminUser->avatarUrl() }}" alt="" class="admin-user__avatar">
-                    @else
-                        <span class="admin-user__avatar admin-user__avatar--fallback">{{ $adminUser->initials() }}</span>
-                    @endif
-                    <span class="admin-user__meta">
-                        <span class="admin-user__name">{{ $adminFirstName }}</span>
-                        <span class="admin-user__handle">Perfil</span>
-                    </span>
-                </a>
+                <div class="admin-topbar__account">
+                    @include('admin.partials.notifications')
+                    <a href="{{ route('admin.profile.edit') }}" class="admin-user admin-user--chip" title="Perfil">
+                        @if($adminUser->avatarUrl())
+                            <img src="{{ $adminUser->avatarUrl() }}" alt="" class="admin-user__avatar">
+                        @else
+                            <span class="admin-user__avatar admin-user__avatar--fallback">{{ $adminUser->initials() }}</span>
+                        @endif
+                        <span class="admin-user__meta">
+                            <span class="admin-user__name">{{ $adminFirstName }}</span>
+                            <span class="admin-user__handle">Perfil</span>
+                        </span>
+                    </a>
+                </div>
             </div>
         </header>
 

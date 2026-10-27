@@ -61,6 +61,7 @@
         'play' => 'M7 4v16l13-8z',
         'pause' => 'M8 5v14M16 5v14',
         'filter' => 'M4 4h16l-6.5 8.2V20l-3 1.5v-9.3L4 4z',
+        'bell' => 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9m4.3 13a1.94 1.94 0 0 0 3.4 0',
     ];
     $d = $paths[$name] ?? $paths['code'];
 @endphp
