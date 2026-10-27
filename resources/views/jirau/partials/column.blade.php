@@ -20,8 +20,35 @@
                     · triagem
                 @endif
             </p>
+            @if($column->watchers->isNotEmpty())
+                <div class="jirau-watch__faces" title="Avisos prioritários nesta faixa">
+                    @foreach($column->watchers as $watcher)
+                        <span class="jirau-avatar" title="{{ $watcher->name }}">{{ $watcher->initials() }}</span>
+                    @endforeach
+                </div>
+            @endif
         </div>
-        <span class="jirau-column__count">{{ $count }}</span>
+        <div class="jirau-column__tools">
+            @if($isAdmin)
+                <details class="jirau-watch">
+                    <summary>Avisar</summary>
+                    <form method="POST" action="{{ route('jirau.columns.watchers', [$jirau, $column]) }}" class="jirau-watch__form">
+                        @csrf
+                        @method('PUT')
+                        <p>Quem entra nesta faixa gera aviso ⚡ no Telegram.</p>
+                        @foreach($assignees as $person)
+                            <label>
+                                <input type="checkbox" name="user_ids[]" value="{{ $person->id }}" @checked($column->watchers->contains($person->id))>
+                                {{ $person->name }}
+                                <small>{{ $person->jirauTeamLabel() }}</small>
+                            </label>
+                        @endforeach
+                        <button type="submit" class="pm-btn pm-btn--primary">Guardar avisos</button>
+                    </form>
+                </details>
+            @endif
+            <span class="jirau-column__count">{{ $count }}</span>
+        </div>
     </header>
 
     <div class="jirau-column__list" data-jirau-list>

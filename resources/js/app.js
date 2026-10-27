@@ -692,10 +692,12 @@ function initAdminShell() {
 
     const sidebar = shell.querySelector('[data-admin-sidebar]');
     const overlay = shell.querySelector('[data-admin-overlay]');
-    const openBtn = shell.querySelector('[data-admin-open]');
     if (! sidebar || ! overlay) {
         return;
     }
+
+    const STORAGE_KEY = 'buriti-admin-nav';
+    const isDesktop = () => window.matchMedia('(min-width: 1024px)').matches;
 
     const setOpen = (open) => {
         sidebar.dataset.open = open ? 'true' : 'false';
@@ -703,13 +705,60 @@ function initAdminShell() {
         overlay.toggleAttribute('hidden', ! open);
         document.documentElement.classList.toggle(
             'overflow-hidden',
-            open && window.matchMedia('(max-width: 1023px)').matches
+            open && ! isDesktop()
         );
+    };
+
+    const syncToggleButtons = (collapsed) => {
+        shell.querySelectorAll('[data-admin-nav-toggle]').forEach((button) => {
+            const expand = collapsed && isDesktop();
+            button.setAttribute('aria-expanded', expand ? 'false' : 'true');
+            button.setAttribute('aria-label', expand ? 'Expandir menu' : (isDesktop() ? 'Minimizar menu' : 'Abrir menu'));
+            button.setAttribute('title', expand ? 'Expandir menu' : (isDesktop() ? 'Minimizar menu' : 'Abrir menu'));
+        });
+    };
+
+    const setCollapsed = (collapsed) => {
+        if (collapsed) {
+            shell.dataset.adminCollapsed = 'true';
+        } else {
+            delete shell.dataset.adminCollapsed;
+        }
+
+        try {
+            localStorage.setItem(STORAGE_KEY, collapsed ? 'collapsed' : 'expanded');
+        } catch {
+            // ignore quota / private mode
+        }
+
+        syncToggleButtons(collapsed);
     };
 
     setOpen(false);
 
-    openBtn?.addEventListener('click', () => setOpen(true));
+    if (isDesktop()) {
+        let stored = 'expanded';
+        try {
+            stored = localStorage.getItem(STORAGE_KEY) || 'expanded';
+        } catch {
+            stored = 'expanded';
+        }
+        setCollapsed(stored === 'collapsed');
+    } else {
+        syncToggleButtons(false);
+    }
+
+    shell.querySelectorAll('[data-admin-nav-toggle]').forEach((button) => {
+        button.addEventListener('click', () => {
+            if (! isDesktop()) {
+                setOpen(sidebar.dataset.open !== 'true');
+                return;
+            }
+
+            setCollapsed(shell.dataset.adminCollapsed !== 'true');
+        });
+    });
+
     overlay.addEventListener('click', () => setOpen(false));
     shell.querySelectorAll('[data-admin-close]').forEach((el) => {
         el.addEventListener('click', () => setOpen(false));
@@ -719,6 +768,16 @@ function initAdminShell() {
         if (event.key === 'Escape') {
             setOpen(false);
         }
+    });
+
+    window.addEventListener('resize', () => {
+        if (! isDesktop()) {
+            setOpen(false);
+            syncToggleButtons(false);
+            return;
+        }
+
+        setCollapsed(shell.dataset.adminCollapsed === 'true');
     });
 }
 
@@ -3052,6 +3111,21 @@ function initDriveViewer() {
 }
 
 function initJirauBoard() {
+    const openJirauDialog = (dialog) => {
+        dialog.hidden = false;
+        dialog.classList.add('is-open');
+        dialog.setAttribute('aria-hidden', 'false');
+        window.requestAnimationFrame(() => {
+            dialog.querySelector('input, textarea, select')?.focus();
+        });
+    };
+
+    const closeJirauDialog = (dialog) => {
+        dialog.hidden = true;
+        dialog.classList.remove('is-open');
+        dialog.setAttribute('aria-hidden', 'true');
+    };
+
     document.querySelectorAll('[data-jirau-toggle]').forEach((button) => {
         button.addEventListener('click', () => {
             const name = button.getAttribute('data-jirau-toggle');
@@ -3059,12 +3133,52 @@ function initJirauBoard() {
             if (! panel) {
                 return;
             }
+
+            if (panel.getAttribute('role') === 'dialog') {
+                const willShow = panel.hasAttribute('hidden') || ! panel.classList.contains('is-open');
+                document.querySelectorAll('[data-jirau-panel]:not([role="dialog"])').forEach((el) => el.setAttribute('hidden', ''));
+                document.querySelectorAll('[data-jirau-panel][role="dialog"]').forEach((el) => {
+                    if (el !== panel) {
+                        closeJirauDialog(el);
+                    }
+                });
+                if (willShow) {
+                    openJirauDialog(panel);
+                } else {
+                    closeJirauDialog(panel);
+                }
+                return;
+            }
+
             const willShow = panel.hasAttribute('hidden');
-            document.querySelectorAll('[data-jirau-panel]').forEach((el) => el.setAttribute('hidden', ''));
+            document.querySelectorAll('[data-jirau-panel]:not([role="dialog"])').forEach((el) => el.setAttribute('hidden', ''));
             if (willShow) {
                 panel.removeAttribute('hidden');
             }
         });
+    });
+
+    document.querySelectorAll('[data-jirau-dialog-close]').forEach((el) => {
+        el.addEventListener('click', () => {
+            const dialog = el.closest('[role="dialog"]');
+            if (dialog) {
+                closeJirauDialog(dialog);
+            }
+        });
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') {
+            return;
+        }
+
+        document.querySelectorAll('[data-jirau-panel][role="dialog"].is-open, [data-jirau-panel][role="dialog"]:not([hidden])').forEach((dialog) => {
+            closeJirauDialog(dialog);
+        });
+    });
+
+    document.querySelectorAll('[data-jirau-panel][role="dialog"]:not([hidden])').forEach((dialog) => {
+        openJirauDialog(dialog);
     });
 
     const board = document.querySelector('[data-jirau-board]');

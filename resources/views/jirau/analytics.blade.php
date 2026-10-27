@@ -5,19 +5,26 @@
     $maxColumn = max(1, collect($metrics['columns'])->max('count') ?: 1);
     $maxType = max(1, collect($metrics['by_type'])->max() ?: 1);
     $maxPriority = max(1, collect($metrics['by_priority'])->max() ?: 1);
+    $maxAssignee = max(1, collect($metrics['assignees'])->max('open') ?: 1);
     $filters = $filters ?? [];
     $hasFilters = collect($filters)->except('estado')->contains(fn ($value) => $value !== null && $value !== '')
         || ($filters['estado'] ?? 'ativos') !== 'ativos';
+    $bar = fn ($n, $max) => max(0, min(100, (int) round(((int) $n / max(1, (int) $max)) * 100)));
+    $initials = function (string $name): string {
+        $parts = preg_split('/\s+/', trim($name)) ?: [];
+
+        return mb_strtoupper(collect($parts)->filter()->take(2)->map(fn ($part) => mb_substr($part, 0, 1))->implode(''));
+    };
 @endphp
 <div class="jirau-analytics">
     <div class="jirau-workspace__header">
         <div>
             <p class="pm-workspace__eyebrow">{{ $jirau ? 'Jirau · '.$jirau->project?->name : 'Jirau' }}</p>
-            <h1 class="pm-workspace__title">{{ $jirau ? $jirau->name : 'Analítica' }}</h1>
+            <h1 class="pm-workspace__title">Analítica</h1>
             <p class="pm-workspace__lead">
                 Leitura só do admin: recorte por projeto, responsável, quadro e riscos.
                 @if($jirau)
-                    Fluxo «{{ $jirau->template?->label() ?? 'quadro' }}».
+                    Recorte do quadro «{{ $jirau->name }}». Fluxo «{{ $jirau->template?->label() ?? 'quadro' }}».
                 @endif
             </p>
         </div>
@@ -30,6 +37,7 @@
     </div>
 
     <form method="GET" action="{{ route('jirau.analytics') }}" class="jirau-filters jirau-filters--analytics">
+        <p class="jirau-analytics__controls-kicker">Recortar leitura</p>
         <label>
             <span>Projeto</span>
             <select name="projeto" class="jirau-input" onchange="this.form.submit()">
@@ -111,38 +119,38 @@
         @endif
     </form>
 
-    <div class="dash-stats jirau-analytics__stats">
+    <section class="jirau-analytics__kpis" aria-label="Indicadores">
         @foreach ([
-            ['Abertos', $metrics['open'], 'projects', 'jirau'],
-            ['Inbox', $metrics['inbox'], 'messages', 'mail'],
-            ['Em curso', $metrics['wip'], 'tasks', 'flow'],
-            ['Feito', $metrics['done'], 'contacts', 'task'],
-            ['Atrasados', $metrics['overdue'], 'opps', 'calendar'],
-            ['Fluxo', $metrics['flow_percent'] === null ? '—' : $metrics['flow_percent'].'%', 'projects', 'bi'],
-        ] as [$label, $value, $tone, $icon])
-            <div class="dash-stat dash-stat--{{ $tone }}">
-                <span class="dash-stat__icon" aria-hidden="true">
-                    <x-ui.icon :name="$icon" class="h-4 w-4" />
-                </span>
-                <span class="dash-stat__label">{{ $label }}</span>
-                <span class="dash-stat__value">{{ $value }}</span>
-            </div>
+            ['Abertos', $metrics['open'], 'open', 'jirau', 'vivos no recorte'],
+            ['Inbox', $metrics['inbox'], 'inbox', 'mail', $metrics['inbox_oldest_days'] !== null ? 'mais antigo '.$metrics['inbox_oldest_days'].'d' : 'triagem'],
+            ['Em curso', $metrics['wip'], 'wip', 'flow', 'entre faixas'],
+            ['Feito', $metrics['done'], 'done', 'task', 'no recorte'],
+            ['Atrasados', $metrics['overdue'], 'overdue', 'calendar', 'prazo vencido'],
+            ['Fluxo', $metrics['flow_percent'] === null ? '—' : $metrics['flow_percent'].'%', 'flow', 'bi', 'concluído / aberto'],
+        ] as [$label, $value, $tone, $icon, $hint])
+            <article @class(['jirau-kpi', 'jirau-kpi--'.$tone, 'is-hot' => $tone === 'overdue' && (int) $metrics['overdue'] > 0])>
+                <span class="jirau-kpi__label">{{ $label }}</span>
+                <strong class="jirau-kpi__value">{{ $value }}</strong>
+                <span class="jirau-kpi__hint">{{ $hint }}</span>
+                @if($tone === 'flow' && $metrics['flow_percent'] !== null)
+                    <span class="jirau-kpi__ring" style="--p: {{ (int) $metrics['flow_percent'] }}" aria-hidden="true"></span>
+                @else
+                    <span class="jirau-kpi__icon" aria-hidden="true"><x-ui.icon :name="$icon" class="h-4 w-4" /></span>
+                @endif
+            </article>
         @endforeach
-    </div>
+    </section>
 
-    <div class="jirau-analytics__meta">
-        <p>{{ $metrics['created_7d'] }} novo{{ $metrics['created_7d'] === 1 ? '' : 's' }} em 7 dias</p>
-        <p>{{ $metrics['done_7d'] }} concluído{{ $metrics['done_7d'] === 1 ? '' : 's' }} em 7 dias</p>
-        <p>Lead time {{ $metrics['lead_time_days'] === null ? '—' : $metrics['lead_time_days'].' d' }}</p>
-        <p>Estimativa aberta {{ $metrics['estimate_open'] }} · feita {{ $metrics['estimate_done'] }}</p>
-        <p>Demandas {{ $metrics['demands'] }} · bloqueados {{ $metrics['blocked'] }} · sem responsável {{ $metrics['unassigned'] }}</p>
-        @if($metrics['inbox_oldest_days'] !== null)
-            <p>Inbox mais antigo: {{ $metrics['inbox_oldest_days'] }} dia{{ $metrics['inbox_oldest_days'] === 1 ? '' : 's' }}</p>
-        @endif
+    <ul class="jirau-analytics__pulse">
+        <li><strong>{{ $metrics['created_7d'] }}</strong> novo{{ $metrics['created_7d'] === 1 ? '' : 's' }} em 7 dias</li>
+        <li><strong>{{ $metrics['done_7d'] }}</strong> concluído{{ $metrics['done_7d'] === 1 ? '' : 's' }} em 7 dias</li>
+        <li><strong>{{ $metrics['lead_time_days'] === null ? '—' : $metrics['lead_time_days'].' d' }}</strong> lead time</li>
+        <li><strong>{{ $metrics['estimate_open'] }}</strong> pts abertos · <strong>{{ $metrics['estimate_done'] }}</strong> feitos</li>
+        <li><strong>{{ $metrics['demands'] }}</strong> demandas · <strong>{{ $metrics['blocked'] }}</strong> bloqueados · <strong>{{ $metrics['unassigned'] }}</strong> sem responsável</li>
         @if($metrics['steps']['total'] > 0)
-            <p>Etapas {{ $metrics['steps']['done'] }}/{{ $metrics['steps']['total'] }} ({{ $metrics['steps']['percent'] }}%) · {{ $metrics['steps']['unlinked'] }} solta{{ $metrics['steps']['unlinked'] === 1 ? '' : 's' }}</p>
+            <li><strong>{{ $metrics['steps']['done'] }}/{{ $metrics['steps']['total'] }}</strong> etapas ({{ $metrics['steps']['percent'] }}%) · {{ $metrics['steps']['unlinked'] }} solta{{ $metrics['steps']['unlinked'] === 1 ? '' : 's' }}</li>
         @endif
-    </div>
+    </ul>
 
     @if($metrics['wip_breaches'] !== [])
         <section class="jirau-analytics__alert" role="status">
@@ -158,29 +166,28 @@
         </section>
     @endif
 
-    <div class="dash-panels jirau-analytics__panels">
-        <section class="dash-panel">
-            <header class="dash-panel__head">
-                <div class="dash-panel__title-wrap">
-                    <span class="dash-panel__icon" aria-hidden="true"><x-ui.icon name="flow" class="h-5 w-5" /></span>
-                    <div>
-                        <p class="dash-panel__eyebrow">Fluxo</p>
-                        <h2 class="dash-panel__title">{{ $jirau ? 'Faixas deste quadro' : 'Inbox → curso → feito' }}</h2>
-                    </div>
+    <div class="jirau-analytics__stage">
+        <section class="jirau-analytics__card">
+            <header class="jirau-analytics__card-head">
+                <span class="jirau-analytics__card-icon" aria-hidden="true"><x-ui.icon name="flow" class="h-5 w-5" /></span>
+                <div>
+                    <p>Fluxo</p>
+                    <h2>{{ $jirau ? 'Faixas deste quadro' : 'Inbox → curso → feito' }}</h2>
                 </div>
             </header>
             @if($metrics['columns'] === [])
                 <p class="jirau-analytics__empty">Ainda sem cartões para desenhar o fluxo.</p>
             @else
-                <ul class="jirau-bars" aria-label="Distribuição por faixa">
+                <ul class="jirau-lanes" aria-label="Distribuição por faixa">
                     @foreach($metrics['columns'] as $column)
-                        <li @class(['is-over' => $column['over']])>
-                            <div class="jirau-bars__label">
+                        <li @class(['jirau-lane', 'is-over' => $column['over']]) style="--lane: {{ $column['color'] }}">
+                            <span class="jirau-lane__swatch" aria-hidden="true"></span>
+                            <div class="jirau-lane__copy">
                                 <span>{{ $column['name'] }}</span>
                                 <strong>{{ $column['count'] }}@if($column['wip_limit']) / {{ $column['wip_limit'] }}@endif</strong>
                             </div>
-                            <div class="jirau-bars__track">
-                                <span style="width: {{ round(($column['count'] / $maxColumn) * 100) }}%; background: {{ $column['color'] }}"></span>
+                            <div class="jirau-lane__track">
+                                <span style="width: {{ $bar($column['count'], $maxColumn) }}%"></span>
                             </div>
                         </li>
                     @endforeach
@@ -188,113 +195,147 @@
             @endif
         </section>
 
-        <section class="dash-panel">
-            <header class="dash-panel__head">
-                <div class="dash-panel__title-wrap">
-                    <span class="dash-panel__icon" aria-hidden="true"><x-ui.icon name="task" class="h-5 w-5" /></span>
-                    <div>
-                        <p class="dash-panel__eyebrow">Composição</p>
-                        <h2 class="dash-panel__title">Tipo e prioridade</h2>
-                    </div>
+        <section class="jirau-analytics__card">
+            <header class="jirau-analytics__card-head">
+                <span class="jirau-analytics__card-icon" aria-hidden="true"><x-ui.icon name="task" class="h-5 w-5" /></span>
+                <div>
+                    <p>Composição</p>
+                    <h2>Tipo e prioridade</h2>
                 </div>
             </header>
             <div class="jirau-analytics__split">
-                <ul class="jirau-bars jirau-bars--compact">
-                    @foreach($types as $value => $label)
-                        <li>
-                            <div class="jirau-bars__label">
-                                <span>{{ $label }}</span>
-                                <strong>{{ $metrics['by_type'][$value] ?? 0 }}</strong>
-                            </div>
-                            <div class="jirau-bars__track">
-                                <span style="width: {{ round((($metrics['by_type'][$value] ?? 0) / $maxType) * 100) }}%"></span>
-                            </div>
-                        </li>
-                    @endforeach
-                </ul>
-                <ul class="jirau-bars jirau-bars--compact">
-                    @foreach($priorities as $value => $label)
-                        <li>
-                            <div class="jirau-bars__label">
-                                <span>{{ $label }}</span>
-                                <strong>{{ $metrics['by_priority'][$value] ?? 0 }}</strong>
-                            </div>
-                            <div class="jirau-bars__track">
-                                <span class="is-{{ $value }}" style="width: {{ round((($metrics['by_priority'][$value] ?? 0) / $maxPriority) * 100) }}%"></span>
-                            </div>
-                        </li>
-                    @endforeach
-                </ul>
+                <div>
+                    <p class="jirau-analytics__sub">Tipo</p>
+                    <div class="jirau-stack" aria-hidden="true">
+                        @foreach($types as $value => $label)
+                            @if(($metrics['by_type'][$value] ?? 0) > 0)
+                                <span class="is-{{ $value }}" style="flex: {{ $metrics['by_type'][$value] }}"></span>
+                            @endif
+                        @endforeach
+                    </div>
+                    <ul class="jirau-meters">
+                        @foreach($types as $value => $label)
+                            <li>
+                                <div class="jirau-meters__label">
+                                    <i class="is-{{ $value }}" aria-hidden="true"></i>
+                                    <span>{{ $label }}</span>
+                                    <strong>{{ $metrics['by_type'][$value] ?? 0 }}</strong>
+                                </div>
+                                <div class="jirau-meters__track">
+                                    <span class="is-{{ $value }}" style="width: {{ $bar($metrics['by_type'][$value] ?? 0, $maxType) }}%"></span>
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+                <div>
+                    <p class="jirau-analytics__sub">Prioridade</p>
+                    <div class="jirau-stack" aria-hidden="true">
+                        @foreach($priorities as $value => $label)
+                            @if(($metrics['by_priority'][$value] ?? 0) > 0)
+                                <span class="is-{{ $value }}" style="flex: {{ $metrics['by_priority'][$value] }}"></span>
+                            @endif
+                        @endforeach
+                    </div>
+                    <ul class="jirau-meters">
+                        @foreach($priorities as $value => $label)
+                            <li>
+                                <div class="jirau-meters__label">
+                                    <i class="is-{{ $value }}" aria-hidden="true"></i>
+                                    <span>{{ $label }}</span>
+                                    <strong>{{ $metrics['by_priority'][$value] ?? 0 }}</strong>
+                                </div>
+                                <div class="jirau-meters__track">
+                                    <span class="is-{{ $value }}" style="width: {{ $bar($metrics['by_priority'][$value] ?? 0, $maxPriority) }}%"></span>
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
             </div>
         </section>
 
-        <section class="dash-panel">
-            <header class="dash-panel__head">
-                <div class="dash-panel__title-wrap">
-                    <span class="dash-panel__icon" aria-hidden="true"><x-ui.icon name="calendar" class="h-5 w-5" /></span>
-                    <div>
-                        <p class="dash-panel__eyebrow">Riscos</p>
-                        <h2 class="dash-panel__title">Atrasados e envelhecimento</h2>
-                    </div>
+        <section class="jirau-analytics__card jirau-analytics__card--span">
+            <header class="jirau-analytics__card-head">
+                <span class="jirau-analytics__card-icon is-warn" aria-hidden="true"><x-ui.icon name="calendar" class="h-5 w-5" /></span>
+                <div>
+                    <p>Riscos</p>
+                    <h2>Atrasados e envelhecimento</h2>
                 </div>
             </header>
-            <h3 class="jirau-analytics__sub">Prazo vencido</h3>
-            <ul class="jirau-analytics__list">
-                @forelse($metrics['overdue_cards'] as $card)
-                    <li>
-                        <a href="{{ route('jirau.show', ['jirau' => $card['jirau_id'], 'cartao' => $card['id']]) }}">{{ $card['title'] }}</a>
-                        <small>{{ $card['due_at'] }} · {{ $card['days'] }}d</small>
-                    </li>
-                @empty
-                    <li class="text-mist">Nenhum cartão atrasado.</li>
-                @endforelse
-            </ul>
-            <h3 class="jirau-analytics__sub">Mais antigos em aberto</h3>
-            <ul class="jirau-analytics__list">
-                @forelse($metrics['aging'] as $card)
-                    <li>
-                        <a href="{{ route('jirau.show', ['jirau' => $card['jirau_id'], 'cartao' => $card['id']]) }}">{{ $card['title'] }}</a>
-                        <small>{{ $card['column'] }} · {{ $card['days'] }}d</small>
-                    </li>
-                @empty
-                    <li class="text-mist">Nada parado no fluxo.</li>
-                @endforelse
-            </ul>
+            <div class="jirau-analytics__risks">
+                <div>
+                    <h3 class="jirau-analytics__sub">Prazo vencido</h3>
+                    <ul class="jirau-risks">
+                        @forelse($metrics['overdue_cards'] as $card)
+                            <li>
+                                <span class="jirau-risks__days is-late">{{ $card['days'] }}d</span>
+                                <div>
+                                    <a href="{{ route('jirau.show', ['jirau' => $card['jirau_id'], 'cartao' => $card['id']]) }}">{{ $card['title'] }}</a>
+                                    <small>{{ $card['due_at'] }}</small>
+                                </div>
+                            </li>
+                        @empty
+                            <li class="jirau-risks__empty">Nenhum cartão atrasado.</li>
+                        @endforelse
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="jirau-analytics__sub">Mais antigos em aberto</h3>
+                    <ul class="jirau-risks">
+                        @forelse($metrics['aging'] as $card)
+                            <li>
+                                <span class="jirau-risks__days">{{ $card['days'] }}d</span>
+                                <div>
+                                    <a href="{{ route('jirau.show', ['jirau' => $card['jirau_id'], 'cartao' => $card['id']]) }}">{{ $card['title'] }}</a>
+                                    <small>{{ $card['column'] }}</small>
+                                </div>
+                            </li>
+                        @empty
+                            <li class="jirau-risks__empty">Nada parado no fluxo.</li>
+                        @endforelse
+                    </ul>
+                </div>
+            </div>
         </section>
     </div>
 
-    <div class="dash-panels jirau-analytics__panels jirau-analytics__panels--wide">
-        <section class="dash-panel">
-            <header class="dash-panel__head">
-                <div class="dash-panel__title-wrap">
-                    <span class="dash-panel__icon" aria-hidden="true"><x-ui.icon name="users" class="h-5 w-5" /></span>
-                    <div>
-                        <p class="dash-panel__eyebrow">Pessoas</p>
-                        <h2 class="dash-panel__title">Carga por responsável</h2>
-                    </div>
+    <div class="jirau-analytics__stage jirau-analytics__stage--wide">
+        <section class="jirau-analytics__card">
+            <header class="jirau-analytics__card-head">
+                <span class="jirau-analytics__card-icon" aria-hidden="true"><x-ui.icon name="users" class="h-5 w-5" /></span>
+                <div>
+                    <p>Pessoas</p>
+                    <h2>Carga por responsável</h2>
                 </div>
             </header>
-            <ul class="jirau-analytics__list">
+            <ul class="jirau-load">
                 @forelse($metrics['assignees'] as $row)
                     <li>
-                        <a href="{{ route('jirau.analytics', array_filter([...$filters, 'usuario' => $row['id'] ?? 'none'])) }}">{{ $row['name'] }}</a>
-                        <small>{{ $row['open'] }} abertos · {{ $row['done'] }} feitos</small>
+                        <span class="jirau-load__avatar" aria-hidden="true">{{ $initials($row['name']) }}</span>
+                        <div class="jirau-load__body">
+                            <div class="jirau-load__label">
+                                <a href="{{ route('jirau.analytics', array_filter([...$filters, 'usuario' => $row['id'] ?? 'none'])) }}">{{ $row['name'] }}</a>
+                                <small>{{ $row['open'] }} abertos · {{ $row['done'] }} feitos</small>
+                            </div>
+                            <div class="jirau-load__track">
+                                <span style="width: {{ $bar($row['open'], $maxAssignee) }}%"></span>
+                            </div>
+                        </div>
                     </li>
                 @empty
-                    <li class="text-mist">Sem cartões para agrupar.</li>
+                    <li class="jirau-analytics__empty">Sem cartões para agrupar.</li>
                 @endforelse
             </ul>
         </section>
 
         @if(($metrics['project_rows'] ?? []) !== [] && ! ($filters['projeto'] ?? null))
-            <section class="dash-panel">
-                <header class="dash-panel__head">
-                    <div class="dash-panel__title-wrap">
-                        <span class="dash-panel__icon" aria-hidden="true"><x-ui.icon name="project" class="h-5 w-5" /></span>
-                        <div>
-                            <p class="dash-panel__eyebrow">Projetos</p>
-                            <h2 class="dash-panel__title">Por projeto</h2>
-                        </div>
+            <section class="jirau-analytics__card">
+                <header class="jirau-analytics__card-head">
+                    <span class="jirau-analytics__card-icon" aria-hidden="true"><x-ui.icon name="project" class="h-5 w-5" /></span>
+                    <div>
+                        <p>Projetos</p>
+                        <h2>Por projeto</h2>
                     </div>
                 </header>
                 <div class="jirau-analytics__table-wrap">
@@ -324,8 +365,13 @@
                                     <td>{{ $row['open'] }}</td>
                                     <td>{{ $row['inbox'] }}</td>
                                     <td>{{ $row['done'] }}</td>
-                                    <td>{{ $row['overdue'] }}</td>
-                                    <td>{{ $row['flow_percent'] === null ? '—' : $row['flow_percent'].'%' }}</td>
+                                    <td @class(['is-late' => (int) $row['overdue'] > 0])>{{ $row['overdue'] }}</td>
+                                    <td>
+                                        <span class="jirau-flowpct">
+                                            <i style="width: {{ (int) ($row['flow_percent'] ?? 0) }}%"></i>
+                                            <em>{{ $row['flow_percent'] === null ? '—' : $row['flow_percent'].'%' }}</em>
+                                        </span>
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -335,14 +381,12 @@
         @endif
 
         @if(! ($filters['quadro'] ?? null))
-            <section class="dash-panel">
-                <header class="dash-panel__head">
-                    <div class="dash-panel__title-wrap">
-                        <span class="dash-panel__icon" aria-hidden="true"><x-ui.icon name="jirau" class="h-5 w-5" /></span>
-                        <div>
-                            <p class="dash-panel__eyebrow">Quadros</p>
-                            <h2 class="dash-panel__title">Por Jirau</h2>
-                        </div>
+            <section class="jirau-analytics__card jirau-analytics__card--span">
+                <header class="jirau-analytics__card-head">
+                    <span class="jirau-analytics__card-icon" aria-hidden="true"><x-ui.icon name="jirau" class="h-5 w-5" /></span>
+                    <div>
+                        <p>Quadros</p>
+                        <h2>Por Jirau</h2>
                     </div>
                 </header>
                 <div class="jirau-analytics__table-wrap">
@@ -367,8 +411,13 @@
                                     <td>{{ $row['open'] }}</td>
                                     <td>{{ $row['inbox'] }}</td>
                                     <td>{{ $row['done'] }}</td>
-                                    <td>{{ $row['overdue'] }}</td>
-                                    <td>{{ $row['flow_percent'] === null ? '—' : $row['flow_percent'].'%' }}</td>
+                                    <td @class(['is-late' => (int) $row['overdue'] > 0])>{{ $row['overdue'] }}</td>
+                                    <td>
+                                        <span class="jirau-flowpct">
+                                            <i style="width: {{ (int) ($row['flow_percent'] ?? 0) }}%"></i>
+                                            <em>{{ $row['flow_percent'] === null ? '—' : $row['flow_percent'].'%' }}</em>
+                                        </span>
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>

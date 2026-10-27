@@ -80,14 +80,14 @@ class JirauBoardService
             'column_id' => $inbox->id,
             'assigned_to' => null,
             'estimate' => null,
-        ]);
+        ], notify: false);
 
         $this->notifier->demandCreated($jirau, $card, $actor);
 
         return $card;
     }
 
-    public function createCard(Jirau $jirau, User $actor, array $data): JirauCard
+    public function createCard(Jirau $jirau, User $actor, array $data, bool $notify = true): JirauCard
     {
         $column = $this->resolveColumn($jirau, $data['column_id'] ?? null);
         $stepId = isset($data['project_step_id']) ? (int) $data['project_step_id'] : null;
@@ -128,7 +128,12 @@ class JirauBoardService
             'type' => $card->type->value,
         ]);
 
-        return $card->fresh(['labels', 'column', 'creator', 'assignee']);
+        $created = $card->fresh(['labels', 'column.watchers', 'creator', 'assignee']);
+        if ($notify) {
+            $this->notifier->cardCreated($jirau, $created, $actor);
+        }
+
+        return $created;
     }
 
     public function updateCard(JirauCard $card, User $actor, array $data): JirauCard
@@ -167,10 +172,24 @@ class JirauBoardService
             }
         }
 
+        $snapshot = [
+            'title' => $card->title,
+            'priority' => $card->priority->value,
+            'type' => $card->type->value,
+            'estimate' => $card->estimate,
+            'assigned_to' => $card->assigned_to,
+            'due_at' => $card->due_at?->timestamp,
+        ];
+
         $card->update($payload);
 
         if ($admin && array_key_exists('label_ids', $data)) {
             $card->labels()->sync($this->ownedLabelIds($card->jirau, $data['label_ids'] ?? []));
+        }
+
+        $fresh = $card->fresh(['labels', 'column.watchers', 'creator', 'assignee', 'jirau.project']);
+        if ($fresh->due_at?->timestamp !== $snapshot['due_at']) {
+            $fresh->forceFill(['telegram_reminder_sent_at' => null])->save();
         }
 
         $this->audit->record('jirau.card_updated', $card, [
@@ -178,7 +197,9 @@ class JirauBoardService
             'jirau_id' => $card->jirau_id,
         ]);
 
-        return $card->fresh(['labels', 'column', 'creator', 'assignee']);
+        $this->notifier->cardUpdated($fresh->jirau, $fresh, $actor, $this->updateSummary($snapshot, $fresh));
+
+        return $fresh;
     }
 
     public function moveCard(JirauCard $card, User $actor, int $columnId, array $orderedIds = []): JirauCard
@@ -190,6 +211,7 @@ class JirauBoardService
         }
 
         $column = $this->resolveColumn($card->jirau, $columnId);
+        $from = $card->column;
         $fromInbox = $card->isInbox();
 
         $card->column_id = $column->id;
@@ -223,7 +245,19 @@ class JirauBoardService
             'column' => $column->slug,
         ]);
 
-        return $card->fresh(['column']);
+        $moved = $card->fresh(['column.watchers', 'assignee', 'jirau.project']);
+        if ($from && (int) $from->id !== (int) $column->id) {
+            $this->notifier->cardMoved(
+                $moved->jirau,
+                $moved,
+                $actor,
+                $from,
+                $column,
+                $fromInbox && ! $column->is_inbox,
+            );
+        }
+
+        return $moved;
     }
 
     public function archiveCard(JirauCard $card, User $actor): void
@@ -232,8 +266,10 @@ class JirauBoardService
             abort(403);
         }
 
+        $card->loadMissing(['column.watchers', 'assignee', 'jirau.project']);
         $card->update(['archived_at' => now()]);
         $this->audit->record('jirau.card_archived', $card, ['summary' => $card->title]);
+        $this->notifier->cardArchived($card->jirau, $card, $actor);
     }
 
     /** @return list<int> */
@@ -269,6 +305,37 @@ class JirauBoardService
         }
 
         return $column;
+    }
+
+    /**
+     * @param  array{title: string, priority: string, type: string, estimate: ?int, assigned_to: ?int, due_at: ?int}  $before
+     * @return list<string>
+     */
+    private function updateSummary(array $before, JirauCard $after): array
+    {
+        $lines = [];
+
+        if ($after->title !== $before['title']) {
+            $lines[] = 'Título alterado';
+        }
+        if ($after->priority->value !== $before['priority']) {
+            $lines[] = 'Prioridade: '.$after->priority->label();
+        }
+        if ($after->type->value !== $before['type']) {
+            $lines[] = 'Tipo: '.$after->type->label();
+        }
+        if ((int) $after->estimate !== (int) $before['estimate']) {
+            $lines[] = 'Estimativa: '.($after->estimate ? $after->estimate.' pts' : '—');
+        }
+        if ((int) $after->assigned_to !== (int) $before['assigned_to']) {
+            $lines[] = 'Responsável: '.($after->assignee?->name ?? 'sem alocação');
+        }
+        if ($after->due_at?->timestamp !== $before['due_at']) {
+            $due = $after->due_at?->timezone(config('app.timezone'))?->format('d/m/Y H:i');
+            $lines[] = 'Prazo: '.($due ?: 'removido');
+        }
+
+        return $lines;
     }
 
     /** @param  list<mixed>  $ids */

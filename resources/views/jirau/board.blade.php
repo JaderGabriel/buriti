@@ -82,26 +82,56 @@
     </form>
 
     @if(! $isAdmin)
-        <form method="POST" action="{{ route('jirau.demands.store', $jirau) }}" class="jirau-compose" data-jirau-panel="demand" @if(! $errors->has('title')) hidden @endif>
-            @csrf
-            <h2>Nova demanda</h2>
-            <p>O cartão entra em {{ $jirau->inboxColumn()?->name ?? 'entrada' }}. Você não define faixa nem estimativa — o admin do quadro posiciona o trabalho.</p>
-            <x-ui.input name="title" label="O que precisa ser feito?" required />
-            <x-ui.input type="textarea" name="description" label="Contexto" rows="4" />
-            <label class="block text-sm">
-                <span class="text-mist">Prioridade percebida</span>
-                <select name="priority" class="mt-1.5 w-full rounded-sm border border-line bg-ink px-3 py-2.5">
-                    @foreach($priorities as $value => $label)
-                        <option value="{{ $value }}" @selected($value === 'medium')>{{ $label }}</option>
-                    @endforeach
-                </select>
-            </label>
-            <button type="submit" class="pm-btn pm-btn--primary">Enviar demanda</button>
-        </form>
+        @php
+            $demandOpen = collect($errors->keys())->contains(fn ($key) => in_array($key, ['title', 'description', 'priority', 'photos', 'drive_url'], true) || str_starts_with((string) $key, 'photos.') || str_starts_with((string) $key, 'drive_url'));
+        @endphp
+        <div
+            id="jirau-demand-dialog"
+            class="jirau-dialog"
+            data-jirau-panel="demand"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="jirau-demand-title"
+            aria-hidden="{{ $demandOpen ? 'false' : 'true' }}"
+            @unless($demandOpen) hidden @endunless
+        >
+            <button type="button" class="jirau-dialog__backdrop" data-jirau-dialog-close aria-label="Fechar"></button>
+            <div class="jirau-dialog__panel">
+                <div class="jirau-dialog__head">
+                    <div>
+                        <p class="jirau-dialog__eyebrow">Jirau</p>
+                        <h2 id="jirau-demand-title">Nova demanda</h2>
+                    </div>
+                    <button type="button" class="jirau-dialog__close" data-jirau-dialog-close aria-label="Fechar">✕</button>
+                </div>
+                <form method="POST" action="{{ route('jirau.demands.store', $jirau) }}" class="jirau-dialog__form" enctype="multipart/form-data">
+                    @csrf
+                    <p>O cartão entra em {{ $jirau->inboxColumn()?->name ?? 'entrada' }}. Você não define faixa nem estimativa — o admin do quadro posiciona o trabalho.</p>
+                    <x-ui.input name="title" label="O que precisa ser feito?" required />
+                    <x-ui.input type="textarea" name="description" label="Contexto" rows="4" />
+                    <label class="block text-sm">
+                        <span class="text-mist">Prioridade percebida</span>
+                        <select name="priority" class="mt-1.5 w-full rounded-sm border border-line bg-ink px-3 py-2.5">
+                            @foreach($priorities as $value => $label)
+                                <option value="{{ $value }}" @selected(old('priority', 'medium') === $value)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <label class="block text-sm">
+                        <span class="text-mist">Fotos e prints (JPG, PNG ou WebP)</span>
+                        <input type="file" name="photos[]" accept="image/jpeg,image/png,image/webp" multiple class="jirau-input mt-1.5">
+                        <span class="jirau-hint">Até 8 imagens, 4 MB cada. Sem PDF, ZIP ou outros anexos.</span>
+                    </label>
+                    <x-ui.input type="textarea" name="drive_url" label="Links do Drive ou álbum Google Fotos" rows="3" placeholder="https://drive.google.com/..." />
+                    <p class="jirau-hint">Um link https por linha. Só Google Drive ou Google Fotos.</p>
+                    <button type="submit" class="pm-btn pm-btn--primary">Enviar demanda</button>
+                </form>
+            </div>
+        </div>
     @endif
 
     @if($isAdmin)
-        <form method="POST" action="{{ route('jirau.cards.store', $jirau) }}" class="jirau-compose" data-jirau-panel="new-card" hidden>
+        <form method="POST" action="{{ route('jirau.cards.store', $jirau) }}" class="jirau-compose" data-jirau-panel="new-card" enctype="multipart/form-data" hidden>
             @csrf
             <h2>Novo cartão</h2>
             <div class="jirau-compose__grid">
@@ -154,6 +184,12 @@
                 </label>
             </div>
             <x-ui.input type="textarea" name="description" label="Descrição" rows="3" />
+            <label class="block text-sm">
+                <span class="text-mist">Fotos e prints (JPG, PNG ou WebP)</span>
+                <input type="file" name="photos[]" accept="image/jpeg,image/png,image/webp" multiple class="jirau-input mt-1.5">
+                <span class="jirau-hint">Até 8 imagens, 4 MB cada. Sem PDF, ZIP ou outros anexos.</span>
+            </label>
+            <x-ui.input type="textarea" name="drive_url" label="Links do Drive ou álbum Google Fotos" rows="2" placeholder="https://drive.google.com/..." />
             <fieldset class="jirau-labels-pick">
                 <legend>Etiquetas</legend>
                 @foreach($jirau->labels as $label)

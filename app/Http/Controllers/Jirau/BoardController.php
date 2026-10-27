@@ -11,6 +11,7 @@ use App\Models\JirauCard;
 use App\Models\User;
 use App\Services\Jirau\JirauAccess;
 use App\Services\Jirau\JirauBoardService;
+use App\Services\Jirau\JirauEvidenceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -20,6 +21,7 @@ class BoardController extends Controller
     public function __construct(
         private JirauAccess $access,
         private JirauBoardService $boards,
+        private JirauEvidenceService $evidence,
     ) {}
 
     public function home(Request $request): View|RedirectResponse
@@ -58,7 +60,7 @@ class BoardController extends Controller
             'project.jiraus',
             'labels',
             'members',
-            'columns' => fn ($q) => $q->withCount(['cards as cards_count']),
+            'columns' => fn ($q) => $q->with(['watchers:id,name,jirau_role,is_admin'])->withCount(['cards as cards_count']),
         ]);
 
         $filters = [
@@ -75,6 +77,8 @@ class BoardController extends Controller
                 'checklistItems',
                 'checklistItems as done_checklist_items_count' => fn ($q) => $q->where('is_done', true),
                 'comments',
+                'attachments',
+                'links',
             ]);
 
         if ($filters['q'] !== '') {
@@ -112,6 +116,8 @@ class BoardController extends Controller
                     'checklistItems',
                     'comments.author',
                     'projectStep',
+                    'attachments',
+                    'links',
                 ])
                 ->find($cardId);
         }
@@ -125,12 +131,15 @@ class BoardController extends Controller
             'adminTypes' => JirauCardType::adminOptions(),
             'priorities' => JirauCardPriority::options(),
             'estimates' => JirauBoardService::estimateOptions(),
-            'assignees' => User::assignableOnJirau()->get(['id', 'name', 'jirau_role']),
+            'assignees' => User::assignableOnJirau()->get(['id', 'name', 'jirau_role', 'is_admin']),
             'moveUrlTemplate' => url('/jirau/'.$jirau->id.'/cartoes/__ID__/mover'),
             'templates' => JirauTemplate::cases(),
             'unlinkedSteps' => $jirau->project
                 ? $jirau->project->steps->filter(fn ($step) => $step->jirauCard === null)->values()
                 : collect(),
+            'canManageEvidence' => $openCard
+                ? $this->evidence->canManage($request->user(), $openCard)
+                : false,
         ]);
     }
 }

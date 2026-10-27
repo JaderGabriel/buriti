@@ -10,38 +10,38 @@
         @csrf
         @method('PUT')
 
-        <section class="max-w-3xl space-y-4 rounded-2xl border border-line bg-panel p-5 sm:p-6">
-            <div class="flex flex-wrap items-start justify-between gap-3">
+        <section class="settings-contact-layout">
+            <div class="space-y-4 rounded-2xl border border-line bg-panel p-5 sm:p-6">
                 <div>
                     <h2 class="font-display text-lg font-semibold">Contato da empresa</h2>
                     <p class="mt-1 text-sm text-mist">Aparecem no site (rodapé, formulário e canais).</p>
                 </div>
-            </div>
-            <div class="grid gap-4 sm:grid-cols-2">
-                <x-ui.input type="email" name="contact_email" label="E-mail (site)" :value="$settings['contact_email']" placeholder="contato@empresa.exemplo" />
-                <div>
-                    <x-ui.phone-field
-                        label="Telefone (interno)"
-                        :value="$settings['contact_phone']"
-                        country-name="contact_phone_country"
-                        number-name="contact_phone_number"
-                        hint="Não aparece nos botões públicos do site — só no painel."
-                    />
+                <div class="grid min-w-0 gap-4 sm:grid-cols-2 [&>*]:min-w-0">
+                    <x-ui.input type="email" name="contact_email" label="E-mail (site)" :value="$settings['contact_email']" placeholder="contato@empresa.exemplo" />
+                    <div>
+                        <x-ui.phone-field
+                            label="Telefone (interno)"
+                            :value="$settings['contact_phone']"
+                            country-name="contact_phone_country"
+                            number-name="contact_phone_number"
+                            hint="Não aparece nos botões públicos do site — só no painel."
+                        />
+                    </div>
+                    <div class="sm:col-span-2">
+                        <x-ui.whatsapp-field
+                            name="contact_whatsapp"
+                            label="WhatsApp (site)"
+                            :value="$settings['contact_whatsapp']"
+                            hint="Canal público: telefone internacional ou nome de usuário. Gera o botão WhatsApp no site."
+                        />
+                    </div>
+                    <x-ui.input type="url" name="linkedin_url" label="LinkedIn" :value="$settings['linkedin_url']" placeholder="https://www.linkedin.com/in/usuario-exemplo/" />
+                    <x-ui.input type="url" name="github_url" label="GitHub" :value="$settings['github_url']" placeholder="https://github.com/usuario-exemplo" />
+                    <x-ui.input type="url" name="telegram_url" label="Telegram (URL)" :value="$settings['telegram_url']" placeholder="https://t.me/usuario_exemplo" />
+                    <x-ui.input name="telegram_handle" label="Telegram (handle)" :value="$settings['telegram_handle']" placeholder="@usuario_exemplo" />
                 </div>
-                <div class="sm:col-span-2">
-                    <x-ui.whatsapp-field
-                        name="contact_whatsapp"
-                        label="WhatsApp (site)"
-                        :value="$settings['contact_whatsapp']"
-                        hint="Canal público: telefone internacional ou nome de usuário. Gera o botão WhatsApp no site."
-                    />
-                </div>
-                <x-ui.input type="url" name="linkedin_url" label="LinkedIn" :value="$settings['linkedin_url']" placeholder="https://www.linkedin.com/in/usuario-exemplo/" />
-                <x-ui.input type="url" name="github_url" label="GitHub" :value="$settings['github_url']" placeholder="https://github.com/usuario-exemplo" />
-                <x-ui.input type="url" name="telegram_url" label="Telegram (URL)" :value="$settings['telegram_url']" placeholder="https://t.me/usuario_exemplo" />
-                <x-ui.input name="telegram_handle" label="Telegram (handle)" :value="$settings['telegram_handle']" placeholder="@usuario_exemplo" />
             </div>
-            <x-admin.inline-docs title="Canais públicos" class="mt-2">
+            <x-admin.inline-docs title="Canais públicos" class="admin-docs--sticky">
                 <p>No site público aparecem apenas canais com valor válido: <strong>e-mail</strong> (<code>mailto:</code>), <strong>WhatsApp</strong> (<code>wa.me</code> por telefone ou usuário), LinkedIn, GitHub e Telegram. O campo Telefone é interno e <strong>não</strong> gera botão público.</p>
                 <p class="admin-docs__note mb-0">WhatsApp aceita usuário (ex.: <code>usuario.exemplo</code>) ou número com DDI. Se o valor for inválido, o botão some automaticamente.</p>
             </x-admin.inline-docs>

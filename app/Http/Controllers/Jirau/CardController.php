@@ -14,6 +14,7 @@ use App\Models\JirauCard;
 use App\Models\JirauChecklistItem;
 use App\Services\Jirau\JirauAccess;
 use App\Services\Jirau\JirauBoardService;
+use App\Services\Jirau\JirauEvidenceService;
 use App\Services\Jirau\JirauNotifier;
 use App\Services\Jirau\JirauStepService;
 use Illuminate\Http\JsonResponse;
@@ -26,6 +27,7 @@ class CardController extends Controller
         private JirauAccess $access,
         private JirauBoardService $boards,
         private JirauNotifier $notifier,
+        private JirauEvidenceService $evidence,
     ) {}
 
     public function storeDemand(StoreDemandRequest $request, Jirau $jirau): RedirectResponse
@@ -33,6 +35,7 @@ class CardController extends Controller
         $this->access->assertView($request->user(), $jirau);
 
         $card = $this->boards->createDemand($jirau, $request->user(), $request->validated());
+        $this->attachEvidence($request, $card);
 
         return redirect()
             ->route('jirau.show', ['jirau' => $jirau, 'cartao' => $card->id])
@@ -45,6 +48,7 @@ class CardController extends Controller
         $this->access->assertView($request->user(), $jirau);
 
         $card = $this->boards->createCard($jirau, $request->user(), $request->validated());
+        $this->attachEvidence($request, $card);
 
         return redirect()
             ->route('jirau.show', ['jirau' => $jirau, 'cartao' => $card->id])
@@ -100,6 +104,7 @@ class CardController extends Controller
     public function comment(StoreCommentRequest $request, Jirau $jirau, JirauCard $card): RedirectResponse
     {
         $this->assertCard($request, $jirau, $card);
+        $this->syncDrawerCard($request, $card);
 
         $comment = $card->comments()->create([
             'user_id' => $request->user()->id,
@@ -116,10 +121,11 @@ class CardController extends Controller
     public function storeChecklist(StoreChecklistItemRequest $request, Jirau $jirau, JirauCard $card): RedirectResponse
     {
         $this->assertCard($request, $jirau, $card);
+        $this->syncDrawerCard($request, $card);
 
         $max = (int) $card->checklistItems()->max('sort_order');
         $card->checklistItems()->create([
-            'title' => $request->validated('title'),
+            'title' => $request->itemTitle(),
             'sort_order' => $max + 10,
         ]);
 
@@ -148,6 +154,46 @@ class CardController extends Controller
 
         return redirect()
             ->route('jirau.show', ['jirau' => $jirau, 'cartao' => $card->id]);
+    }
+
+    private function syncDrawerCard(Request $request, JirauCard $card): void
+    {
+        if ($request->input('save_card') !== '1' || ! $request->filled('title')) {
+            return;
+        }
+
+        $user = $request->user();
+        if (! $user) {
+            return;
+        }
+
+        if (! $user->is_admin && (! $card->isInbox() || (int) $card->created_by !== (int) $user->id)) {
+            return;
+        }
+
+        foreach (['assigned_to', 'estimate', 'due_at'] as $field) {
+            if ($request->input($field) === '') {
+                $request->merge([$field => null]);
+            }
+        }
+
+        $this->boards->updateCard(
+            $card,
+            $user,
+            $request->validate(UpdateCardRequest::rulesFor($user)),
+        );
+    }
+
+    private function attachEvidence(Request $request, JirauCard $card): void
+    {
+        $this->evidence->attachPhotos($card, $request->user(), JirauEvidenceService::filesFromRequest($request));
+        $driveUrls = array_values(array_filter(array_map(
+            'trim',
+            preg_split('/\R+/', (string) $request->input('drive_url', '')) ?: [],
+        )));
+        if ($driveUrls !== []) {
+            $this->evidence->attachLinks($card, $request->user(), $driveUrls);
+        }
     }
 
     private function assertCard(Request $request, Jirau $jirau, JirauCard $card): void

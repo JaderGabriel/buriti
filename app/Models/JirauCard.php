@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\JirauCardPriority;
 use App\Enums\JirauCardType;
+use App\Models\Concerns\HasAttachments;
 use Database\Factories\JirauCardFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class JirauCard extends Model
 {
     /** @use HasFactory<JirauCardFactory> */
-    use HasFactory;
+    use HasAttachments, HasFactory;
 
     protected $fillable = [
         'jirau_id',
@@ -41,6 +42,7 @@ class JirauCard extends Model
             'due_at' => 'datetime',
             'triaged_at' => 'datetime',
             'archived_at' => 'datetime',
+            'telegram_reminder_sent_at' => 'datetime',
             'estimate' => 'integer',
             'sort_order' => 'integer',
         ];
@@ -84,6 +86,11 @@ class JirauCard extends Model
     public function comments(): HasMany
     {
         return $this->hasMany(JirauComment::class, 'card_id')->orderBy('created_at');
+    }
+
+    public function links(): HasMany
+    {
+        return $this->hasMany(JirauCardLink::class, 'card_id')->latest();
     }
 
     public function key(): string

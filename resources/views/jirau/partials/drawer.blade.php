@@ -1,3 +1,6 @@
+@php
+    $canManageEvidence = $canManageEvidence ?? false;
+@endphp
 <div class="jirau-drawer-wrap">
     <a href="{{ route('jirau.show', $jirau) }}" class="jirau-drawer__backdrop" aria-label="Fechar cartão"></a>
     <aside class="jirau-drawer" role="dialog" aria-labelledby="jirau-card-title">
@@ -7,9 +10,10 @@
             <a href="{{ route('jirau.show', $jirau) }}" class="jirau-drawer__close">Fechar</a>
         </header>
 
-        <form method="POST" action="{{ route('jirau.cards.update', [$jirau, $card]) }}" class="jirau-drawer__form">
+        <form id="jirau-card-form" method="POST" action="{{ route('jirau.cards.update', [$jirau, $card]) }}" class="jirau-drawer__form">
             @csrf
             @method('PUT')
+            <input type="hidden" name="save_card" value="1">
             <x-ui.input name="title" label="Título" :value="old('title', $card->title)" required />
             <x-ui.input type="textarea" name="description" label="Descrição" :value="old('description', $card->description)" rows="6" />
 
@@ -77,6 +81,60 @@
             <button type="submit" class="pm-btn pm-btn--primary">Salvar</button>
         </form>
 
+        <section class="jirau-drawer__block">
+            <h3>Evidências</h3>
+            <p class="jirau-hint">Só fotos/prints (JPG, PNG, WebP) e links https do Google Drive ou Google Fotos.</p>
+
+            @if($card->photoAttachments->isNotEmpty())
+                <ul class="jirau-evidence__photos">
+                    @foreach($card->photoAttachments as $photo)
+                        <li>
+                            <a href="{{ route('jirau.cards.photos.show', [$jirau, $card, $photo]) }}" target="_blank" rel="noopener noreferrer">
+                                {{ $photo->title ?: $photo->original_name }}
+                            </a>
+                            @if($canManageEvidence)
+                                <form method="POST" action="{{ route('jirau.cards.photos.destroy', [$jirau, $card, $photo]) }}" data-confirm="Remover esta foto?">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="jirau-check__del" aria-label="Remover foto">✕</button>
+                                </form>
+                            @endif
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
+
+            @if($card->links->isNotEmpty())
+                <ul class="jirau-evidence__links">
+                    @foreach($card->links as $link)
+                        <li>
+                            <a href="{{ $link->url }}" target="_blank" rel="noopener noreferrer nofollow">{{ $link->label() }}</a>
+                            @if($canManageEvidence)
+                                <form method="POST" action="{{ route('jirau.cards.links.destroy', [$jirau, $card, $link]) }}" data-confirm="Remover este link?">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="jirau-check__del" aria-label="Remover link">✕</button>
+                                </form>
+                            @endif
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
+
+            @if($canManageEvidence)
+                <form method="POST" action="{{ route('jirau.cards.photos.store', [$jirau, $card]) }}" enctype="multipart/form-data" class="jirau-inline">
+                    @csrf
+                    <input type="file" name="photos[]" accept="image/jpeg,image/png,image/webp" multiple class="jirau-input" required>
+                    <button type="submit" class="pm-btn pm-btn--ghost">Adicionar fotos</button>
+                </form>
+                <form method="POST" action="{{ route('jirau.cards.links.store', [$jirau, $card]) }}" class="jirau-inline mt-2">
+                    @csrf
+                    <input type="url" name="drive_url" required placeholder="https://drive.google.com/..." class="jirau-input">
+                    <button type="submit" class="pm-btn pm-btn--ghost">Adicionar Drive</button>
+                </form>
+            @endif
+        </section>
+
         @if($isAdmin)
             <section class="jirau-drawer__block">
                 <h3>Etapa do projeto</h3>
@@ -132,11 +190,30 @@
                     </li>
                 @endforeach
             </ul>
-            <form method="POST" action="{{ route('jirau.cards.checklist.store', [$jirau, $card]) }}" class="jirau-inline">
-                @csrf
-                <input type="text" name="title" required placeholder="Novo item" class="jirau-input">
-                <button type="submit" class="pm-btn pm-btn--ghost">Adicionar</button>
-            </form>
+            <div class="jirau-inline">
+                <input
+                    form="jirau-card-form"
+                    type="text"
+                    name="item"
+                    placeholder="Novo item"
+                    class="jirau-input"
+                    maxlength="180"
+                    autocomplete="off"
+                    value="{{ old('item') }}"
+                >
+                <button
+                    form="jirau-card-form"
+                    formaction="{{ route('jirau.cards.checklist.store', [$jirau, $card]) }}"
+                    formmethod="post"
+                    name="_method"
+                    value="POST"
+                    type="submit"
+                    class="pm-btn pm-btn--ghost"
+                >Adicionar</button>
+            </div>
+            @error('item')
+                <p class="jirau-hint" style="color: #c74634">{{ $message }}</p>
+            @enderror
         </section>
 
         <section class="jirau-drawer__block">
@@ -152,11 +229,18 @@
                     <li class="jirau-members__empty">Sem comentários ainda.</li>
                 @endforelse
             </ul>
-            <form method="POST" action="{{ route('jirau.cards.comments.store', [$jirau, $card]) }}">
-                @csrf
-                <x-ui.input type="textarea" name="body" label="Comentar" rows="3" required />
-                <button type="submit" class="pm-btn pm-btn--ghost">Publicar</button>
-            </form>
+            <div>
+                <x-ui.input type="textarea" name="body" label="Comentar" rows="3" form="jirau-card-form" />
+                <button
+                    form="jirau-card-form"
+                    formaction="{{ route('jirau.cards.comments.store', [$jirau, $card]) }}"
+                    formmethod="post"
+                    name="_method"
+                    value="POST"
+                    type="submit"
+                    class="pm-btn pm-btn--ghost"
+                >Publicar</button>
+            </div>
         </section>
 
         @if($isAdmin)

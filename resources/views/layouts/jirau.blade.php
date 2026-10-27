@@ -10,9 +10,53 @@
         ? \App\Models\Jirau::query()->with('project')->orderBy('name')->get()
         : $jirauUser->jiraus()->with('project')->orderBy('name')->get();
     $currentJirau = $jirau ?? null;
+    $moduleLabel = 'Jirau';
+    $moduleItems = $jirauUser->is_admin
+        ? [
+            [
+                'route' => 'jirau.home',
+                'label' => 'Quadros',
+                'pattern' => 'jirau.home',
+                'icon' => 'jirau',
+            ],
+            [
+                'route' => 'jirau.overview',
+                'label' => 'Quadro geral',
+                'pattern' => 'jirau.overview',
+                'icon' => 'flow',
+            ],
+            [
+                'route' => 'jirau.analytics',
+                'label' => 'Analítica',
+                'pattern' => ['jirau.analytics', 'jirau.analytics.show'],
+                'icon' => 'bi',
+            ],
+            [
+                'route' => 'jirau.staff',
+                'label' => 'Equipe',
+                'pattern' => ['jirau.staff', 'jirau.staff.store'],
+                'icon' => 'users',
+            ],
+        ]
+        : $navJiraus->map(fn ($navBoard) => [
+            'url' => route('jirau.show', $navBoard),
+            'label' => $navBoard->project?->name ?? $navBoard->name,
+            'active' => $currentJirau && (int) $currentJirau->id === (int) $navBoard->id,
+            'icon' => 'jirau',
+        ])->all();
 @endphp
 
 <div class="admin-shell" data-admin-shell data-jirau-shell>
+    <script>
+        (function () {
+            try {
+                var shell = document.currentScript.parentElement;
+                if (localStorage.getItem('buriti-admin-nav') === 'collapsed' && window.matchMedia('(min-width: 1024px)').matches) {
+                    shell.setAttribute('data-admin-collapsed', 'true');
+                }
+            } catch (e) {}
+        })();
+    </script>
     <div class="admin-orbits" aria-hidden="true">
         <span class="admin-orbit admin-orbit--a"></span>
         <span class="admin-orbit admin-orbit--b"></span>
@@ -23,14 +67,16 @@
 
     <aside class="admin-sidebar" data-admin-sidebar data-open="false">
         <div class="admin-brand">
-            <a href="{{ route('jirau.home') }}" class="admin-brand__link" data-admin-close>
+            <a href="{{ route('jirau.home') }}" class="admin-brand__link" data-admin-close title="Jirau">
                 <img src="{{ asset('images/logo-buriti.png') }}" alt="" class="admin-brand__logo">
                 <span class="admin-brand__text">
                     <span class="admin-brand__name">Jirau</span>
                     <span class="admin-brand__tag">Quadro ágil BURI-TI</span>
                 </span>
             </a>
-            <button type="button" class="admin-icon-btn admin-icon-btn--ghost admin-mobile-only" data-admin-close aria-label="Fechar menu">✕</button>
+            <button type="button" class="admin-icon-btn admin-icon-btn--ghost" data-admin-nav-toggle aria-label="Minimizar menu" title="Minimizar menu">
+                <span class="admin-menu-lines" aria-hidden="true"></span>
+            </button>
         </div>
 
         <div class="admin-shortcuts">
@@ -65,6 +111,7 @@
                     <a
                         href="{{ route('jirau.home') }}"
                         data-admin-close
+                        title="Quadros"
                         @class(['admin-nav__link', 'is-active' => request()->routeIs('jirau.home')])
                     >
                         <span class="admin-nav__icon">
@@ -75,6 +122,7 @@
                     <a
                         href="{{ route('jirau.overview') }}"
                         data-admin-close
+                        title="Quadro geral"
                         @class(['admin-nav__link', 'is-active' => request()->routeIs('jirau.overview')])
                     >
                         <span class="admin-nav__icon">
@@ -85,6 +133,7 @@
                     <a
                         href="{{ route('jirau.analytics') }}"
                         data-admin-close
+                        title="Analítica"
                         @class(['admin-nav__link', 'is-active' => request()->routeIs('jirau.analytics', 'jirau.analytics.show')])
                     >
                         <span class="admin-nav__icon">
@@ -95,6 +144,7 @@
                     <a
                         href="{{ route('jirau.staff') }}"
                         data-admin-close
+                        title="Equipe"
                         @class(['admin-nav__link', 'is-active' => request()->routeIs('jirau.staff', 'jirau.staff.store')])
                     >
                         <span class="admin-nav__icon">
@@ -110,6 +160,7 @@
                     <a
                         href="{{ route('jirau.show', $navBoard) }}"
                         data-admin-close
+                        title="{{ $navBoard->project?->name ?? $navBoard->name }}"
                         @class(['admin-nav__link', 'is-active' => $currentJirau && (int) $currentJirau->id === (int) $navBoard->id])
                     >
                         <span class="admin-nav__icon">
@@ -144,10 +195,11 @@
     <div class="admin-stage">
         <header class="admin-topbar">
             <div class="admin-topbar__left">
-                <button type="button" class="admin-icon-btn admin-mobile-only" data-admin-open aria-label="Abrir menu">
+                <button type="button" class="admin-icon-btn" data-admin-nav-toggle aria-label="Minimizar menu" title="Minimizar menu">
                     <span class="admin-menu-lines" aria-hidden="true"></span>
                 </button>
                 <p class="admin-topbar__title admin-mobile-only">Jirau</p>
+                @include('admin.partials.modulebar', ['moduleItems' => $moduleItems, 'moduleLabel' => $moduleLabel])
             </div>
             <div class="admin-topbar__right">
                 <span class="admin-user admin-user--chip">

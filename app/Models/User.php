@@ -89,6 +89,12 @@ class User extends Authenticatable
             ->withTimestamps();
     }
 
+    public function watchedJirauColumns(): BelongsToMany
+    {
+        return $this->belongsToMany(JirauColumn::class, 'jirau_column_user', 'user_id', 'column_id')
+            ->withTimestamps();
+    }
+
     public static function findByTelegramChatId(string $chatId): ?self
     {
         $chatId = trim($chatId);

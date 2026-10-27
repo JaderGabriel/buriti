@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\JirauOverviewLane;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class JirauColumn extends Model
@@ -41,6 +42,13 @@ class JirauColumn extends Model
             ->whereNull('archived_at')
             ->orderBy('sort_order')
             ->orderBy('id');
+    }
+
+    public function watchers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'jirau_column_user', 'column_id', 'user_id')
+            ->withTimestamps()
+            ->orderBy('name');
     }
 
     public function isOverWip(): bool

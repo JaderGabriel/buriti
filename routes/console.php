@@ -13,6 +13,11 @@ Schedule::command('tasks:telegram-reminders')
     ->withoutOverlapping(10)
     ->appendOutputTo(storage_path('logs/task-reminders.log'));
 
+Schedule::command('jirau:telegram-reminders')
+    ->everyFiveMinutes()
+    ->withoutOverlapping(10)
+    ->appendOutputTo(storage_path('logs/jirau-reminders.log'));
+
 Schedule::command('opportunities:follow-up')
     ->dailyAt('09:00')
     ->withoutOverlapping(30)

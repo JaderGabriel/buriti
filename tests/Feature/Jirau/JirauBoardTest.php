@@ -54,10 +54,17 @@ class JirauBoardTest extends TestCase
 
         $this->assertAuthenticatedAs($member);
 
-        $this->get(route('jirau.show', $jirau))
+        $html = $this->get(route('jirau.show', $jirau))
             ->assertOk()
             ->assertSee('Nova demanda', false)
-            ->assertDontSee('Novo cartão', false);
+            ->assertSee('jirau-demand-dialog', false)
+            ->assertSee('role="dialog"', false)
+            ->assertSee('data-admin-nav-toggle', false)
+            ->assertSee('admin-modulebar', false)
+            ->assertDontSee('Novo cartão', false)
+            ->getContent();
+
+        $this->assertMatchesRegularExpression('/id="jirau-demand-dialog"[^>]*\bhidden\b/', $html);
 
         $this->get(route('admin.dashboard'))->assertRedirect(route('jirau.home'));
         $this->assertAuthenticatedAs($member);
@@ -178,6 +185,112 @@ class JirauBoardTest extends TestCase
         $this->assertSame(5, $fresh->estimate);
         $this->assertSame(JirauCardType::Story, $fresh->type);
         $this->assertNotNull($fresh->triaged_at);
+    }
+
+    public function test_comment_also_saves_edited_card_fields(): void
+    {
+        $admin = User::factory()->create();
+        $jirau = Jirau::factory()->create(['created_by' => $admin->id]);
+        $card = JirauCard::factory()->create([
+            'jirau_id' => $jirau->id,
+            'column_id' => $jirau->columns()->where('slug', 'doing')->value('id'),
+            'title' => 'Título antigo',
+            'description' => 'Descrição antiga',
+            'priority' => JirauCardPriority::Low,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('jirau.cards.comments.store', [$jirau, $card]), [
+                'save_card' => '1',
+                'title' => 'Título novo',
+                'description' => 'Descrição nova',
+                'priority' => JirauCardPriority::High->value,
+                'type' => JirauCardType::Task->value,
+                'body' => 'Vamos priorizar isso.',
+            ])
+            ->assertRedirect(route('jirau.show', ['jirau' => $jirau, 'cartao' => $card->id]));
+
+        $fresh = $card->fresh();
+        $this->assertSame('Título novo', $fresh->title);
+        $this->assertSame('Descrição nova', $fresh->description);
+        $this->assertSame(JirauCardPriority::High, $fresh->priority);
+        $this->assertTrue($fresh->comments()->where('body', 'Vamos priorizar isso.')->exists());
+    }
+
+    public function test_checklist_also_saves_edited_card_fields(): void
+    {
+        $admin = User::factory()->create();
+        $jirau = Jirau::factory()->create(['created_by' => $admin->id]);
+        $card = JirauCard::factory()->create([
+            'jirau_id' => $jirau->id,
+            'column_id' => $jirau->columns()->where('slug', 'doing')->value('id'),
+            'title' => 'Título antigo',
+            'description' => 'Texto',
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('jirau.cards.checklist.store', [$jirau, $card]), [
+                'save_card' => '1',
+                'title' => 'Título atualizado',
+                'description' => 'Texto revisado',
+                'priority' => JirauCardPriority::Medium->value,
+                'type' => JirauCardType::Task->value,
+                'item' => 'Escrever o teste',
+            ])
+            ->assertRedirect(route('jirau.show', ['jirau' => $jirau, 'cartao' => $card->id]));
+
+        $fresh = $card->fresh();
+        $this->assertSame('Título atualizado', $fresh->title);
+        $this->assertSame('Texto revisado', $fresh->description);
+        $this->assertTrue($fresh->checklistItems()->where('title', 'Escrever o teste')->exists());
+    }
+
+    public function test_member_comment_saves_edits_only_on_own_inbox_demand(): void
+    {
+        $admin = User::factory()->create();
+        $jirau = Jirau::factory()->create(['created_by' => $admin->id]);
+        $member = User::factory()->withoutAdminAccess()->create();
+        $jirau->members()->attach($member->id);
+
+        $inbox = $jirau->columns()->where('slug', 'inbox')->first();
+        $doing = $jirau->columns()->where('slug', 'doing')->first();
+
+        $own = JirauCard::factory()->demand()->create([
+            'jirau_id' => $jirau->id,
+            'column_id' => $inbox->id,
+            'created_by' => $member->id,
+            'title' => 'Pedido original',
+        ]);
+        $other = JirauCard::factory()->create([
+            'jirau_id' => $jirau->id,
+            'column_id' => $doing->id,
+            'created_by' => $admin->id,
+            'title' => 'Cartão da equipe',
+        ]);
+
+        $this->actingAs($member)
+            ->post(route('jirau.cards.comments.store', [$jirau, $own]), [
+                'save_card' => '1',
+                'title' => 'Pedido revisado',
+                'description' => 'Mais contexto',
+                'priority' => JirauCardPriority::High->value,
+                'body' => 'Incluí o print.',
+            ])
+            ->assertRedirect();
+
+        $this->assertSame('Pedido revisado', $own->fresh()->title);
+        $this->assertTrue($own->comments()->where('body', 'Incluí o print.')->exists());
+
+        $this->actingAs($member)
+            ->post(route('jirau.cards.comments.store', [$jirau, $other]), [
+                'save_card' => '1',
+                'title' => 'Não deveria gravar',
+                'body' => 'Só um recado.',
+            ])
+            ->assertRedirect();
+
+        $this->assertSame('Cartão da equipe', $other->fresh()->title);
+        $this->assertTrue($other->comments()->where('body', 'Só um recado.')->exists());
     }
 
     public function test_admin_can_invite_project_user(): void

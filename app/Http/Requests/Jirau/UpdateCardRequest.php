@@ -4,6 +4,7 @@ namespace App\Http\Requests\Jirau;
 
 use App\Enums\JirauCardPriority;
 use App\Enums\JirauCardType;
+use App\Models\User;
 use App\Services\Jirau\JirauBoardService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -18,7 +19,13 @@ class UpdateCardRequest extends FormRequest
     /** @return array<string, mixed> */
     public function rules(): array
     {
-        $admin = $this->user()?->is_admin === true;
+        return self::rulesFor($this->user());
+    }
+
+    /** @return array<string, mixed> */
+    public static function rulesFor(?User $user): array
+    {
+        $admin = $user?->is_admin === true;
 
         $rules = [
             'title' => ['required', 'string', 'max:180'],

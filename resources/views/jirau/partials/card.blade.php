@@ -44,6 +44,12 @@
             @if(($card->comments_count ?? 0) > 0)
                 <span class="jirau-chip">{{ $card->comments_count }}</span>
             @endif
+            @if(($card->attachments_count ?? 0) > 0)
+                <span class="jirau-chip" title="Fotos e prints">{{ $card->attachments_count }} foto{{ (int) $card->attachments_count === 1 ? '' : 's' }}</span>
+            @endif
+            @if(($card->links_count ?? 0) > 0)
+                <span class="jirau-chip" title="Google Drive ou álbum">Drive</span>
+            @endif
             @if($card->assignee)
                 <span class="jirau-avatar" title="{{ $card->assignee->name }} · {{ $card->assignee->jirauTeamLabel() }}">{{ $card->assignee->initials() }}</span>
             @endif

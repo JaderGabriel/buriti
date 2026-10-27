@@ -51,6 +51,8 @@ class AdminPanelTest extends TestCase
             ->assertSee('Server '.$versions['server'], false)
             ->assertSee('CRM 1.5 Vereda', false)
             ->assertDontSee('Sistema Linux', false)
+            ->assertSee('data-admin-nav-toggle', false)
+            ->assertSee('admin-modulebar', false)
             ->getContent();
 
         $settingsPos = strpos($html, '>Configurações<');
@@ -243,6 +245,18 @@ class AdminPanelTest extends TestCase
         $response->assertSee('Exportável ICS', false);
         $response->assertDontSee('Fora do mês', false);
         $response->assertSee('meet.google.com/abc-defg-hij', false);
+    }
+
+    public function test_settings_contact_card_uses_full_layout_width(): void
+    {
+        $html = $this->actingAs($this->admin)
+            ->get(route('admin.settings.edit'))
+            ->assertOk()
+            ->assertSee('Contato da empresa', false)
+            ->assertSee('settings-contact-layout', false)
+            ->getContent();
+
+        $this->assertStringNotContainsString('max-w-3xl', $html);
     }
 
     public function test_admin_can_update_settings(): void

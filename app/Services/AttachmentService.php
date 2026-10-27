@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Attachment;
+use App\Models\JirauCard;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -25,7 +26,9 @@ class AttachmentService
             $attachable->getKey()
         );
 
-        $disk = $kind === 'document' ? 'local' : 'public';
+        $disk = $kind === 'document' || $attachable instanceof JirauCard
+            ? 'local'
+            : 'public';
         $path = $file->store($folder, $disk);
 
         $attachment = $attachable->attachments()->create([

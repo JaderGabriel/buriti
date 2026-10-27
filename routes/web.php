@@ -23,6 +23,8 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\Jirau\AnalyticsController as JirauAnalyticsController;
 use App\Http\Controllers\Jirau\BoardController as JirauBoardController;
 use App\Http\Controllers\Jirau\CardController as JirauCardController;
+use App\Http\Controllers\Jirau\ColumnWatcherController as JirauColumnWatcherController;
+use App\Http\Controllers\Jirau\EvidenceController as JirauEvidenceController;
 use App\Http\Controllers\Jirau\MemberController as JirauMemberController;
 use App\Http\Controllers\Jirau\OverviewController as JirauOverviewController;
 use App\Http\Controllers\Jirau\StaffController as JirauStaffController;
@@ -93,15 +95,30 @@ Route::prefix('jirau')->name('jirau.')->middleware(['auth', 'jirau'])->group(fun
     Route::put('/{jirau}/cartoes/{card}', [JirauCardController::class, 'update'])->name('cards.update');
     Route::post('/{jirau}/cartoes/{card}/mover', [JirauCardController::class, 'move'])->name('cards.move');
     Route::post('/{jirau}/cartoes/{card}/arquivar', [JirauCardController::class, 'archive'])->name('cards.archive');
-    Route::post('/{jirau}/cartoes/{card}/comentarios', [JirauCardController::class, 'comment'])
+    Route::match(['POST', 'PUT'], '/{jirau}/cartoes/{card}/comentarios', [JirauCardController::class, 'comment'])
         ->middleware('throttle:40,1')
         ->name('cards.comments.store');
-    Route::post('/{jirau}/cartoes/{card}/checklist', [JirauCardController::class, 'storeChecklist'])
+    Route::match(['POST', 'PUT'], '/{jirau}/cartoes/{card}/checklist', [JirauCardController::class, 'storeChecklist'])
         ->name('cards.checklist.store');
     Route::patch('/{jirau}/cartoes/{card}/checklist/{item}', [JirauCardController::class, 'toggleChecklist'])
         ->name('cards.checklist.toggle');
     Route::delete('/{jirau}/cartoes/{card}/checklist/{item}', [JirauCardController::class, 'destroyChecklist'])
         ->name('cards.checklist.destroy');
+
+    Route::post('/{jirau}/cartoes/{card}/fotos', [JirauEvidenceController::class, 'storePhotos'])
+        ->middleware('throttle:20,1')
+        ->name('cards.photos.store');
+    Route::get('/{jirau}/cartoes/{card}/fotos/{attachment}', [JirauEvidenceController::class, 'showPhoto'])
+        ->name('cards.photos.show');
+    Route::delete('/{jirau}/cartoes/{card}/fotos/{attachment}', [JirauEvidenceController::class, 'destroyPhoto'])
+        ->name('cards.photos.destroy');
+    Route::post('/{jirau}/cartoes/{card}/links', [JirauEvidenceController::class, 'storeLink'])
+        ->middleware('throttle:20,1')
+        ->name('cards.links.store');
+    Route::delete('/{jirau}/cartoes/{card}/links/{link}', [JirauEvidenceController::class, 'destroyLink'])
+        ->name('cards.links.destroy');
+    Route::put('/{jirau}/faixas/{column}/avisos', [JirauColumnWatcherController::class, 'update'])
+        ->name('columns.watchers');
 
     Route::post('/{jirau}/membros', [JirauMemberController::class, 'store'])->name('members.store');
     Route::delete('/{jirau}/membros/{user}', [JirauMemberController::class, 'destroy'])->name('members.destroy');

@@ -132,9 +132,31 @@
     $adminUser = auth()->user();
     $adminFirstName = explode(' ', trim($adminUser->name))[0] ?? 'olá';
     $runtimeVersions = $runtimeVersions ?? \App\Support\RuntimeVersions::labels();
+    $moduleGroup = collect($navGroups)->first(function (array $group) {
+        foreach ($group['items'] as $item) {
+            $pattern = $item['pattern'];
+            if (is_array($pattern) ? request()->routeIs(...$pattern) : request()->routeIs($pattern)) {
+                return true;
+            }
+        }
+
+        return false;
+    });
+    $moduleItems = $moduleGroup['items'] ?? [];
+    $moduleLabel = $moduleGroup['label'] ?? 'Painel';
 @endphp
 
 <div class="admin-shell" data-admin-shell>
+    <script>
+        (function () {
+            try {
+                var shell = document.currentScript.parentElement;
+                if (localStorage.getItem('buriti-admin-nav') === 'collapsed' && window.matchMedia('(min-width: 1024px)').matches) {
+                    shell.setAttribute('data-admin-collapsed', 'true');
+                }
+            } catch (e) {}
+        })();
+    </script>
     <div class="admin-orbits" aria-hidden="true">
         <span class="admin-orbit admin-orbit--a"></span>
         <span class="admin-orbit admin-orbit--b"></span>
@@ -149,14 +171,16 @@
         data-open="false"
     >
         <div class="admin-brand">
-            <a href="{{ route('admin.dashboard') }}" class="admin-brand__link" data-admin-close>
+            <a href="{{ route('admin.dashboard') }}" class="admin-brand__link" data-admin-close title="BURI-TI">
                 <img src="{{ asset('images/logo-buriti.png') }}" alt="" class="admin-brand__logo">
                 <span class="admin-brand__text">
                     <span class="admin-brand__name">BURI-TI</span>
                     <span class="admin-brand__tag">Painel admin</span>
                 </span>
             </a>
-            <button type="button" class="admin-icon-btn admin-icon-btn--ghost admin-mobile-only" data-admin-close aria-label="Fechar menu">✕</button>
+            <button type="button" class="admin-icon-btn admin-icon-btn--ghost" data-admin-nav-toggle aria-label="Minimizar menu" title="Minimizar menu">
+                <span class="admin-menu-lines" aria-hidden="true"></span>
+            </button>
         </div>
 
         @include('admin.partials.shortcuts')
@@ -187,6 +211,7 @@
                         <a
                             href="{{ route($item['route']) }}"
                             data-admin-close
+                            title="{{ $item['label'] }}"
                             @class(['admin-nav__link', 'is-active' => $active])
                         >
                             <span class="admin-nav__icon">
@@ -224,10 +249,11 @@
     <div class="admin-stage">
         <header class="admin-topbar">
             <div class="admin-topbar__left">
-                <button type="button" class="admin-icon-btn admin-mobile-only" data-admin-open aria-label="Abrir menu">
+                <button type="button" class="admin-icon-btn" data-admin-nav-toggle aria-label="Minimizar menu" title="Minimizar menu">
                     <span class="admin-menu-lines" aria-hidden="true"></span>
                 </button>
                 <p class="admin-topbar__title admin-mobile-only">Admin BURI-TI</p>
+                @include('admin.partials.modulebar', ['moduleItems' => $moduleItems, 'moduleLabel' => $moduleLabel])
                 <form method="GET" action="{{ route('admin.search') }}" class="admin-search admin-search--top">
                     <label class="sr-only" for="admin-search-top">Buscar no CRM</label>
                     <span class="admin-search__icon" aria-hidden="true">
