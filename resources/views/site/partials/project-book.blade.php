@@ -3,8 +3,9 @@
     $variant = $variant ?? 'open';
     $featuredCards = (bool) ($featuredCards ?? false);
     $cardClass = $cardClass ?? '';
+    $perPage = max(2, (int) ($perPage ?? ($variant === 'featured' ? 2 : 3)));
     $bookId = $bookId ?? \Illuminate\Support\Str::slug($title ?? 'portfolio');
-    $pages = $items->chunk(2)->values();
+    $pages = $items->chunk($perPage)->values();
     $pageCount = $pages->count();
     $canFlip = $pageCount > 1;
 @endphp

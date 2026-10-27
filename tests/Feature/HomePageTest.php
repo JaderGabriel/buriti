@@ -31,7 +31,9 @@ class HomePageTest extends TestCase
         $response->assertSee('Proposta objetiva, escopo claro', false);
         $response->assertSee('mobile-proposal-fab', false);
         $response->assertSee('data-mobile-proposal-fab', false);
+        $response->assertSee('Fluxo', false);
         $response->assertSee('Como trabalhamos', false);
+        $response->assertSee('aria-label="Área admin"', false);
         $response->assertSee('method-flow', false);
         $response->assertSee('O que o contratante precisa ver', false);
         $response->assertSee('Como o resultado é produzido', false);
@@ -89,6 +91,13 @@ class HomePageTest extends TestCase
             'repo_is_private' => false,
             'sort_order' => 3,
         ]);
+        Project::factory()->public()->create([
+            'name' => 'Livro Integração Quatro',
+            'category' => 'Integração',
+            'featured_on_home' => false,
+            'repo_is_private' => false,
+            'sort_order' => 4,
+        ]);
 
         $this->get(route('home'))
             ->assertOk()
@@ -101,10 +110,11 @@ class HomePageTest extends TestCase
             ->assertSee('Livro Integração Um', false)
             ->assertSee('Livro Integração Dois', false)
             ->assertSee('Livro Integração Três', false)
+            ->assertSee('Livro Integração Quatro', false)
             ->assertSee('Cada tipo vira como um caderno', false);
     }
 
-    public function test_home_footer_shows_system_versions_above_copyright(): void
+    public function test_home_footer_shows_system_versions_below_copyright(): void
     {
         $versions = RuntimeVersions::labels();
 
@@ -114,7 +124,7 @@ class HomePageTest extends TestCase
 
         $this->assertNotFalse($versionsPos);
         $this->assertNotFalse($copyrightPos);
-        $this->assertLessThan($copyrightPos, $versionsPos);
+        $this->assertGreaterThan($copyrightPos, $versionsPos);
         $this->assertStringContainsString($versions['php'], $html);
         $this->assertStringContainsString($versions['laravel'], $html);
         $this->assertStringContainsString('1.6 Vereda', $html);

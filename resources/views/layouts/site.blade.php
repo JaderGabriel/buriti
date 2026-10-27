@@ -18,7 +18,7 @@
             </a>
 
             <nav class="hidden items-center gap-1 text-sm font-medium text-mist xl:flex" data-site-nav>
-                <a href="{{ $sectionHref('metodo') }}">Como trabalhamos</a>
+                <a href="{{ $sectionHref('metodo') }}">Fluxo</a>
                 <a href="{{ $sectionHref('servicos') }}">Serviços</a>
                 <a href="{{ $sectionHref('expertise') }}">Experiência</a>
                 <a href="{{ $sectionHref('projetos') }}">Portfólio</a>
@@ -39,9 +39,12 @@
                     <svg class="block h-4 w-4 dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M21 14.3A8.1 8.1 0 1 1 9.7 3 6.5 6.5 0 0 0 21 14.3z"/></svg>
                 </button>
 
-                <x-site.admin-link class="hidden items-center gap-1.5 rounded-[0.95rem] px-2.5 py-2 text-sm font-semibold text-brand-bright transition hover:text-snow xl:inline-flex">
-                    <x-ui.icon name="admin" class="h-3.5 w-3.5" />
-                    @auth Painel admin @else Área admin @endauth
+                <x-site.admin-link
+                    class="site-theme-btn"
+                    aria-label="{{ auth()->check() ? 'Abrir painel admin' : 'Área admin' }}"
+                    title="{{ auth()->check() ? 'Painel admin' : 'Área admin' }}"
+                >
+                    <x-ui.icon name="dashboard" class="h-4 w-4" />
                 </x-site.admin-link>
 
                 <a
@@ -65,15 +68,12 @@
 
         <div id="mobile-nav" class="hidden border-t border-line xl:hidden" data-nav-panel hidden>
             <nav class="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-4 text-sm sm:px-6">
-                <a href="{{ $sectionHref('metodo') }}" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Como trabalhamos</a>
+                <a href="{{ $sectionHref('metodo') }}" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Fluxo</a>
                 <a href="{{ $sectionHref('servicos') }}" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Serviços</a>
                 <a href="{{ $sectionHref('expertise') }}" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Experiência</a>
                 <a href="{{ $sectionHref('projetos') }}" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Portfólio</a>
                 <a href="{{ $sectionHref('equipe') }}" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Equipe</a>
                 <a href="{{ $sectionHref('contato') }}" class="rounded-sm px-3 py-3 text-mist hover:bg-ink hover:text-snow" data-nav-close>Contato</a>
-                <x-site.admin-link class="rounded-sm px-3 py-3 font-semibold text-brand-bright" data-nav-close>
-                    @auth Painel admin @else Área admin @endauth
-                </x-site.admin-link>
             </nav>
         </div>
     </header>
@@ -104,7 +104,7 @@
     </button>
 
     <footer class="site-footer border-t border-line">
-        <div class="mx-auto grid max-w-7xl grid-cols-2 gap-8 px-4 py-12 sm:gap-10 sm:px-6 md:grid-cols-3 lg:px-8">
+        <div class="mx-auto grid max-w-7xl grid-cols-2 gap-6 px-4 py-7 sm:gap-8 sm:px-6 md:grid-cols-3 lg:px-8">
             <div class="col-span-2 md:col-span-1">
                 <div class="flex items-center gap-3">
                     <img src="{{ asset('images/logo-buriti.png') }}" alt="" class="h-9 w-9 object-contain">
@@ -113,12 +113,10 @@
                 <p class="mt-3 max-w-sm text-sm leading-relaxed text-mist">Software, dados e indicadores para operações que precisam de resultado claro — da proposta ao dia a dia.</p>
             </div>
             <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-mist">Navegação</p>
-                <div class="mt-3 flex flex-col gap-2 text-sm text-mist">
-                    <a href="{{ $sectionHref('servicos') }}" class="hover:text-snow">Serviços</a>
-                    <a href="{{ $sectionHref('projetos') }}" class="hover:text-snow">Portfólio</a>
-                    <a href="{{ $sectionHref('contato') }}" class="hover:text-snow">Contato</a>
+                <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-mist">Navegação</p>
+                <div class="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm text-mist">
                     <a href="{{ route('privacy') }}" class="hover:text-snow">Privacidade</a>
+                    <span aria-hidden="true">·</span>
                     <a href="{{ route('cookies') }}" class="hover:text-snow">Cookies</a>
                 </div>
             </div>
@@ -137,23 +135,7 @@
                 </div>
             </div>
         </div>
-        <div class="site-footer__legal border-t border-line px-4 py-5 text-center text-xs text-mist/80 sm:px-6">
-            @isset($runtimeVersions)
-                <ul class="site-versions" aria-label="Versões do sistema">
-                    <li>
-                        <span>PHP</span>
-                        {{ $runtimeVersions['php'] }}
-                    </li>
-                    <li>
-                        <span>Laravel</span>
-                        {{ $runtimeVersions['laravel'] }}
-                    </li>
-                    <li>
-                        <span>Sistema</span>
-                        {{ $runtimeVersions['version'] }} {{ $runtimeVersions['codename'] }}
-                    </li>
-                </ul>
-            @endisset
+        <div class="site-footer__legal border-t border-line px-4 py-3 text-center text-xs text-mist/80 sm:px-6">
             <p>© {{ date('Y') }} BURI-TI — Tecnologia para Pessoas</p>
             <p class="mt-1.5">
                 Desenvolvido e mantido por <span class="text-snow">BURI-TI</span>
@@ -168,6 +150,24 @@
                 <span>LGPD</span>
             </p>
         </div>
+        @isset($runtimeVersions)
+            <div class="site-footer__meta">
+                <ul class="site-versions" aria-label="Versões do sistema">
+                    <li>
+                        <span>PHP</span>
+                        {{ $runtimeVersions['php'] }}
+                    </li>
+                    <li>
+                        <span>Laravel</span>
+                        {{ $runtimeVersions['laravel'] }}
+                    </li>
+                    <li>
+                        <span>Sistema</span>
+                        {{ $runtimeVersions['version'] }} {{ $runtimeVersions['codename'] }}
+                    </li>
+                </ul>
+            </div>
+        @endisset
     </footer>
 
     <x-site.cookie-banner />

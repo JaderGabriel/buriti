@@ -28,6 +28,7 @@
                     'badge' => '★',
                     'items' => $featuredProjects ?? collect(),
                     'featuredCards' => true,
+                    'perPage' => 2,
                 ])
 
                 @include('site.partials.project-book', [
@@ -37,6 +38,7 @@
                     'title' => 'Código aberto',
                     'lead' => 'Repositórios com código visível.',
                     'items' => $openSourceProjects,
+                    'perPage' => 3,
                 ])
 
                 @include('site.partials.project-book', [
@@ -48,6 +50,7 @@
                     'badge' => 'NDA',
                     'items' => $privateRepoProjects,
                     'cardClass' => 'border-brand/20 bg-[linear-gradient(160deg,rgba(30,112,191,0.08),transparent_50%)]',
+                    'perPage' => 3,
                 ])
             </div>
         @endif

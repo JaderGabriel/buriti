@@ -37,10 +37,17 @@ class AdminPanelTest extends TestCase
             ->assertSee('Entrega', false)
             ->assertSee('Jirau', false)
             ->assertSee('Sistema', false)
+            ->assertSee('admin-nav__group--home', false)
+            ->assertSee('admin-nav__group--comercial', false)
+            ->assertSee('admin-nav__group--entrega', false)
+            ->assertSee('admin-nav__group--jirau', false)
+            ->assertSee('admin-nav__group--sistema', false)
+            ->assertSee('admin-nav__sub', false)
+            ->assertSee('admin-nav__sublink', false)
             ->assertDontSee('admin-nav__text">Mensagens', false)
             ->assertDontSee('admin-nav__text">Usuários', false);
 
-        $this->actingAs($this->admin)
+        $html = $this->actingAs($this->admin)
             ->get(route('admin.messages.index'))
             ->assertOk()
             ->assertSee('admin-modulebar', false)
@@ -48,7 +55,11 @@ class AdminPanelTest extends TestCase
             ->assertSee('>Mensagens</span>', false)
             ->assertSee('>Empresas</span>', false)
             ->assertSee('>Contatos</span>', false)
-            ->assertSee('>Oportunidades</span>', false);
+            ->assertSee('>Oportunidades</span>', false)
+            ->getContent();
+
+        $this->assertStringContainsString('admin-nav__sublink', $html);
+        $this->assertMatchesRegularExpression('/admin-nav__sublink[^>]*>[\s\S]*Mensagens/', $html);
     }
 
     public function test_dashboard_loads_for_authenticated_user(): void

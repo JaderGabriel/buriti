@@ -108,6 +108,15 @@ html.dark:has([data-site-shell]) body {
     backdrop-filter: blur(18px);
 }
 
+a.site-theme-btn {
+    text-decoration: none;
+    color: var(--site-blue);
+}
+
+html.dark a.site-theme-btn {
+    color: #93c5fd;
+}
+
 .site-theme-btn {
     display: inline-flex;
     height: 2.55rem;
@@ -366,34 +375,44 @@ html.dark [data-site-shell] .method-icon {
     backdrop-filter: blur(16px);
 }
 
-.site-versions {
+.site-footer__meta {
     display: flex;
+    justify-content: center;
+    border-top: 1px solid color-mix(in oklab, var(--site-glass-border) 75%, transparent);
+    background: color-mix(in oklab, var(--site-chip) 55%, transparent);
+    padding: 0.18rem 1rem 0.2rem;
+}
+
+.site-versions {
+    display: inline-flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 0.45rem;
-    margin: 0 0 1rem;
+    align-items: center;
+    gap: 0;
+    margin: 0;
     padding: 0;
     list-style: none;
+    max-width: 100%;
 }
 
 .site-versions li {
     display: inline-flex;
     align-items: baseline;
-    gap: 0.38rem;
-    border: 1px solid var(--site-glass-border);
-    border-radius: 999px;
-    background: var(--site-chip);
-    padding: 0.34rem 0.78rem;
-    font-size: 0.72rem;
-    font-weight: 650;
-    letter-spacing: 0.02em;
-    color: var(--color-snow);
-    box-shadow: var(--site-shadow-soft);
-    backdrop-filter: blur(14px);
+    gap: 0.32rem;
+    padding: 0.04rem 0.62rem;
+    font-size: 0.58rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+    color: color-mix(in oklab, var(--color-mist) 82%, var(--color-snow));
+}
+
+.site-versions li + li {
+    border-left: 1px solid color-mix(in oklab, var(--site-glass-border) 88%, transparent);
 }
 
 .site-versions span {
-    font-size: 0.58rem;
+    font-size: 0.5rem;
     font-weight: 800;
     letter-spacing: 0.16em;
     text-transform: uppercase;
@@ -545,18 +564,16 @@ html.dark .site-service__icon {
 
 .project-book__spread {
     display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.85rem;
+    align-items: stretch;
 }
 
-@media (min-width: 768px) {
-    .project-book__spread {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        align-items: stretch;
-    }
-
-    .project-book__spread > :only-child {
-        grid-column: 1 / -1;
-    }
+.project-book--open .project-book__spread,
+.project-book--private .project-book__spread {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .project-book__stage {

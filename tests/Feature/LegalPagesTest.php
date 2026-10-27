@@ -25,6 +25,20 @@ class LegalPagesTest extends TestCase
             ->assertSee('estritamente necessários', false);
     }
 
+    public function test_home_footer_navigation_only_lists_privacy_and_cookies(): void
+    {
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        $this->assertSame(1, preg_match('/Navegação(.*?)Conta e redes/s', $html, $matches));
+
+        $nav = $matches[1];
+        $this->assertStringContainsString('Privacidade', $nav);
+        $this->assertStringContainsString('Cookies', $nav);
+        $this->assertStringNotContainsString('Serviços', $nav);
+        $this->assertStringNotContainsString('Portfólio', $nav);
+        $this->assertStringNotContainsString('Contato', $nav);
+    }
+
     public function test_home_footer_shows_copyright_and_legal_links(): void
     {
         $versions = RuntimeVersions::labels();

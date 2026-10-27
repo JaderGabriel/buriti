@@ -14,7 +14,7 @@
             @endif
         </div>
 
-        <div class="mt-12 space-y-8">
+        <div class="mt-8 space-y-6">
             @foreach($people as $index => $person)
                 @php
                     $featured = (bool) ($person['featured'] ?? false);
@@ -35,32 +35,31 @@
                 <article class="site-card overflow-hidden">
                     <div @class([
                         'grid gap-0',
-                        'lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]' => $featured,
+                        'lg:grid-cols-[minmax(10.5rem,13.5rem)_minmax(0,1fr)] lg:items-start' => $featured,
                     ])>
                         <div @class([
-                            'relative flex flex-col justify-between border-b border-line bg-[linear-gradient(160deg,rgba(26,95,158,0.16),rgba(199,70,52,0.10),transparent_60%)] p-6 sm:p-8',
+                            'relative flex flex-col justify-between border-b border-line bg-[linear-gradient(160deg,rgba(26,95,158,0.16),rgba(199,70,52,0.10),transparent_60%)] p-4 sm:p-5',
                             'lg:border-b-0 lg:border-r' => $featured,
-                            'min-h-[14rem]' => $featured,
                         ])>
                             <div class="relative">
                                 @if(! empty($person['photo']))
                                     <img
                                         src="{{ asset($person['photo']) }}"
                                         alt="{{ $person['name'] }}"
-                                        class="h-28 w-28 rounded-2xl object-cover object-top ring-1 ring-line sm:h-32 sm:w-32"
+                                        class="h-16 w-16 rounded-lg object-cover object-top ring-1 ring-line sm:h-20 sm:w-20"
                                     >
                                 @else
-                                    <div class="inline-flex h-28 w-28 items-center justify-center rounded-2xl border border-brand/40 bg-ink/40 font-display text-3xl font-bold tracking-wide text-brand-bright sm:h-32 sm:w-32 sm:text-4xl">
+                                    <div class="inline-flex h-16 w-16 items-center justify-center rounded-lg border border-brand/40 bg-ink/40 font-display text-xl font-bold tracking-wide text-brand-bright sm:h-20 sm:w-20 sm:text-2xl">
                                         {{ $person['initials'] ?? collect(explode(' ', $person['name']))->map(fn ($w) => mb_substr($w, 0, 1))->take(2)->implode('') }}
                                     </div>
                                 @endif
 
-                                <h3 class="mt-6 font-display text-2xl font-bold text-snow sm:text-3xl">{{ $person['name'] }}</h3>
-                                <p class="mt-2 text-sm font-medium text-brand-bright sm:text-base">{{ $person['role'] }}</p>
+                                <h3 class="mt-3 font-display text-lg font-bold text-snow sm:text-xl">{{ $person['name'] }}</h3>
+                                <p class="mt-1 text-xs font-medium leading-snug text-brand-bright sm:text-sm">{{ $person['role'] }}</p>
                             </div>
 
                             @if($links)
-                                <div class="relative mt-8">
+                                <div class="relative mt-4">
                                     <x-site.contact-icons
                                         :linkedin="$links['linkedin'] ?? null"
                                         :github="$links['github'] ?? null"
@@ -72,11 +71,11 @@
                             @endif
                         </div>
 
-                        <div class="p-6 sm:p-8 lg:p-10">
-                            <p class="text-sm leading-relaxed text-mist sm:text-base">{{ $person['bio'] }}</p>
+                        <div class="p-5 sm:p-6 lg:p-7">
+                            <p class="text-sm leading-relaxed text-mist">{{ $person['bio'] }}</p>
 
                             @if($focus)
-                                <div class="mt-8">
+                                <div class="mt-5">
                                     <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand">Foco de atuação</p>
                                     <ul class="mt-4 grid gap-3 sm:grid-cols-2">
                                         @foreach($focus as $item)
@@ -91,7 +90,7 @@
 
                             @php $practice = $career['practice'] ?? null; @endphp
                             @if(! empty($practice['pillars']))
-                                <div class="mt-8 border-t border-line pt-8">
+                                <div class="mt-5 border-t border-line pt-5">
                                     <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand">
                                         {{ $practice['title'] ?? 'Como o resultado é produzido' }}
                                     </p>
@@ -117,7 +116,7 @@
                                 </div>
                             @endif
 
-                            <div class="mt-8 flex flex-wrap gap-3">
+                            <div class="mt-5 flex flex-wrap gap-3">
                                 @if($career)
                                     <button
                                         type="button"
@@ -147,7 +146,7 @@
                             </div>
 
                             @if(! empty($techItems))
-                                <div class="mt-10 border-t border-line pt-8">
+                                <div class="mt-6 border-t border-line pt-5">
                                     <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand">
                                         {{ $technologies['title'] ?? 'Tecnologias e operação' }}
                                     </p>

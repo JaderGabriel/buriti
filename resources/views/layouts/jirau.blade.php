@@ -22,6 +22,16 @@
             'active' => $currentJirau && (int) $currentJirau->id === (int) $navBoard->id,
             'icon' => 'jirau',
         ])->all();
+
+    if (! $jirauUser->is_admin) {
+        $modules = array_map(function (array $module) use ($moduleItems): array {
+            if (($module['id'] ?? '') === 'jirau') {
+                $module['items'] = $moduleItems;
+            }
+
+            return $module;
+        }, $modules);
+    }
 @endphp
 
 <div class="admin-shell" data-admin-shell data-jirau-shell>
