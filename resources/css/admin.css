@@ -7,7 +7,8 @@ html:has([data-admin-shell]) {
     --admin-radius: 1.35rem;
     --admin-radius-sm: 0.95rem;
     --admin-radius-xs: 0.75rem;
-    overflow-x: clip;
+    height: 100%;
+    overflow: hidden;
 }
 
 html.light:has([data-admin-shell]) {
@@ -37,6 +38,10 @@ html.dark:has([data-admin-shell]) {
 }
 
 html:has([data-admin-shell]) body {
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
     background-color: var(--admin-canvas);
     background-image:
         radial-gradient(900px 420px at 88% -8%, rgba(47, 107, 255, 0.16), transparent 55%),
@@ -52,9 +57,13 @@ html.dark:has([data-admin-shell]) body {
 .admin-shell {
     position: relative;
     isolation: isolate;
-    min-height: 100vh;
+    display: flex;
+    height: 100dvh;
+    max-height: 100dvh;
+    min-height: 100dvh;
     min-width: 0;
-    overflow: visible;
+    flex-direction: column;
+    overflow: hidden;
     color: var(--admin-text);
 }
 
@@ -127,6 +136,7 @@ html.dark .admin-orbit {
     .admin-shell {
         display: grid;
         grid-template-columns: 17.5rem minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr);
         gap: 0.85rem;
         padding: 0.9rem;
     }
@@ -148,6 +158,7 @@ html.dark .admin-orbit {
     min-height: 0;
     flex-direction: column;
     gap: 0.75rem;
+    overflow: hidden;
     padding: 1rem 0.9rem calc(1rem + env(safe-area-inset-bottom, 0px));
     background: var(--admin-glass-strong);
     border-right: 1px solid var(--admin-glass-border);
@@ -163,12 +174,15 @@ html.dark .admin-orbit {
 
 @media (min-width: 1024px) {
     .admin-sidebar {
-        position: sticky;
-        top: 0.9rem;
+        position: relative;
+        inset: auto;
+        top: auto;
         left: auto;
-        z-index: 20;
+        z-index: 30;
         width: auto;
-        height: calc(100vh - 1.8rem);
+        height: auto;
+        max-height: none;
+        align-self: stretch;
         margin: 0;
         transform: none;
         border: 1px solid var(--admin-glass-border);
@@ -216,6 +230,7 @@ html.dark .admin-orbit {
 
 .admin-brand {
     display: flex;
+    flex-shrink: 0;
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
@@ -263,6 +278,7 @@ html.dark .admin-orbit {
 
 .admin-rail-tools {
     display: flex;
+    flex-shrink: 0;
     flex-direction: column;
     gap: 0.45rem;
 }
@@ -368,6 +384,10 @@ html.dark .admin-orbit {
     position: relative;
     z-index: 36;
     overflow: visible;
+}
+
+.admin-sidebar .admin-search {
+    flex-shrink: 0;
 }
 
 .admin-search__suggest {
@@ -533,7 +553,9 @@ html.dark .admin-orbit {
     flex: 1;
     flex-direction: column;
     gap: 0.55rem;
+    overflow-x: hidden;
     overflow-y: auto;
+    overscroll-behavior: contain;
     padding-right: 0.15rem;
 }
 
@@ -722,6 +744,7 @@ html.dark .admin-nav__group {
 
 .admin-user {
     display: flex;
+    flex-shrink: 0;
     align-items: center;
     gap: 0.7rem;
     margin-top: auto;
@@ -780,23 +803,25 @@ html.dark .admin-nav__group {
 
 .admin-stage {
     min-width: 0;
+    min-height: 0;
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
-    overflow: visible;
+    overflow: hidden;
 }
 
 .admin-topbar {
-    position: sticky;
-    top: 0;
-    z-index: 35;
+    position: relative;
+    z-index: 40;
     display: flex;
     flex-shrink: 0;
+    flex-wrap: nowrap;
     align-items: center;
     justify-content: space-between;
     gap: 0.55rem;
     overflow: visible;
     padding: 0.7rem 0.85rem;
-    background: color-mix(in oklab, var(--admin-glass-strong) 88%, transparent);
+    background: var(--admin-glass-strong);
     border-bottom: 1px solid var(--admin-glass-border);
     backdrop-filter: blur(18px);
 }
@@ -811,11 +836,14 @@ html.dark .admin-nav__group {
 
 .admin-topbar__left {
     flex: 1 1 auto;
+    min-width: 0;
     overflow: visible;
 }
 
 .admin-topbar__right {
     flex: 0 0 auto;
+    flex-shrink: 0;
+    min-width: max-content;
 }
 
 .admin-topbar__title {
@@ -891,6 +919,7 @@ html.dark .admin-nav__group {
     align-items: center;
     gap: 0.4rem;
     flex-shrink: 0;
+    min-width: max-content;
 }
 
 .admin-notify {
@@ -1178,7 +1207,7 @@ html.dark .admin-nav__group {
     display: flex;
     min-width: 0;
     flex: 1 1 0;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
     gap: 0.28rem;
     overflow-x: auto;
@@ -1249,9 +1278,9 @@ html.dark .admin-nav__group {
 
 @media (min-width: 1024px) {
     .admin-topbar {
-        position: sticky;
-        top: 0.9rem;
-        z-index: 35;
+        position: relative;
+        top: auto;
+        z-index: 40;
         margin: 0 0 0.85rem;
         padding: 0.42rem 0.55rem;
         border: 1px solid var(--admin-glass-border);
@@ -1282,7 +1311,10 @@ html.dark .admin-nav__group {
 
 .admin-content {
     min-width: 0;
-    overflow-x: clip;
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow: auto;
+    overscroll-behavior: contain;
     padding: 1.15rem 1rem 4.75rem;
 }
 
@@ -1768,12 +1800,19 @@ html.dark [data-admin-shell] .dash-stat[data-kpi-polarity="up-bad"].is-up .dash-
     padding-bottom: 0.5rem;
 }
 
+.admin-content:has(.messenger-shell) {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
 [data-admin-shell] .messenger-shell {
     flex: 1 1 auto;
     min-width: 0;
+    min-height: 0;
     max-width: 100%;
+    height: 100%;
     overflow: hidden;
-    min-height: calc(100dvh - 11rem);
 }
 
 [data-admin-shell] .messenger {
@@ -1783,7 +1822,7 @@ html.dark [data-admin-shell] .dash-stat[data-kpi-polarity="up-bad"].is-up .dash-
 
 @media (min-width: 1024px) {
     [data-admin-shell] .messenger-shell {
-        min-height: calc(100dvh - 8.25rem);
+        min-height: 0;
     }
 }
 

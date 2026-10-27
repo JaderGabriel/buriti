@@ -1328,20 +1328,35 @@ function initBackToTop() {
         return;
     }
 
+    const shell = document.querySelector('[data-admin-shell]');
+    const scroller = shell?.querySelector('.admin-content') ?? window;
     const threshold = 420;
 
+    const scrollTop = () => (
+        scroller === window ? window.scrollY : scroller.scrollTop
+    );
+
+    const scrollToTop = () => {
+        if (scroller === window) {
+            window.scrollTo({ top: 0, behavior: 'auto' });
+            return;
+        }
+
+        scroller.scrollTo({ top: 0, behavior: 'auto' });
+    };
+
     const sync = () => {
-        const visible = window.scrollY > threshold;
+        const visible = scrollTop() > threshold;
         button.classList.toggle('is-visible', visible);
         button.toggleAttribute('hidden', ! visible);
     };
 
     button.addEventListener('click', () => {
-        window.scrollTo({ top: 0, behavior: 'auto' });
+        scrollToTop();
         sync();
     });
 
-    window.addEventListener('scroll', sync, { passive: true });
+    scroller.addEventListener('scroll', sync, { passive: true });
     sync();
 }
 
