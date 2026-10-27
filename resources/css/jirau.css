@@ -197,6 +197,39 @@ html.dark .jirau-action--warn { color: #fca5a5; }
     align-items: stretch;
 }
 
+.jirau-home__none {
+    margin: 0 0 1.25rem;
+    font-size: 0.9rem;
+    color: var(--admin-muted, var(--color-mist));
+}
+
+.jirau-home__idle {
+    margin-top: 2rem;
+    padding: 1.15rem 1.1rem 1.05rem;
+    border: 1px dashed color-mix(in oklab, var(--admin-muted, #6b7280) 38%, transparent);
+    border-radius: var(--admin-radius-sm, 1rem);
+    background: color-mix(in oklab, var(--admin-glass, var(--color-panel)) 42%, transparent);
+}
+
+.jirau-home__idle-head {
+    margin-bottom: 1rem;
+    max-width: 36rem;
+}
+
+.jirau-home__idle-head h2 {
+    margin: 0.15rem 0 0.35rem;
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--admin-muted, var(--color-mist));
+}
+
+.jirau-home__idle-head p:last-child {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--admin-muted, var(--color-mist));
+}
+
 .jirau-home__card {
     position: relative;
     display: flex;
@@ -221,7 +254,26 @@ html.dark .jirau-action--warn { color: #fca5a5; }
 }
 
 .jirau-home__card.is-inactive {
-    opacity: 0.72;
+    min-height: 11.25rem;
+    filter: grayscale(0.42);
+    opacity: 0.88;
+    border-style: dashed;
+    border-top-width: 2px;
+    box-shadow: none;
+    background:
+        linear-gradient(180deg, color-mix(in oklab, var(--admin-muted, #6b7280) 8%, transparent), transparent 48%),
+        color-mix(in oklab, var(--admin-glass, var(--color-panel)) 78%, #d4cfc4);
+}
+
+.jirau-home__card.is-inactive:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: color-mix(in oklab, var(--admin-muted, #6b7280) 35%, var(--admin-glass-border, var(--color-line)));
+}
+
+.jirau-home__card.is-inactive .jirau-home__brand {
+    opacity: 0.5;
+    box-shadow: none;
 }
 
 .jirau-home__card.is-dragging {
@@ -242,6 +294,11 @@ html.dark .jirau-action--warn { color: #fca5a5; }
     display: flex;
     align-items: center;
     gap: 0.45rem;
+}
+
+.jirau-home__tools form {
+    display: inline-flex;
+    margin: 0;
 }
 
 .jirau-home__mark {

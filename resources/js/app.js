@@ -3703,7 +3703,7 @@ function initJirauHome() {
     }
     home.dataset.dndBound = '1';
 
-    const grid = home.querySelector('.jirau-home__grid');
+    const grid = home.querySelector('[data-jirau-home-grid]');
     const reorderUrl = home.dataset.reorderUrl || '';
     const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     const MOVE_THRESHOLD = 8;

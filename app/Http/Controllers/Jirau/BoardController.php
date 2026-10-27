@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Jirau;
 use App\Enums\JirauCardPriority;
 use App\Enums\JirauCardType;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Jirau\DeleteBoardRequest;
 use App\Http\Requests\Jirau\ReorderBoardsRequest;
 use App\Http\Requests\Jirau\StoreBoardRequest;
 use App\Http\Requests\Jirau\UpdateBoardRequest;
@@ -35,6 +36,7 @@ class BoardController extends Controller
         $query = Jirau::query()
             ->with(['project', 'columns'])
             ->withCount([
+                'cards as cards_count',
                 'cards as open_cards_count' => fn ($q) => $q->whereNull('archived_at'),
                 'cards as inbox_cards_count' => fn ($q) => $q
                     ->whereNull('archived_at')
@@ -56,9 +58,24 @@ class BoardController extends Controller
 
         return view('jirau.home', [
             'jiraus' => $jiraus,
+            'activeBoards' => $jiraus->where('is_active', true)->values(),
+            'inactiveBoards' => $jiraus->where('is_active', false)->values(),
             'jirau' => null,
             'isAdmin' => (bool) $user->is_admin,
         ]);
+    }
+
+    public function destroy(DeleteBoardRequest $request, Jirau $jirau): RedirectResponse
+    {
+        $this->access->assertManage($request->user());
+        $this->access->assertView($request->user(), $jirau);
+
+        $name = $jirau->name;
+        $this->boards->deleteEmpty($jirau);
+
+        return redirect()
+            ->route('jirau.home')
+            ->with('success', 'Quadro «'.$name.'» removido.');
     }
 
     public function store(StoreBoardRequest $request): RedirectResponse

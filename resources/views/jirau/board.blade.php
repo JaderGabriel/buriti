@@ -84,6 +84,18 @@
                         {{ $jirau->is_active ? 'Desativar quadro' : 'Ativar quadro' }}
                     </x-jirau.action>
                 </form>
+                @if($jirau->isEmpty() && ! $jirau->isDemo())
+                    <form
+                        method="POST"
+                        action="{{ route('jirau.boards.destroy', $jirau) }}"
+                        class="inline"
+                        data-confirm="Remover o quadro «{{ $jirau->name }}»? Só quadros sem cartões podem ser apagados."
+                    >
+                        @csrf
+                        @method('DELETE')
+                        <x-jirau.action tone="warn" icon="trash" type="submit">Remover quadro</x-jirau.action>
+                    </form>
+                @endif
             @endif
             <x-jirau.action tone="filter" icon="filter" data-jirau-toggle="filters">Filtros</x-jirau.action>
             @if($isAdmin)

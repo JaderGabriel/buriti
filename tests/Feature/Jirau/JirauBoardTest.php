@@ -366,6 +366,9 @@ class JirauBoardTest extends TestCase
             ->assertSee('Abrir quadro', false)
             ->assertSee('jirau-home__brand', false)
             ->assertSee('jirau-project-mark', false)
+            ->assertSee('data-jirau-home-grid', false)
+            ->assertSee('Remover quadro', false)
+            ->assertDontSee('Quadros inativos', false)
             ->getContent();
 
         $this->assertLessThan(
@@ -409,7 +412,8 @@ class JirauBoardTest extends TestCase
             ->assertOk()
             ->assertDontSee('data-jirau-home-handle', false)
             ->assertDontSee('data-can-drag="1"', false)
-            ->assertDontSee('Novo quadro', false);
+            ->assertDontSee('Novo quadro', false)
+            ->assertDontSee('Remover quadro', false);
 
         $this->actingAs($member)
             ->postJson(route('jirau.boards.reorder'), [
@@ -419,6 +423,150 @@ class JirauBoardTest extends TestCase
 
         $this->assertSame(10, (int) $own->fresh()->sort_order);
         $this->assertSame(20, (int) $other->fresh()->sort_order);
+    }
+
+    public function test_home_separates_inactive_boards_and_hides_delete_when_not_empty(): void
+    {
+        $admin = User::factory()->create();
+        $active = Jirau::factory()->create([
+            'created_by' => $admin->id,
+            'name' => 'Ativo Vivo',
+            'sort_order' => 20,
+        ]);
+        $inactiveEmpty = Jirau::factory()->create([
+            'created_by' => $admin->id,
+            'name' => 'Arquivo Vazio',
+            'is_active' => false,
+            'sort_order' => 5,
+        ]);
+        $inactiveBusy = Jirau::factory()->create([
+            'created_by' => $admin->id,
+            'name' => 'Arquivo Cheio',
+            'is_active' => false,
+            'sort_order' => 6,
+        ]);
+        JirauCard::factory()->create([
+            'jirau_id' => $active->id,
+            'column_id' => $active->inboxColumn()->id,
+            'title' => 'Cartão vivo',
+        ]);
+        JirauCard::factory()->create([
+            'jirau_id' => $inactiveBusy->id,
+            'column_id' => $inactiveBusy->inboxColumn()->id,
+            'title' => 'Cartão parado',
+        ]);
+
+        $html = $this->actingAs($admin)
+            ->get(route('jirau.home'))
+            ->assertOk()
+            ->assertSee('Ativo Vivo', false)
+            ->assertSee('Quadros inativos', false)
+            ->assertSee('Arquivo Vazio', false)
+            ->assertSee('Arquivo Cheio', false)
+            ->assertSee('jirau-home__idle', false)
+            ->assertSee(route('jirau.boards.destroy', $inactiveEmpty), false)
+            ->assertDontSee(route('jirau.boards.destroy', $active), false)
+            ->assertDontSee(route('jirau.boards.destroy', $inactiveBusy), false)
+            ->getContent();
+
+        $idleAt = strpos($html, 'Quadros inativos') ?: PHP_INT_MAX;
+        $this->assertLessThan($idleAt, strpos($html, 'Ativo Vivo') ?: PHP_INT_MAX);
+        $this->assertGreaterThan($idleAt, strpos($html, 'Arquivo Vazio') ?: 0);
+        $this->assertGreaterThan($idleAt, strpos($html, 'Arquivo Cheio') ?: 0);
+    }
+
+    public function test_admin_can_delete_empty_board(): void
+    {
+        $admin = User::factory()->create();
+        $jirau = Jirau::factory()->create([
+            'created_by' => $admin->id,
+            'name' => 'Quadro oco',
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('jirau.show', $jirau))
+            ->get(route('jirau.show', $jirau))
+            ->assertOk()
+            ->assertSee('Remover quadro', false);
+
+        $this->actingAs($admin)
+            ->from(route('jirau.home'))
+            ->delete(route('jirau.boards.destroy', $jirau))
+            ->assertRedirect(route('jirau.home'));
+
+        $this->assertDatabaseMissing('jiraus', ['id' => $jirau->id]);
+    }
+
+    public function test_admin_cannot_delete_board_with_cards(): void
+    {
+        $admin = User::factory()->create();
+        $jirau = Jirau::factory()->create(['created_by' => $admin->id]);
+        JirauCard::factory()->create([
+            'jirau_id' => $jirau->id,
+            'column_id' => $jirau->inboxColumn()->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('jirau.show', $jirau))
+            ->get(route('jirau.show', $jirau))
+            ->assertOk()
+            ->assertDontSee('Remover quadro', false);
+
+        $this->actingAs($admin)
+            ->from(route('jirau.home'))
+            ->delete(route('jirau.boards.destroy', $jirau))
+            ->assertRedirect(route('jirau.home'))
+            ->assertSessionHasErrors('board');
+
+        $this->assertDatabaseHas('jiraus', ['id' => $jirau->id]);
+    }
+
+    public function test_admin_cannot_delete_board_with_archived_cards(): void
+    {
+        $admin = User::factory()->create();
+        $jirau = Jirau::factory()->create(['created_by' => $admin->id]);
+        JirauCard::factory()->create([
+            'jirau_id' => $jirau->id,
+            'column_id' => $jirau->inboxColumn()->id,
+            'archived_at' => now(),
+        ]);
+
+        $this->actingAs($admin)
+            ->delete(route('jirau.boards.destroy', $jirau))
+            ->assertRedirect()
+            ->assertSessionHasErrors('board');
+
+        $this->assertDatabaseHas('jiraus', ['id' => $jirau->id]);
+    }
+
+    public function test_member_cannot_delete_a_board(): void
+    {
+        $admin = User::factory()->create();
+        $jirau = Jirau::factory()->create(['created_by' => $admin->id]);
+        $member = User::factory()->withoutAdminAccess()->create();
+        $jirau->members()->attach($member->id);
+
+        $this->actingAs($member)
+            ->delete(route('jirau.boards.destroy', $jirau))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('jiraus', ['id' => $jirau->id]);
+    }
+
+    public function test_demo_board_cannot_be_deleted(): void
+    {
+        $admin = User::factory()->create();
+        $jirau = Jirau::factory()->create([
+            'created_by' => $admin->id,
+            'name' => Jirau::DEMO_NAME,
+        ]);
+
+        $this->actingAs($admin)
+            ->delete(route('jirau.boards.destroy', $jirau))
+            ->assertRedirect()
+            ->assertSessionHasErrors('board');
+
+        $this->assertDatabaseHas('jiraus', ['id' => $jirau->id]);
     }
 
     public function test_board_and_home_show_project_logo_beside_board_name(): void

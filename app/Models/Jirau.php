@@ -85,6 +85,15 @@ class Jirau extends Model
             || $this->project?->name === self::DEMO_PROJECT_NAME;
     }
 
+    public function isEmpty(): bool
+    {
+        if (array_key_exists('cards_count', $this->attributes)) {
+            return (int) $this->getAttribute('cards_count') === 0;
+        }
+
+        return ! $this->cards()->exists();
+    }
+
     public function inboxColumn(): ?JirauColumn
     {
         return $this->columns->firstWhere('is_inbox', true)

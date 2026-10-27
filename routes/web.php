@@ -86,6 +86,8 @@ Route::prefix('jirau')->name('jirau.')->middleware(['auth', 'jirau'])->group(fun
         ->name('boards.store');
     Route::post('/quadros/ordenar', [JirauBoardController::class, 'reorder'])
         ->name('boards.reorder');
+    Route::delete('/quadros/{jirau}', [JirauBoardController::class, 'destroy'])
+        ->name('boards.destroy');
     Route::get('/analitica', [JirauAnalyticsController::class, 'index'])->name('analytics');
     Route::get('/geral', JirauOverviewController::class)->name('overview');
     Route::get('/equipe', [JirauStaffController::class, 'index'])->name('staff');

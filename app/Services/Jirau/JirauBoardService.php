@@ -59,6 +59,32 @@ class JirauBoardService
         }
     }
 
+    public function deleteEmpty(Jirau $jirau): void
+    {
+        $jirau->loadMissing('project');
+
+        if ($jirau->isDemo()) {
+            throw ValidationException::withMessages([
+                'board' => 'O quadro Demo não pode ser removido.',
+            ]);
+        }
+
+        if ($jirau->cards()->exists()) {
+            throw ValidationException::withMessages([
+                'board' => 'Só dá para remover um quadro sem cartões. Arquive ou mova os cartões antes.',
+            ]);
+        }
+
+        DB::transaction(function () use ($jirau): void {
+            $this->audit->record('jirau.deleted', $jirau, [
+                'summary' => $jirau->name,
+                'project_id' => $jirau->project_id,
+            ]);
+
+            $jirau->delete();
+        });
+    }
+
     public function rename(Jirau $jirau, string $name): Jirau
     {
         $from = $jirau->name;
