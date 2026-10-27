@@ -1,0 +1,41 @@
+<?php
+
+namespace Database\Factories;
+
+use App\Enums\JirauTemplate;
+use App\Models\Jirau;
+use App\Models\Project;
+use App\Models\User;
+use App\Services\Jirau\JirauBoardService;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+/**
+ * @extends Factory<Jirau>
+ */
+class JirauFactory extends Factory
+{
+    protected $model = Jirau::class;
+
+    /** @return array<string, mixed> */
+    public function definition(): array
+    {
+        return [
+            'project_id' => Project::factory(),
+            'name' => 'Jirau '.fake()->unique()->word(),
+            'template' => JirauTemplate::Development,
+            'is_active' => true,
+            'created_by' => User::factory(),
+        ];
+    }
+
+    public function configure(): static
+    {
+        return $this->afterCreating(function (Jirau $jirau): void {
+            if ($jirau->columns()->exists()) {
+                return;
+            }
+
+            app(JirauBoardService::class)->provisionDefaults($jirau);
+        });
+    }
+}

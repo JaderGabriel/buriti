@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Enums\JirauStaffRole;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -22,6 +23,7 @@ class StoreUserRequest extends FormRequest
             'email' => ['required', 'email', 'max:180', 'unique:users,email'],
             'password' => ['required', 'confirmed', Password::defaults()],
             'is_admin' => ['sometimes', 'boolean'],
+            'jirau_role' => ['nullable', Rule::enum(JirauStaffRole::class)],
             'avatar' => ['nullable', 'image', 'max:2048'],
         ];
     }
@@ -33,6 +35,7 @@ class StoreUserRequest extends FormRequest
             'username' => $this->filled('username')
                 ? strtolower(trim((string) $this->input('username')))
                 : null,
+            'jirau_role' => $this->filled('jirau_role') ? $this->input('jirau_role') : null,
         ]);
     }
 }

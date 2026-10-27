@@ -53,27 +53,30 @@ class TelegramConfigureCommand extends Command
 
         $steps['Descrição'] = $api->setMyDescription(
             "Assistente operacional da BURI-TI.\n\n".
-            "CRM no Telegram: listar, ver, criar, editar e apagar contatos, oportunidades, projetos, tarefas e mensagens.\n".
-            "Receba alertas do formulário do site.\n\n".
-            "Comandos: /ajuda"
+            "CRM e Jirau no Telegram: contatos, oportunidades, projetos, tarefas, mensagens e quadros ágeis.\n".
+            "Receba alertas do formulário do site e de demandas no Jirau.\n\n".
+            'Comandos: /ajuda'
         );
         $steps['Descrição curta'] = $api->setMyShortDescription(
-            'CRM BURI-TI: consulta e gestão de contatos, projetos, tarefas e alertas.'
+            'CRM e Jirau BURI-TI: consultas, gestão e alertas.'
         );
         $steps['Comandos'] = $api->setMyCommands([
-            ['command' => 'ajuda', 'description' => 'Lista completa de comandos CRM'],
+            ['command' => 'ajuda', 'description' => 'Lista completa de comandos CRM e Jirau'],
             ['command' => 'login', 'description' => 'Login admin: email|senha'],
             ['command' => 'logout', 'description' => 'Encerrar sessão do bot'],
             ['command' => 'eu', 'description' => 'Mostra a sessão atual'],
             ['command' => 'card', 'description' => 'Gera card BURI-TI para partilhar com clientes'],
             ['command' => 'id', 'description' => 'Mostra o Chat ID deste chat'],
-            ['command' => 'status', 'description' => 'Resumo operacional do CRM'],
+            ['command' => 'status', 'description' => 'Resumo operacional (CRM + Jirau)'],
             ['command' => 'contatos', 'description' => 'Listar contatos'],
             ['command' => 'contato', 'description' => 'Ver/add/set/del contato'],
             ['command' => 'oportunidades', 'description' => 'Listar oportunidades'],
             ['command' => 'oportunidade', 'description' => 'Ver/add/set/del oportunidade'],
             ['command' => 'projetos', 'description' => 'Listar projetos'],
             ['command' => 'projeto', 'description' => 'Ver/add/set/del projeto'],
+            ['command' => 'jiraus', 'description' => 'Listar quadros Jirau'],
+            ['command' => 'jirau', 'description' => 'Ver quadro Jirau por ID'],
+            ['command' => 'cartao', 'description' => 'Ver cartão Jirau (ID ou JR-12)'],
             ['command' => 'tarefas', 'description' => 'Listar tarefas'],
             ['command' => 'tarefa', 'description' => 'Ver/add/set/del tarefa'],
             ['command' => 'atividades', 'description' => 'Listar atividades CRM'],

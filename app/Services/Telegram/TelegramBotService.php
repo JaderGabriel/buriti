@@ -13,6 +13,8 @@ use App\Enums\TaskStatus;
 use App\Models\Contact;
 use App\Models\ContactMessage;
 use App\Models\CrmActivity;
+use App\Models\Jirau;
+use App\Models\JirauCard;
 use App\Models\LoginActivity;
 use App\Models\Opportunity;
 use App\Models\Project;
@@ -97,7 +99,7 @@ class TelegramBotService
                 $chatId,
                 "🔐 Acesso restrito a <b>administradores</b>.\n\n".
                 "Entre com:\n<code>/login email_ou_usuario | senha</code>\n\n".
-                "A mensagem com a senha é apagada automaticamente após o login."
+                'A mensagem com a senha é apagada automaticamente após o login.'
             );
 
             return;
@@ -254,6 +256,9 @@ class TelegramBotService
             '/oportunidade' => $this->handleOpportunity($argument),
             '/projetos' => $this->listProjects($argument),
             '/projeto' => $this->handleProject($argument),
+            '/jiraus' => $this->listJiraus($argument),
+            '/jirau' => $this->handleJirau($argument),
+            '/cartao', '/cartão' => $this->showJirauCard($argument),
             '/tarefas' => $this->listTasks($argument),
             '/tarefa' => $this->handleTask($argument, $admin),
             '/atividades' => $this->listActivities($argument),
@@ -273,7 +278,11 @@ class TelegramBotService
             return $this->showTask($trimmed);
         }
 
-        return 'Comando não reconhecido. Envie /ajuda para ver a lista.';
+        if ($admin && preg_match('/^JR-\d+$/i', $trimmed)) {
+            return $this->showJirauCard($trimmed);
+        }
+
+        return 'Comando não reconhecido. Envie /ajuda para ver CRM e Jirau.';
     }
 
     private function handleStart(string $chatId, string $argument, ?User $admin): string
@@ -326,7 +335,7 @@ class TelegramBotService
     {
         if ($admin) {
             $authBlock = "✅ <b>Sessão ativa</b> — {$this->escape($admin->name)} (admin)\n".
-                "<code>/eu</code> ver sessão · <code>/logout</code> sair · <code>/status</code> resumo";
+                '<code>/eu</code> ver sessão · <code>/logout</code> sair · <code>/status</code> resumo';
         } else {
             $authBlock = "🔐 <b>Sem sessão</b> — só administradores\n".
                 "<code>/login email_ou_usuario | senha</code>\n".
@@ -335,11 +344,12 @@ class TelegramBotService
         }
 
         return <<<HTML
-🤖 <b>BURI-TI CRM</b>
+🤖 <b>BURI-TI</b>
+<i>CRM e Jirau</i>
 
 {$authBlock}
 
-<b>Como usar</b>
+<b>CRM</b>
 • Listar: <code>/contatos</code> <code>/oportunidades</code> <code>/projetos</code> <code>/tarefas</code> <code>/atividades</code> <code>/mensagens</code>
 • Ver: <code>/contato 12</code> (idem para as outras entidades)
 • Criar: <code>/contato add Nome|email|tel?|empresa?|status?</code>
@@ -348,6 +358,11 @@ class TelegramBotService
 
 Em <code>set</code>, use <code>.</code> para manter o valor.
 Em <code>del</code>, confirme com <code>ok</code>.
+
+<b>Jirau</b>
+• Listar: <code>/jiraus</code>
+• Ver quadro: <code>/jirau ID</code>
+• Ver cartão: <code>/cartao ID</code> ou <code>/cartao JR-12</code>
 
 <b>Atalhos</b>
 <code>/card</code> · <code>/card Nome do cliente</code> — card para encaminhar
@@ -453,7 +468,7 @@ HTML;
 
         return "✅ Login OK, <b>{$this->escape($user->name)}</b>.\n\n".
             "Credenciais removidas do chat automaticamente.\n".
-            "Envie /ajuda para ver os comandos.";
+            'Envie /ajuda para ver os comandos do CRM e do Jirau.';
     }
 
     private function logout(string $chatId, ?User $admin): string
@@ -1036,6 +1051,173 @@ HTML;
         $item->delete();
 
         return "🗑️ Projeto <b>#{$id}</b> {$this->escape($label)} removido.";
+    }
+
+    // -------------------------------------------------------------------------
+    // Jirau
+    // -------------------------------------------------------------------------
+
+    private function handleJirau(string $argument): string
+    {
+        if ($argument === '') {
+            return $this->listJiraus('');
+        }
+
+        [$action, $rest] = $this->parseAction($argument);
+
+        return match ($action) {
+            'list', 'lista' => $this->listJiraus($rest),
+            'get', 'ver', 'show' => $this->showJirau($rest),
+            default => ctype_digit($action) && $rest === ''
+                ? $this->showJirau($action)
+                : $this->showJirau($argument),
+        };
+    }
+
+    private function listJiraus(string $argument): string
+    {
+        $limit = $this->listLimit($argument);
+        $items = Jirau::query()
+            ->with('project:id,name')
+            ->withCount([
+                'cards as open_count' => fn ($query) => $query
+                    ->active()
+                    ->whereHas('column', fn ($column) => $column->where('is_done', false)),
+                'cards as inbox_count' => fn ($query) => $query
+                    ->active()
+                    ->whereHas('column', fn ($column) => $column->where('is_inbox', true)),
+            ])
+            ->latest('id')
+            ->limit($limit)
+            ->get();
+
+        if ($items->isEmpty()) {
+            return 'Nenhum Jirau encontrado.';
+        }
+
+        $lines = ["🪵 <b>Jiraus</b> (últimos {$items->count()})", ''];
+        foreach ($items as $item) {
+            $project = $item->project?->name ? ' · '.$this->escape($item->project->name) : '';
+            $state = $item->is_active ? 'ativo' : 'pausado';
+            $lines[] = "#{$item->id} · {$this->escape($item->name)}{$project} · {$state} · inbox {$item->inbox_count} · abertos {$item->open_count}";
+        }
+        $lines[] = '';
+        $lines[] = 'Detalhe: <code>/jirau ID</code> · Cartão: <code>/cartao ID</code>';
+
+        return implode("\n", $lines);
+    }
+
+    private function showJirau(string $ref): string
+    {
+        if (! ctype_digit(trim($ref))) {
+            return "Uso:\n<code>/jiraus</code>\n<code>/jirau ID</code>\n<code>/cartao ID</code> ou <code>/cartao JR-12</code>";
+        }
+
+        $item = Jirau::query()
+            ->with('project:id,name')
+            ->with(['columns' => fn ($query) => $query->withCount('cards')])
+            ->find((int) $ref);
+
+        if (! $item) {
+            return 'Jirau não encontrado.';
+        }
+
+        $open = (int) $item->cards()->active()
+            ->whereHas('column', fn ($column) => $column->where('is_done', false))
+            ->count();
+        $inbox = (int) $item->cards()->active()
+            ->whereHas('column', fn ($column) => $column->where('is_inbox', true))
+            ->count();
+        $done = (int) $item->cards()->active()
+            ->whereHas('column', fn ($column) => $column->where('is_done', true))
+            ->count();
+        $url = route('jirau.show', $item);
+        $lines = [
+            "🪵 <b>Jirau #{$item->id}</b>",
+            '<b>Nome:</b> '.$this->escape($item->name),
+            $item->project ? '<b>Projeto:</b> '.$this->escape($item->project->name) : null,
+            '<b>Modelo:</b> '.$this->escape($item->template->label()),
+            '<b>Estado:</b> '.($item->is_active ? 'ativo' : 'pausado'),
+            "Inbox: <b>{$inbox}</b> · Abertos: <b>{$open}</b> · Feitos: <b>{$done}</b>",
+        ];
+
+        if ($item->columns->isNotEmpty()) {
+            $lines[] = '';
+            $lines[] = '<b>Colunas</b>';
+            foreach ($item->columns as $column) {
+                $wip = $column->wip_limit ? '/'.$column->wip_limit : '';
+                $lines[] = "• {$this->escape($column->name)}: {$column->cards_count}{$wip}";
+            }
+        }
+
+        $inboxCards = $item->cards()
+            ->active()
+            ->with('column')
+            ->whereHas('column', fn ($column) => $column->where('is_inbox', true))
+            ->latest('id')
+            ->limit(5)
+            ->get();
+
+        if ($inboxCards->isNotEmpty()) {
+            $lines[] = '';
+            $lines[] = '<b>Inbox recente</b>';
+            foreach ($inboxCards as $card) {
+                $lines[] = $card->key().' · '.$this->escape($card->title).' · '.$this->escape($card->priority->label());
+            }
+        }
+
+        $lines[] = '';
+        $lines[] = "🔗 <a href=\"{$this->escape($url)}\">Abrir no Jirau</a>";
+
+        return implode("\n", array_filter($lines, fn ($line) => $line !== null));
+    }
+
+    private function showJirauCard(string $ref): string
+    {
+        $id = $this->parseJirauCardRef($ref);
+        if ($id === null) {
+            return 'Uso: <code>/cartao ID</code> ou <code>/cartao JR-12</code>';
+        }
+
+        $card = JirauCard::query()
+            ->with(['jirau.project:id,name', 'column', 'assignee:id,name,username'])
+            ->find($id);
+
+        if (! $card) {
+            return 'Cartão do Jirau não encontrado.';
+        }
+
+        $jirau = $card->jirau;
+        $url = $jirau
+            ? route('jirau.show', ['jirau' => $jirau, 'cartao' => $card->id])
+            : null;
+        $due = $card->due_at?->timezone(config('app.timezone', 'America/Sao_Paulo'))?->format('d/m/Y H:i');
+
+        return implode("\n", array_filter([
+            "🪵 <b>{$this->escape($card->key())}</b> ".$this->escape($card->title),
+            $jirau ? '<b>Quadro:</b> '.$this->escape($jirau->name).($jirau->project ? ' · '.$this->escape($jirau->project->name) : '') : null,
+            $card->column ? '<b>Coluna:</b> '.$this->escape($card->column->name) : null,
+            '<b>Tipo:</b> '.$this->escape($card->type->label()).' · <b>Prioridade:</b> '.$this->escape($card->priority->label()),
+            $card->assignee ? '<b>Responsável:</b> '.$this->escape($card->assignee->name) : '<b>Responsável:</b> sem atribuição',
+            $due ? '<b>Prazo:</b> '.$due : null,
+            $card->archived_at ? '<b>Estado:</b> arquivado' : null,
+            $card->description ? '<b>Descrição:</b> '.$this->escape(Str::limit(strip_tags($card->description), 280)) : null,
+            $url ? "🔗 <a href=\"{$this->escape($url)}\">Abrir cartão</a>" : null,
+        ]));
+    }
+
+    private function parseJirauCardRef(string $ref): ?int
+    {
+        $ref = trim($ref);
+        if ($ref === '') {
+            return null;
+        }
+
+        if (preg_match('/^JR-(\d+)$/i', $ref, $match)) {
+            return (int) $match[1];
+        }
+
+        return ctype_digit($ref) ? (int) $ref : null;
     }
 
     // -------------------------------------------------------------------------
@@ -1728,6 +1910,15 @@ HTML;
         $tasks = Task::query()->open()->count();
         $activities = CrmActivity::query()->where('happened_at', '>=', now()->subDays(7))->count();
         $unread = ContactMessage::query()->unread()->count();
+        $jiraus = Jirau::query()->where('is_active', true)->count();
+        $openCards = JirauCard::query()
+            ->active()
+            ->whereHas('column', fn ($column) => $column->where('is_done', false))
+            ->count();
+        $inboxCards = JirauCard::query()
+            ->active()
+            ->whereHas('column', fn ($column) => $column->where('is_inbox', true))
+            ->count();
 
         return implode("\n", [
             '📊 <b>Resumo BURI-TI</b>',
@@ -1738,8 +1929,11 @@ HTML;
             "Tarefas abertas: <b>{$tasks}</b>",
             "Atividades (7 dias): <b>{$activities}</b>",
             "Mensagens não lidas: <b>{$unread}</b>",
+            "Jiraus ativos: <b>{$jiraus}</b>",
+            "Cartões abertos: <b>{$openCards}</b> (inbox: {$inboxCards})",
             '',
-            'Listas: <code>/contatos</code> · <code>/oportunidades</code> · <code>/projetos</code> · <code>/tarefas</code> · <code>/atividades</code> · <code>/mensagens</code>',
+            'CRM: <code>/contatos</code> · <code>/oportunidades</code> · <code>/projetos</code> · <code>/tarefas</code> · <code>/atividades</code> · <code>/mensagens</code>',
+            'Jirau: <code>/jiraus</code> · <code>/jirau ID</code> · <code>/cartao ID</code>',
         ]);
     }
 

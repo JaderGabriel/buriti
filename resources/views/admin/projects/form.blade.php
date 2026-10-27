@@ -168,6 +168,45 @@
             <section class="pm-panel mt-6">
                 <header class="pm-panel__head">
                     <div>
+                        <h2>Jirau</h2>
+                        <p>Um projeto pode ter vários quadros. Escolha o modelo ao criar: desenvolvimento, consultoria, treinamento ou atividades.</p>
+                    </div>
+                </header>
+                @if($project->jiraus->isNotEmpty())
+                    <ul class="jirau-members__list mb-4">
+                        @foreach($project->jiraus as $board)
+                            <li>
+                                <span>
+                                    <strong>{{ $board->name }}</strong>
+                                    <small>{{ $board->template?->label() }}{{ $board->is_active ? '' : ' · inativo' }}</small>
+                                </span>
+                                <a href="{{ route('jirau.show', $board) }}" class="pm-btn pm-btn--ghost">Abrir</a>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+                <form method="POST" action="{{ route('admin.projects.jirau.store', $project) }}" class="space-y-3">
+                    @csrf
+                    <x-ui.input name="name" label="Nome do quadro (opcional)" />
+                    <fieldset class="jirau-templates">
+                        <legend>Modelo</legend>
+                        @foreach(\App\Enums\JirauTemplate::cases() as $template)
+                            <label class="jirau-template">
+                                <input type="radio" name="template" value="{{ $template->value }}" @checked($template === \App\Enums\JirauTemplate::Development) required>
+                                <span>
+                                    <strong>{{ $template->label() }}</strong>
+                                    <small>{{ $template->description() }}</small>
+                                </span>
+                            </label>
+                        @endforeach
+                    </fieldset>
+                    <button type="submit" class="pm-btn pm-btn--primary">{{ $project->jiraus->isEmpty() ? 'Criar Jirau' : 'Criar outro quadro' }}</button>
+                </form>
+            </section>
+
+            <section class="pm-panel mt-6">
+                <header class="pm-panel__head">
+                    <div>
                         <h2>Etapas / to-do</h2>
                         <p>Marque a conclusão e registre observações — o % do projeto segue estas etapas.</p>
                     </div>
@@ -212,6 +251,13 @@
                                         >{{ old('notes_'.$step->id, $step->notes) }}</textarea>
                                         @if($step->is_completed && $step->completed_at)
                                             <p class="pm-step__meta">Concluída em {{ $step->completed_at->format('d/m/Y H:i') }}</p>
+                                        @endif
+                                        @if($step->jirauCard)
+                                            <p class="pm-step__meta">
+                                                <a href="{{ route('jirau.show', ['jirau' => $step->jirauCard->jirau_id, 'cartao' => $step->jirauCard->id]) }}">
+                                                    No Jirau {{ $step->jirauCard->jirau?->name ? '· '.$step->jirauCard->jirau->name : '' }}
+                                                </a>
+                                            </p>
                                         @endif
                                     </div>
                                 </div>

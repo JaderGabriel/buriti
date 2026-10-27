@@ -7,6 +7,7 @@ use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
 use App\Services\SettingService;
+use App\Support\RuntimeVersions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -34,6 +35,29 @@ class AdminPanelTest extends TestCase
             ->get(route('admin.dashboard'))
             ->assertOk()
             ->assertSee('Início', false);
+    }
+
+    public function test_sidebar_shows_runtime_versions_below_settings(): void
+    {
+        $versions = RuntimeVersions::labels();
+
+        $html = $this->actingAs($this->admin)
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('Configurações', false)
+            ->assertSee('admin-versions', false)
+            ->assertSee('Laravel '.$versions['laravel'], false)
+            ->assertSee('PHP '.$versions['php'], false)
+            ->assertSee('Server '.$versions['server'], false)
+            ->assertSee('Sistema '.$versions['system'], false)
+            ->getContent();
+
+        $settingsPos = strpos($html, '>Configurações<');
+        $versionsPos = strpos($html, 'admin-versions');
+
+        $this->assertNotFalse($settingsPos);
+        $this->assertNotFalse($versionsPos);
+        $this->assertGreaterThan($settingsPos, $versionsPos);
     }
 
     public function test_admin_can_read_and_mark_contact_messages(): void

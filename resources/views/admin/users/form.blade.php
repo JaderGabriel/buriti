@@ -105,6 +105,17 @@
                         @if(isset($errors) && $errors->has('is_admin'))
                             <p class="mt-2 text-xs text-red-400">{{ $errors->first('is_admin') }}</p>
                         @endif
+
+                        <label class="mt-4 block text-sm">
+                            <span class="text-mist">Papel no Jirau</span>
+                            <select name="jirau_role" class="mt-1.5 w-full rounded-xl border border-line bg-ink px-3 py-2.5 text-snow">
+                                <option value="">Nenhum — só entra no Jirau se for admin ou membro de um quadro</option>
+                                @foreach(($staffRoles ?? []) as $value => $label)
+                                    <option value="{{ $value }}" @selected(old('jirau_role', $user->jirau_role?->value) === $value)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            <span class="mt-1 block text-xs text-mist">Dev, tester, PO e afins recebem cartões. Não precisam ser admin do painel.</span>
+                        </label>
                     </div>
                 </div>
 

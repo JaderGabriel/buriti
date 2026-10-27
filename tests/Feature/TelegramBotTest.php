@@ -11,11 +11,14 @@ use App\Enums\TaskStatus;
 use App\Models\Contact;
 use App\Models\ContactMessage;
 use App\Models\CrmActivity;
+use App\Models\Jirau;
+use App\Models\JirauCard;
 use App\Models\Opportunity;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
 use App\Services\SettingService;
+use App\Services\Telegram\TelegramShareCardService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -623,11 +626,103 @@ class TelegramBotTest extends TestCase
         Http::assertSent(fn ($request) => str_contains($request->url(), 'sendMessage')
             && str_contains((string) ($request->data()['text'] ?? ''), 'Card pronto'));
 
-        $card = app(\App\Services\Telegram\TelegramShareCardService::class)->build('Acme Educacional');
+        $card = app(TelegramShareCardService::class)->build('Acme Educacional');
         $this->assertFileExists($card['path']);
         $this->assertStringContainsString('Acme Educacional', $card['caption']);
         $this->assertStringContainsString('BURI-TI', $card['caption']);
         $this->assertNotEmpty($card['reply_markup']['inline_keyboard'] ?? []);
         @unlink($card['path']);
+    }
+
+    public function test_help_and_status_include_jirau(): void
+    {
+        $this->loginAdmin();
+
+        $jirau = Jirau::factory()->create([
+            'name' => 'Portal fiscal',
+            'created_by' => $this->admin->id,
+        ]);
+        JirauCard::factory()->create([
+            'jirau_id' => $jirau->id,
+            'column_id' => $jirau->inboxColumn()?->id,
+            'title' => 'Pedido de orçamento',
+            'created_by' => $this->admin->id,
+        ]);
+
+        $this->postWebhook([
+            'message' => ['chat' => ['id' => 999001], 'text' => '/ajuda'],
+        ])->assertOk();
+
+        Http::assertSent(function ($request) {
+            $text = (string) ($request->data()['text'] ?? '');
+
+            return str_contains($text, 'CRM e Jirau')
+                && str_contains($text, '/jiraus')
+                && str_contains($text, '/cartao');
+        });
+
+        $this->postWebhook([
+            'message' => ['chat' => ['id' => 999001], 'text' => '/status'],
+        ])->assertOk();
+
+        Http::assertSent(function ($request) {
+            $text = (string) ($request->data()['text'] ?? '');
+
+            return str_contains($text, 'Jiraus ativos')
+                && str_contains($text, 'Cartões abertos')
+                && str_contains($text, '/jirau ID');
+        });
+    }
+
+    public function test_admin_can_list_jirau_and_show_card(): void
+    {
+        $this->loginAdmin();
+
+        $jirau = Jirau::factory()->create([
+            'name' => 'Portal fiscal',
+            'created_by' => $this->admin->id,
+        ]);
+        $card = JirauCard::factory()->create([
+            'jirau_id' => $jirau->id,
+            'column_id' => $jirau->inboxColumn()?->id,
+            'title' => 'Pedido de orçamento',
+            'created_by' => $this->admin->id,
+        ]);
+
+        $this->postWebhook([
+            'message' => ['chat' => ['id' => 999001], 'text' => '/jiraus'],
+        ])->assertOk();
+
+        Http::assertSent(function ($request) use ($jirau) {
+            $text = (string) ($request->data()['text'] ?? '');
+
+            return str_contains($text, 'Jiraus')
+                && str_contains($text, 'Portal fiscal')
+                && str_contains($text, '#'.$jirau->id);
+        });
+
+        $this->postWebhook([
+            'message' => ['chat' => ['id' => 999001], 'text' => '/jirau '.$jirau->id],
+        ])->assertOk();
+
+        Http::assertSent(function ($request) {
+            $text = (string) ($request->data()['text'] ?? '');
+
+            return str_contains($text, 'Jirau #')
+                && str_contains($text, 'Portal fiscal')
+                && str_contains($text, 'Pedido de orçamento');
+        });
+
+        $this->postWebhook([
+            'message' => ['chat' => ['id' => 999001], 'text' => '/cartao JR-'.$card->id],
+        ])->assertOk();
+
+        Http::assertSent(function ($request) use ($card) {
+            $text = (string) ($request->data()['text'] ?? '');
+
+            return str_contains($text, 'JR-'.$card->id)
+                && str_contains($text, 'Pedido de orçamento')
+                && str_contains($text, 'Abrir cartão');
+        });
     }
 }

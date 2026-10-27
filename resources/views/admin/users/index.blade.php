@@ -46,7 +46,7 @@
                                     <p class="truncate font-medium text-snow">{{ $user->name }}</p>
                                     <p class="truncate text-xs text-mist">{{ '@'.$user->username }} · {{ $user->email }}</p>
                                     <p class="mt-1 text-xs text-mist md:hidden">
-                                        {{ $user->is_admin ? 'Admin' : 'Sem acesso admin' }}
+                                        {{ $user->is_admin ? 'Admin' : ($user->jirau_role?->label() ?? 'Sem acesso admin') }}
                                         · {{ $user->is_active ? 'Ativo' : 'Desativado' }}
                                     </p>
                                 </div>
@@ -55,6 +55,8 @@
                         <td class="hidden px-4 py-4 md:table-cell">
                             @if($user->is_admin)
                                 <span class="inline-flex rounded-sm bg-brand/15 px-2 py-1 text-xs font-semibold text-brand-bright">Admin</span>
+                            @elseif($user->jirau_role)
+                                <span class="inline-flex rounded-sm border border-brand/30 bg-brand/10 px-2 py-1 text-xs font-semibold text-brand-bright">{{ $user->jirau_role->label() }}</span>
                             @else
                                 <span class="inline-flex rounded-sm border border-line px-2 py-1 text-xs text-mist">Sem acesso</span>
                             @endif

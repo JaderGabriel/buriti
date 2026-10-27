@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
+use Database\Factories\ProjectStepFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class ProjectStep extends Model
 {
-    /** @use HasFactory<\Database\Factories\ProjectStepFactory> */
+    /** @use HasFactory<ProjectStepFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -30,6 +32,11 @@ class ProjectStep extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function jirauCard(): HasOne
+    {
+        return $this->hasOne(JirauCard::class);
     }
 
     public function markCompleted(bool $completed = true): void

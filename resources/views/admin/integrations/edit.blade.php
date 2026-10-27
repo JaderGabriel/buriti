@@ -5,7 +5,7 @@
         <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand">Ferramentas</p>
         <h1 class="mt-2 font-display text-2xl font-bold sm:text-3xl">Integrações</h1>
         <p class="mt-1 max-w-2xl text-mist">
-            Trello, Notion, Telegram e Google ligados ao fluxo do site — CRM, tarefas, projetos e contato.
+            Trello, Notion, Telegram e Google ligados ao fluxo do site — CRM, Jirau, tarefas, projetos e contato.
         </p>
     </div>
 
@@ -13,7 +13,7 @@
         @foreach ([
             ['Trello', $trello, 'Kanban de entregas', 2],
             ['Notion', $notion, 'Docs e briefs', 2],
-            ['Telegram', $telegram, 'Bot CRM + inbox', 3],
+            ['Telegram', $telegram, 'Bot CRM + Jirau', 3],
             ['Google', $google, 'Agenda e Meet', 3],
         ] as [$name, $status, $hint, $maxLevel])
             <article class="rounded-sm border border-line bg-panel p-5">
@@ -185,7 +185,7 @@
                             <li>Com <code>APP_URL</code> HTTPS (ex. com <code>/public</code>): <code>php artisan telegram:configure</code>. Se o nome der rate limit: <code>--skip-name --drop-pending</code>.</li>
                             <li>No bot: <code>/login email_ou_usuario | senha</code> — só contas admin. A mensagem com senha é apagada.</li>
                             <li>No site, use só “Continuar com Telegram” (desafio temporário no bot). <code>/logout</code> encerra a sessão do bot.</li>
-                            <li>Comandos: <code>/ajuda</code>, listas e <code>add</code>/<code>set</code>/<code>del</code>.</li>
+                            <li>Comandos: <code>/ajuda</code>, listas do CRM, <code>/jiraus</code>, <code>/jirau ID</code>, <code>/cartao ID</code> e <code>add</code>/<code>set</code>/<code>del</code>.</li>
                         </ol>
                     </details>
                     <details class="admin-docs__details">

@@ -115,6 +115,11 @@
                     <a href="{{ $project->github_url }}" target="_blank" rel="noopener" title="GitHub" draggable="false">GitHub</a>
                 @endif
                 <a href="{{ route('admin.tasks.index', ['view' => 'board']) }}" title="Agenda" draggable="false">Agenda</a>
+                @if($project->jiraus?->isNotEmpty())
+                    <a href="{{ route('jirau.show', $project->jirau) }}" title="Jirau" draggable="false">
+                        Jirau{{ $project->jiraus->count() > 1 ? ' ('.$project->jiraus->count().')' : '' }}
+                    </a>
+                @endif
             </div>
             <div class="pm-card__ops">
                 <a href="{{ route('admin.projects.edit', $project) }}" class="pm-card__btn" draggable="false">Abrir</a>

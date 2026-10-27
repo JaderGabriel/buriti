@@ -3,19 +3,23 @@
 namespace App\Models;
 
 use App\Enums\ProjectStatus;
+use App\Enums\TaskStatus;
 use App\Models\Concerns\HasAttachments;
+use Database\Factories\ProjectFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Storage;
 
 class Project extends Model
 {
-    /** @use HasFactory<\Database\Factories\ProjectFactory> */
+    /** @use HasFactory<ProjectFactory> */
     use HasAttachments, HasFactory;
+
     protected $fillable = [
         'name',
         'company_id',
@@ -70,6 +74,16 @@ class Project extends Model
         return $this->hasMany(ProjectStep::class)->orderBy('sort_order')->orderBy('id');
     }
 
+    public function jirau(): HasOne
+    {
+        return $this->hasOne(Jirau::class)->latestOfMany();
+    }
+
+    public function jiraus(): HasMany
+    {
+        return $this->hasMany(Jirau::class)->orderBy('name')->orderBy('id');
+    }
+
     /**
      * Progresso preferencialmente pelas etapas do projeto; se não houver, usa atividades da agenda.
      *
@@ -92,7 +106,7 @@ class Project extends Model
 
         $tasksTotal = (int) ($this->tasks_count ?? $this->tasks()->count());
         if ($tasksTotal > 0) {
-            $done = (int) ($this->done_tasks_count ?? $this->tasks()->where('status', \App\Enums\TaskStatus::Done)->count());
+            $done = (int) ($this->done_tasks_count ?? $this->tasks()->where('status', TaskStatus::Done)->count());
 
             return [
                 'total' => $tasksTotal,

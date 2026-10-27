@@ -60,6 +60,30 @@
                     'icon' => 'project',
                 ],
                 [
+                    'route' => 'jirau.home',
+                    'label' => 'Jirau',
+                    'pattern' => ['jirau.home', 'jirau.show', 'jirau.cards.*', 'jirau.demands.*', 'jirau.members.*', 'jirau.steps.*', 'jirau.status'],
+                    'icon' => 'jirau',
+                ],
+                [
+                    'route' => 'jirau.analytics',
+                    'label' => 'Analítica',
+                    'pattern' => ['jirau.analytics', 'jirau.analytics.show'],
+                    'icon' => 'bi',
+                ],
+                [
+                    'route' => 'jirau.overview',
+                    'label' => 'Quadro geral',
+                    'pattern' => 'jirau.overview',
+                    'icon' => 'flow',
+                ],
+                [
+                    'route' => 'jirau.staff',
+                    'label' => 'Equipe TI',
+                    'pattern' => ['jirau.staff', 'jirau.staff.store'],
+                    'icon' => 'users',
+                ],
+                [
                     'route' => 'admin.home-projects.edit',
                     'label' => 'Site',
                     'pattern' => 'admin.home-projects.*',
@@ -101,6 +125,7 @@
     ];
     $adminUser = auth()->user();
     $adminFirstName = explode(' ', trim($adminUser->name))[0] ?? 'olá';
+    $runtimeVersions = $runtimeVersions ?? \App\Support\RuntimeVersions::labels();
 @endphp
 
 <div class="admin-shell" data-admin-shell>
@@ -169,6 +194,12 @@
                     @endforeach
                 </div>
             @endforeach
+            <p class="admin-versions" aria-label="Versões do ambiente">
+                <span>Laravel {{ $runtimeVersions['laravel'] }}</span>
+                <span>PHP {{ $runtimeVersions['php'] }}</span>
+                <span>Server {{ $runtimeVersions['server'] }}</span>
+                <span>Sistema {{ $runtimeVersions['system'] }}</span>
+            </p>
         </nav>
 
         <a href="{{ route('admin.profile.edit') }}" class="admin-user" data-admin-close>

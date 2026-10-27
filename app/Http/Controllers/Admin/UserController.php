@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\JirauStaffRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateAvatarRequest;
@@ -53,6 +54,7 @@ class UserController extends Controller
 
         return view('admin.users.form', [
             'user' => new User(['is_admin' => true]),
+            'staffRoles' => JirauStaffRole::options(),
             'sessions' => [],
             'sessionDriver' => config('session.driver'),
             'loginActivities' => collect(),
@@ -63,7 +65,7 @@ class UserController extends Controller
     public function store(StoreUserRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        unset($data['avatar'], $data['password_confirmation'], $data['is_admin']);
+        unset($data['avatar'], $data['password_confirmation'], $data['is_admin'], $data['jirau_role']);
 
         $data['avatar_path'] = $this->avatars->store($request->file('avatar'));
 
@@ -71,6 +73,7 @@ class UserController extends Controller
         $user->forceFill([
             'is_admin' => $request->boolean('is_admin'),
             'is_active' => true,
+            'jirau_role' => $request->enum('jirau_role', JirauStaffRole::class),
         ])->save();
 
         $this->audit->record('user.created', $user, [
@@ -92,6 +95,7 @@ class UserController extends Controller
 
         return view('admin.users.form', [
             'user' => $user,
+            'staffRoles' => JirauStaffRole::options(),
             'sessions' => $this->security->sessionsFor($user, $currentId),
             'sessionDriver' => config('session.driver'),
             'loginActivities' => LoginActivity::query()
@@ -117,7 +121,7 @@ class UserController extends Controller
     public function update(UpdateUserRequest $request, User $user): RedirectResponse
     {
         $data = $request->validated();
-        unset($data['password_confirmation'], $data['is_admin']);
+        unset($data['password_confirmation'], $data['is_admin'], $data['jirau_role']);
 
         if (blank($data['password'] ?? null)) {
             unset($data['password']);
@@ -129,7 +133,10 @@ class UserController extends Controller
         }
 
         $user->fill($data);
-        $user->forceFill(['is_admin' => $willBeAdmin])->save();
+        $user->forceFill([
+            'is_admin' => $willBeAdmin,
+            'jirau_role' => $request->enum('jirau_role', JirauStaffRole::class),
+        ])->save();
 
         $this->audit->record('user.updated', $user, [
             'summary' => $user->name,

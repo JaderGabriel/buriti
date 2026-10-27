@@ -18,7 +18,7 @@ class EnsureUserIsAdmin
     {
         $user = $request->user();
 
-        if (! $user || ! $user->is_admin || ! $user->is_active) {
+        if (! $user || ! $user->is_active) {
             Auth::logout();
 
             if ($request->hasSession()) {
@@ -35,6 +35,14 @@ class EnsureUserIsAdmin
                 ->withErrors([
                     'login' => 'Acesso ao painel restrito a administradores ativos.',
                 ]);
+        }
+
+        if (! $user->is_admin) {
+            if ($request->expectsJson() || $request->wantsJson()) {
+                abort(403, 'Acesso ao painel restrito a administradores.');
+            }
+
+            return redirect()->route('jirau.home');
         }
 
         return $next($request);

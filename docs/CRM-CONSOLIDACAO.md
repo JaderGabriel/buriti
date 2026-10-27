@@ -61,7 +61,7 @@ flowchart LR
 2. **Oportunidade sem empresa** — `opportunities.company_id` é **opcional**. O negócio pode existir só com contacto.
 3. **Atividade sem dono de empresa** — `crm_activities` liga a contacto (e opcionalmente tarefa/oportunidade), não a `company_id` / `project_id` de forma directa.
 4. **Responsável** — `opportunities.owner_id` existe no schema; a UI ainda não o expõe (multi-admin futuro).
-5. **Trello/Notion** — configuração de links/tokens; sem sync bidirecional.
+5. **Trello/Notion** — atalhos globais ainda existem; a operação ágil do projeto passa a ser o **Jirau** (quadro interno por projeto, com membros que só veem aquele quadro).
 
 ---
 

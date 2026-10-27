@@ -4,6 +4,7 @@ namespace App\View\Composers;
 
 use App\Models\ContactMessage;
 use App\Services\GoogleCalendarService;
+use App\Support\RuntimeVersions;
 use Illuminate\View\View;
 
 class AdminLayoutComposer
@@ -15,6 +16,7 @@ class AdminLayoutComposer
         $view->with([
             'instantMeetUrl' => $this->google->instantMeetUrl(),
             'adminUnreadMessages' => ContactMessage::query()->unread()->count(),
+            'runtimeVersions' => RuntimeVersions::labels(),
         ]);
     }
 }

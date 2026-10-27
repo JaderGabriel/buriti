@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\Auth\PasswordTwoFactorService;
 use App\Services\AuthSecurityService;
 use App\Services\Telegram\TelegramWebAuthService;
+use App\Support\AuthHome;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -44,20 +45,28 @@ class LoginController extends Controller
                 ->withErrors(['login' => 'Credenciais inválidas.']);
         }
 
-        if ($user->is_admin === false) {
-            $this->security->recordLoginAttempt($request, $user, false);
-
-            return back()
-                ->withInput($request->only('login', 'remember'))
-                ->withErrors(['login' => 'Esta conta não tem acesso ao painel admin.']);
-        }
-
         if ($user->is_active === false) {
             $this->security->recordLoginAttempt($request, $user, false);
 
             return back()
                 ->withInput($request->only('login', 'remember'))
                 ->withErrors(['login' => 'Esta conta está desativada.']);
+        }
+
+        if ($user->is_admin === false) {
+            if (! $user->canEnterJirau()) {
+                $this->security->recordLoginAttempt($request, $user, false);
+
+                return back()
+                    ->withInput($request->only('login', 'remember'))
+                    ->withErrors(['login' => 'Esta conta não tem acesso ao painel nem a um Jirau.']);
+            }
+
+            Auth::login($user, $request->boolean('remember'));
+            $request->session()->regenerate();
+            $this->security->markSuccessfulLogin($user, $request);
+
+            return redirect()->intended(AuthHome::url($user));
         }
 
         $started = $this->twoFactor->start($user, $request->boolean('remember'), $request);
@@ -121,7 +130,7 @@ class LoginController extends Controller
         $request->session()->regenerate();
         $this->security->markSuccessfulLogin($user, $request);
 
-        return redirect()->intended(route('admin.dashboard'));
+        return redirect()->intended(AuthHome::url($user));
     }
 
     public function resendTwoFactor(Request $request): RedirectResponse
@@ -194,7 +203,7 @@ class LoginController extends Controller
         $request->session()->regenerate();
         $this->security->markSuccessfulLogin($user, $request);
 
-        return redirect()->intended(route('admin.dashboard'));
+        return redirect()->intended(AuthHome::url($user));
     }
 
     public function telegramWidget(Request $request): RedirectResponse
@@ -225,7 +234,7 @@ class LoginController extends Controller
         $request->session()->regenerate();
         $this->security->markSuccessfulLogin($user, $request);
 
-        return redirect()->intended(route('admin.dashboard'));
+        return redirect()->intended(AuthHome::url($user));
     }
 
     public function destroy(Request $request): RedirectResponse

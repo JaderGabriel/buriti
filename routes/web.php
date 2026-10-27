@@ -5,20 +5,29 @@ use App\Http\Controllers\Admin\CompanyController;
 use App\Http\Controllers\Admin\ContactController as AdminContactController;
 use App\Http\Controllers\Admin\ContactMessageController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\GoogleOAuthController;
 use App\Http\Controllers\Admin\HomeProjectsController;
 use App\Http\Controllers\Admin\IdeaNoteController;
 use App\Http\Controllers\Admin\IntegrationController;
+use App\Http\Controllers\Admin\JirauController;
 use App\Http\Controllers\Admin\OpportunityController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\ProjectController;
 use App\Http\Controllers\Admin\ProjectStepController;
-use App\Http\Controllers\Admin\GoogleOAuthController;
 use App\Http\Controllers\Admin\SearchController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\TaskController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\Jirau\AnalyticsController as JirauAnalyticsController;
+use App\Http\Controllers\Jirau\BoardController as JirauBoardController;
+use App\Http\Controllers\Jirau\CardController as JirauCardController;
+use App\Http\Controllers\Jirau\MemberController as JirauMemberController;
+use App\Http\Controllers\Jirau\OverviewController as JirauOverviewController;
+use App\Http\Controllers\Jirau\StaffController as JirauStaffController;
+use App\Http\Controllers\Jirau\StatusController as JirauStatusController;
+use App\Http\Controllers\Jirau\StepController as JirauStepController;
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\TelegramWebhookController;
 use Illuminate\Support\Facades\Route;
@@ -66,6 +75,42 @@ Route::middleware('guest')->group(function () {
 Route::post('/admin/logout', [LoginController::class, 'destroy'])
     ->middleware('auth')
     ->name('logout');
+
+Route::prefix('jirau')->name('jirau.')->middleware(['auth', 'jirau'])->group(function () {
+    Route::get('/', [JirauBoardController::class, 'home'])->name('home');
+    Route::get('/analitica', [JirauAnalyticsController::class, 'index'])->name('analytics');
+    Route::get('/geral', JirauOverviewController::class)->name('overview');
+    Route::get('/equipe', [JirauStaffController::class, 'index'])->name('staff');
+    Route::post('/equipe', [JirauStaffController::class, 'store'])->name('staff.store');
+    Route::get('/{jirau}/analitica', [JirauAnalyticsController::class, 'show'])->name('analytics.show');
+    Route::post('/{jirau}/estado', [JirauStatusController::class, 'update'])->name('status');
+    Route::get('/{jirau}', [JirauBoardController::class, 'show'])->name('show');
+
+    Route::post('/{jirau}/demandas', [JirauCardController::class, 'storeDemand'])
+        ->middleware('throttle:30,1')
+        ->name('demands.store');
+    Route::post('/{jirau}/cartoes', [JirauCardController::class, 'store'])->name('cards.store');
+    Route::put('/{jirau}/cartoes/{card}', [JirauCardController::class, 'update'])->name('cards.update');
+    Route::post('/{jirau}/cartoes/{card}/mover', [JirauCardController::class, 'move'])->name('cards.move');
+    Route::post('/{jirau}/cartoes/{card}/arquivar', [JirauCardController::class, 'archive'])->name('cards.archive');
+    Route::post('/{jirau}/cartoes/{card}/comentarios', [JirauCardController::class, 'comment'])
+        ->middleware('throttle:40,1')
+        ->name('cards.comments.store');
+    Route::post('/{jirau}/cartoes/{card}/checklist', [JirauCardController::class, 'storeChecklist'])
+        ->name('cards.checklist.store');
+    Route::patch('/{jirau}/cartoes/{card}/checklist/{item}', [JirauCardController::class, 'toggleChecklist'])
+        ->name('cards.checklist.toggle');
+    Route::delete('/{jirau}/cartoes/{card}/checklist/{item}', [JirauCardController::class, 'destroyChecklist'])
+        ->name('cards.checklist.destroy');
+
+    Route::post('/{jirau}/membros', [JirauMemberController::class, 'store'])->name('members.store');
+    Route::delete('/{jirau}/membros/{user}', [JirauMemberController::class, 'destroy'])->name('members.destroy');
+
+    Route::post('/{jirau}/etapas', [JirauStepController::class, 'store'])->name('steps.store');
+    Route::post('/{jirau}/etapas/importar', [JirauStepController::class, 'import'])->name('steps.import');
+    Route::post('/{jirau}/cartoes/{card}/etapa', [JirauStepController::class, 'attach'])->name('cards.step.attach');
+    Route::delete('/{jirau}/cartoes/{card}/etapa', [JirauStepController::class, 'detach'])->name('cards.step.detach');
+});
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard');
@@ -159,6 +204,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
         ->names('projects');
     Route::patch('/projetos/{project}/status', [ProjectController::class, 'updateStatus'])
         ->name('projects.status');
+    Route::post('/projetos/{project}/jirau', [JirauController::class, 'store'])
+        ->name('projects.jirau.store');
     Route::get('/projetos/{project}/contrato', [ProjectController::class, 'downloadContract'])
         ->name('projects.contract');
     Route::post('/projetos/{project}/etapas', [ProjectStepController::class, 'store'])

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Project;
 use App\Models\Task;
 use App\Services\SettingService;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -16,11 +17,12 @@ class DatabaseSeeder extends Seeder
         $this->call([
             AdminSeeder::class,
             PortfolioSeeder::class,
+            JirauDemoSeeder::class,
         ]);
 
         app(SettingService::class)->putMany(app(SettingService::class)->defaults());
 
-        $project = \App\Models\Project::query()->where('name', 'Servlitcys')->first();
+        $project = Project::query()->where('name', 'Servlitcys')->first();
 
         if ($project) {
             Task::query()->updateOrCreate(

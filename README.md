@@ -33,6 +33,7 @@ Jornada: **Mensagem → Contato → Oportunidade → Projeto → Tarefa**.
 | **Atividades** | Notas, chamadas, reuniões, e-mails; vínculo opcional a tarefa/oportunidade; conclusão de reunião **só se marcada** |
 | **Oportunidades** | Pipeline por estágio (board) e valor |
 | **Projetos** | Board com ordenação vertical, etapas, logo/contrato, anexos |
+| **Jirau** | Quadro ágil por projeto (Demandas → Feito), etiquetas, pontos, WIP, checklist, comentários; membros do projeto só veem o quadro e abrem demandas |
 | **Tarefas / agenda** | Calendário, agenda, quadro, lista; Meet; sync Google; cores; ICS |
 | **Anexos** | Soft delete (lixeira), preview no browser (PDF/imagem/média/texto), download |
 | **Usuários** | CRUD, avatar, ativar/desativar, sessões com revogação |
@@ -42,7 +43,7 @@ Jornada: **Mensagem → Contato → Oportunidade → Projeto → Tarefa**.
 
 ## Segurança
 
-- Middleware `auth` no painel; apenas `is_admin` acessa o admin
+- Middleware `auth` no painel; apenas `is_admin` acessa o admin. Membros de um Jirau entram em `/jirau` sem CRM
 - Headers de segurança (CSP, X-Frame-Options, nosniff, Referrer-Policy)
 - Throttle no login (`5/min`) e no formulário público
 - Hash de senha, regeneração de sessão no login/logout
@@ -50,7 +51,8 @@ Jornada: **Mensagem → Contato → Oportunidade → Projeto → Tarefa**.
 - Senha mínima com letras e números (regra `Password::defaults`)
 - Honeypot no contacto público
 - Login admin também via Telegram (desafio temporário no bot — sem widget)
-- Login por usuário/senha exige 2FA: código de 6 dígitos enviado no Telegram vinculado à conta
+- Login admin por usuário/senha exige 2FA: código de 6 dígitos enviado no Telegram vinculado à conta
+- Membro de Jirau autentica só com usuário/senha (sem Telegram) e não acessa o CRM
 
 ## Requisitos
 
@@ -122,6 +124,21 @@ Abra: [http://127.0.0.1:8000](http://127.0.0.1:8000)
 
 **Altere a senha em produção.**
 
+### Jirau demonstração (após seed)
+
+Quadro ágil de exemplo com um usuário que só vê aquele projeto:
+
+| Campo | Valor |
+|---|---|
+| URL | `/admin/login` |
+| Usuário | `jirau.demo` |
+| E-mail | `jirau.demo@buriti.dev.br` |
+| Senha | `jirau-demo-2026` |
+
+```bash
+./bin/php artisan db:seed --class=JirauDemoSeeder
+```
+
 ## Contactos padrão
 
 Definidos em `config/buriti.php` e editáveis em **Admin → Configurações**:
@@ -157,7 +174,7 @@ GOOGLE_REDIRECT_URI="${APP_URL}/admin/google/callback"
 Fuso: `APP_TIMEZONE=America/Sao_Paulo`. Depois: `php artisan config:clear`.
 </details>
 
-## Telegram Bot (CRM)
+## Telegram Bot (CRM + Jirau)
 
 Documentação operacional: **Admin → Integrações → Telegram** (`/admin/integracoes#telegram`).
 
@@ -169,6 +186,8 @@ Campos separados por `|`. Em `set`, use `.` para manter. Em `del`, confirme com 
 /contatos  ·  /contato …
 /oportunidades  ·  /oportunidade …
 /projetos  ·  /projeto …
+/jiraus  ·  /jirau ID         # quadros ágeis
+/cartao ID  ·  /cartao JR-12  # cartão do Jirau
 /tarefas  ·  /tarefa …        # agenda: abertas + concluídas recentes
 /atividades  ·  /atividade …  # último campo opcional: concluir
 /mensagens  ·  /mensagem …

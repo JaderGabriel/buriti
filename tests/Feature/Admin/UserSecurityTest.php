@@ -6,6 +6,7 @@ use App\Models\LoginActivity;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -185,9 +186,9 @@ class UserSecurityTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('admin.users.index'))
-            ->assertRedirect(route('login'));
+            ->assertRedirect(route('jirau.home'));
 
-        $this->assertGuest();
+        $this->assertAuthenticatedAs($user);
     }
 
     public function test_non_admin_cannot_login_to_panel(): void
@@ -322,7 +323,7 @@ class UserSecurityTest extends TestCase
 
         $target = User::factory()->create(['name' => 'Sessão Alvo']);
 
-        \Illuminate\Support\Facades\DB::table('sessions')->insert([
+        DB::table('sessions')->insert([
             [
                 'id' => 'sess-target-1',
                 'user_id' => $target->id,

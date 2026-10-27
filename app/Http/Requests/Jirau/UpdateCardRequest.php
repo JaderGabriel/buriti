@@ -1,0 +1,52 @@
+<?php
+
+namespace App\Http\Requests\Jirau;
+
+use App\Enums\JirauCardPriority;
+use App\Enums\JirauCardType;
+use App\Services\Jirau\JirauBoardService;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class UpdateCardRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return $this->user()?->is_active === true;
+    }
+
+    /** @return array<string, mixed> */
+    public function rules(): array
+    {
+        $admin = $this->user()?->is_admin === true;
+
+        $rules = [
+            'title' => ['required', 'string', 'max:180'],
+            'description' => ['nullable', 'string', 'max:8000'],
+            'priority' => ['nullable', Rule::enum(JirauCardPriority::class)],
+        ];
+
+        if ($admin) {
+            $rules['type'] = ['nullable', Rule::enum(JirauCardType::class)];
+            $rules['estimate'] = ['nullable', 'integer', Rule::in(JirauBoardService::estimateOptions())];
+            $rules['assigned_to'] = ['nullable', 'integer', Rule::exists('users', 'id')->where(function ($query) {
+                $query->where('is_active', true)
+                    ->where(function ($inner) {
+                        $inner->where('is_admin', true)->orWhereNotNull('jirau_role');
+                    });
+            })];
+            $rules['due_at'] = ['nullable', 'date'];
+            $rules['label_ids'] = ['nullable', 'array'];
+            $rules['label_ids.*'] = ['integer'];
+        }
+
+        return $rules;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->input('assigned_to') === '') {
+            $this->merge(['assigned_to' => null]);
+        }
+    }
+}

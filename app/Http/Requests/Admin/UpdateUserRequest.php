@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Enums\JirauStaffRole;
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -26,6 +27,7 @@ class UpdateUserRequest extends FormRequest
             'email' => ['required', 'email', 'max:180', Rule::unique('users', 'email')->ignore($user->id)],
             'password' => ['nullable', 'confirmed', Password::defaults()],
             'is_admin' => ['sometimes', 'boolean'],
+            'jirau_role' => ['nullable', Rule::enum(JirauStaffRole::class)],
         ];
     }
 
@@ -36,6 +38,7 @@ class UpdateUserRequest extends FormRequest
             'username' => $this->filled('username')
                 ? strtolower(trim((string) $this->input('username')))
                 : null,
+            'jirau_role' => $this->filled('jirau_role') ? $this->input('jirau_role') : null,
         ]);
     }
 }

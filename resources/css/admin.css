@@ -428,6 +428,26 @@ html.dark .admin-orbit {
     color: var(--admin-blue-deep);
 }
 
+.admin-versions {
+    margin: 0.55rem 0.75rem 0.1rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid color-mix(in oklab, var(--admin-glass-border) 85%, transparent);
+    display: grid;
+    gap: 0.08rem;
+    font-size: 0.58rem;
+    line-height: 1.4;
+    letter-spacing: 0.01em;
+    color: color-mix(in oklab, var(--admin-muted) 72%, transparent);
+    user-select: text;
+}
+
+.admin-versions span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .admin-user {
     display: flex;
     align-items: center;

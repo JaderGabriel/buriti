@@ -36,6 +36,7 @@ class ProjectController extends Controller
         $statusFilter = $this->resolveStatusFilter($request->query('status'));
 
         $baseQuery = Project::query()
+            ->with(['jirau', 'jiraus'])
             ->withCount([
                 'tasks',
                 'tasks as open_tasks_count' => fn ($query) => $query->whereIn('status', [
@@ -118,6 +119,9 @@ class ProjectController extends Controller
             'attachments',
             'trashedAttachments.deleter',
             'steps',
+            'jirau',
+            'jiraus',
+            'steps.jirauCard.jirau',
         ]);
         $project->loadCount([
             'tasks',

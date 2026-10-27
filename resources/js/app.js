@@ -3051,6 +3051,177 @@ function initDriveViewer() {
     });
 }
 
+function initJirauBoard() {
+    document.querySelectorAll('[data-jirau-toggle]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const name = button.getAttribute('data-jirau-toggle');
+            const panel = document.querySelector(`[data-jirau-panel="${name}"]`);
+            if (! panel) {
+                return;
+            }
+            const willShow = panel.hasAttribute('hidden');
+            document.querySelectorAll('[data-jirau-panel]').forEach((el) => el.setAttribute('hidden', ''));
+            if (willShow) {
+                panel.removeAttribute('hidden');
+            }
+        });
+    });
+
+    const board = document.querySelector('[data-jirau-board]');
+    if (board && board.dataset.canDrag !== '1') {
+        board.addEventListener('click', (event) => {
+            const card = event.target.closest('[data-jirau-card][data-href]');
+            if (card?.dataset.href) {
+                window.location.href = card.dataset.href;
+            }
+        });
+    }
+    if (! board || board.dataset.canDrag !== '1' || board.dataset.dndBound === '1') {
+        return;
+    }
+    board.dataset.dndBound = '1';
+
+    const urlTemplate = board.dataset.moveUrl || '';
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const MOVE_THRESHOLD = 8;
+    let drag = null;
+
+    const csrfHeaders = () => ({
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'X-CSRF-TOKEN': csrf,
+        'X-Requested-With': 'XMLHttpRequest',
+    });
+
+    const columnOf = (el) => el?.closest?.('[data-jirau-column]') || null;
+    const listOf = (column) => column?.querySelector('[data-jirau-list]') || null;
+
+    const insertBeforeCard = (list, clientY, draggedCard) => {
+        const cards = [...list.querySelectorAll('[data-jirau-card]')].filter((el) => el !== draggedCard);
+        for (const card of cards) {
+            const rect = card.getBoundingClientRect();
+            if (clientY < rect.top + rect.height / 2) {
+                return card;
+            }
+        }
+        return null;
+    };
+
+    const orderedIds = (list) => [...list.querySelectorAll('[data-card-id]')].map((el) => el.dataset.cardId);
+
+    const persist = (card, column, ids) => {
+        const id = card.dataset.cardId;
+        const url = urlTemplate.replace('__ID__', id);
+        fetch(url, {
+            method: 'POST',
+            headers: csrfHeaders(),
+            body: JSON.stringify({
+                column_id: Number(column.dataset.columnId),
+                ordered_ids: ids.map((value) => Number(value)),
+            }),
+        }).catch(() => {});
+    };
+
+    const onPointerDown = (event) => {
+        if (event.button !== 0) {
+            return;
+        }
+        if (event.target.closest('button, input, textarea, select, label')) {
+            return;
+        }
+        const card = event.target.closest('[data-jirau-card]');
+        if (! card) {
+            return;
+        }
+        drag = {
+            card,
+            pointerId: event.pointerId,
+            startX: event.clientX,
+            startY: event.clientY,
+            offsetX: 0,
+            offsetY: 0,
+            moved: false,
+            ghost: null,
+        };
+        board.setPointerCapture?.(event.pointerId);
+    };
+
+    const onPointerMove = (event) => {
+        if (! drag || event.pointerId !== drag.pointerId) {
+            return;
+        }
+        const dx = event.clientX - drag.startX;
+        const dy = event.clientY - drag.startY;
+        if (! drag.moved && Math.hypot(dx, dy) < MOVE_THRESHOLD) {
+            return;
+        }
+        if (! drag.moved) {
+            drag.moved = true;
+            const rect = drag.card.getBoundingClientRect();
+            drag.offsetX = event.clientX - rect.left;
+            drag.offsetY = event.clientY - rect.top;
+            const ghost = /** @type {HTMLElement} */ (drag.card.cloneNode(true));
+            ghost.style.position = 'fixed';
+            ghost.style.pointerEvents = 'none';
+            ghost.style.width = `${rect.width}px`;
+            ghost.style.zIndex = '50';
+            document.body.appendChild(ghost);
+            drag.ghost = ghost;
+            drag.card.classList.add('is-dragging');
+        }
+        if (drag.ghost) {
+            drag.ghost.style.left = `${event.clientX - drag.offsetX}px`;
+            drag.ghost.style.top = `${event.clientY - drag.offsetY}px`;
+        }
+        const column = columnOf(document.elementFromPoint(event.clientX, event.clientY));
+        board.querySelectorAll('.is-drop-target').forEach((el) => el.classList.remove('is-drop-target'));
+        if (column) {
+            column.classList.add('is-drop-target');
+            const list = listOf(column);
+            const before = list ? insertBeforeCard(list, event.clientY, drag.card) : null;
+            if (list) {
+                list.insertBefore(drag.card, before);
+            }
+        }
+    };
+
+    const onPointerUp = (event) => {
+        if (! drag || event.pointerId !== drag.pointerId) {
+            return;
+        }
+        const moved = drag.moved;
+        const card = drag.card;
+        drag.card.classList.remove('is-dragging');
+        drag.ghost?.remove();
+        board.querySelectorAll('.is-drop-target').forEach((el) => el.classList.remove('is-drop-target'));
+        try {
+            board.releasePointerCapture?.(drag.pointerId);
+        } catch {
+            // ignore
+        }
+        drag = null;
+        if (! moved) {
+            if (card.dataset.href) {
+                window.location.href = card.dataset.href;
+            }
+            return;
+        }
+        if (! card.hasAttribute('data-jirau-draggable')) {
+            return;
+        }
+        const column = columnOf(card);
+        const list = listOf(column);
+        if (column && list) {
+            persist(card, column, orderedIds(list));
+        }
+    };
+
+    board.addEventListener('pointerdown', onPointerDown);
+    board.addEventListener('pointermove', onPointerMove);
+    board.addEventListener('pointerup', onPointerUp);
+    board.addEventListener('pointercancel', onPointerUp);
+}
+
 window.Alpine = Alpine;
 
 // Modal / nav / cookies / avatar / password must not depend on Alpine succeeding.
@@ -3072,6 +3243,7 @@ initBulkActivityDialog();
 initPhonebookSelection();
 initTaskDayCreateFallback();
 initProjectBoard();
+initJirauBoard();
 initHomeProjectBoard();
 initProjectCardMinimize();
 initOpportunityBoard();

@@ -104,9 +104,9 @@ class AuthTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('admin.dashboard'))
-            ->assertRedirect(route('login'));
+            ->assertRedirect(route('jirau.home'));
 
-        $this->assertGuest();
+        $this->assertAuthenticatedAs($user);
     }
 
     public function test_inactive_admin_session_is_rejected_from_admin(): void

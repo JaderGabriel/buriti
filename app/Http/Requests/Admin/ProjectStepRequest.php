@@ -8,7 +8,7 @@ class ProjectStepRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user() !== null;
+        return $this->user()?->is_admin === true && $this->user()?->is_active === true;
     }
 
     /** @return array<string, mixed> */

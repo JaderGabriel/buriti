@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\JirauStaffRole;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -65,6 +66,16 @@ class UserFactory extends Factory
     {
         return $this->afterMaking(function (User $user) {
             $user->forceFill(['is_active' => false]);
+        });
+    }
+
+    public function staff(?JirauStaffRole $role = JirauStaffRole::Developer): static
+    {
+        return $this->afterMaking(function (User $user) use ($role) {
+            $user->forceFill([
+                'is_admin' => false,
+                'jirau_role' => $role,
+            ]);
         });
     }
 
