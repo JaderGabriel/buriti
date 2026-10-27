@@ -42,4 +42,12 @@ enum JirauOverviewLane: string
             self::Done => 'Entregue nos Jiraus ativos (ou no filtro escolhido).',
         };
     }
+
+    /** @return array<string, string> */
+    public static function options(): array
+    {
+        return collect(self::cases())
+            ->mapWithKeys(fn (self $case) => [$case->value => $case->label()])
+            ->all();
+    }
 }

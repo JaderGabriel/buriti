@@ -4,15 +4,23 @@ namespace Tests\Feature\Jirau;
 
 use App\Enums\JirauCardPriority;
 use App\Enums\JirauStaffRole;
+use App\Models\Company;
 use App\Models\Jirau;
 use App\Models\JirauCard;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class JirauAnalyticsTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
+    }
 
     public function test_admin_sees_overview_counts_wip_breach_and_overdue(): void
     {
@@ -202,5 +210,63 @@ class JirauAnalyticsTest extends TestCase
             ->get(route('jirau.show', $jirau))
             ->assertOk()
             ->assertSee(route('jirau.analytics.show', $jirau), false);
+    }
+
+    public function test_admin_sees_hours_extract_by_person_project_and_company(): void
+    {
+        Carbon::setTestNow('2026-10-27 09:00:00');
+
+        $admin = User::factory()->create();
+        $dev = User::factory()->staff(JirauStaffRole::Developer)->create(['name' => 'Ana Dev']);
+        $company = Company::factory()->create([
+            'name' => 'Acme Tecnologia Ltda',
+            'trade_name' => 'Acme',
+        ]);
+        $jirau = Jirau::factory()->create([
+            'name' => 'Portal fiscal',
+            'created_by' => $admin->id,
+            'company_id' => $company->id,
+        ]);
+        $card = JirauCard::factory()->create([
+            'jirau_id' => $jirau->id,
+            'column_id' => $jirau->columns()->where('slug', 'doing')->value('id'),
+            'title' => 'API de boletos',
+        ]);
+
+        $this->actingAs($dev)->post(route('jirau.cards.time.toggle', [$jirau, $card]));
+        Carbon::setTestNow('2026-10-27 09:45:00');
+        $this->actingAs($dev)->post(route('jirau.cards.time.toggle', [$jirau, $card]));
+
+        $this->actingAs($admin)
+            ->get(route('jirau.analytics', ['aba' => 'horas']))
+            ->assertOk()
+            ->assertSee('Extrato de horas', false)
+            ->assertSee('Por pessoa', false)
+            ->assertSee('Ana Dev', false)
+            ->assertSee('45min', false);
+
+        $this->actingAs($admin)
+            ->get(route('jirau.analytics', ['aba' => 'horas', 'relatorio' => 'projetos']))
+            ->assertOk()
+            ->assertSee('Por projeto', false)
+            ->assertSee($jirau->project->name, false)
+            ->assertSee('45min', false);
+
+        $this->actingAs($admin)
+            ->get(route('jirau.analytics', ['aba' => 'horas', 'relatorio' => 'empresas']))
+            ->assertOk()
+            ->assertSee('Por empresa', false)
+            ->assertSee('Acme', false)
+            ->assertSee('45min', false);
+
+        $this->actingAs($admin)
+            ->get(route('jirau.analytics', ['aba' => 'horas', 'relatorio' => 'extrato']))
+            ->assertOk()
+            ->assertSee('Sessões apontadas', false)
+            ->assertSee('Ana Dev', false)
+            ->assertSee('API de boletos', false)
+            ->assertSee($jirau->columns()->where('slug', 'doing')->value('name'), false);
+
+        Carbon::setTestNow();
     }
 }

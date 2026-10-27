@@ -2,7 +2,6 @@
     $progress = $card->checklistProgress();
     $canDrag = $canDrag ?? false;
     $canTrackTime = $canTrackTime ?? false;
-    $canSeeTimeHistory = $canSeeTimeHistory ?? false;
     $tracker = auth()->user();
     $cardHref = route('jirau.show', ['jirau' => $jirau, 'cartao' => $card->id]);
     $tracking = $canTrackTime && $card->isTrackedBy($tracker);
@@ -34,9 +33,6 @@
             @if($card->project_step_id)
                 <span class="jirau-chip" title="Etapa do projeto">Etapa</span>
             @endif
-            @if($canSeeTimeHistory && $card->spentSeconds() > 0)
-                <span class="jirau-chip" title="Tempo apontado">{{ $card->spentLabel() }}</span>
-            @endif
             @if($card->estimate)
                 <span class="jirau-chip" title="Estimativa">{{ $card->estimate }} pts</span>
             @elseif($card->type->value === 'demand' && $card->column?->is_inbox)
@@ -57,8 +53,19 @@
             @if(($card->links_count ?? 0) > 0)
                 <span class="jirau-chip" title="Google Drive ou álbum">Drive</span>
             @endif
-            @if($card->assignee)
-                <span class="jirau-avatar" title="{{ $card->assignee->name }} · {{ $card->assignee->jirauTeamLabel() }}">{{ $card->assignee->initials() }}</span>
+            @php
+                $cardResponsibles = $card->responsiblePeople();
+                $cardActors = $card->actorPeople();
+            @endphp
+            @if($cardResponsibles->isNotEmpty() || $cardActors->isNotEmpty())
+                <span class="jirau-card__people">
+                    @foreach($cardResponsibles as $person)
+                        <span class="jirau-avatar" title="Responsável · {{ $person->name }} · {{ $person->jirauTeamLabel() }}">{{ $person->initials() }}</span>
+                    @endforeach
+                    @foreach($cardActors as $person)
+                        <span class="jirau-avatar jirau-avatar--actor" title="Ator · {{ $person->name }} · {{ $person->jirauTeamLabel() }}">{{ $person->initials() }}</span>
+                    @endforeach
+                </span>
             @endif
         </div>
     @if($canDrag)

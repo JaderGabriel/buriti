@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Jirau;
 
+use App\Enums\JirauOverviewLane;
 use App\Models\JirauColumn;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -20,6 +21,7 @@ class StoreColumnRequest extends FormRequest
             'name' => ['required', 'string', 'max:40'],
             'color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'default_due_hours' => ['nullable', 'integer', Rule::in(array_keys(JirauColumn::defaultDueOptions()))],
+            'overview_lane' => ['nullable', Rule::enum(JirauOverviewLane::class)],
         ];
     }
 

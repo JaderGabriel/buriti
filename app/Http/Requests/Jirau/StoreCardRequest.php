@@ -35,6 +35,20 @@ class StoreCardRequest extends FormRequest
                         $inner->where('is_admin', true)->orWhereNotNull('jirau_role');
                     });
             })],
+            'responsible_ids' => ['nullable', 'array'],
+            'responsible_ids.*' => ['integer', Rule::exists('users', 'id')->where(function ($query) {
+                $query->where('is_active', true)
+                    ->where(function ($inner) {
+                        $inner->where('is_admin', true)->orWhereNotNull('jirau_role');
+                    });
+            })],
+            'actor_ids' => ['nullable', 'array'],
+            'actor_ids.*' => ['integer', Rule::exists('users', 'id')->where(function ($query) {
+                $query->where('is_active', true)
+                    ->where(function ($inner) {
+                        $inner->where('is_admin', true)->orWhereNotNull('jirau_role');
+                    });
+            })],
             'estimate' => ['nullable', 'integer', Rule::in(JirauBoardService::estimateOptions())],
             'due_at' => ['nullable', 'date'],
             'label_ids' => ['nullable', 'array'],
@@ -82,6 +96,12 @@ class StoreCardRequest extends FormRequest
     {
         if ($this->input('assigned_to') === '') {
             $this->merge(['assigned_to' => null]);
+        }
+        if ($this->has('responsible_ids_sync')) {
+            $this->merge(['responsible_ids' => array_values(array_filter((array) $this->input('responsible_ids', [])))]);
+        }
+        if ($this->has('actor_ids_sync')) {
+            $this->merge(['actor_ids' => array_values(array_filter((array) $this->input('actor_ids', [])))]);
         }
     }
 }

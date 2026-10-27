@@ -36,12 +36,17 @@ class UpdateCardRequest extends FormRequest
         if ($admin) {
             $rules['type'] = ['nullable', Rule::enum(JirauCardType::class)];
             $rules['estimate'] = ['nullable', 'integer', Rule::in(JirauBoardService::estimateOptions())];
-            $rules['assigned_to'] = ['nullable', 'integer', Rule::exists('users', 'id')->where(function ($query) {
+            $team = Rule::exists('users', 'id')->where(function ($query) {
                 $query->where('is_active', true)
                     ->where(function ($inner) {
                         $inner->where('is_admin', true)->orWhereNotNull('jirau_role');
                     });
-            })];
+            });
+            $rules['assigned_to'] = ['nullable', 'integer', $team];
+            $rules['responsible_ids'] = ['nullable', 'array'];
+            $rules['responsible_ids.*'] = ['integer', $team];
+            $rules['actor_ids'] = ['nullable', 'array'];
+            $rules['actor_ids.*'] = ['integer', $team];
             $rules['due_at'] = ['nullable', 'date'];
             $rules['label_ids'] = ['nullable', 'array'];
             $rules['label_ids.*'] = ['integer'];
@@ -54,6 +59,12 @@ class UpdateCardRequest extends FormRequest
     {
         if ($this->input('assigned_to') === '') {
             $this->merge(['assigned_to' => null]);
+        }
+        if ($this->has('responsible_ids_sync')) {
+            $this->merge(['responsible_ids' => array_values(array_filter((array) $this->input('responsible_ids', [])))]);
+        }
+        if ($this->has('actor_ids_sync')) {
+            $this->merge(['actor_ids' => array_values(array_filter((array) $this->input('actor_ids', [])))]);
         }
     }
 }

@@ -4000,6 +4000,56 @@ function initJirauBoard() {
 
     const orderedIds = (list) => [...list.querySelectorAll('[data-card-id]')].map((el) => el.dataset.cardId);
 
+    const TRACK_PLAY = 'M7 4v16l13-8z';
+    const TRACK_PAUSE = 'M8 5v14M16 5v14';
+
+    const setJirauTrackState = (cardId, running, stamp) => {
+        const id = String(cardId);
+        document.querySelector(`[data-jirau-card][data-card-id="${id}"]`)?.classList.toggle('is-tracking', running);
+        document.querySelectorAll(`[data-jirau-track="${id}"]`).forEach((form) => {
+            const button = form.querySelector('.jirau-action');
+            if (button) {
+                button.classList.toggle('jirau-action--warn', running);
+                button.classList.toggle('jirau-action--board', ! running);
+                const path = button.querySelector('svg path');
+                if (path) {
+                    path.setAttribute('d', running ? TRACK_PAUSE : TRACK_PLAY);
+                }
+                const label = button.querySelector('span');
+                if (label) {
+                    label.textContent = running ? 'Encerrar' : 'Fazer';
+                }
+            }
+            let time = form.querySelector('.jirau-time__stamp');
+            if (stamp) {
+                if (! time) {
+                    time = document.createElement('p');
+                    time.className = 'jirau-time__stamp';
+                    form.appendChild(time);
+                }
+                time.textContent = stamp;
+            } else if (time) {
+                time.remove();
+            }
+        });
+    };
+
+    const applyJirauTracking = (tracking) => {
+        if (! tracking) {
+            return;
+        }
+        if (tracking.running && tracking.card_id) {
+            setJirauTrackState(tracking.card_id, true, tracking.started_label ? `Início ${tracking.started_label}` : '');
+        }
+        if (tracking.paused_card_id) {
+            setJirauTrackState(
+                tracking.paused_card_id,
+                false,
+                tracking.paused_ended_label ? `Última alteração ${tracking.paused_ended_label}` : '',
+            );
+        }
+    };
+
     const persist = (card, column, ids) => {
         const id = card.dataset.cardId;
         const url = urlTemplate.replace('__ID__', id);
@@ -4011,6 +4061,7 @@ function initJirauBoard() {
                 ordered_ids: ids.map((value) => Number(value)),
             }),
         }).then((response) => response.json()).then((data) => {
+            applyJirauTracking(data?.tracking);
             if (! data?.due_at) {
                 return;
             }

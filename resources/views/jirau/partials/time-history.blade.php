@@ -7,29 +7,39 @@
         @if(! $snapshot || $snapshot['total'] === 0)
             <p class="jirau-hint">Ainda sem apontamento neste cartão.</p>
         @else
-            <p class="jirau-time__total">{{ $snapshot['total_label'] }} no total</p>
-            <ul class="jirau-time__columns">
-                @foreach($snapshot['columns'] as $column)
-                    <li>
-                        <strong>{{ $column['name'] }}</strong>
-                        <span>{{ $column['label'] }}</span>
-                        <small>
-                            @foreach($column['people'] as $person)
-                                {{ $person['name'] }} · {{ $person['label'] }}{{ $loop->last ? '' : ' · ' }}
+            <div class="jirau-time-table__wrap">
+                <table class="jirau-time-table">
+                    <thead>
+                        <tr>
+                            <th>Quem</th>
+                            <th>Início</th>
+                            <th>Encerrado</th>
+                            <th>Tempo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($snapshot['columns'] as $column)
+                            <tr class="jirau-time-table__etapa" style="--jirau-col: {{ $column['color'] }}">
+                                <th colspan="4">{{ $column['name'] }}</th>
+                            </tr>
+                            @foreach($column['rows'] as $row)
+                                <tr @class(['jirau-time-table__row', 'is-running' => $row['running']])>
+                                    <td>{{ $row['name'] }}</td>
+                                    <td>{{ $row['started'] }}</td>
+                                    <td>{{ $row['ended'] }}</td>
+                                    <td>{{ $row['label'] }}</td>
+                                </tr>
                             @endforeach
-                        </small>
-                    </li>
-                @endforeach
-            </ul>
-            <ul class="jirau-time__log">
-                @foreach($snapshot['entries'] as $entry)
-                    <li @class(['is-running' => $entry->isRunning()])>
-                        <strong>{{ $entry->user?->name ?? 'Alguém' }}</strong>
-                        <span>{{ $entry->column_name }} · {{ $entry->elapsedLabel() }}{{ $entry->isRunning() ? ' · em curso' : '' }}</span>
-                        <time>{{ $entry->rangeLabel() }}</time>
-                    </li>
-                @endforeach
-            </ul>
+                        @endforeach
+                    </tbody>
+                    <tfoot>
+                        <tr class="jirau-time-table__total">
+                            <th colspan="3">Total</th>
+                            <td>{{ $snapshot['total_label'] }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
         @endif
     </section>
 @endif

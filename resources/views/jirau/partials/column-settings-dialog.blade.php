@@ -30,6 +30,21 @@
             </select>
             <small>Cartões que entram aqui sem data recebem este prazo.</small>
         </label>
+        <label class="jirau-watch__field">
+            <span>Faixa no quadro geral</span>
+            <select name="overview_lane" class="jirau-input" @disabled($column->overviewLaneIsLocked())>
+                @foreach(\App\Enums\JirauOverviewLane::options() as $value => $label)
+                    <option value="{{ $value }}" @selected($column->overviewLane()->value === $value)>{{ $label }}</option>
+                @endforeach
+            </select>
+            <small>
+                @if($column->overviewLaneIsLocked())
+                    Inbox e Feito ficam fixos no quadro geral.
+                @else
+                    Cartões desta etapa entram nesta coluna do quadro geral, mesmo com faixas extras neste Jirau.
+                @endif
+            </small>
+        </label>
         <p class="jirau-watch__kicker">Quem avisar</p>
         <p class="jirau-watch__help">Quem entra nesta etapa gera aviso ⚡ no Telegram.</p>
         @if($watchers->isNotEmpty())

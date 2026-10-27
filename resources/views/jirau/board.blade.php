@@ -232,16 +232,26 @@
                     </select>
                 </label>
                 <x-ui.input type="datetime-local" name="due_at" label="Prazo" />
-                <label class="block text-sm">
-                    <span class="text-mist">Responsável (equipe TI)</span>
-                    <select name="assigned_to" class="mt-1.5 w-full rounded-sm border border-line bg-ink px-3 py-2.5">
-                        <option value="">Não alocado</option>
-                        @foreach($assignees as $person)
-                            <option value="{{ $person->id }}">{{ $person->name }} · {{ $person->jirauTeamLabel() }}</option>
-                        @endforeach
-                    </select>
-                </label>
             </div>
+            <fieldset class="jirau-people-pick">
+                <legend>Responsáveis (equipe TI)</legend>
+                @include('jirau.partials.people-pick', [
+                    'field' => 'responsible_ids',
+                    'people' => $assignees,
+                    'picked' => old('responsible_ids', []),
+                    'exclude' => [],
+                ])
+            </fieldset>
+            <fieldset class="jirau-people-pick">
+                <legend>Atores</legend>
+                <p class="jirau-hint">Outras pessoas da equipe que trabalham neste cartão, sem o demandante.</p>
+                @include('jirau.partials.people-pick', [
+                    'field' => 'actor_ids',
+                    'people' => $assignees,
+                    'picked' => old('actor_ids', []),
+                    'exclude' => [],
+                ])
+            </fieldset>
             <x-ui.input type="textarea" name="description" label="Descrição" rows="3" />
             <label class="block text-sm">
                 <span class="text-mist">Fotos e prints (JPG, PNG ou WebP)</span>
@@ -285,6 +295,15 @@
                             <option value="{{ $hours }}">{{ $label }}</option>
                         @endforeach
                     </select>
+                </label>
+                <label class="jirau-watch__field">
+                    <span>Faixa no quadro geral</span>
+                    <select name="overview_lane" class="jirau-input">
+                        @foreach(\App\Enums\JirauOverviewLane::options() as $value => $label)
+                            <option value="{{ $value }}" @selected($value === 'backlog')>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <small>Onde os cartões desta etapa aparecem no quadro geral.</small>
                 </label>
                 <button type="submit" class="pm-btn pm-btn--primary">Adicionar etapa</button>
             </form>

@@ -72,7 +72,7 @@ class CardController extends Controller
         $this->access->assertManage($request->user());
 
         $data = $request->validated();
-        $moved = $this->boards->moveCard(
+        [$moved, $tracking] = $this->boards->moveCard(
             $card,
             $request->user(),
             (int) $data['column_id'],
@@ -90,6 +90,7 @@ class CardController extends Controller
             'column_id' => $moved->column_id,
             'due_at' => $moved->due_at?->timezone(config('app.timezone'))?->format('d/m'),
             'due_past' => (bool) $moved->due_at?->isPast(),
+            'tracking' => $tracking,
         ]);
     }
 

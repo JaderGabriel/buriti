@@ -99,14 +99,29 @@ class JirauTimeEntry extends Model
 
     public function rangeLabel(): string
     {
-        $zone = (string) config('app.timezone');
-        $start = $this->started_at?->timezone($zone)?->format('d/m H:i');
         if ($this->isRunning()) {
-            return 'desde '.$start;
+            return 'Início '.$this->startedLabel();
         }
 
-        $end = $this->ended_at?->timezone($zone)?->format('H:i');
+        return 'Última alteração '.$this->endedLabel();
+    }
 
-        return $start.'–'.$end;
+    public function startedLabel(): string
+    {
+        return self::stamp($this->started_at);
+    }
+
+    public function endedLabel(): string
+    {
+        return self::stamp($this->ended_at);
+    }
+
+    public static function stamp(?Carbon $at): string
+    {
+        if (! $at) {
+            return '';
+        }
+
+        return $at->timezone((string) config('app.timezone'))->format('d/m/Y H:i');
     }
 }

@@ -40,6 +40,8 @@ class JirauOverviewService
                     'column',
                     'labels',
                     'assignee',
+                    'responsibles:id,name,jirau_role,is_admin',
+                    'actors:id,name,jirau_role,is_admin',
                     'jirau.project',
                     'jirau.company',
                     'creator',

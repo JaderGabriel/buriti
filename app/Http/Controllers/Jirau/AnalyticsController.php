@@ -6,11 +6,13 @@ use App\Enums\JirauCardPriority;
 use App\Enums\JirauCardType;
 use App\Enums\JirauTemplate;
 use App\Http\Controllers\Controller;
+use App\Models\Company;
 use App\Models\Jirau;
 use App\Models\Project;
 use App\Models\User;
 use App\Services\Jirau\JirauAccess;
 use App\Services\Jirau\JirauMetricsService;
+use App\Services\Jirau\JirauTimeReportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -20,6 +22,7 @@ class AnalyticsController extends Controller
     public function __construct(
         private JirauAccess $access,
         private JirauMetricsService $metrics,
+        private JirauTimeReportService $hours,
     ) {}
 
     public function index(Request $request): View
@@ -43,6 +46,9 @@ class AnalyticsController extends Controller
             'jirau' => $selectedBoard && ! $selectedBoard->isDemo() ? $selectedBoard : null,
             'isAdmin' => true,
             'metrics' => $this->metrics->snapshot($user, $filters),
+            'hours' => ($filters['aba'] ?? 'fluxo') === 'horas'
+                ? $this->hours->snapshot($user, $filters)
+                : null,
             'filters' => $filters,
             'types' => JirauCardType::options(),
             'priorities' => JirauCardPriority::options(),
@@ -51,6 +57,14 @@ class AnalyticsController extends Controller
                 ->whereHas('jiraus', fn ($q) => $q->withoutDemo())
                 ->orderBy('name')
                 ->get(['id', 'name']),
+            'companies' => Company::query()
+                ->where(function ($query) {
+                    $query->whereHas('jiraus', fn ($q) => $q->withoutDemo())
+                        ->orWhereHas('projects.jiraus', fn ($q) => $q->withoutDemo());
+                })
+                ->orderBy('trade_name')
+                ->orderBy('name')
+                ->get(['id', 'name', 'trade_name']),
             'boardOptions' => $boardOptions,
             'people' => User::assignableOnJirau()->get(['id', 'name', 'jirau_role']),
         ]);
@@ -69,6 +83,11 @@ class AnalyticsController extends Controller
             'tipo' => $request->query('tipo'),
             'prioridade' => $request->query('prioridade'),
             'risco' => $request->query('risco'),
+            'aba' => $request->query('aba'),
+            'relatorio' => $request->query('relatorio'),
+            'empresa' => $request->query('empresa'),
+            'de' => $request->query('de'),
+            'ate' => $request->query('ate'),
         ], fn ($value) => $value !== null && $value !== ''));
     }
 }

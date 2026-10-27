@@ -40,10 +40,13 @@ class ColumnController extends Controller
 
         $data = $request->validated();
         $payload = [];
-        foreach (['name', 'color', 'default_due_hours'] as $field) {
+        foreach (['name', 'color', 'default_due_hours', 'overview_lane'] as $field) {
             if (array_key_exists($field, $data)) {
                 $payload[$field] = $data[$field];
             }
+        }
+        if (array_key_exists('overview_lane', $payload) && $column->overviewLaneIsLocked()) {
+            unset($payload['overview_lane']);
         }
         if ($payload !== []) {
             $column->update($payload);

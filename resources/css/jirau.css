@@ -1206,6 +1206,8 @@ html.dark .jirau-action--warn { color: #fca5a5; }
 }
 
 .jirau-card__track {
+    display: grid;
+    gap: 0.28rem;
     padding: 0 0.55rem 0.55rem;
 }
 
@@ -1214,6 +1216,19 @@ html.dark .jirau-action--warn { color: #fca5a5; }
     justify-content: center;
     border-radius: 0.55rem;
     font-size: 0.75rem;
+}
+
+.jirau-time__stamp {
+    margin: 0;
+    font-size: 0.68rem;
+    line-height: 1.3;
+    color: var(--admin-muted, var(--color-mist));
+}
+
+.jirau-time__toggle {
+    display: grid;
+    gap: 0.28rem;
+    justify-items: start;
 }
 
 .jirau-card__hit {
@@ -1287,6 +1302,37 @@ html.dark .jirau-action--warn { color: #fca5a5; }
     color: #fff;
 }
 
+.jirau-card__people {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+}
+
+.jirau-card__people .jirau-avatar {
+    margin-left: -0.35rem;
+    border: 2px solid var(--admin-glass, var(--color-panel));
+}
+
+.jirau-card__people .jirau-avatar:first-child {
+    margin-left: 0;
+}
+
+.jirau-avatar--actor {
+    background: #5b6b82;
+}
+
+.jirau-people-pick {
+    margin: 0 0 0.85rem;
+    padding: 0;
+    border: 0;
+}
+
+.jirau-people-pick legend {
+    margin-bottom: 0.35rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
 .jirau-drawer-wrap {
     position: fixed;
     inset: 0;
@@ -1338,49 +1384,74 @@ html.dark .jirau-action--warn { color: #fca5a5; }
     color: var(--admin-muted, var(--color-mist));
 }
 
-.jirau-time__toggle {
-    display: inline-flex;
+.jirau-time__toggle .jirau-action {
+    width: auto;
 }
 
-.jirau-time__total {
-    margin: 0 0 0.65rem;
-    font-size: 0.92rem;
-    font-weight: 700;
+.jirau-time-table__wrap {
+    overflow-x: auto;
+    margin: 0;
+    border: 1px solid var(--admin-glass-border, var(--color-line));
+    border-radius: 0.7rem;
 }
 
-.jirau-time__columns,
-.jirau-time__log {
-    list-style: none;
-    margin: 0 0 0.85rem;
-    padding: 0;
-    display: grid;
-    gap: 0.45rem;
-}
-
-.jirau-time__columns li,
-.jirau-time__log li {
-    display: grid;
-    gap: 0.1rem;
-    padding: 0.45rem 0.55rem;
-    border-radius: 0.55rem;
-    background: color-mix(in oklab, var(--admin-fill, rgba(47, 107, 255, 0.08)) 80%, transparent);
-}
-
-.jirau-time__columns strong,
-.jirau-time__log strong {
-    font-size: 0.82rem;
-}
-
-.jirau-time__columns span,
-.jirau-time__log span,
-.jirau-time__log time,
-.jirau-time__columns small {
+.jirau-time-table {
+    width: 100%;
+    border-collapse: collapse;
     font-size: 0.75rem;
-    color: var(--admin-muted, var(--color-mist));
 }
 
-.jirau-time__log li.is-running {
-    background: color-mix(in oklab, #16a34a 12%, transparent);
+.jirau-time-table th,
+.jirau-time-table td {
+    padding: 0.38rem 0.5rem;
+    text-align: left;
+    vertical-align: top;
+}
+
+.jirau-time-table thead th {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--admin-muted, var(--color-mist));
+    border-bottom: 1px solid var(--admin-glass-border, var(--color-line));
+}
+
+.jirau-time-table td:last-child,
+.jirau-time-table th:last-child {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.jirau-time-table__etapa th {
+    padding: 0.42rem 0.5rem 0.42rem 0.65rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--jirau-col, #2f6bff);
+    background: color-mix(in oklab, var(--jirau-col, #2f6bff) 14%, transparent);
+    border-left: 3px solid var(--jirau-col, #2f6bff);
+}
+
+.jirau-time-table__row td {
+    border-bottom: 1px solid color-mix(in oklab, var(--admin-glass-border, var(--color-line)) 70%, transparent);
+}
+
+.jirau-time-table__row td:nth-child(2),
+.jirau-time-table__row td:nth-child(3) {
+    color: var(--admin-muted, var(--color-mist));
+    white-space: nowrap;
+}
+
+.jirau-time-table__row.is-running td {
+    background: color-mix(in oklab, #16a34a 10%, transparent);
+}
+
+.jirau-time-table__total th,
+.jirau-time-table__total td {
+    font-weight: 800;
+    background: color-mix(in oklab, var(--admin-fill, rgba(47, 107, 255, 0.12)) 90%, transparent);
+    border-top: 1px solid var(--admin-glass-border, var(--color-line));
 }
 
 .jirau-drawer__form,
@@ -1980,4 +2051,48 @@ html.dark .jirau-action--warn { color: #fca5a5; }
 
 html:has([data-jirau-shell]) .admin-content:has(.jirau-analytics) {
     padding-bottom: 1.5rem;
+}
+
+.jirau-report-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin: 0 0 1rem;
+}
+
+.jirau-report-tabs a {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.42rem 0.85rem;
+    border-radius: 999px;
+    border: 1px solid var(--admin-glass-border, var(--color-line));
+    background: var(--admin-glass, var(--color-panel));
+    color: inherit;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.jirau-report-tabs a.is-on {
+    border-color: color-mix(in oklab, #2f6bff 40%, var(--admin-glass-border, var(--color-line)));
+    background: color-mix(in oklab, #2f6bff 14%, transparent);
+    color: #1d4ed8;
+}
+
+.jirau-report-tabs--sub {
+    margin: 0 0 0.85rem;
+}
+
+.jirau-report-tabs--sub a {
+    font-size: 0.75rem;
+    font-weight: 650;
+}
+
+.jirau-analytics__table tfoot th,
+.jirau-analytics__table tfoot td {
+    font-weight: 800;
+}
+
+.jirau-analytics__table tr.is-running td {
+    background: color-mix(in oklab, #16a34a 10%, transparent);
 }

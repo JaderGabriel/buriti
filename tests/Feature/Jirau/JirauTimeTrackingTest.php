@@ -81,6 +81,15 @@ class JirauTimeTrackingTest extends TestCase
         $this->assertSame($column->name, $entry->column_name);
         $this->assertNull($entry->ended_at);
 
+        $this->actingAs($staff)
+            ->get(route('jirau.show', $jirau))
+            ->assertOk()
+            ->assertSee('Encerrar', false)
+            ->assertSee('Início '.$entry->fresh()->startedLabel(), false)
+            ->assertDontSee('Pausa ·', false);
+
+        $this->assertTrue($card->fresh()->actors()->whereKey($staff->id)->exists());
+
         Carbon::setTestNow('2026-10-27 10:30:00');
 
         $this->actingAs($staff)
@@ -92,6 +101,14 @@ class JirauTimeTrackingTest extends TestCase
         $this->assertNotNull($fresh->ended_at);
         $this->assertSame(5400, $fresh->seconds);
         $this->assertSame('1h 30min', $fresh->elapsedLabel());
+
+        $this->actingAs($staff)
+            ->get(route('jirau.show', $jirau))
+            ->assertOk()
+            ->assertSee('Fazer', false)
+            ->assertSee('Última alteração '.$fresh->endedLabel(), false)
+            ->assertDontSee('Início '.$fresh->startedLabel(), false)
+            ->assertDontSee('Encerrar', false);
     }
 
     public function test_member_cannot_track_time(): void
@@ -138,7 +155,7 @@ class JirauTimeTrackingTest extends TestCase
             ->get(route('jirau.show', ['jirau' => $jirau, 'cartao' => $card->id]))
             ->assertOk()
             ->assertSee('Histórico de horas', false)
-            ->assertSee('1h 15min no total', false)
+            ->assertSee('jirau-time-table', false)
             ->assertSee('Ana Dev', false)
             ->assertSee('Jader Gabriel', false)
             ->assertSee($doing->name, false)
@@ -146,12 +163,112 @@ class JirauTimeTrackingTest extends TestCase
 
         $this->assertStringContainsString('45min', $html);
         $this->assertStringContainsString('30min', $html);
+        $this->assertStringContainsString('1h 15min', $html);
+        $this->assertStringContainsString('jirau-time-table__total', $html);
+        $this->assertStringNotContainsString('no total', $html);
 
         $this->actingAs($staff)
             ->get(route('jirau.show', ['jirau' => $jirau, 'cartao' => $card->id]))
             ->assertOk()
             ->assertDontSee('Histórico de horas', false)
-            ->assertDontSee('1h 15min no total', false);
+            ->assertDontSee('jirau-time-table', false);
+    }
+
+    public function test_moving_a_card_to_another_column_starts_time(): void
+    {
+        Carbon::setTestNow('2026-10-27 09:00:00');
+
+        $admin = User::factory()->create();
+        $jirau = Jirau::factory()->create(['created_by' => $admin->id]);
+        $inbox = $jirau->inboxColumn();
+        $doing = $jirau->columns()->where('slug', 'doing')->first();
+        $card = JirauCard::factory()->create([
+            'jirau_id' => $jirau->id,
+            'column_id' => $inbox->id,
+            'title' => 'Pedido',
+        ]);
+
+        $this->actingAs($admin)
+            ->postJson(route('jirau.cards.move', [$jirau, $card]), [
+                'column_id' => $doing->id,
+                'ordered_ids' => [$card->id],
+            ])
+            ->assertOk()
+            ->assertJsonPath('tracking.running', true)
+            ->assertJsonPath('tracking.card_id', $card->id);
+
+        $entry = JirauTimeEntry::query()->first();
+        $this->assertNotNull($entry);
+        $this->assertSame($admin->id, $entry->user_id);
+        $this->assertSame($card->id, $entry->card_id);
+        $this->assertSame($doing->id, $entry->column_id);
+        $this->assertNull($entry->ended_at);
+
+        $this->actingAs($admin)
+            ->get(route('jirau.show', $jirau))
+            ->assertOk()
+            ->assertSee('Encerrar', false)
+            ->assertSee('Início '.$entry->fresh()->startedLabel(), false);
+    }
+
+    public function test_reordering_inside_the_same_column_does_not_start_time(): void
+    {
+        $admin = User::factory()->create();
+        $jirau = Jirau::factory()->create(['created_by' => $admin->id]);
+        $inbox = $jirau->inboxColumn();
+        $card = JirauCard::factory()->create([
+            'jirau_id' => $jirau->id,
+            'column_id' => $inbox->id,
+            'title' => 'Pedido',
+        ]);
+
+        $this->actingAs($admin)
+            ->postJson(route('jirau.cards.move', [$jirau, $card]), [
+                'column_id' => $inbox->id,
+                'ordered_ids' => [$card->id],
+            ])
+            ->assertOk()
+            ->assertJsonPath('tracking', null);
+
+        $this->assertSame(0, JirauTimeEntry::query()->count());
+    }
+
+    public function test_moving_another_card_pauses_the_previous_and_starts_the_new_one(): void
+    {
+        Carbon::setTestNow('2026-10-27 09:00:00');
+
+        $admin = User::factory()->create();
+        $jirau = Jirau::factory()->create(['created_by' => $admin->id]);
+        $doing = $jirau->columns()->where('slug', 'doing')->first();
+        $review = $jirau->columns()->where('slug', 'review')->first();
+        $first = JirauCard::factory()->create([
+            'jirau_id' => $jirau->id,
+            'column_id' => $doing->id,
+            'title' => 'Primeiro',
+        ]);
+        $second = JirauCard::factory()->create([
+            'jirau_id' => $jirau->id,
+            'column_id' => $doing->id,
+            'title' => 'Segundo',
+        ]);
+
+        $this->actingAs($admin)->post(route('jirau.cards.time.toggle', [$jirau, $first]));
+        Carbon::setTestNow('2026-10-27 09:20:00');
+
+        $this->actingAs($admin)
+            ->postJson(route('jirau.cards.move', [$jirau, $second]), [
+                'column_id' => $review->id,
+                'ordered_ids' => [$second->id],
+            ])
+            ->assertOk()
+            ->assertJsonPath('tracking.running', true)
+            ->assertJsonPath('tracking.card_id', $second->id)
+            ->assertJsonPath('tracking.paused_card_id', $first->id);
+
+        $this->assertNotNull($first->timeEntries()->first()->ended_at);
+        $this->assertSame(1200, $first->timeEntries()->first()->seconds);
+        $this->assertNull($second->timeEntries()->first()->ended_at);
+        $this->assertSame($review->id, $second->timeEntries()->first()->column_id);
     }
 
     public function test_moving_a_card_splits_running_time_into_the_new_etapa(): void
@@ -195,7 +312,10 @@ class JirauTimeTrackingTest extends TestCase
             ->assertOk()
             ->assertSee($inbox->name, false)
             ->assertSee($doing->name, false)
-            ->assertSee('30min no total', false);
+            ->assertSee('jirau-time-table__total', false)
+            ->assertSee('30min', false)
+            ->assertSee('10min', false)
+            ->assertSee('20min', false);
     }
 
     public function test_starting_on_another_card_pauses_the_previous(): void

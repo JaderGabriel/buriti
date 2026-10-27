@@ -150,10 +150,13 @@ class BoardController extends Controller
             ->with([
                 'labels',
                 'assignee',
+                'responsibles:id,name,jirau_role,is_admin',
+                'actors:id,name,jirau_role,is_admin',
                 'creator',
                 'checklistItems',
                 'projectStep',
                 'runningTimeEntries.user:id,name,jirau_role,is_admin',
+                'latestClosedTimeEntry',
             ])
             ->withSum('timeEntries as closed_seconds', 'seconds')
             ->withCount([
@@ -194,6 +197,8 @@ class BoardController extends Controller
                 ->with([
                     'labels',
                     'assignee',
+                    'responsibles:id,name,jirau_role,is_admin',
+                    'actors:id,name,jirau_role,is_admin',
                     'creator',
                     'column',
                     'checklistItems',
@@ -202,7 +207,9 @@ class BoardController extends Controller
                     'attachments',
                     'links',
                     'runningTimeEntries.user:id,name,jirau_role,is_admin',
+                    'latestClosedTimeEntry',
                     'timeEntries.user:id,name,jirau_role,is_admin',
+                    'timeEntries.column:id,name,color,sort_order',
                 ])
                 ->withSum('timeEntries as closed_seconds', 'seconds')
                 ->find($cardId);

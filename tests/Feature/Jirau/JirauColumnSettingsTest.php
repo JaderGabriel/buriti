@@ -3,6 +3,7 @@
 namespace Tests\Feature\Jirau;
 
 use App\Enums\JirauCardType;
+use App\Enums\JirauOverviewLane;
 use App\Models\Jirau;
 use App\Models\JirauCard;
 use App\Models\User;
@@ -69,6 +70,7 @@ class JirauColumnSettingsTest extends TestCase
         $this->assertSame(24, $column->default_due_hours);
         $this->assertFalse($column->is_inbox);
         $this->assertFalse($column->is_done);
+        $this->assertSame(JirauOverviewLane::Backlog, $column->overviewLane());
         $this->assertLessThan((int) $done->fresh()->sort_order, (int) $column->sort_order);
 
         $this->actingAs($admin)
@@ -210,5 +212,52 @@ class JirauColumnSettingsTest extends TestCase
         $card = JirauCard::query()->where('title', 'Tarefa da faixa')->first();
         $this->assertNotNull($card);
         $this->assertEquals(now()->addHours(8)->timestamp, $card->due_at?->timestamp);
+    }
+
+    public function test_admin_can_map_a_custom_column_to_an_overview_lane(): void
+    {
+        $admin = User::factory()->create();
+        $jirau = Jirau::factory()->create(['created_by' => $admin->id]);
+        $doing = $jirau->columns()->where('slug', 'doing')->first();
+
+        $this->actingAs($admin)
+            ->post(route('jirau.columns.store', $jirau), [
+                'name' => 'Homologação extra',
+                'color' => '#c4a035',
+                'overview_lane' => JirauOverviewLane::Testing->value,
+            ])
+            ->assertRedirect();
+
+        $column = $jirau->columns()->where('name', 'Homologação extra')->first();
+        $this->assertNotNull($column);
+        $this->assertSame(JirauOverviewLane::Testing, $column->overviewLane());
+
+        $this->actingAs($admin)
+            ->put(route('jirau.columns.update', [$jirau, $column]), [
+                'name' => 'Homologação extra',
+                'overview_lane' => JirauOverviewLane::Doing->value,
+            ])
+            ->assertRedirect();
+
+        $this->assertSame(JirauOverviewLane::Doing, $column->fresh()->overviewLane());
+
+        $this->actingAs($admin)
+            ->put(route('jirau.columns.update', [$jirau, $doing]), [
+                'name' => $doing->name,
+                'overview_lane' => JirauOverviewLane::Testing->value,
+            ])
+            ->assertRedirect();
+
+        $this->assertSame(JirauOverviewLane::Testing, $doing->fresh()->overviewLane());
+
+        $inbox = $jirau->inboxColumn();
+        $this->actingAs($admin)
+            ->put(route('jirau.columns.update', [$jirau, $inbox]), [
+                'name' => $inbox->name,
+                'overview_lane' => JirauOverviewLane::Doing->value,
+            ])
+            ->assertRedirect();
+
+        $this->assertSame(JirauOverviewLane::Demand, $inbox->fresh()->overviewLane());
     }
 }

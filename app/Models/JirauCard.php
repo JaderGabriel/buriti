@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\JirauCardParticipantRole;
 use App\Enums\JirauCardPriority;
 use App\Enums\JirauCardType;
 use App\Models\Concerns\HasAttachments;
@@ -12,6 +13,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Collection;
 
 class JirauCard extends Model
 {
@@ -68,6 +71,85 @@ class JirauCard extends Model
         return $this->belongsTo(User::class, 'assigned_to');
     }
 
+    public function participants(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'jirau_card_participants', 'card_id', 'user_id')
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+
+    public function responsibles(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'jirau_card_participants', 'card_id', 'user_id')
+            ->withPivot('role')
+            ->withTimestamps()
+            ->wherePivot('role', JirauCardParticipantRole::Responsible->value);
+    }
+
+    public function actors(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'jirau_card_participants', 'card_id', 'user_id')
+            ->withPivot('role')
+            ->withTimestamps()
+            ->wherePivot('role', JirauCardParticipantRole::Actor->value);
+    }
+
+    public function demander(): ?User
+    {
+        $this->loadMissing('creator');
+        $creator = $this->creator;
+        if ($creator && ! $creator->isAssignableOnJirau()) {
+            return $creator;
+        }
+
+        return null;
+    }
+
+    public function demanderId(): ?int
+    {
+        return $this->demander()?->id;
+    }
+
+    /** @return Collection<int, User> */
+    public function responsiblePeople(): Collection
+    {
+        $this->loadMissing(['responsibles', 'assignee']);
+        if ($this->responsibles->isNotEmpty()) {
+            return $this->responsibles;
+        }
+
+        return collect($this->assignee ? [$this->assignee] : []);
+    }
+
+    /** @return Collection<int, User> */
+    public function actorPeople(): Collection
+    {
+        $this->loadMissing(['actors']);
+        $responsibleIds = $this->responsiblePeople()->pluck('id')->all();
+
+        return $this->actors
+            ->reject(fn (User $user) => in_array($user->id, $responsibleIds, true))
+            ->values();
+    }
+
+    public function hasResponsible(?int $userId): bool
+    {
+        if (! $userId) {
+            return false;
+        }
+
+        if ((int) $this->assigned_to === $userId) {
+            return true;
+        }
+
+        return $this->responsiblePeople()->contains(fn (User $user) => (int) $user->id === $userId);
+    }
+
+    public function isUnassigned(): bool
+    {
+        return $this->responsiblePeople()->isEmpty();
+    }
+
     public function projectStep(): BelongsTo
     {
         return $this->belongsTo(ProjectStep::class);
@@ -101,6 +183,14 @@ class JirauCard extends Model
     public function runningTimeEntries(): HasMany
     {
         return $this->hasMany(JirauTimeEntry::class, 'card_id')->whereNull('ended_at');
+    }
+
+    public function latestClosedTimeEntry(): HasOne
+    {
+        return $this->hasOne(JirauTimeEntry::class, 'card_id')->ofMany(
+            ['ended_at' => 'max', 'id' => 'max'],
+            fn ($query) => $query->whereNotNull('ended_at'),
+        );
     }
 
     public function spentSeconds(): int

@@ -2,6 +2,7 @@
 
 namespace App\Services\Jirau;
 
+use App\Enums\JirauCardParticipantRole;
 use App\Enums\JirauCardPriority;
 use App\Enums\JirauCardType;
 use App\Enums\JirauTemplate;
@@ -118,7 +119,7 @@ class JirauBoardService
         return $jirau;
     }
 
-    /** @param  array{name: string, color?: ?string, default_due_hours?: ?int}  $data */
+    /** @param  array{name: string, color?: ?string, default_due_hours?: ?int, overview_lane?: ?string}  $data */
     public function addColumn(Jirau $jirau, array $data): JirauColumn
     {
         $name = trim($data['name']);
@@ -132,12 +133,16 @@ class JirauBoardService
                 $jirau->columns()->where('sort_order', '>=', $sort)->increment('sort_order', 10);
             }
 
+            $slug = $this->uniqueColumnSlug($jirau, $name);
+            $lane = $data['overview_lane'] ?? JirauColumn::inferOverviewLane(false, false, $slug)->value;
+
             $column = $jirau->columns()->create([
                 'name' => $name,
-                'slug' => $this->uniqueColumnSlug($jirau, $name),
+                'slug' => $slug,
                 'sort_order' => $sort,
                 'color' => $data['color'] ?? '#2f6bff',
                 'default_due_hours' => $data['default_due_hours'] ?? null,
+                'overview_lane' => $lane,
                 'is_inbox' => false,
                 'is_done' => false,
             ]);
@@ -158,6 +163,11 @@ class JirauBoardService
         foreach ($template->columns() as $index => $column) {
             $jirau->columns()->create([
                 ...$column,
+                'overview_lane' => JirauColumn::inferOverviewLane(
+                    (bool) ($column['is_inbox'] ?? false),
+                    (bool) ($column['is_done'] ?? false),
+                    $column['slug'] ?? null,
+                ),
                 'sort_order' => ($index + 1) * 10,
             ]);
         }
@@ -236,12 +246,19 @@ class JirauBoardService
             'type' => $card->type->value,
         ]);
 
-        $created = $card->fresh(['labels', 'column.watchers', 'creator', 'assignee']);
+        $created = $card->fresh(['labels', 'column.watchers', 'creator', 'assignee', 'responsibles', 'actors']);
+        $this->syncParticipants(
+            $created,
+            array_key_exists('responsible_ids', $data)
+                ? $data['responsible_ids']
+                : (($data['assigned_to'] ?? null) ? [(int) $data['assigned_to']] : []),
+            $data['actor_ids'] ?? [],
+        );
         if ($notify) {
-            $this->notifier->cardCreated($jirau, $created, $actor);
+            $this->notifier->cardCreated($jirau, $created->fresh(['labels', 'column.watchers', 'creator', 'assignee', 'responsibles']), $actor);
         }
 
-        return $created;
+        return $created->fresh(['labels', 'column.watchers', 'creator', 'assignee', 'responsibles', 'actors']);
     }
 
     public function updateCard(JirauCard $card, User $actor, array $data): JirauCard
@@ -266,7 +283,7 @@ class JirauBoardService
             if (array_key_exists('estimate', $data)) {
                 $payload['estimate'] = $data['estimate'];
             }
-            if (array_key_exists('assigned_to', $data)) {
+            if (array_key_exists('assigned_to', $data) && ! array_key_exists('responsible_ids', $data)) {
                 $payload['assigned_to'] = $this->resolveAssignee($data['assigned_to']);
             }
         } else {
@@ -295,7 +312,21 @@ class JirauBoardService
             $card->labels()->sync($this->ownedLabelIds($card->jirau, $data['label_ids'] ?? []));
         }
 
-        $fresh = $card->fresh(['labels', 'column.watchers', 'creator', 'assignee', 'jirau.project']);
+        $fresh = $card->fresh(['labels', 'column.watchers', 'creator', 'assignee', 'responsibles', 'actors', 'jirau.project']);
+        if ($admin && (
+            array_key_exists('responsible_ids', $data)
+            || array_key_exists('assigned_to', $data)
+            || array_key_exists('actor_ids', $data)
+        )) {
+            $responsibles = array_key_exists('responsible_ids', $data)
+                ? $data['responsible_ids']
+                : (array_key_exists('assigned_to', $data)
+                    ? ($data['assigned_to'] ? [(int) $data['assigned_to']] : [])
+                    : null);
+            $actors = array_key_exists('actor_ids', $data) ? $data['actor_ids'] : null;
+            $this->syncParticipants($fresh, $responsibles, $actors);
+            $fresh = $fresh->fresh(['labels', 'column.watchers', 'creator', 'assignee', 'responsibles', 'actors', 'jirau.project']);
+        }
         if ($fresh->due_at?->timestamp !== $snapshot['due_at']) {
             $fresh->forceFill(['telegram_reminder_sent_at' => null])->save();
         }
@@ -310,7 +341,10 @@ class JirauBoardService
         return $fresh;
     }
 
-    public function moveCard(JirauCard $card, User $actor, int $columnId, array $orderedIds = []): JirauCard
+    /**
+     * @return array{0: JirauCard, 1: ?array{card_id: int, running: bool, started_label: ?string, paused_card_id: ?int, paused_ended_label: ?string}}
+     */
+    public function moveCard(JirauCard $card, User $actor, int $columnId, array $orderedIds = []): array
     {
         if (! $actor->is_admin) {
             throw ValidationException::withMessages([
@@ -358,8 +392,9 @@ class JirauBoardService
         ]);
 
         $moved = $card->fresh(['column.watchers', 'assignee', 'jirau.project']);
+        $tracking = null;
         if ($from && (int) $from->id !== (int) $column->id) {
-            app(JirauTimeService::class)->followColumn($moved, $column);
+            $tracking = app(JirauTimeService::class)->onCardMoved($moved, $column, $actor);
             $this->notifier->cardMoved(
                 $moved->jirau,
                 $moved,
@@ -370,7 +405,7 @@ class JirauBoardService
             );
         }
 
-        return $moved;
+        return [$moved, $tracking];
     }
 
     public function archiveCard(JirauCard $card, User $actor): void
@@ -390,6 +425,58 @@ class JirauBoardService
     public static function estimateOptions(): array
     {
         return [1, 2, 3, 5, 8, 13];
+    }
+
+    /**
+     * @param  list<mixed>|null  $responsibleIds
+     * @param  list<mixed>|null  $actorIds
+     */
+    private function syncParticipants(JirauCard $card, ?array $responsibleIds, ?array $actorIds): void
+    {
+        $demanderId = $card->demanderId();
+
+        if ($responsibleIds !== null) {
+            $ids = $this->sanitizeTeamIds($responsibleIds, $demanderId);
+            $card->responsibles()->detach();
+            if ($ids !== []) {
+                $card->responsibles()->attach(array_fill_keys($ids, [
+                    'role' => JirauCardParticipantRole::Responsible->value,
+                ]));
+            }
+            $card->forceFill(['assigned_to' => $ids[0] ?? null])->save();
+            $card->unsetRelation('assignee');
+            $card->unsetRelation('responsibles');
+        }
+
+        if ($actorIds !== null) {
+            $ids = $this->sanitizeTeamIds($actorIds, $demanderId);
+            $card->actors()->detach();
+            if ($ids !== []) {
+                $card->actors()->attach(array_fill_keys($ids, [
+                    'role' => JirauCardParticipantRole::Actor->value,
+                ]));
+            }
+            $card->unsetRelation('actors');
+        }
+    }
+
+    /**
+     * @param  list<mixed>  $ids
+     * @return list<int>
+     */
+    private function sanitizeTeamIds(array $ids, ?int $demanderId): array
+    {
+        $wanted = array_values(array_unique(array_filter(
+            array_map('intval', $ids),
+            fn (int $id) => $id > 0 && $id !== (int) $demanderId,
+        )));
+        if ($wanted === []) {
+            return [];
+        }
+
+        $allowed = User::assignableOnJirau()->whereKey($wanted)->pluck('id')->all();
+
+        return array_values(array_filter($wanted, fn (int $id) => in_array($id, $allowed, true)));
     }
 
     private function resolveAssignee(mixed $userId): ?int
@@ -442,7 +529,8 @@ class JirauBoardService
             $lines[] = 'Estimativa: '.($after->estimate ? $after->estimate.' pts' : '—');
         }
         if ((int) $after->assigned_to !== (int) $before['assigned_to']) {
-            $lines[] = 'Responsável: '.($after->assignee?->name ?? 'sem alocação');
+            $names = $after->responsiblePeople()->pluck('name')->filter()->implode(', ');
+            $lines[] = 'Responsáveis: '.($names !== '' ? $names : 'sem alocação');
         }
         if ($after->due_at?->timestamp !== $before['due_at']) {
             $due = $after->due_at?->timezone(config('app.timezone'))?->format('d/m/Y H:i');

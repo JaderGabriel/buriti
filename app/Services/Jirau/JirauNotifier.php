@@ -25,7 +25,7 @@ class JirauNotifier
             return;
         }
 
-        $card->loadMissing(['column.watchers', 'assignee']);
+        $card->loadMissing(['column.watchers', 'assignee', 'responsibles']);
 
         $this->deliver($this->cardMessage(
             'Nova demanda no Jirau',
@@ -45,7 +45,7 @@ class JirauNotifier
             return;
         }
 
-        $card->loadMissing(['column.watchers', 'assignee']);
+        $card->loadMissing(['column.watchers', 'assignee', 'responsibles']);
 
         $this->deliver($this->cardMessage(
             'Cartão criado no Jirau',
@@ -65,7 +65,7 @@ class JirauNotifier
             return;
         }
 
-        $card->loadMissing(['column.watchers', 'assignee']);
+        $card->loadMissing(['column.watchers', 'assignee', 'responsibles']);
 
         $this->deliver($this->cardMessage(
             'Cartão atualizado no Jirau',
@@ -84,7 +84,7 @@ class JirauNotifier
             return;
         }
 
-        $card->loadMissing(['column.watchers', 'assignee']);
+        $card->loadMissing(['column.watchers', 'assignee', 'responsibles']);
         $to->loadMissing('watchers');
 
         $title = $cataloged ? 'Demanda catalogada no Jirau' : 'Cartão movido no Jirau';
@@ -100,7 +100,7 @@ class JirauNotifier
                 $this->escape($from->name).' → '.$this->escape($to->name),
                 $due ? 'Prazo: '.$this->escape($due) : null,
             ],
-        ), $this->mergeUsers($to->watchers, $card->assignee));
+        ), $this->mergeUsers($to->watchers, $card->responsiblePeople()));
     }
 
     public function cardArchived(Jirau $jirau, JirauCard $card, User $actor): void
@@ -109,7 +109,7 @@ class JirauNotifier
             return;
         }
 
-        $card->loadMissing(['column.watchers', 'assignee']);
+        $card->loadMissing(['column.watchers', 'assignee', 'responsibles']);
 
         $this->deliver($this->cardMessage(
             'Cartão arquivado no Jirau',
@@ -125,7 +125,7 @@ class JirauNotifier
             return;
         }
 
-        $card->loadMissing(['column.watchers', 'assignee']);
+        $card->loadMissing(['column.watchers', 'assignee', 'responsibles']);
 
         $this->deliver($this->cardMessage(
             'Comentário no Jirau',
@@ -144,7 +144,7 @@ class JirauNotifier
             return;
         }
 
-        $card->loadMissing(['column.watchers', 'assignee']);
+        $card->loadMissing(['column.watchers', 'assignee', 'responsibles']);
         $due = $card->due_at?->timezone(config('app.timezone'))?->format('d/m/Y H:i');
 
         $this->deliver($this->cardMessage(
@@ -230,7 +230,9 @@ class JirauNotifier
     /** @return Collection<int, User> */
     private function priorityForCard(JirauCard $card): Collection
     {
-        return $this->mergeUsers($this->columnWatchers($card->column), $card->assignee);
+        $card->loadMissing(['assignee', 'responsibles']);
+
+        return $this->mergeUsers($this->columnWatchers($card->column), $card->responsiblePeople());
     }
 
     /** @return Collection<int, User> */
@@ -246,11 +248,13 @@ class JirauNotifier
     }
 
     /** @return Collection<int, User> */
-    private function mergeUsers(iterable $users, ?User $extra): Collection
+    private function mergeUsers(iterable $users, mixed $extra = null): Collection
     {
         $merged = collect($users);
-        if ($extra) {
+        if ($extra instanceof User) {
             $merged->push($extra);
+        } elseif (is_iterable($extra)) {
+            $merged = $merged->concat($extra);
         }
 
         return $merged->filter()->unique('id')->values();

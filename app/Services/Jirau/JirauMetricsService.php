@@ -64,6 +64,7 @@ class JirauMetricsService
             ->with([
                 'column:id,jirau_id,name,slug,is_inbox,is_done,wip_limit,color,sort_order',
                 'assignee:id,name',
+                'responsibles:id,name',
                 'jirau:id,name',
                 'labels:id,name',
             ])
@@ -89,7 +90,7 @@ class JirauMetricsService
             'done' => $doneCount,
             'archived' => $cards->whereNotNull('archived_at')->count(),
             'overdue' => $overdue->count(),
-            'unassigned' => $wip->merge($inbox)->whereNull('assigned_to')->count(),
+            'unassigned' => $wip->merge($inbox)->filter(fn (JirauCard $card) => $card->isUnassigned())->count(),
             'blocked' => $active->filter(fn (JirauCard $card) => $card->labels->contains(
                 fn ($label) => mb_strtolower((string) $label->name) === 'bloqueado'
             ))->count(),
@@ -125,7 +126,12 @@ class JirauMetricsService
      *     estado: string,
      *     tipo: ?string,
      *     prioridade: ?string,
-     *     risco: ?string
+     *     risco: ?string,
+     *     aba: string,
+     *     relatorio: string,
+     *     empresa: ?int,
+     *     de: ?string,
+     *     ate: ?string
      * }
      */
     public function normalize(array $input): array
@@ -136,6 +142,10 @@ class JirauMetricsService
         $estado = (string) ($input['estado'] ?? 'ativos');
         $usuario = $input['usuario'] ?? null;
         $usuario = is_string($usuario) || is_int($usuario) ? (string) $usuario : null;
+        $aba = (string) ($input['aba'] ?? 'fluxo');
+        $relatorio = (string) ($input['relatorio'] ?? 'pessoas');
+        $de = is_string($input['de'] ?? null) ? trim((string) $input['de']) : '';
+        $ate = is_string($input['ate'] ?? null) ? trim((string) $input['ate']) : '';
 
         return [
             'projeto' => is_numeric($input['projeto'] ?? null) ? (int) $input['projeto'] : null,
@@ -150,6 +160,13 @@ class JirauMetricsService
             'risco' => in_array($input['risco'] ?? null, ['atraso', 'sem_responsavel', 'bloqueado'], true)
                 ? (string) $input['risco']
                 : null,
+            'aba' => in_array($aba, ['fluxo', 'horas'], true) ? $aba : 'fluxo',
+            'relatorio' => in_array($relatorio, ['pessoas', 'projetos', 'empresas', 'etapas', 'extrato'], true)
+                ? $relatorio
+                : 'pessoas',
+            'empresa' => is_numeric($input['empresa'] ?? null) ? (int) $input['empresa'] : null,
+            'de' => preg_match('/^\d{4}-\d{2}-\d{2}$/', $de) ? $de : null,
+            'ate' => preg_match('/^\d{4}-\d{2}-\d{2}$/', $ate) ? $ate : null,
         ];
     }
 
@@ -174,6 +191,9 @@ class JirauMetricsService
         if ($filters['quadro']) {
             $query->whereKey($filters['quadro']);
         }
+        if ($filters['empresa']) {
+            $query->where('company_id', $filters['empresa']);
+        }
         if ($filters['modelo']) {
             $query->where('template', $filters['modelo']);
         }
@@ -194,11 +214,11 @@ class JirauMetricsService
     private function filterCards(Collection $cards, array $filters): Collection
     {
         return $cards->filter(function (JirauCard $card) use ($filters) {
-            if ($filters['usuario'] === 'none' && $card->assigned_to !== null) {
+            if ($filters['usuario'] === 'none' && ! $card->isUnassigned()) {
                 return false;
             }
             if (is_string($filters['usuario']) && $filters['usuario'] !== 'none'
-                && (int) $card->assigned_to !== (int) $filters['usuario']) {
+                && ! $card->hasResponsible((int) $filters['usuario'])) {
                 return false;
             }
             if ($filters['tipo'] && $card->type?->value !== $filters['tipo']) {
@@ -214,7 +234,7 @@ class JirauMetricsService
                     && ! $card->column?->is_done;
             }
             if ($filters['risco'] === 'sem_responsavel') {
-                return $card->archived_at === null && $card->assigned_to === null;
+                return $card->archived_at === null && $card->isUnassigned();
             }
             if ($filters['risco'] === 'bloqueado') {
                 return $card->labels->contains(
@@ -435,18 +455,31 @@ class JirauMetricsService
      */
     private function assigneeRows(Collection $active): array
     {
-        return $active
-            ->groupBy(fn (JirauCard $card) => $card->assigned_to ?: 0)
-            ->map(function (Collection $group) {
-                $first = $group->first();
+        $rows = [];
+        foreach ($active as $card) {
+            $people = $card->responsiblePeople();
+            if ($people->isEmpty()) {
+                $people = collect([null]);
+            }
+            foreach ($people as $person) {
+                $key = $person?->id ?: 0;
+                if (! isset($rows[$key])) {
+                    $rows[$key] = [
+                        'id' => $person?->id ? (int) $person->id : null,
+                        'name' => $person?->name ?? 'Sem responsável',
+                        'open' => 0,
+                        'done' => 0,
+                    ];
+                }
+                if ($card->column?->is_done) {
+                    $rows[$key]['done']++;
+                } else {
+                    $rows[$key]['open']++;
+                }
+            }
+        }
 
-                return [
-                    'id' => $first?->assigned_to ? (int) $first->assigned_to : null,
-                    'name' => $first?->assignee?->name ?? 'Sem responsável',
-                    'open' => $group->reject(fn (JirauCard $card) => (bool) $card->column?->is_done)->count(),
-                    'done' => $group->filter(fn (JirauCard $card) => (bool) $card->column?->is_done)->count(),
-                ];
-            })
+        return collect($rows)
             ->sortByDesc('open')
             ->values()
             ->take(8)

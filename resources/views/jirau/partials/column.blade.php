@@ -8,6 +8,7 @@
     $columnMeta = collect([
         $column->wip_limit ? 'WIP '.$column->wip_limit : null,
         $column->is_inbox ? 'triagem' : null,
+        'quadro geral · '.$column->overviewLane()->label(),
         $dueLabel,
     ])->filter()->implode(' · ');
 @endphp

@@ -55,19 +55,30 @@
                             @endforeach
                         </select>
                     </label>
-                    <label class="block text-sm">
-                        <span class="text-mist">Responsável</span>
-                        <select name="assigned_to" class="mt-1.5 w-full rounded-sm border border-line bg-ink px-3 py-2.5">
-                            <option value="">Não alocado</option>
-                            @foreach($assignees ?? [] as $person)
-                                <option value="{{ $person->id }}" @selected((string) old('assigned_to', $card->assigned_to) === (string) $person->id)>
-                                    {{ $person->name }} · {{ $person->jirauTeamLabel() }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </label>
                     <x-ui.input type="datetime-local" name="due_at" label="Prazo" :value="old('due_at', $card->due_at?->format('Y-m-d\TH:i'))" />
                 </div>
+                @if($card->demander())
+                    <p class="jirau-hint">Demandante: <strong>{{ $card->demander()->name }}</strong> — não entra como responsável nem ator.</p>
+                @endif
+                <fieldset class="jirau-people-pick">
+                    <legend>Responsáveis</legend>
+                    @include('jirau.partials.people-pick', [
+                        'field' => 'responsible_ids',
+                        'people' => $assignees ?? [],
+                        'picked' => old('responsible_ids', $card->responsiblePeople()->pluck('id')->all()),
+                        'exclude' => array_filter([$card->demanderId()]),
+                    ])
+                </fieldset>
+                <fieldset class="jirau-people-pick">
+                    <legend>Atores</legend>
+                    <p class="jirau-hint">Quem executa neste cartão, além do demandante. Quem clica em Fazer entra sozinho.</p>
+                    @include('jirau.partials.people-pick', [
+                        'field' => 'actor_ids',
+                        'people' => $assignees ?? [],
+                        'picked' => old('actor_ids', $card->actors->pluck('id')->all()),
+                        'exclude' => array_filter([$card->demanderId()]),
+                    ])
+                </fieldset>
                 <fieldset class="jirau-labels-pick">
                     <legend>Etiquetas</legend>
                     @foreach($jirau->labels as $label)
@@ -98,7 +109,12 @@
                 @if($card->description)
                     <p>{{ $card->description }}</p>
                 @endif
-                <p class="jirau-hint">Prioridade: {{ $card->priority->label() }}{{ $card->estimate ? ' · '.$card->estimate.' pts' : '' }}{{ $card->assignee ? ' · '.$card->assignee->name : '' }}</p>
+                <p class="jirau-hint">
+                    Prioridade: {{ $card->priority->label() }}{{ $card->estimate ? ' · '.$card->estimate.' pts' : '' }}
+                    @if($card->responsiblePeople()->isNotEmpty())
+                        · {{ $card->responsiblePeople()->pluck('name')->join(', ') }}
+                    @endif
+                </p>
             </div>
         @endunless
 

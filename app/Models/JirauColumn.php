@@ -19,6 +19,7 @@ class JirauColumn extends Model
         'wip_limit',
         'is_inbox',
         'is_done',
+        'overview_lane',
         'color',
         'default_due_hours',
     ];
@@ -28,6 +29,7 @@ class JirauColumn extends Model
         return [
             'is_inbox' => 'boolean',
             'is_done' => 'boolean',
+            'overview_lane' => JirauOverviewLane::class,
             'wip_limit' => 'integer',
             'sort_order' => 'integer',
             'default_due_hours' => 'integer',
@@ -131,6 +133,22 @@ class JirauColumn extends Model
         return $count > $this->wip_limit;
     }
 
+    public static function inferOverviewLane(bool $inbox, bool $done, ?string $slug): JirauOverviewLane
+    {
+        if ($inbox) {
+            return JirauOverviewLane::Demand;
+        }
+        if ($done) {
+            return JirauOverviewLane::Done;
+        }
+
+        return match ($slug) {
+            'review', 'waiting' => JirauOverviewLane::Testing,
+            'doing', 'class' => JirauOverviewLane::Doing,
+            default => JirauOverviewLane::Backlog,
+        };
+    }
+
     public function overviewLane(): JirauOverviewLane
     {
         if ($this->is_inbox) {
@@ -140,10 +158,12 @@ class JirauColumn extends Model
             return JirauOverviewLane::Done;
         }
 
-        return match ($this->slug) {
-            'review', 'waiting' => JirauOverviewLane::Testing,
-            'doing', 'class' => JirauOverviewLane::Doing,
-            default => JirauOverviewLane::Backlog,
-        };
+        return $this->overview_lane
+            ?? self::inferOverviewLane(false, false, $this->slug);
+    }
+
+    public function overviewLaneIsLocked(): bool
+    {
+        return $this->is_inbox || $this->is_done;
     }
 }

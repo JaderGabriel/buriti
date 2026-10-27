@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Jirau;
 
+use App\Enums\JirauOverviewLane;
 use App\Enums\JirauStaffRole;
 use App\Enums\JirauTemplate;
 use App\Models\Company;
@@ -70,6 +71,38 @@ class JirauOverviewAndStaffTest extends TestCase
         $this->assertStringContainsString('Concluídos', $html);
         $this->assertStringNotContainsString('data-jirau-board"', $html);
         $this->assertStringContainsString('jirau-card__hit', $html);
+    }
+
+    public function test_custom_column_can_be_measured_in_a_chosen_overview_lane(): void
+    {
+        $admin = User::factory()->create();
+        $jirau = Jirau::factory()->create(['created_by' => $admin->id]);
+
+        $this->actingAs($admin)
+            ->post(route('jirau.columns.store', $jirau), [
+                'name' => 'Homologação extra',
+                'overview_lane' => JirauOverviewLane::Testing->value,
+            ])
+            ->assertRedirect();
+
+        $column = $jirau->columns()->where('name', 'Homologação extra')->first();
+        JirauCard::factory()->create([
+            'jirau_id' => $jirau->id,
+            'column_id' => $column->id,
+            'title' => 'Cai no quadro geral em teste',
+        ]);
+
+        $html = $this->actingAs($admin)
+            ->get(route('jirau.overview'))
+            ->assertOk()
+            ->assertSee('Cai no quadro geral em teste', false)
+            ->getContent();
+
+        $testing = strpos($html, 'Em teste');
+        $card = strpos($html, 'Cai no quadro geral em teste');
+        $this->assertNotFalse($testing);
+        $this->assertNotFalse($card);
+        $this->assertGreaterThan($testing, $card);
     }
 
     public function test_overview_excludes_demo_board_cards_and_count(): void
@@ -347,6 +380,57 @@ class JirauOverviewAndStaffTest extends TestCase
             ->assertSessionHasErrors('assigned_to');
 
         $this->assertNull($card->fresh()->assigned_to);
+    }
+
+    public function test_card_accepts_several_responsibles_and_actors_except_the_demander(): void
+    {
+        $admin = User::factory()->create();
+        $dev = User::factory()->staff(JirauStaffRole::Developer)->create(['name' => 'Ana Dev']);
+        $tester = User::factory()->staff(JirauStaffRole::Tester)->create(['name' => 'Bia QA']);
+        $jirau = Jirau::factory()->create(['created_by' => $admin->id]);
+        $member = User::factory()->withoutAdminAccess()->create(['name' => 'Cliente Souza']);
+        $jirau->members()->attach($member->id);
+        $card = JirauCard::factory()->demand()->create([
+            'jirau_id' => $jirau->id,
+            'column_id' => $jirau->inboxColumn()->id,
+            'created_by' => $member->id,
+            'title' => 'Pedido do cliente',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('jirau.show', ['jirau' => $jirau, 'cartao' => $card->id]))
+            ->assertOk()
+            ->assertSee('Demandante', false)
+            ->assertSee('Cliente Souza', false)
+            ->assertSee('Responsáveis', false)
+            ->assertSee('Atores', false);
+
+        $this->actingAs($admin)
+            ->put(route('jirau.cards.update', [$jirau, $card]), [
+                'title' => 'Pedido do cliente',
+                'responsible_ids_sync' => '1',
+                'responsible_ids' => [$dev->id, $tester->id, $member->id],
+                'actor_ids_sync' => '1',
+                'actor_ids' => [$tester->id, $member->id],
+            ])
+            ->assertSessionHasErrors('responsible_ids.2');
+
+        $this->actingAs($admin)
+            ->put(route('jirau.cards.update', [$jirau, $card]), [
+                'title' => 'Pedido do cliente',
+                'responsible_ids_sync' => '1',
+                'responsible_ids' => [$dev->id, $tester->id],
+                'actor_ids_sync' => '1',
+                'actor_ids' => [$tester->id],
+            ])
+            ->assertRedirect();
+
+        $fresh = $card->fresh(['responsibles', 'actors']);
+        $this->assertEqualsCanonicalizing([$dev->id, $tester->id], $fresh->responsibles->pluck('id')->all());
+        $this->assertEqualsCanonicalizing([$tester->id], $fresh->actors->pluck('id')->all());
+        $this->assertSame($dev->id, $fresh->assigned_to);
+        $this->assertFalse($fresh->responsibles->contains('id', $member->id));
+        $this->assertFalse($fresh->actors->contains('id', $member->id));
     }
 
     public function test_system_admin_appears_on_jirau_team_as_admin_member(): void

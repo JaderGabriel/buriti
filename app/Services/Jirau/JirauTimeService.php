@@ -2,6 +2,7 @@
 
 namespace App\Services\Jirau;
 
+use App\Enums\JirauCardParticipantRole;
 use App\Models\Jirau;
 use App\Models\JirauCard;
 use App\Models\JirauColumn;
@@ -44,7 +45,7 @@ class JirauTimeService
             return [
                 'started' => false,
                 'entry' => $mine->fresh(),
-                'message' => 'Pausa em '.$card->key().': '.$mine->elapsedLabel().'.',
+                'message' => 'Encerrado '.$card->key().' em '.$mine->endedLabel().'.',
             ];
         }
 
@@ -54,7 +55,7 @@ class JirauTimeService
         return [
             'started' => true,
             'entry' => $entry,
-            'message' => 'Fazendo '.$card->key().' em «'.$entry->column_name.'».',
+            'message' => 'Fazendo '.$card->key().' desde '.$entry->startedLabel().'.',
         ];
     }
 
@@ -72,6 +73,56 @@ class JirauTimeService
                 $this->open($user, $card, $to);
             }
         }
+    }
+
+    /**
+     * Continua sessões em curso na nova etapa e dispara Fazer para quem moveu o cartão.
+     *
+     * @return array{
+     *     card_id: int,
+     *     running: bool,
+     *     started_label: ?string,
+     *     paused_card_id: ?int,
+     *     paused_ended_label: ?string
+     * }
+     */
+    public function onCardMoved(JirauCard $card, JirauColumn $to, User $actor): array
+    {
+        $card->loadMissing(['jirau']);
+
+        $previous = JirauTimeEntry::query()
+            ->running()
+            ->where('user_id', $actor->id)
+            ->first();
+
+        $this->followColumn($card, $to);
+
+        $mine = JirauTimeEntry::query()
+            ->running()
+            ->where('card_id', $card->id)
+            ->where('user_id', $actor->id)
+            ->first();
+
+        $pausedCardId = null;
+        $pausedEndedLabel = null;
+
+        if (! $mine && $actor->isAssignableOnJirau() && $card->jirau?->is_active) {
+            $this->pauseRunningFor($actor);
+            if ($previous && (int) $previous->card_id !== (int) $card->id) {
+                $closed = $previous->fresh();
+                $pausedCardId = (int) $previous->card_id;
+                $pausedEndedLabel = $closed?->endedLabel();
+            }
+            $mine = $this->open($actor, $card, $to);
+        }
+
+        return [
+            'card_id' => (int) $card->id,
+            'running' => $mine !== null,
+            'started_label' => $mine?->startedLabel(),
+            'paused_card_id' => $pausedCardId,
+            'paused_ended_label' => $pausedEndedLabel,
+        ];
     }
 
     public function pauseOnCard(JirauCard $card): void
@@ -96,45 +147,61 @@ class JirauTimeService
      * @return array{
      *     total: int,
      *     total_label: string,
-     *     columns: list<array{name: string, seconds: int, label: string, people: list<array{name: string, seconds: int, label: string}>}>,
-     *     entries: Collection<int, JirauTimeEntry>
+     *     columns: list<array{
+     *         name: string,
+     *         color: string,
+     *         seconds: int,
+     *         label: string,
+     *         rows: list<array{name: string, started: string, ended: string, running: bool, seconds: int, label: string}>
+     *     }>
      * }
      */
     public function snapshot(JirauCard $card): array
     {
         $entries = $card->relationLoaded('timeEntries')
             ? $card->timeEntries
-            : $card->timeEntries()->with(['user:id,name,jirau_role,is_admin'])->orderByDesc('started_at')->orderByDesc('id')->get();
+            : $card->timeEntries()->get();
+
+        $entries->loadMissing(['user:id,name,jirau_role,is_admin', 'column:id,name,color,sort_order']);
 
         $total = (int) $entries->sum(fn (JirauTimeEntry $entry) => $entry->elapsedSeconds());
 
         $columns = $entries
+            ->sortBy([
+                ['started_at', 'asc'],
+                ['id', 'asc'],
+            ])
             ->groupBy(fn (JirauTimeEntry $entry) => (string) ($entry->column_id ?: 'x-'.$entry->column_name))
             ->map(function (Collection $group) {
                 $seconds = (int) $group->sum(fn (JirauTimeEntry $entry) => $entry->elapsedSeconds());
-                $people = $group
-                    ->groupBy('user_id')
-                    ->map(function (Collection $mine) {
-                        $spent = (int) $mine->sum(fn (JirauTimeEntry $entry) => $entry->elapsedSeconds());
-
-                        return [
-                            'name' => $mine->first()?->user?->name ?? 'Alguém',
-                            'seconds' => $spent,
-                            'label' => JirauTimeEntry::formatSeconds($spent),
-                        ];
-                    })
-                    ->sortByDesc('seconds')
-                    ->values()
-                    ->all();
+                $first = $group->first();
+                $column = $first?->column;
 
                 return [
-                    'name' => $group->first()?->column_name ?: 'Etapa',
+                    'name' => $first?->column_name ?: 'Etapa',
+                    'color' => $column?->color ?: '#5b6b82',
+                    'sort' => $column?->sort_order ?? 9999,
                     'seconds' => $seconds,
                     'label' => JirauTimeEntry::formatSeconds($seconds),
-                    'people' => $people,
+                    'rows' => $group->values()->map(fn (JirauTimeEntry $entry) => [
+                        'name' => $entry->user?->name ?? 'Alguém',
+                        'started' => $entry->startedLabel(),
+                        'ended' => $entry->isRunning() ? 'Em curso' : $entry->endedLabel(),
+                        'running' => $entry->isRunning(),
+                        'seconds' => $entry->elapsedSeconds(),
+                        'label' => $entry->elapsedLabel(),
+                    ])->all(),
                 ];
             })
-            ->sortByDesc('seconds')
+            ->sortBy([
+                ['sort', 'asc'],
+                ['name', 'asc'],
+            ])
+            ->map(function (array $column) {
+                unset($column['sort']);
+
+                return $column;
+            })
             ->values()
             ->all();
 
@@ -142,7 +209,6 @@ class JirauTimeService
             'total' => $total,
             'total_label' => JirauTimeEntry::formatSeconds($total),
             'columns' => $columns,
-            'entries' => $entries,
         ];
     }
 
@@ -173,6 +239,8 @@ class JirauTimeService
                 'column' => $column->name,
             ], userId: $actor->id);
 
+            $this->ensureActor($card, $actor);
+
             return $entry;
         });
     }
@@ -197,6 +265,24 @@ class JirauTimeService
         ], userId: $entry->user_id);
 
         return $entry;
+    }
+
+    public function ensureActor(JirauCard $card, User $actor): void
+    {
+        if (! $actor->isAssignableOnJirau()) {
+            return;
+        }
+        if ($card->demanderId() !== null && (int) $card->demanderId() === (int) $actor->id) {
+            return;
+        }
+        if ($card->actors()->whereKey($actor->id)->exists()) {
+            return;
+        }
+
+        $card->actors()->attach($actor->id, [
+            'role' => JirauCardParticipantRole::Actor->value,
+        ]);
+        $card->unsetRelation('actors');
     }
 
     public function pauseRunningFor(User $actor): void

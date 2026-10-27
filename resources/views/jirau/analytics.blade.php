@@ -7,8 +7,14 @@
     $maxPriority = max(1, collect($metrics['by_priority'])->max() ?: 1);
     $maxAssignee = max(1, collect($metrics['assignees'])->max('open') ?: 1);
     $filters = $filters ?? [];
-    $hasFilters = collect($filters)->except('estado')->contains(fn ($value) => $value !== null && $value !== '')
+    $aba = $filters['aba'] ?? 'fluxo';
+    $hasFilters = collect($filters)->except(['estado', 'aba', 'relatorio'])->contains(fn ($value) => $value !== null && $value !== '')
         || ($filters['estado'] ?? 'ativos') !== 'ativos';
+    $tabLink = fn (string $abaName, ?string $relatorio = null) => route('jirau.analytics', array_filter([
+        ...$filters,
+        'aba' => $abaName,
+        'relatorio' => $relatorio ?? ($filters['relatorio'] ?? 'pessoas'),
+    ], fn ($value) => $value !== null && $value !== ''));
     $bar = fn ($n, $max) => max(0, min(100, (int) round(((int) $n / max(1, (int) $max)) * 100)));
     $initials = function (string $name): string {
         $parts = preg_split('/\s+/', trim($name)) ?: [];
@@ -22,7 +28,7 @@
             <p class="pm-workspace__eyebrow">{{ $jirau ? 'Jirau · '.$jirau->project?->name : 'Jirau' }}</p>
             <h1 class="pm-workspace__title">Analítica</h1>
             <p class="pm-workspace__lead">
-                Leitura só do admin: recorte por projeto, responsável, quadro e riscos.
+                Leitura só do admin: fluxo do quadro e extrato de horas por projeto, pessoa e empresa.
                 @if($jirau)
                     Recorte do quadro «{{ $jirau->name }}». Fluxo «{{ $jirau->template?->label() ?? 'quadro' }}».
                 @endif
@@ -36,7 +42,14 @@
         </div>
     </div>
 
+    <nav class="jirau-report-tabs" aria-label="Relatórios da analítica">
+        <a href="{{ $tabLink('fluxo') }}" @class(['is-on' => $aba === 'fluxo'])>Fluxo</a>
+        <a href="{{ $tabLink('horas') }}" @class(['is-on' => $aba === 'horas'])>Extrato de horas</a>
+    </nav>
+
     <form method="GET" action="{{ route('jirau.analytics') }}" class="jirau-filters jirau-filters--analytics">
+        <input type="hidden" name="aba" value="{{ $aba }}">
+        <input type="hidden" name="relatorio" value="{{ $filters['relatorio'] ?? 'pessoas' }}">
         <p class="jirau-analytics__controls-kicker">Recortar leitura</p>
         <label>
             <span>Projeto</span>
@@ -44,6 +57,15 @@
                 <option value="">Todos</option>
                 @foreach($projects as $project)
                     <option value="{{ $project->id }}" @selected((int) ($filters['projeto'] ?? 0) === (int) $project->id)>{{ $project->name }}</option>
+                @endforeach
+            </select>
+        </label>
+        <label>
+            <span>Empresa</span>
+            <select name="empresa" class="jirau-input" onchange="this.form.submit()">
+                <option value="">Todas</option>
+                @foreach($companies ?? [] as $company)
+                    <option value="{{ $company->id }}" @selected((int) ($filters['empresa'] ?? 0) === (int) $company->id)>{{ $company->displayName() }}</option>
                 @endforeach
             </select>
         </label>
@@ -59,10 +81,12 @@
             </select>
         </label>
         <label>
-            <span>Responsável</span>
+            <span>{{ $aba === 'horas' ? 'Pessoa' : 'Responsável' }}</span>
             <select name="usuario" class="jirau-input" onchange="this.form.submit()">
                 <option value="">Todos</option>
-                <option value="none" @selected(($filters['usuario'] ?? null) === 'none')>Sem responsável</option>
+                @if($aba !== 'horas')
+                    <option value="none" @selected(($filters['usuario'] ?? null) === 'none')>Sem responsável</option>
+                @endif
                 @foreach($people as $person)
                     <option value="{{ $person->id }}" @selected((string) ($filters['usuario'] ?? '') === (string) $person->id)>
                         {{ $person->name }} · {{ $person->jirauTeamLabel() }}
@@ -114,10 +138,24 @@
                 <option value="bloqueado" @selected(($filters['risco'] ?? null) === 'bloqueado')>Bloqueados</option>
             </select>
         </label>
+        @if($aba === 'horas')
+            <label>
+                <span>De</span>
+                <input type="date" name="de" value="{{ $filters['de'] ?? '' }}" class="jirau-input" onchange="this.form.submit()">
+            </label>
+            <label>
+                <span>Até</span>
+                <input type="date" name="ate" value="{{ $filters['ate'] ?? '' }}" class="jirau-input" onchange="this.form.submit()">
+            </label>
+        @endif
         @if($hasFilters)
             <a href="{{ route('jirau.analytics') }}" class="pm-btn pm-btn--ghost jirau-filters__clear">Limpar filtros</a>
         @endif
     </form>
+
+    @if($aba === 'horas')
+        @include('jirau.partials.analytics-hours')
+    @else
 
     <section class="jirau-analytics__kpis" aria-label="Indicadores">
         @foreach ([
@@ -430,5 +468,6 @@
             </section>
         @endif
     </div>
+    @endif
 </div>
 @endsection

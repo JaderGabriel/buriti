@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Jirau;
 
+use App\Enums\JirauOverviewLane;
 use App\Models\JirauColumn;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -20,6 +21,7 @@ class UpdateColumnRequest extends FormRequest
             'name' => ['sometimes', 'required', 'string', 'max:40'],
             'color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'default_due_hours' => ['nullable', 'integer', Rule::in(array_keys(JirauColumn::defaultDueOptions()))],
+            'overview_lane' => ['nullable', Rule::enum(JirauOverviewLane::class)],
             'user_ids' => ['nullable', 'array'],
             'user_ids.*' => ['integer', Rule::exists('users', 'id')->where(function ($query) {
                 $query->where('is_active', true)
