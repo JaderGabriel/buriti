@@ -2,12 +2,15 @@
 
 namespace Tests\Unit;
 
+use App\Enums\GoogleEventColor;
 use App\Enums\OpportunityStage;
 use App\Enums\ProjectStatus;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Models\Task;
+use App\Services\GoogleCalendarService;
 use App\Services\SettingService;
+use App\Support\InstantMeetings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -26,9 +29,9 @@ class DomainServicesTest extends TestCase
         $this->assertSame('Negociação', OpportunityStage::Negotiation->label());
         $this->assertSame('contract', OpportunityStage::Won->icon());
         $this->assertContains('negotiation', OpportunityStage::boardOrder());
-        $this->assertSame('Tomate', \App\Enums\GoogleEventColor::Tomato->label());
-        $this->assertSame('#dc2127', \App\Enums\GoogleEventColor::Tomato->background());
-        $this->assertCount(11, \App\Enums\GoogleEventColor::palette());
+        $this->assertSame('Tomate', GoogleEventColor::Tomato->label());
+        $this->assertSame('#dc2127', GoogleEventColor::Tomato->background());
+        $this->assertCount(11, GoogleEventColor::palette());
     }
 
     public function test_task_builds_google_calendar_url(): void
@@ -50,12 +53,19 @@ class DomainServicesTest extends TestCase
 
     public function test_google_calendar_service_reports_integration_levels(): void
     {
-        $service = app(\App\Services\GoogleCalendarService::class);
+        $service = app(GoogleCalendarService::class);
 
         $status = $service->integrationStatus();
 
         $this->assertArrayHasKey('level', $status);
         $this->assertSame('https://meet.google.com/new', $service->instantMeetUrl());
+        $this->assertSame('https://meet.google.com/new', InstantMeetings::meet());
+        $this->assertSame('https://teams.microsoft.com/l/meeting/new', InstantMeetings::teams());
+        $this->assertSame('https://meet.jit.si', InstantMeetings::jitsiHost());
+        $this->assertMatchesRegularExpression(
+            '#^https://meet\.jit\.si/BURITI-[a-z0-9]{8}$#',
+            InstantMeetings::jitsi()
+        );
     }
 
     public function test_setting_service_normalizes_google_calendar_iframe(): void
@@ -99,7 +109,7 @@ class DomainServicesTest extends TestCase
             $service->sanitizeGoogleClientId('.514374829027-abc.apps.googleusercontent.com')
         );
 
-        $google = app(\App\Services\GoogleCalendarService::class);
+        $google = app(GoogleCalendarService::class);
         $status = $google->connectionStatus();
         $this->assertArrayHasKey('state', $status);
         $this->assertArrayHasKey('has_refresh', $status);

@@ -74,6 +74,42 @@ class AdminPanelTest extends TestCase
             ->assertSee('Início', false);
     }
 
+    public function test_chrome_lives_in_topbar_and_meetings_in_sidebar(): void
+    {
+        $html = $this->actingAs($this->admin)
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('Novo Meet', false)
+            ->assertSee('Novo Teams', false)
+            ->assertSee('Novo Jitsi', false)
+            ->assertSee('aria-label="Ver site"', false)
+            ->assertSee('aria-label="Sair"', false)
+            ->assertSee('data-theme-toggle', false)
+            ->assertSee('meet.google.com/new', false)
+            ->assertSee('teams.microsoft.com/l/meeting/new', false)
+            ->assertSee('meet.jit.si', false)
+            ->getContent();
+
+        $sidebar = strpos($html, 'data-admin-sidebar');
+        $stage = strpos($html, 'admin-stage');
+        $meetings = strpos($html, 'admin-meetings');
+        $topbar = strpos($html, 'admin-topbar__account');
+        $chrome = strpos($html, 'admin-chrome');
+
+        $this->assertNotFalse($sidebar);
+        $this->assertNotFalse($stage);
+        $this->assertNotFalse($meetings);
+        $this->assertNotFalse($topbar);
+        $this->assertNotFalse($chrome);
+        $this->assertGreaterThan($sidebar, $meetings);
+        $this->assertLessThan($stage, $meetings);
+        $this->assertGreaterThan($stage, $topbar);
+        $this->assertGreaterThan($topbar, $chrome);
+        $this->assertSame(1, substr_count($html, 'admin-chrome'));
+        $this->assertSame(1, substr_count($html, 'admin-meetings'));
+        $this->assertSame(0, substr_count($html, 'admin-shortcuts'));
+    }
+
     public function test_sidebar_shows_runtime_versions_below_settings(): void
     {
         $versions = RuntimeVersions::labels();
@@ -230,7 +266,11 @@ class AdminPanelTest extends TestCase
             ->get(route('admin.dashboard'))
             ->assertOk()
             ->assertSee('Novo Meet', false)
-            ->assertSee('meet.google.com/new', false);
+            ->assertSee('Novo Teams', false)
+            ->assertSee('Novo Jitsi', false)
+            ->assertSee('meet.google.com/new', false)
+            ->assertSee('teams.microsoft.com/l/meeting/new', false)
+            ->assertSee('meet.jit.si', false);
 
         $this->actingAs($this->admin)
             ->get(route('admin.tasks.index', ['view' => 'board']))

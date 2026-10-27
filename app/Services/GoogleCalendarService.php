@@ -5,8 +5,10 @@ namespace App\Services;
 use App\Data\GoogleCalendarEvent;
 use App\Enums\GoogleEventColor;
 use App\Models\Task;
+use App\Support\InstantMeetings;
 use Carbon\Carbon;
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -109,7 +111,7 @@ class GoogleCalendarService
         $testingWarning = null;
         if ($hasRefresh && filled($linkedAt)) {
             try {
-                $ageDays = now()->diffInDays(\Carbon\Carbon::parse($linkedAt));
+                $ageDays = now()->diffInDays(Carbon::parse($linkedAt));
                 if ($ageDays >= 6) {
                     $testingWarning = 'O refresh token tem '.$ageDays.' dias. Em apps Google em modo “Teste” o token expira aos 7 dias — publique o aplicativo (ou reconecte a conta).';
                 }
@@ -371,7 +373,7 @@ class GoogleCalendarService
 
     public function instantMeetUrl(): string
     {
-        return 'https://meet.google.com/new';
+        return InstantMeetings::meet();
     }
 
     public function calendarHomeUrl(): string
@@ -579,7 +581,7 @@ class GoogleCalendarService
      * Pull events from the configured Google Calendar for the CRM agenda overlay.
      *
      * @param  list<string>  $excludeEventIds  CRM-synced google_event_id values to skip (avoid duplicates)
-     * @return array{events: \Illuminate\Support\Collection<int, \App\Data\GoogleCalendarEvent>, error: string|null}
+     * @return array{events: Collection<int, GoogleCalendarEvent>, error: string|null}
      */
     public function listEvents(Carbon $from, Carbon $to, array $excludeEventIds = []): array
     {

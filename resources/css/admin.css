@@ -202,7 +202,7 @@ html.dark .admin-orbit {
         align-content: start;
     }
 
-    .admin-shell[data-admin-collapsed='true'] .admin-shortcuts {
+    .admin-shell[data-admin-collapsed='true'] .admin-meetings {
         grid-template-columns: 1fr;
         gap: 0.4rem;
         flex: none;
@@ -266,28 +266,22 @@ html.dark .admin-orbit {
     gap: 0.45rem;
 }
 
-.admin-shortcuts {
+.admin-meetings {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.45rem;
 }
 
-.admin-shortcuts--compact {
+.admin-chrome {
     display: flex;
+    align-items: center;
     gap: 0.4rem;
-}
-
-.admin-shortcuts form {
-    min-width: 2.25rem;
     flex-shrink: 0;
 }
 
-.admin-shortcuts form .admin-icon-btn {
-    width: 100%;
-}
-
-.admin-shortcuts--compact form {
-    width: 2.25rem;
+.admin-chrome form {
+    display: flex;
+    flex-shrink: 0;
 }
 
 .admin-icon-btn {
@@ -305,7 +299,7 @@ html.dark .admin-orbit {
     transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
-.admin-shortcuts--compact .admin-icon-btn,
+.admin-chrome .admin-icon-btn,
 .admin-icon-btn.admin-icon-btn--ghost,
 .admin-topbar .admin-icon-btn {
     width: 2.45rem;
@@ -321,6 +315,20 @@ html.dark .admin-orbit {
 .admin-icon-btn--meet {
     color: #0f766e;
     background: color-mix(in oklab, #14b8a6 16%, var(--admin-chip));
+}
+
+.admin-icon-btn--teams {
+    color: #5b5fc7;
+    background: color-mix(in oklab, #5b5fc7 16%, var(--admin-chip));
+}
+
+.admin-icon-btn--jitsi {
+    color: #1d76ba;
+    background: color-mix(in oklab, #1d76ba 16%, var(--admin-chip));
+}
+
+.admin-icon-btn--site {
+    color: #2563eb;
 }
 
 .admin-icon-btn--theme {
@@ -823,7 +831,7 @@ html.dark .admin-nav__group {
         display: none;
     }
 
-    .admin-shortcuts--compact .admin-icon-btn,
+    .admin-chrome .admin-icon-btn,
     .admin-topbar .admin-icon-btn {
         width: 2.25rem;
         height: 2.25rem;

@@ -35,13 +35,16 @@ class NotificationInboxTest extends TestCase
         );
 
         $account = strpos($html, 'admin-topbar__account');
+        $chrome = strpos($html, 'admin-chrome');
         $bell = strpos($html, 'admin-notify');
         $chip = strpos($html, 'admin-user--chip');
 
         $this->assertNotFalse($account);
+        $this->assertNotFalse($chrome);
         $this->assertNotFalse($bell);
         $this->assertNotFalse($chip);
-        $this->assertLessThan($bell, $account);
+        $this->assertLessThan($chrome, $account);
+        $this->assertLessThan($bell, $chrome);
         $this->assertLessThan($chip, $bell);
     }
 
@@ -58,6 +61,9 @@ class NotificationInboxTest extends TestCase
             ->assertOk()
             ->assertSee('data-admin-notify-toggle', false)
             ->assertSee('aria-label="Fechar notificações"', false)
+            ->assertSee('admin-chrome', false)
+            ->assertSee('Novo Teams', false)
+            ->assertSee('Novo Jitsi', false)
             ->assertSee('Cartão movido no Jirau');
 
         $this->actingAs($staff)

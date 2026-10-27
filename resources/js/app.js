@@ -684,6 +684,16 @@ function initPasswordGenerators() {
     });
 }
 
+function initInstantMeetingLinks() {
+    document.querySelectorAll('[data-jitsi-new]').forEach((link) => {
+        link.addEventListener('click', () => {
+            const host = (link.getAttribute('data-jitsi-host') || 'https://meet.jit.si').replace(/\/$/, '');
+            const slug = 'BURITI-' + Math.random().toString(36).slice(2, 10);
+            link.setAttribute('href', `${host}/${slug}`);
+        });
+    });
+}
+
 function initAdminShell() {
     const shell = document.querySelector('[data-admin-shell]');
     if (! shell) {
@@ -4429,6 +4439,7 @@ initProjectBooks();
 initCookieBanner();
 initBackToTop();
 initAdminShell();
+initInstantMeetingLinks();
 initAdminNotifications();
 initAdminSearch();
 initRoadmapFilters();

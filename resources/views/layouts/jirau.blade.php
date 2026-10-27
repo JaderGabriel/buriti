@@ -68,7 +68,7 @@
         </div>
 
         <div class="admin-rail-tools">
-            @include('admin.partials.shortcuts')
+            @include('admin.partials.meetings')
             @include('admin.partials.module-pin', ['currentModule' => $currentModule])
         </div>
 
@@ -101,6 +101,7 @@
                     <x-jirau.action tone="board" icon="plus" data-jirau-toggle="new-board">Novo quadro</x-jirau.action>
                 @endif
                 <div class="admin-topbar__account">
+                    @include('admin.partials.chrome')
                     @include('admin.partials.notifications')
                     <span class="admin-user admin-user--chip">
                         @if($jirauUser->avatarUrl())

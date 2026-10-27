@@ -1,7 +1,4 @@
-@php
-    $compact = $compact ?? false;
-@endphp
-<div class="admin-shortcuts {{ $compact ? 'admin-shortcuts--compact' : '' }}">
+<div class="admin-chrome">
     <a
         href="{{ route('home') }}"
         class="admin-icon-btn admin-icon-btn--site"
@@ -9,16 +6,6 @@
         aria-label="Ver site"
     >
         <x-ui.icon name="external" class="h-4 w-4" />
-    </a>
-    <a
-        href="{{ $instantMeetUrl ?? 'https://meet.google.com/new' }}"
-        target="_blank"
-        rel="noopener"
-        class="admin-icon-btn admin-icon-btn--meet admin-meet-btn"
-        title="Novo Meet"
-        aria-label="Novo Meet"
-    >
-        <x-ui.icon name="meet" class="h-5 w-5" />
     </a>
     <button
         type="button"

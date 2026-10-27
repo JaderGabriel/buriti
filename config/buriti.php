@@ -25,6 +25,12 @@ return [
 
     'google_calendar_url' => 'https://calendar.google.com/calendar/u/0/r',
 
+    'meetings' => [
+        'meet' => 'https://meet.google.com/new',
+        'teams' => 'https://teams.microsoft.com/l/meeting/new',
+        'jitsi_host' => 'https://meet.jit.si',
+    ],
+
     'services' => [
         [
             'icon' => 'consulting',

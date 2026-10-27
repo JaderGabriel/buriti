@@ -51,7 +51,7 @@
         </div>
 
         <div class="admin-rail-tools">
-            @include('admin.partials.shortcuts')
+            @include('admin.partials.meetings')
             @include('admin.partials.module-pin', ['currentModule' => $currentModule])
         </div>
 
@@ -84,10 +84,8 @@
             </div>
 
             <div class="admin-topbar__right">
-                <div class="admin-mobile-only">
-                    @include('admin.partials.shortcuts', ['compact' => true])
-                </div>
                 <div class="admin-topbar__account">
+                    @include('admin.partials.chrome')
                     @include('admin.partials.notifications')
                     <a href="{{ route('admin.profile.edit') }}" class="admin-user admin-user--chip" title="Perfil">
                         @if($adminUser->avatarUrl())
