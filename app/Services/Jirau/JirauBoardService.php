@@ -12,6 +12,7 @@ use App\Models\Project;
 use App\Models\User;
 use App\Services\AuditLogger;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class JirauBoardService
@@ -69,6 +70,39 @@ class JirauBoardService
         ]);
 
         return $jirau;
+    }
+
+    /** @param  array{name: string, color?: ?string, default_due_hours?: ?int}  $data */
+    public function addColumn(Jirau $jirau, array $data): JirauColumn
+    {
+        $name = trim($data['name']);
+        $done = $jirau->doneColumn();
+        $sort = $done
+            ? (int) $done->sort_order
+            : ((int) $jirau->columns()->max('sort_order')) + 10;
+
+        return DB::transaction(function () use ($jirau, $name, $data, $done, $sort) {
+            if ($done) {
+                $jirau->columns()->where('sort_order', '>=', $sort)->increment('sort_order', 10);
+            }
+
+            $column = $jirau->columns()->create([
+                'name' => $name,
+                'slug' => $this->uniqueColumnSlug($jirau, $name),
+                'sort_order' => $sort,
+                'color' => $data['color'] ?? '#2f6bff',
+                'default_due_hours' => $data['default_due_hours'] ?? null,
+                'is_inbox' => false,
+                'is_done' => false,
+            ]);
+
+            $this->audit->record('jirau.column.created', $jirau, [
+                'summary' => $column->name,
+                'column_id' => $column->id,
+            ]);
+
+            return $column;
+        });
     }
 
     public function provisionDefaults(Jirau $jirau, ?JirauTemplate $template = null): void
@@ -376,5 +410,19 @@ class JirauBoardService
         $wanted = array_values(array_unique(array_map('intval', $ids)));
 
         return $jirau->labels()->whereKey($wanted)->pluck('id')->all();
+    }
+
+    private function uniqueColumnSlug(Jirau $jirau, string $name): string
+    {
+        $base = Str::slug($name) ?: 'etapa';
+        $slug = $base;
+        $i = 2;
+
+        while ($jirau->columns()->where('slug', $slug)->exists()) {
+            $slug = $base.'-'.$i;
+            $i++;
+        }
+
+        return $slug;
     }
 }

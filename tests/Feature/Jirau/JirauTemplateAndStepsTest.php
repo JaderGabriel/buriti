@@ -65,10 +65,10 @@ class JirauTemplateAndStepsTest extends TestCase
             ->assertSee('Consultoria Alfa', false)
             ->assertSee('Treinamento', false)
             ->assertSee('Desenvolvimento', false)
-            ->assertSee('Etapas', false)
+            ->assertSee('Fases', false)
             ->assertSee('Novo quadro', false)
-            ->assertSee('Nova etapa', false)
-            ->assertSee('Juntar etapas soltas', false);
+            ->assertSee('Nova fase', false)
+            ->assertSee('Juntar fases soltas', false);
     }
 
     public function test_admin_can_create_board_from_jirau_home_without_opening_project(): void

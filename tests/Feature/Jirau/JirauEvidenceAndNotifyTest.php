@@ -234,7 +234,7 @@ class JirauEvidenceAndNotifyTest extends TestCase
         $this->actingAs($admin)
             ->get(route('jirau.show', $jirau))
             ->assertOk()
-            ->assertSee('Faixa', false)
+            ->assertSee('Configurar etapa', false)
             ->assertSee('Quem avisar', false)
             ->assertSee('Lia Tester', false);
     }

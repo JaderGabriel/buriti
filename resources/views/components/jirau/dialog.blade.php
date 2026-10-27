@@ -4,6 +4,7 @@
     'eyebrow' => 'Jirau',
     'open' => false,
     'wide' => false,
+    'compact' => false,
 ])
 
 @php
@@ -21,7 +22,7 @@
     @unless($open) hidden @endunless
 >
     <button type="button" class="jirau-dialog__backdrop" data-jirau-dialog-close aria-label="Fechar"></button>
-    <div @class(['jirau-dialog__panel', 'jirau-dialog__panel--wide' => $wide])>
+    <div @class(['jirau-dialog__panel', 'jirau-dialog__panel--wide' => $wide, 'jirau-dialog__panel--compact' => $compact])>
         <div class="jirau-dialog__head">
             <div>
                 <p class="jirau-dialog__eyebrow">{{ $eyebrow }}</p>

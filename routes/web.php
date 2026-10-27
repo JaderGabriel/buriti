@@ -124,6 +124,9 @@ Route::prefix('jirau')->name('jirau.')->middleware(['auth', 'jirau'])->group(fun
         ->name('cards.links.store');
     Route::delete('/{jirau}/cartoes/{card}/links/{link}', [JirauEvidenceController::class, 'destroyLink'])
         ->name('cards.links.destroy');
+    Route::post('/{jirau}/faixas', [JirauColumnController::class, 'store'])
+        ->middleware('throttle:20,1')
+        ->name('columns.store');
     Route::put('/{jirau}/faixas/{column}', [JirauColumnController::class, 'update'])
         ->name('columns.update');
     Route::put('/{jirau}/faixas/{column}/avisos', [JirauColumnController::class, 'update'])

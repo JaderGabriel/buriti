@@ -73,10 +73,11 @@
                 <x-jirau.action
                     tone="column"
                     icon="settings"
+                    icon-only
                     data-jirau-toggle="column-{{ $column->id }}"
-                    aria-label="Ajustar faixa {{ $column->name }}"
-                    title="Ajustar faixa"
-                >Faixa</x-jirau.action>
+                    aria-label="Configurar etapa {{ $column->name }}"
+                    title="Configurar etapa"
+                ></x-jirau.action>
             @endif
         </div>
     </header>

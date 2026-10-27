@@ -436,11 +436,17 @@ class JirauBoardTest extends TestCase
             ->assertSee('data-jirau-panel="filters"', false)
             ->assertSee('data-jirau-panel="steps"', false)
             ->assertSee('data-jirau-panel="members"', false)
+            ->assertSee('data-jirau-panel="new-column"', false)
             ->assertSee('data-jirau-rename="board"', false)
             ->assertSee('data-jirau-rename="column-'.$column->id.'"', false)
             ->assertSee('jirau-column__count', false)
+            ->assertSee('jirau-action--icon', false)
+            ->assertSee('Ficha do projeto', false)
+            ->assertSee('Fases', false)
+            ->assertSee('Etapa', false)
             ->assertSee('Novo quadro', false)
-            ->assertDontSee('Renomear', false);
+            ->assertDontSee('Renomear', false)
+            ->assertDontSee('>Faixa</span>', false);
     }
 
     public function test_demo_seeder_creates_board_and_member_login(): void

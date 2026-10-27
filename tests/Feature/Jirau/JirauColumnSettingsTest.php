@@ -47,6 +47,56 @@ class JirauColumnSettingsTest extends TestCase
             ->assertDontSee('Avisar', false);
     }
 
+    public function test_admin_can_add_column_before_done(): void
+    {
+        $admin = User::factory()->create();
+        $jirau = Jirau::factory()->create(['created_by' => $admin->id]);
+        $done = $jirau->doneColumn();
+        $before = $jirau->columns()->orderBy('sort_order')->pluck('id')->all();
+
+        $this->actingAs($admin)
+            ->from(route('jirau.show', $jirau))
+            ->post(route('jirau.columns.store', $jirau), [
+                'name' => 'Homologação extra',
+                'color' => '#c4a035',
+                'default_due_hours' => 24,
+            ])
+            ->assertRedirect(route('jirau.show', $jirau));
+
+        $column = $jirau->columns()->where('name', 'Homologação extra')->first();
+        $this->assertNotNull($column);
+        $this->assertSame('#c4a035', $column->color);
+        $this->assertSame(24, $column->default_due_hours);
+        $this->assertFalse($column->is_inbox);
+        $this->assertFalse($column->is_done);
+        $this->assertLessThan((int) $done->fresh()->sort_order, (int) $column->sort_order);
+
+        $this->actingAs($admin)
+            ->get(route('jirau.show', $jirau))
+            ->assertOk()
+            ->assertSee('Homologação extra', false)
+            ->assertSee('data-jirau-toggle="new-column"', false)
+            ->assertSee('jirau-column--add', false);
+
+        $this->assertNotEquals($before, $jirau->columns()->orderBy('sort_order')->pluck('id')->all());
+    }
+
+    public function test_member_cannot_add_column(): void
+    {
+        $admin = User::factory()->create();
+        $jirau = Jirau::factory()->create(['created_by' => $admin->id]);
+        $member = User::factory()->withoutAdminAccess()->create();
+        $jirau->members()->attach($member->id);
+
+        $this->actingAs($member)
+            ->post(route('jirau.columns.store', $jirau), [
+                'name' => 'Não deveria',
+            ])
+            ->assertForbidden();
+
+        $this->assertFalse($jirau->columns()->where('name', 'Não deveria')->exists());
+    }
+
     public function test_admin_can_reorder_columns(): void
     {
         $admin = User::factory()->create();

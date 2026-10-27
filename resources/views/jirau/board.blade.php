@@ -69,8 +69,10 @@
         <div class="jirau-workspace__actions">
             @if($isAdmin && $jirau->project)
                 <x-jirau.action tone="project" icon="project" :href="route('admin.projects.edit', $jirau->project)">Ficha do projeto</x-jirau.action>
+                <x-jirau.action tone="steps" icon="flow" data-jirau-toggle="steps">Fases</x-jirau.action>
             @endif
             @if($isAdmin)
+                <x-jirau.action tone="board" icon="plus" data-jirau-toggle="new-column">Etapa</x-jirau.action>
                 <x-jirau.action tone="analytics" icon="dashboard" :href="route('jirau.analytics.show', $jirau)">Analítica</x-jirau.action>
                 <form method="POST" action="{{ route('jirau.status', $jirau) }}" class="inline">
                     @csrf
@@ -82,7 +84,6 @@
             @endif
             <x-jirau.action tone="filter" icon="filter" data-jirau-toggle="filters">Filtros</x-jirau.action>
             @if($isAdmin)
-                <x-jirau.action tone="steps" icon="flow" data-jirau-toggle="steps">Etapas</x-jirau.action>
                 <x-jirau.action tone="people" icon="users" data-jirau-toggle="members">Pessoas</x-jirau.action>
             @endif
         </div>
@@ -180,7 +181,7 @@
                     </select>
                 </label>
                 <label class="block text-sm">
-                    <span class="text-mist">Faixa</span>
+                    <span class="text-mist">Etapa</span>
                     <select name="column_id" class="mt-1.5 w-full rounded-sm border border-line bg-ink px-3 py-2.5">
                         @php
                             $defaultColumn = $jirau->columns->first(fn ($column) => ! $column->is_inbox && ! $column->is_done) ?? $jirau->columns->first();
@@ -238,9 +239,37 @@
         </form>
         </x-jirau.dialog>
 
-        <x-jirau.dialog name="steps" title="Etapas do projeto" wide>
+        @php $newColumnOpen = old('_form') === 'new-column'; @endphp
+        <x-jirau.dialog name="new-column" title="Nova etapa" eyebrow="Quadro" :open="$newColumnOpen" compact>
+            <form method="POST" action="{{ route('jirau.columns.store', $jirau) }}" class="jirau-dialog__form">
+                @csrf
+                <input type="hidden" name="_form" value="new-column">
+                <x-ui.input name="name" label="Nome da etapa" required maxlength="40" />
+                <fieldset class="jirau-watch__colors">
+                    <legend>Cor</legend>
+                    @foreach(\App\Models\JirauColumn::colorOptions() as $hex)
+                        <label title="{{ $hex }}">
+                            <input type="radio" name="color" value="{{ $hex }}" @checked($hex === '#2f6bff')>
+                            <i style="background: {{ $hex }}"></i>
+                        </label>
+                    @endforeach
+                </fieldset>
+                <label class="jirau-watch__field">
+                    <span>Prazo padrão</span>
+                    <select name="default_due_hours" class="jirau-input">
+                        <option value="">Sem prazo automático</option>
+                        @foreach(\App\Models\JirauColumn::defaultDueOptions() as $hours => $label)
+                            <option value="{{ $hours }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </label>
+                <button type="submit" class="pm-btn pm-btn--primary">Adicionar etapa</button>
+            </form>
+        </x-jirau.dialog>
+
+        <x-jirau.dialog name="steps" title="Fases do projeto" wide>
             <div class="jirau-members jirau-members--dialog">
-            <p>O % da ficha do projeto segue as etapas. Junte-as a este Jirau ou crie novas daqui — vice-versa na ficha.</p>
+            <p>O % da ficha do projeto segue as fases. Junte-as a este Jirau ou crie novas daqui — vice-versa na ficha.</p>
             <ul class="jirau-members__list">
                 @forelse($jirau->project?->steps ?? [] as $step)
                     <li>
@@ -260,26 +289,26 @@
                         </span>
                     </li>
                 @empty
-                    <li class="jirau-members__empty">Ainda sem etapas neste projeto.</li>
+                    <li class="jirau-members__empty">Ainda sem fases neste projeto.</li>
                 @endforelse
             </ul>
             <div class="jirau-members__forms">
                 <form method="POST" action="{{ route('jirau.steps.store', $jirau) }}" class="jirau-compose">
                     @csrf
-                    <h3>Nova etapa</h3>
-                    <x-ui.input name="title" label="Título da etapa" required />
+                    <h3>Nova fase</h3>
+                    <x-ui.input name="title" label="Título da fase" required />
                     <x-ui.input type="textarea" name="notes" label="Observações" rows="2" />
                     <label class="flex items-center gap-2 text-sm">
                         <input type="hidden" name="create_card" value="0">
                         <input type="checkbox" name="create_card" value="1" checked>
                         Também criar cartão neste quadro
                     </label>
-                    <button type="submit" class="pm-btn pm-btn--primary">Criar etapa</button>
+                    <button type="submit" class="pm-btn pm-btn--primary">Criar fase</button>
                 </form>
                 <form method="POST" action="{{ route('jirau.steps.import', $jirau) }}" class="jirau-compose">
                     @csrf
-                    <h3>Juntar etapas soltas</h3>
-                    <p>{{ $unlinkedSteps->count() }} etapa{{ $unlinkedSteps->count() === 1 ? '' : 's' }} sem cartão. Elas entram na faixa de planejamento (ou Encerrado, se já concluídas).</p>
+                    <h3>Juntar fases soltas</h3>
+                    <p>{{ $unlinkedSteps->count() }} fase{{ $unlinkedSteps->count() === 1 ? '' : 's' }} sem cartão. Elas entram na etapa de planejamento (ou Encerrado, se já concluídas).</p>
                     <button type="submit" class="pm-btn pm-btn--ghost" @disabled($unlinkedSteps->isEmpty())>Trazer para este Jirau</button>
                 </form>
             </div>
@@ -336,6 +365,12 @@
         @foreach($jirau->columns as $column)
             @include('jirau.partials.column')
         @endforeach
+        @if($isAdmin)
+            <button type="button" class="jirau-column jirau-column--add" data-jirau-toggle="new-column">
+                <x-ui.icon name="plus" class="h-5 w-5" />
+                <span>Etapa</span>
+            </button>
+        @endif
     </div>
 
     @if($isAdmin)

@@ -95,6 +95,13 @@ html:has([data-jirau-shell]) .admin-content:has(.jirau-home) {
     font-size: 0.72rem;
 }
 
+.jirau-action--icon {
+    width: 1.9rem;
+    height: 1.9rem;
+    padding: 0;
+    gap: 0;
+}
+
 .jirau-action--warn {
     background: color-mix(in oklab, #dc2626 14%, transparent);
     border-color: color-mix(in oklab, #dc2626 28%, transparent);
@@ -378,7 +385,7 @@ html.dark .jirau-action--warn { color: #fca5a5; }
     display: none;
     align-items: center;
     justify-content: center;
-    padding: 1rem;
+    padding: max(0.75rem, env(safe-area-inset-top)) max(0.75rem, env(safe-area-inset-right)) max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
     pointer-events: none;
 }
 
@@ -403,19 +410,25 @@ html.dark .jirau-action--warn { color: #fca5a5; }
 .jirau-dialog__panel {
     position: relative;
     z-index: 1;
-    width: min(100%, 28rem);
-    max-height: min(90vh, 42rem);
+    width: min(100%, 26rem);
+    max-height: calc(100dvh - 1.5rem);
     overflow: auto;
+    overscroll-behavior: contain;
     border: 1px solid var(--admin-glass-border, var(--color-line));
     border-radius: var(--admin-radius, 1.35rem);
     background: var(--admin-glass-strong, var(--color-panel));
-    padding: 1.2rem 1.15rem;
+    padding: 1.05rem 1.05rem 1.1rem;
     box-shadow: var(--admin-shadow, 0 24px 60px rgba(0, 0, 0, 0.35));
 }
 
 .jirau-dialog__panel--board,
 .jirau-dialog__panel--wide {
-    width: min(100%, 44rem);
+    width: min(100%, 40rem);
+}
+
+.jirau-dialog__panel--compact {
+    width: min(100%, 22.5rem);
+    max-height: min(calc(100dvh - 1.5rem), 34rem);
 }
 
 .jirau-filters--dialog,
@@ -655,6 +668,25 @@ html.dark .jirau-action--warn { color: #fca5a5; }
     background: color-mix(in oklab, var(--admin-glass, var(--color-panel)) 88%, transparent);
     box-shadow: var(--admin-shadow-soft);
     border-top: 3px solid var(--jirau-col, #2f6bff);
+}
+
+.jirau-column--add {
+    min-height: 8.5rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border-style: dashed;
+    border-top-style: dashed;
+    background: color-mix(in oklab, var(--admin-glass, var(--color-panel)) 55%, transparent);
+    color: var(--admin-muted, var(--color-mist));
+    font-size: 0.88rem;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+.jirau-column--add:hover {
+    color: inherit;
+    border-color: color-mix(in oklab, #16a34a 40%, var(--admin-glass-border, var(--color-line)));
 }
 
 .jirau-column.is-inbox {
@@ -916,6 +948,8 @@ html.dark .jirau-action--warn { color: #fca5a5; }
     display: grid;
     gap: 0.28rem;
     margin-bottom: 0.7rem;
+    max-height: 12rem;
+    overflow: auto;
 }
 
 .jirau-watch__people label {

@@ -4,16 +4,33 @@ namespace App\Http\Controllers\Jirau;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Jirau\ReorderColumnsRequest;
+use App\Http\Requests\Jirau\StoreColumnRequest;
 use App\Http\Requests\Jirau\UpdateColumnRequest;
 use App\Models\Jirau;
 use App\Models\JirauColumn;
 use App\Services\Jirau\JirauAccess;
+use App\Services\Jirau\JirauBoardService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 
 class ColumnController extends Controller
 {
-    public function __construct(private JirauAccess $access) {}
+    public function __construct(
+        private JirauAccess $access,
+        private JirauBoardService $boards,
+    ) {}
+
+    public function store(StoreColumnRequest $request, Jirau $jirau): RedirectResponse
+    {
+        $this->access->assertManage($request->user());
+        $this->access->assertView($request->user(), $jirau);
+
+        $column = $this->boards->addColumn($jirau, $request->validated());
+
+        return redirect()
+            ->route('jirau.show', $jirau)
+            ->with('success', 'Etapa «'.$column->name.'» adicionada ao quadro.');
+    }
 
     public function update(UpdateColumnRequest $request, Jirau $jirau, JirauColumn $column): RedirectResponse
     {
@@ -39,7 +56,7 @@ class ColumnController extends Controller
 
         return redirect()
             ->route('jirau.show', $jirau)
-            ->with('success', 'Faixa «'.$column->fresh()->name.'» atualizada.');
+            ->with('success', 'Etapa «'.$column->fresh()->name.'» atualizada.');
     }
 
     public function reorder(ReorderColumnsRequest $request, Jirau $jirau): JsonResponse

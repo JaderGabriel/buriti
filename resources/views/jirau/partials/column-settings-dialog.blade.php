@@ -1,7 +1,7 @@
 @php
     $watchers = $column->watchers;
 @endphp
-<x-jirau.dialog name="column-{{ $column->id }}" :title="'Faixa · '.$column->name" eyebrow="Coluna">
+<x-jirau.dialog name="column-{{ $column->id }}" :title="$column->name" eyebrow="Etapa" compact>
     <form method="POST" action="{{ route('jirau.columns.update', [$jirau, $column]) }}" class="jirau-dialog__form jirau-watch__form">
         @csrf
         @method('PUT')
@@ -31,7 +31,7 @@
             <small>Cartões que entram aqui sem data recebem este prazo.</small>
         </label>
         <p class="jirau-watch__kicker">Quem avisar</p>
-        <p class="jirau-watch__help">Quem entra nesta faixa gera aviso ⚡ no Telegram.</p>
+        <p class="jirau-watch__help">Quem entra nesta etapa gera aviso ⚡ no Telegram.</p>
         @if($watchers->isNotEmpty())
             <ul class="jirau-watch__picked">
                 @foreach($watchers as $watcher)
@@ -54,6 +54,6 @@
                 </label>
             @endforeach
         </div>
-        <button type="submit" class="pm-btn pm-btn--primary">Guardar faixa</button>
+        <button type="submit" class="pm-btn pm-btn--primary">Guardar etapa</button>
     </form>
 </x-jirau.dialog>
