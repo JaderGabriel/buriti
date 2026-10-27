@@ -13,7 +13,9 @@
             <p class="pm-workspace__eyebrow">Jirau · {{ $jirau->project?->name }}</p>
             @php $renameOpen = old('_board_rename') === '1'; @endphp
             <h1 class="pm-workspace__title jirau-workspace__heading">
-                @if($isAdmin)
+                <span class="jirau-workspace__identity">
+                    @include('jirau.partials.project-mark', ['project' => $jirau->project])
+                    @if($isAdmin)
                     <span
                         data-jirau-rename="board"
                         title="Clique duas vezes para alterar o nome"
@@ -39,9 +41,10 @@
                             aria-label="Nome do quadro"
                         >
                     </form>
-                @else
+                    @else
                     <span>{{ $jirau->name }}</span>
-                @endif
+                    @endif
+                </span>
                 @unless($jirau->is_active)
                     <span class="jirau-chip jirau-chip--warn">Inativo</span>
                 @endunless

@@ -23,6 +23,37 @@ html:has([data-jirau-shell]) .admin-content:has(.jirau-home) {
     gap: 0.55rem;
 }
 
+.jirau-workspace__identity {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+}
+
+.jirau-project-mark {
+    display: inline-flex;
+    width: 2.15rem;
+    height: 2.15rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 0.7rem;
+    border: 1px solid var(--admin-glass-border, var(--color-line));
+    background: #fff;
+    object-fit: contain;
+    padding: 0.18rem;
+}
+
+.jirau-project-mark--fallback {
+    padding: 0;
+    background: color-mix(in oklab, var(--color-brand, #2f6bff) 14%, transparent);
+    color: var(--color-brand-bright, #2f6bff);
+    font-size: 0.88rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
 .jirau-action {
     display: inline-flex;
     align-items: center;
@@ -167,6 +198,7 @@ html.dark .jirau-action--warn { color: #fca5a5; }
 }
 
 .jirau-home__card {
+    position: relative;
     display: flex;
     flex-direction: column;
     min-height: 13.5rem;
@@ -288,12 +320,19 @@ html.dark .jirau-action--warn { color: #fca5a5; }
     font-variant-numeric: tabular-nums;
 }
 
+.jirau-home__foot {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: auto;
+    padding-top: 0.85rem;
+}
+
 .jirau-home__open {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    margin-top: auto;
-    align-self: start;
     padding: 0.42rem 0.8rem;
     border-radius: 999px;
     font-size: 0.8rem;
@@ -302,6 +341,19 @@ html.dark .jirau-action--warn { color: #fca5a5; }
     background: color-mix(in oklab, var(--jirau-col, #2f6bff) 12%, transparent);
     border: 1px solid color-mix(in oklab, var(--jirau-col, #2f6bff) 22%, transparent);
     text-decoration: none;
+}
+
+.jirau-home__brand {
+    width: 3.85rem;
+    height: 3.85rem;
+    padding: 0.28rem;
+    border-radius: 0.95rem;
+    background: #fff;
+    box-shadow: 0 8px 18px rgba(15, 27, 45, 0.08);
+}
+
+.jirau-home__brand.jirau-project-mark--fallback {
+    font-size: 1.5rem;
 }
 
 .jirau-home__open:hover {
@@ -410,25 +462,29 @@ html.dark .jirau-action--warn { color: #fca5a5; }
 .jirau-dialog__panel {
     position: relative;
     z-index: 1;
-    width: min(100%, 26rem);
-    max-height: calc(100dvh - 1.5rem);
-    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    flex: 0 1 auto;
+    width: min(32rem, 100%);
+    min-width: min(18rem, 100%);
+    max-height: min(calc(100dvh - 2rem), 48rem);
+    overflow: hidden;
     overscroll-behavior: contain;
     border: 1px solid var(--admin-glass-border, var(--color-line));
     border-radius: var(--admin-radius, 1.35rem);
     background: var(--admin-glass-strong, var(--color-panel));
-    padding: 1.05rem 1.05rem 1.1rem;
+    padding: 1.15rem 1.2rem 1.2rem;
     box-shadow: var(--admin-shadow, 0 24px 60px rgba(0, 0, 0, 0.35));
 }
 
 .jirau-dialog__panel--board,
 .jirau-dialog__panel--wide {
-    width: min(100%, 40rem);
+    width: min(42rem, 100%);
 }
 
 .jirau-dialog__panel--compact {
-    width: min(100%, 22.5rem);
-    max-height: min(calc(100dvh - 1.5rem), 34rem);
+    width: min(26rem, 100%);
+    max-height: min(calc(100dvh - 2rem), 40rem);
 }
 
 .jirau-filters--dialog,
@@ -451,6 +507,7 @@ html.dark .jirau-action--warn { color: #fca5a5; }
     justify-content: space-between;
     gap: 0.75rem;
     margin-bottom: 0.85rem;
+    flex-shrink: 0;
 }
 
 .jirau-dialog__eyebrow {
@@ -480,12 +537,20 @@ html.dark .jirau-action--warn { color: #fca5a5; }
 .jirau-dialog__form {
     display: grid;
     gap: 0.75rem;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
 }
 
 .jirau-dialog__form p {
     margin: 0;
     color: var(--admin-muted, var(--color-mist));
     font-size: 0.9rem;
+}
+
+.jirau-dialog__form .jirau-input {
+    width: 100%;
+    min-width: 0;
 }
 
 .jirau-compose h2,
@@ -821,18 +886,15 @@ html.dark .jirau-action--warn { color: #fca5a5; }
 }
 
 .jirau-watch__form {
-    position: absolute;
-    top: calc(100% + 0.45rem);
-    right: 0;
-    z-index: 24;
-    width: min(18.5rem, 78vw);
-    max-height: min(70vh, 32rem);
-    overflow: auto;
-    padding: 0.85rem;
-    border: 1px solid var(--admin-glass-border, var(--color-line));
-    border-radius: 0.95rem;
-    background: var(--admin-glass, var(--color-panel));
-    box-shadow: var(--admin-shadow-soft, 0 16px 40px rgba(8, 16, 32, 0.22));
+    position: static;
+    width: auto;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
 }
 
 .jirau-watch__kicker {
@@ -948,8 +1010,6 @@ html.dark .jirau-action--warn { color: #fca5a5; }
     display: grid;
     gap: 0.28rem;
     margin-bottom: 0.7rem;
-    max-height: 12rem;
-    overflow: auto;
 }
 
 .jirau-watch__people label {
@@ -980,6 +1040,10 @@ html.dark .jirau-action--warn { color: #fca5a5; }
 
 .jirau-watch__form .pm-btn {
     width: 100%;
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    margin-top: 0.35rem;
 }
 
 .jirau-watch__faces {

@@ -364,6 +364,8 @@ class JirauBoardTest extends TestCase
             ->assertSee('Novo quadro', false)
             ->assertSee('Quadro geral', false)
             ->assertSee('Abrir quadro', false)
+            ->assertSee('jirau-home__brand', false)
+            ->assertSee('jirau-project-mark', false)
             ->getContent();
 
         $this->assertLessThan(
@@ -419,6 +421,46 @@ class JirauBoardTest extends TestCase
         $this->assertSame(20, (int) $other->fresh()->sort_order);
     }
 
+    public function test_board_and_home_show_project_logo_beside_board_name(): void
+    {
+        $admin = User::factory()->create();
+        $withLogo = Jirau::factory()->create([
+            'created_by' => $admin->id,
+            'name' => 'Quadro com logo',
+        ]);
+        $withLogo->project->update([
+            'name' => 'Servlitcys',
+            'logo_path' => 'images/projects/servlitcys.svg',
+        ]);
+
+        $withoutLogo = Jirau::factory()->create([
+            'created_by' => $admin->id,
+            'name' => 'Quadro sem logo',
+        ]);
+        $withoutLogo->project->update(['name' => 'Zephyr Unico']);
+
+        $this->actingAs($admin)
+            ->get(route('jirau.show', $withLogo))
+            ->assertOk()
+            ->assertSee('jirau-workspace__identity', false)
+            ->assertSee('jirau-project-mark', false)
+            ->assertSee('images/projects/servlitcys.svg', false)
+            ->assertSee('Quadro com logo', false);
+
+        $this->actingAs($admin)
+            ->get(route('jirau.show', $withoutLogo))
+            ->assertOk()
+            ->assertSee('jirau-project-mark--fallback', false)
+            ->assertSee('Quadro sem logo', false);
+
+        $this->actingAs($admin)
+            ->get(route('jirau.home'))
+            ->assertOk()
+            ->assertSee('jirau-home__brand', false)
+            ->assertSee('images/projects/servlitcys.svg', false)
+            ->assertSee('jirau-project-mark--fallback', false);
+    }
+
     public function test_admin_board_uses_icon_actions_and_rename_handles(): void
     {
         $admin = User::factory()->create();
@@ -438,6 +480,8 @@ class JirauBoardTest extends TestCase
             ->assertSee('data-jirau-panel="members"', false)
             ->assertSee('data-jirau-panel="new-column"', false)
             ->assertSee('data-jirau-rename="board"', false)
+            ->assertSee('jirau-workspace__identity', false)
+            ->assertSee('jirau-project-mark', false)
             ->assertSee('data-jirau-rename="column-'.$column->id.'"', false)
             ->assertSee('jirau-column__count', false)
             ->assertSee('jirau-action--icon', false)

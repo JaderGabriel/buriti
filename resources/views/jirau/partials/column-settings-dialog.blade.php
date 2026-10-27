@@ -1,7 +1,7 @@
 @php
     $watchers = $column->watchers;
 @endphp
-<x-jirau.dialog name="column-{{ $column->id }}" :title="$column->name" eyebrow="Etapa" compact>
+<x-jirau.dialog name="column-{{ $column->id }}" :title="$column->name" eyebrow="Etapa">
     <form method="POST" action="{{ route('jirau.columns.update', [$jirau, $column]) }}" class="jirau-dialog__form jirau-watch__form">
         @csrf
         @method('PUT')

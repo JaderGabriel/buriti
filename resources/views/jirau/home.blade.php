@@ -74,10 +74,16 @@
                         Sem pedidos na triagem
                     @endif
                 </p>
-                <a href="{{ route('jirau.show', $board) }}" class="jirau-home__open">
-                    <x-ui.icon name="jirau" class="h-4 w-4" />
-                    <span>Abrir quadro</span>
-                </a>
+                <div class="jirau-home__foot">
+                    <a href="{{ route('jirau.show', $board) }}" class="jirau-home__open">
+                        <x-ui.icon name="jirau" class="h-4 w-4" />
+                        <span>Abrir quadro</span>
+                    </a>
+                    @include('jirau.partials.project-mark', [
+                        'project' => $board->project,
+                        'markClass' => 'jirau-home__brand',
+                    ])
+                </div>
             </article>
         @empty
             <div class="jirau-home__empty">
