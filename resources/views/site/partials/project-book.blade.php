@@ -1,12 +1,10 @@
 @php
-    $items = collect($items ?? []);
+    $items = collect($items ?? [])->values();
     $variant = $variant ?? 'open';
     $featuredCards = (bool) ($featuredCards ?? false);
     $cardClass = $cardClass ?? '';
     $bookId = $bookId ?? \Illuminate\Support\Str::slug($title ?? 'portfolio');
-    $chapters = $items
-        ->groupBy(fn ($project) => filled($project->category) ? $project->category : 'Outros');
-    $pages = $chapters->flatten(1)->values();
+    $pages = $items->chunk(2)->values();
     $pageCount = $pages->count();
     $canFlip = $pageCount > 1;
 @endphp
@@ -39,66 +37,42 @@
             </div>
         </header>
 
-        <div class="project-book__body">
-            @if($canFlip)
-                <nav class="project-book__toc" aria-label="Tipos em {{ $title }}">
-                    @php $tocIndex = 0; @endphp
-                    @foreach($chapters as $chapter => $chapterItems)
-                        <p class="project-book__chapter">{{ $chapter }}</p>
-                        <ol class="project-book__index">
-                            @foreach($chapterItems as $project)
-                                <li>
-                                    <button
-                                        type="button"
-                                        class="project-book__toc-btn{{ $tocIndex === 0 ? ' is-active' : '' }}"
-                                        data-book-goto="{{ $tocIndex }}"
-                                        @if($tocIndex === 0) aria-current="page" @endif
-                                    >
-                                        <span>{{ $project->name }}</span>
-                                        <span class="project-book__toc-leaf" aria-hidden="true">{{ $tocIndex + 1 }}</span>
-                                    </button>
-                                </li>
-                                @php $tocIndex++; @endphp
-                            @endforeach
-                        </ol>
-                    @endforeach
-                </nav>
-            @endif
-
-            <div class="project-book__stage" data-book-stage @if($canFlip) tabindex="0" aria-label="Páginas de {{ $title }}" @endif>
-                <div class="project-book__bind">
-                    @foreach($pages as $index => $project)
-                        <div
-                            class="project-book__page{{ $index === 0 ? ' is-current' : ($index === 1 ? ' is-next' : ' is-after') }}"
-                            data-book-page
-                            data-category="{{ $project->category }}"
-                            aria-hidden="{{ $index === 0 ? 'false' : 'true' }}"
-                            @if($index !== 0) inert @endif
-                        >
-                            <div class="project-book__sheet">
-                                <x-site.project-card
-                                    :project="$project"
-                                    :featured="$featuredCards"
-                                    :class="$cardClass"
-                                />
+        <div class="project-book__stage" data-book-stage @if($canFlip) tabindex="0" aria-label="Páginas de {{ $title }}" @endif>
+            <div class="project-book__bind">
+                @foreach($pages as $index => $projectsOnPage)
+                    <div
+                        class="project-book__page{{ $index === 0 ? ' is-current' : ($index === 1 ? ' is-next' : ' is-after') }}"
+                        data-book-page
+                        aria-hidden="{{ $index === 0 ? 'false' : 'true' }}"
+                        @if($index !== 0) inert @endif
+                    >
+                        <div class="project-book__sheet">
+                            <div class="project-book__spread">
+                                @foreach($projectsOnPage as $project)
+                                    <x-site.project-card
+                                        :project="$project"
+                                        :featured="$featuredCards"
+                                        :class="$cardClass"
+                                    />
+                                @endforeach
                             </div>
                         </div>
-                    @endforeach
-                </div>
-
-                @if($canFlip)
-                    <div class="project-book__controls">
-                        <button type="button" class="project-book__turn" data-book-prev aria-label="Página anterior">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 19 8 12l7-7"/></svg>
-                            <span>Anterior</span>
-                        </button>
-                        <button type="button" class="project-book__turn" data-book-next aria-label="Próxima página">
-                            <span>Próxima</span>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="m9 5 7 7-7 7"/></svg>
-                        </button>
                     </div>
-                @endif
+                @endforeach
             </div>
+
+            @if($canFlip)
+                <div class="project-book__controls">
+                    <button type="button" class="project-book__turn" data-book-prev aria-label="Página anterior">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 19 8 12l7-7"/></svg>
+                        <span>Anterior</span>
+                    </button>
+                    <button type="button" class="project-book__turn" data-book-next aria-label="Próxima página">
+                        <span>Próxima</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="m9 5 7 7-7 7"/></svg>
+                    </button>
+                </div>
+            @endif
         </div>
     </article>
 @endif

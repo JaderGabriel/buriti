@@ -138,6 +138,22 @@
             </div>
         </div>
         <div class="site-footer__legal border-t border-line px-4 py-5 text-center text-xs text-mist/80 sm:px-6">
+            @isset($runtimeVersions)
+                <ul class="site-versions" aria-label="Versões do sistema">
+                    <li>
+                        <span>PHP</span>
+                        {{ $runtimeVersions['php'] }}
+                    </li>
+                    <li>
+                        <span>Laravel</span>
+                        {{ $runtimeVersions['laravel'] }}
+                    </li>
+                    <li>
+                        <span>Sistema</span>
+                        {{ $runtimeVersions['version'] }} {{ $runtimeVersions['codename'] }}
+                    </li>
+                </ul>
+            @endisset
             <p>© {{ date('Y') }} BURI-TI — Tecnologia para Pessoas</p>
             <p class="mt-1.5">
                 Desenvolvido e mantido por <span class="text-snow">BURI-TI</span>

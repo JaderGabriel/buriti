@@ -3463,7 +3463,6 @@ function initProjectBooks() {
         let pointer = null;
 
         const folio = book.querySelector('[data-book-folio]');
-        const gotoButtons = [...book.querySelectorAll('[data-book-goto]')];
 
         const render = () => {
             pages.forEach((page, i) => {
@@ -3473,16 +3472,6 @@ function initProjectBooks() {
                 page.classList.toggle('is-after', i > index + 1);
                 page.toggleAttribute('inert', i !== index);
                 page.setAttribute('aria-hidden', i === index ? 'false' : 'true');
-            });
-
-            gotoButtons.forEach((button) => {
-                const active = Number(button.dataset.bookGoto) === index;
-                button.classList.toggle('is-active', active);
-                if (active) {
-                    button.setAttribute('aria-current', 'page');
-                } else {
-                    button.removeAttribute('aria-current');
-                }
             });
 
             if (folio) {
@@ -3509,10 +3498,6 @@ function initProjectBooks() {
 
         book.querySelector('[data-book-prev]')?.addEventListener('click', () => goTo(index - 1));
         book.querySelector('[data-book-next]')?.addEventListener('click', () => goTo(index + 1));
-
-        gotoButtons.forEach((button) => {
-            button.addEventListener('click', () => goTo(Number(button.dataset.bookGoto)));
-        });
 
         book.addEventListener('keydown', (event) => {
             if (event.target.closest('a, input, textarea, select')) {

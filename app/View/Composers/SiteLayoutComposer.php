@@ -3,6 +3,7 @@
 namespace App\View\Composers;
 
 use App\Services\SettingService;
+use App\Support\RuntimeVersions;
 use Illuminate\View\View;
 
 class SiteLayoutComposer
@@ -14,6 +15,7 @@ class SiteLayoutComposer
         $all = $this->settings->all();
 
         $view->with([
+            'runtimeVersions' => RuntimeVersions::labels(),
             'contactEmail' => $all['contact_email'],
             'contactPhone' => $all['contact_phone'],
             'contactWhatsapp' => $all['contact_whatsapp'],

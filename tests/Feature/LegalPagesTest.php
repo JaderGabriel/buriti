@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Support\RuntimeVersions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -26,8 +27,14 @@ class LegalPagesTest extends TestCase
 
     public function test_home_footer_shows_copyright_and_legal_links(): void
     {
+        $versions = RuntimeVersions::labels();
+
         $this->get(route('home'))
             ->assertOk()
+            ->assertSee('site-versions', false)
+            ->assertSee($versions['php'], false)
+            ->assertSee($versions['laravel'], false)
+            ->assertSee('1.6 Vereda', false)
             ->assertSee('©', false)
             ->assertSee('Desenvolvido e mantido por', false)
             ->assertSee('Política de Privacidade', false)

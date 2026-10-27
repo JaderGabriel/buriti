@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Project;
+use App\Support\RuntimeVersions;
 use Database\Seeders\PortfolioSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -81,16 +82,42 @@ class HomePageTest extends TestCase
             'repo_is_private' => false,
             'sort_order' => 2,
         ]);
+        Project::factory()->public()->create([
+            'name' => 'Livro Integração Três',
+            'category' => 'Integração',
+            'featured_on_home' => false,
+            'repo_is_private' => false,
+            'sort_order' => 3,
+        ]);
 
         $this->get(route('home'))
             ->assertOk()
             ->assertSee('data-project-book', false)
+            ->assertSee('project-book__spread', false)
             ->assertSee('Páginas de Código aberto', false)
             ->assertSee('Página anterior', false)
             ->assertSee('Próxima página', false)
+            ->assertDontSee('data-book-goto', false)
             ->assertSee('Livro Integração Um', false)
             ->assertSee('Livro Integração Dois', false)
+            ->assertSee('Livro Integração Três', false)
             ->assertSee('Cada tipo vira como um caderno', false);
+    }
+
+    public function test_home_footer_shows_system_versions_above_copyright(): void
+    {
+        $versions = RuntimeVersions::labels();
+
+        $html = $this->get(route('home'))->assertOk()->getContent();
+        $versionsPos = strpos($html, 'site-versions');
+        $copyrightPos = strpos($html, '©');
+
+        $this->assertNotFalse($versionsPos);
+        $this->assertNotFalse($copyrightPos);
+        $this->assertLessThan($copyrightPos, $versionsPos);
+        $this->assertStringContainsString($versions['php'], $html);
+        $this->assertStringContainsString($versions['laravel'], $html);
+        $this->assertStringContainsString('1.6 Vereda', $html);
     }
 
     public function test_home_page_shows_public_projects_only(): void

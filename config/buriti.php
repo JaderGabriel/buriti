@@ -2,10 +2,10 @@
 
 return [
     /*
-    | Versão do CRM BURI-TI. Vereda é o caminho alagado do Cerrado onde o
-    | buriti (Mauritia flexuosa) cresce — o mesmo palmeiral que dá nome à casa.
+    | Versão do BURI-TI (site, CRM e Jirau). Vereda é o caminho alagado do
+    | Cerrado onde o buriti (Mauritia flexuosa) cresce — o palmeiral da casa.
     */
-    'version' => '1.5',
+    'version' => '1.6',
     'codename' => 'Vereda',
 
     'contact' => [

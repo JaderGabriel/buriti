@@ -35,7 +35,7 @@
                     'variant' => 'open',
                     'kicker' => 'Público',
                     'title' => 'Código aberto',
-                    'lead' => 'Repositórios com código visível, agrupados por tipo de entrega.',
+                    'lead' => 'Repositórios com código visível.',
                     'items' => $openSourceProjects,
                 ])
 

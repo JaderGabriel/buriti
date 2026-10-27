@@ -14,7 +14,7 @@ class RuntimeVersionsTest extends TestCase
         $this->assertSame(app()->version(), $labels['laravel']);
         $this->assertSame(PHP_VERSION, $labels['php']);
         $this->assertNotSame('', $labels['server']);
-        $this->assertSame('CRM 1.5 Vereda', $labels['release']);
-        $this->assertSame('CRM 1.5 Vereda', RuntimeVersions::release());
+        $this->assertSame('BURI-TI 1.6 Vereda', $labels['release']);
+        $this->assertSame('BURI-TI 1.6 Vereda', RuntimeVersions::release());
     }
 }

@@ -5,7 +5,7 @@ namespace App\Support;
 final class RuntimeVersions
 {
     /**
-     * @return array{laravel: string, php: string, server: string, release: string}
+     * @return array{laravel: string, php: string, server: string, version: string, codename: string, release: string}
      */
     public static function labels(): array
     {
@@ -13,16 +13,25 @@ final class RuntimeVersions
             'laravel' => app()->version(),
             'php' => PHP_VERSION,
             'server' => self::server(),
+            'version' => self::version(),
+            'codename' => self::codename(),
             'release' => self::release(),
         ];
     }
 
+    public static function version(): string
+    {
+        return trim((string) config('buriti.version', '1.6'));
+    }
+
+    public static function codename(): string
+    {
+        return trim((string) config('buriti.codename', 'Vereda'));
+    }
+
     public static function release(): string
     {
-        $version = trim((string) config('buriti.version', '1.5'));
-        $codename = trim((string) config('buriti.codename', 'Vereda'));
-
-        return trim('CRM '.$version.' '.$codename);
+        return trim('BURI-TI '.self::version().' '.self::codename());
     }
 
     private static function server(): string

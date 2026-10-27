@@ -1,6 +1,6 @@
 # BURI-TI
 
-Site institucional e painel administrativo da **BURI-TI** — *Tecnologia para Pessoas*. CRM **1.5 Vereda**.
+Site institucional e painel administrativo da **BURI-TI** — *Tecnologia para Pessoas*. Sistema **1.6 Vereda** (site, CRM e Jirau).
 
 Stack: **Laravel 13**, **Blade**, **Vite**, **Tailwind CSS 4**, **Alpine.js**, MySQL.
 
