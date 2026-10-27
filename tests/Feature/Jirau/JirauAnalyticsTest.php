@@ -47,6 +47,35 @@ class JirauAnalyticsTest extends TestCase
             ->assertSee('Responsável', false);
     }
 
+    public function test_analytics_excludes_demo_board_from_kpis_and_lists(): void
+    {
+        $admin = User::factory()->create();
+        $real = Jirau::factory()->create(['name' => 'Portal cliente', 'created_by' => $admin->id]);
+        $demo = Jirau::factory()->create([
+            'name' => Jirau::DEMO_NAME,
+            'created_by' => $admin->id,
+        ]);
+
+        JirauCard::factory()->create([
+            'jirau_id' => $real->id,
+            'column_id' => $real->inboxColumn()->id,
+            'title' => 'Demanda real',
+        ]);
+        JirauCard::factory()->create([
+            'jirau_id' => $demo->id,
+            'column_id' => $demo->inboxColumn()->id,
+            'title' => 'Cartão do Demo',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('jirau.analytics'))
+            ->assertOk()
+            ->assertSee('Portal cliente', false)
+            ->assertSee('Demanda real', false)
+            ->assertDontSee('Cartão do Demo', false)
+            ->assertDontSee(Jirau::DEMO_NAME, false);
+    }
+
     public function test_board_analytics_redirects_to_filtered_index(): void
     {
         $admin = User::factory()->create();

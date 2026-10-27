@@ -21,7 +21,7 @@ class JirauDemoSeeder extends Seeder
 
     public const DEMO_PASSWORD = 'jirau-demo-2026';
 
-    public const DEMO_BOARD_NAME = 'Jirau DEMO';
+    public const DEMO_BOARD_NAME = Jirau::DEMO_NAME;
 
     public function run(): void
     {
@@ -29,7 +29,7 @@ class JirauDemoSeeder extends Seeder
         $boards = app(JirauBoardService::class);
 
         $project = Project::query()->firstOrCreate(
-            ['name' => 'Jirau demonstração'],
+            ['name' => Jirau::DEMO_PROJECT_NAME],
             [
                 'information' => 'Quadro de demonstração do Jirau — plataforma ágil da BURI-TI no lugar de Trello/Notion.',
                 'stack' => ['Laravel', 'Tailwind'],

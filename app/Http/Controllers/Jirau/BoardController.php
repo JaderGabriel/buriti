@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Jirau;
 use App\Enums\JirauCardPriority;
 use App\Enums\JirauCardType;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Jirau\ReorderBoardsRequest;
 use App\Http\Requests\Jirau\StoreBoardRequest;
 use App\Http\Requests\Jirau\UpdateBoardRequest;
 use App\Models\Jirau;
@@ -14,6 +15,7 @@ use App\Models\User;
 use App\Services\Jirau\JirauAccess;
 use App\Services\Jirau\JirauBoardService;
 use App\Services\Jirau\JirauEvidenceService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -34,13 +36,19 @@ class BoardController extends Controller
             ->with(['project', 'columns'])
             ->withCount([
                 'cards as open_cards_count' => fn ($q) => $q->whereNull('archived_at'),
+                'cards as inbox_cards_count' => fn ($q) => $q
+                    ->whereNull('archived_at')
+                    ->whereHas('column', fn ($column) => $column->where('is_inbox', true)),
             ]);
 
         if (! $user->is_admin && $user->jirau_role === null) {
             $query->whereHas('members', fn ($q) => $q->whereKey($user->id));
         }
 
-        $jiraus = $query->orderBy('name')->get();
+        $jiraus = $query
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
 
         if ($jiraus->count() === 1 && ! $user->is_admin) {
             return redirect()->route('jirau.show', $jiraus->first());
@@ -67,6 +75,14 @@ class BoardController extends Controller
         return redirect()
             ->route('jirau.show', $jirau)
             ->with('success', 'Jirau «'.$jirau->name.'» criado com o modelo '.$jirau->template->label().'.');
+    }
+
+    public function reorder(ReorderBoardsRequest $request): JsonResponse
+    {
+        $this->access->assertManage($request->user());
+        $this->boards->reorder($request->validated('ordered_ids'));
+
+        return response()->json(['ok' => true]);
     }
 
     public function update(UpdateBoardRequest $request, Jirau $jirau): RedirectResponse

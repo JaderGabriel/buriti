@@ -41,8 +41,10 @@ class JirauColumnSettingsTest extends TestCase
             ->assertOk()
             ->assertSee('Em execução', false)
             ->assertSee('2 dias', false)
-            ->assertSee('Avisar', false)
-            ->assertSee('Lia Tester', false);
+            ->assertSee('data-jirau-rename="column-', false)
+            ->assertSee('jirau-column-'.$doing->id.'-dialog', false)
+            ->assertSee('Lia Tester', false)
+            ->assertDontSee('Avisar', false);
     }
 
     public function test_admin_can_reorder_columns(): void

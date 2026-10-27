@@ -57,6 +57,8 @@
         'jirau' => 'M4 14h16M6 10h12M8 6h8M5 18h14',
         'roadmap' => 'M3 6h7v4H3zM14 6h7v7h-7zM3 14h7v6H3zM14 17h7v3h-7z',
         'grip' => 'M9 5v14M15 5v14',
+        'plus' => 'M12 5v14M5 12h14',
+        'filter' => 'M4 4h16l-6.5 8.2V20l-3 1.5v-9.3L4 4z',
     ];
     $d = $paths[$name] ?? $paths['code'];
 @endphp

@@ -64,6 +64,7 @@ class JirauBoardTest extends TestCase
             ->assertDontSee('Novo cartão', false)
             ->assertDontSee('Novo quadro', false)
             ->assertDontSee('jirau-create-board-dialog', false)
+            ->assertDontSee('data-jirau-rename="board"', false)
             ->assertDontSee('Renomear', false)
             ->getContent();
 
@@ -333,6 +334,113 @@ class JirauBoardTest extends TestCase
         $this->actingAs($member)
             ->get(route('jirau.show', $other))
             ->assertForbidden();
+    }
+
+    public function test_admin_home_lists_boards_by_sort_order_with_icon_actions(): void
+    {
+        $admin = User::factory()->create();
+        $zebra = Jirau::factory()->create([
+            'created_by' => $admin->id,
+            'name' => 'Zebra',
+            'sort_order' => 20,
+        ]);
+        $alpha = Jirau::factory()->create([
+            'created_by' => $admin->id,
+            'name' => 'Alpha',
+            'sort_order' => 10,
+        ]);
+
+        $html = $this->actingAs($admin)
+            ->get(route('jirau.home'))
+            ->assertOk()
+            ->assertSee('data-jirau-home', false)
+            ->assertSee('data-can-drag="1"', false)
+            ->assertSee(route('jirau.boards.reorder'), false)
+            ->assertSee('data-jirau-home-handle', false)
+            ->assertSee('jirau-action--board', false)
+            ->assertSee('jirau-action--steps', false)
+            ->assertSee('jirau-action--people', false)
+            ->assertSee('jirau-action--analytics', false)
+            ->assertSee('Novo quadro', false)
+            ->assertSee('Quadro geral', false)
+            ->assertSee('Abrir quadro', false)
+            ->getContent();
+
+        $this->assertLessThan(
+            strpos($html, 'Zebra') ?: PHP_INT_MAX,
+            strpos($html, 'Alpha') ?: PHP_INT_MAX,
+        );
+        $this->assertNotFalse(strpos($html, 'data-board-id="'.$alpha->id.'"'));
+        $this->assertNotFalse(strpos($html, 'data-board-id="'.$zebra->id.'"'));
+    }
+
+    public function test_admin_can_reorder_home_boards(): void
+    {
+        $admin = User::factory()->create();
+        $first = Jirau::factory()->create(['created_by' => $admin->id, 'sort_order' => 10]);
+        $second = Jirau::factory()->create(['created_by' => $admin->id, 'sort_order' => 20]);
+        $third = Jirau::factory()->create(['created_by' => $admin->id, 'sort_order' => 30]);
+
+        $this->actingAs($admin)
+            ->postJson(route('jirau.boards.reorder'), [
+                'ordered_ids' => [$third->id, $first->id, $second->id],
+            ])
+            ->assertOk()
+            ->assertJsonPath('ok', true);
+
+        $this->assertSame(10, (int) $third->fresh()->sort_order);
+        $this->assertSame(20, (int) $first->fresh()->sort_order);
+        $this->assertSame(30, (int) $second->fresh()->sort_order);
+    }
+
+    public function test_member_cannot_reorder_home_boards(): void
+    {
+        $admin = User::factory()->create();
+        $own = Jirau::factory()->create(['created_by' => $admin->id, 'sort_order' => 10]);
+        $other = Jirau::factory()->create(['created_by' => $admin->id, 'sort_order' => 20]);
+        $member = User::factory()->withoutAdminAccess()->create();
+        $own->members()->attach($member->id);
+        $other->members()->attach($member->id);
+
+        $this->actingAs($member)
+            ->get(route('jirau.home'))
+            ->assertOk()
+            ->assertDontSee('data-jirau-home-handle', false)
+            ->assertDontSee('data-can-drag="1"', false)
+            ->assertDontSee('Novo quadro', false);
+
+        $this->actingAs($member)
+            ->postJson(route('jirau.boards.reorder'), [
+                'ordered_ids' => [$other->id, $own->id],
+            ])
+            ->assertForbidden();
+
+        $this->assertSame(10, (int) $own->fresh()->sort_order);
+        $this->assertSame(20, (int) $other->fresh()->sort_order);
+    }
+
+    public function test_admin_board_uses_icon_actions_and_rename_handles(): void
+    {
+        $admin = User::factory()->create();
+        $jirau = Jirau::factory()->create(['created_by' => $admin->id]);
+        $column = $jirau->columns()->where('slug', 'doing')->first();
+
+        $this->actingAs($admin)
+            ->get(route('jirau.show', $jirau))
+            ->assertOk()
+            ->assertSee('Novo cartão', false)
+            ->assertSee('jirau-action--card', false)
+            ->assertSee('jirau-action--board', false)
+            ->assertSee('data-jirau-toggle="new-card"', false)
+            ->assertSee('data-jirau-panel="new-card"', false)
+            ->assertSee('data-jirau-panel="filters"', false)
+            ->assertSee('data-jirau-panel="steps"', false)
+            ->assertSee('data-jirau-panel="members"', false)
+            ->assertSee('data-jirau-rename="board"', false)
+            ->assertSee('data-jirau-rename="column-'.$column->id.'"', false)
+            ->assertSee('jirau-column__count', false)
+            ->assertSee('Novo quadro', false)
+            ->assertDontSee('Renomear', false);
     }
 
     public function test_demo_seeder_creates_board_and_member_login(): void

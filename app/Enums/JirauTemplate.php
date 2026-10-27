@@ -29,6 +29,26 @@ enum JirauTemplate: string
         };
     }
 
+    public function color(): string
+    {
+        return match ($this) {
+            self::Development => '#2f6bff',
+            self::Consulting => '#1a5f9e',
+            self::Training => '#7c3aed',
+            self::Activities => '#0f9d58',
+        };
+    }
+
+    public function icon(): string
+    {
+        return match ($this) {
+            self::Development => 'code',
+            self::Consulting => 'consulting',
+            self::Training => 'train',
+            self::Activities => 'task',
+        };
+    }
+
     public function lead(): string
     {
         return match ($this) {

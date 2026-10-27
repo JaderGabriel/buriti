@@ -32,6 +32,7 @@ class JirauBoardService
                 'project_id' => $project->id,
                 'name' => $name ?: ($template->label().' · '.$project->name),
                 'template' => $template,
+                'sort_order' => ((int) Jirau::query()->max('sort_order')) + 10,
                 'created_by' => $actor->id,
             ]);
 
@@ -45,6 +46,16 @@ class JirauBoardService
 
             return $jirau->fresh(['columns', 'labels', 'project']);
         });
+    }
+
+    /** @param  list<int>  $orderedIds */
+    public function reorder(array $orderedIds): void
+    {
+        $orderedIds = array_values(array_unique(array_map('intval', $orderedIds)));
+
+        foreach ($orderedIds as $index => $id) {
+            Jirau::query()->whereKey($id)->update(['sort_order' => ($index + 1) * 10]);
+        }
     }
 
     public function rename(Jirau $jirau, string $name): Jirau

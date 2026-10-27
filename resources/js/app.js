@@ -3696,6 +3696,108 @@ function initDriveViewer() {
     });
 }
 
+function initJirauHome() {
+    const home = document.querySelector('[data-jirau-home]');
+    if (! home || home.dataset.canDrag !== '1' || home.dataset.dndBound === '1') {
+        return;
+    }
+    home.dataset.dndBound = '1';
+
+    const grid = home.querySelector('.jirau-home__grid');
+    const reorderUrl = home.dataset.reorderUrl || '';
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const MOVE_THRESHOLD = 8;
+    let drag = null;
+
+    const persist = () => {
+        if (! reorderUrl || ! grid) {
+            return;
+        }
+        const ids = [...grid.querySelectorAll('[data-jirau-home-card]')].map((el) => Number(el.dataset.boardId));
+        fetch(reorderUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': csrf,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({ ordered_ids: ids }),
+        }).catch(() => {});
+    };
+
+    const cardOf = (el) => el?.closest?.('[data-jirau-home-card]') || null;
+
+    const onPointerDown = (event) => {
+        const handle = event.target.closest('[data-jirau-home-handle]');
+        if (! handle || event.button !== 0) {
+            return;
+        }
+        const card = handle.closest('[data-jirau-home-card]');
+        if (! card) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        drag = {
+            card,
+            pointerId: event.pointerId,
+            startX: event.clientX,
+            startY: event.clientY,
+            moved: false,
+        };
+        handle.setPointerCapture?.(event.pointerId);
+    };
+
+    const onPointerMove = (event) => {
+        if (! drag || event.pointerId !== drag.pointerId || ! grid) {
+            return;
+        }
+        if (! drag.moved && Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < MOVE_THRESHOLD) {
+            return;
+        }
+        drag.moved = true;
+        drag.card.classList.add('is-dragging');
+        const target = cardOf(document.elementFromPoint(event.clientX, event.clientY));
+        if (! target || target === drag.card) {
+            return;
+        }
+        const cards = [...grid.querySelectorAll(':scope > [data-jirau-home-card]')];
+        const from = cards.indexOf(drag.card);
+        const to = cards.indexOf(target);
+        if (from < 0 || to < 0 || from === to) {
+            return;
+        }
+        if (from < to) {
+            grid.insertBefore(drag.card, target.nextSibling);
+        } else {
+            grid.insertBefore(drag.card, target);
+        }
+    };
+
+    const onPointerUp = (event) => {
+        if (! drag || event.pointerId !== drag.pointerId) {
+            return;
+        }
+        const moved = drag.moved;
+        drag.card.classList.remove('is-dragging');
+        try {
+            event.target.releasePointerCapture?.(drag.pointerId);
+        } catch {
+            // ignore
+        }
+        drag = null;
+        if (moved) {
+            persist();
+        }
+    };
+
+    grid?.addEventListener('pointerdown', onPointerDown);
+    grid?.addEventListener('pointermove', onPointerMove);
+    grid?.addEventListener('pointerup', onPointerUp);
+    grid?.addEventListener('pointercancel', onPointerUp);
+}
+
 function initJirauBoard() {
     const openJirauDialog = (dialog) => {
         dialog.hidden = false;
@@ -3765,6 +3867,69 @@ function initJirauBoard() {
 
     document.querySelectorAll('[data-jirau-panel][role="dialog"]:not([hidden])').forEach((dialog) => {
         openJirauDialog(dialog);
+    });
+
+    const cancelRename = (form) => {
+        const id = form.getAttribute('data-jirau-rename-form');
+        const label = document.querySelector(`[data-jirau-rename="${id}"]`);
+        form.hidden = true;
+        if (label) {
+            label.hidden = false;
+        }
+    };
+
+    const startRename = (label) => {
+        const id = label.getAttribute('data-jirau-rename');
+        const form = document.querySelector(`[data-jirau-rename-form="${id}"]`);
+        if (! form) {
+            return;
+        }
+        label.hidden = true;
+        form.hidden = false;
+        const input = form.querySelector('input:not([type="hidden"])');
+        window.requestAnimationFrame(() => {
+            input?.focus();
+            input?.select();
+        });
+    };
+
+    document.querySelectorAll('[data-jirau-rename]').forEach((label) => {
+        label.addEventListener('dblclick', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            startRename(label);
+        });
+    });
+
+    document.querySelectorAll('[data-jirau-rename-form]').forEach((form) => {
+        const input = form.querySelector('input:not([type="hidden"])');
+        form.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                if (input) {
+                    input.value = input.defaultValue;
+                }
+                cancelRename(form);
+            }
+        });
+        input?.addEventListener('blur', () => {
+            window.setTimeout(() => {
+                if (form.hidden) {
+                    return;
+                }
+                const next = document.activeElement;
+                if (next && form.contains(next)) {
+                    return;
+                }
+                const value = (input.value || '').trim();
+                if (value === '' || value === (input.defaultValue || '').trim()) {
+                    input.value = input.defaultValue;
+                    cancelRename(form);
+                    return;
+                }
+                form.requestSubmit();
+            }, 80);
+        });
     });
 
     const board = document.querySelector('[data-jirau-board]');
@@ -3935,7 +4100,7 @@ function initJirauBoard() {
         if (event.button !== 0) {
             return;
         }
-        if (event.target.closest('button, input, textarea, select, label, details, summary, a')) {
+        if (event.target.closest('button, input, textarea, select, label, details, summary, a, [data-jirau-rename], [data-jirau-rename-form]')) {
             return;
         }
         const card = event.target.closest('[data-jirau-card]');
@@ -4158,6 +4323,7 @@ initPhonebookSelection();
 initTaskDayCreateFallback();
 initProjectBoard();
 initJirauBoard();
+initJirauHome();
 initHomeProjectBoard();
 initProjectCardMinimize();
 initOpportunityBoard();

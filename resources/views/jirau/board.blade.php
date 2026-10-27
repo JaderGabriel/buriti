@@ -11,13 +11,44 @@
     <div class="jirau-workspace__header">
         <div>
             <p class="pm-workspace__eyebrow">Jirau · {{ $jirau->project?->name }}</p>
+            @php $renameOpen = old('_board_rename') === '1'; @endphp
             <h1 class="pm-workspace__title jirau-workspace__heading">
-                <span>{{ $jirau->name }}</span>
+                @if($isAdmin)
+                    <span
+                        data-jirau-rename="board"
+                        title="Clique duas vezes para alterar o nome"
+                        @if($renameOpen) hidden @endif
+                    >{{ $jirau->name }}</span>
+                    <form
+                        method="POST"
+                        action="{{ route('jirau.update', $jirau) }}"
+                        class="jirau-rename"
+                        data-jirau-rename-form="board"
+                        @unless($renameOpen) hidden @endunless
+                    >
+                        @csrf
+                        @method('PUT')
+                        <input type="hidden" name="_board_rename" value="1">
+                        <input
+                            type="text"
+                            name="board_name"
+                            value="{{ old('board_name', $jirau->name) }}"
+                            required
+                            maxlength="120"
+                            class="jirau-input jirau-rename__input"
+                            aria-label="Nome do quadro"
+                        >
+                    </form>
+                @else
+                    <span>{{ $jirau->name }}</span>
+                @endif
                 @unless($jirau->is_active)
                     <span class="jirau-chip jirau-chip--warn">Inativo</span>
                 @endunless
                 @if($isAdmin)
-                    <button type="button" class="pm-btn pm-btn--ghost" data-jirau-toggle="rename-board">Renomear</button>
+                    <x-jirau.action tone="card" icon="plus" data-jirau-toggle="new-card">Novo cartão</x-jirau.action>
+                @else
+                    <x-jirau.action tone="card" icon="plus" data-jirau-toggle="demand">Nova demanda</x-jirau.action>
                 @endif
             </h1>
             <p class="pm-workspace__lead">
@@ -37,53 +68,51 @@
         </div>
         <div class="jirau-workspace__actions">
             @if($isAdmin && $jirau->project)
-                <a href="{{ route('admin.projects.edit', $jirau->project) }}" class="pm-btn pm-btn--ghost">Ficha do projeto</a>
+                <x-jirau.action tone="project" icon="project" :href="route('admin.projects.edit', $jirau->project)">Ficha do projeto</x-jirau.action>
             @endif
             @if($isAdmin)
-                <a href="{{ route('jirau.analytics.show', $jirau) }}" class="pm-btn pm-btn--ghost">Analítica</a>
+                <x-jirau.action tone="analytics" icon="dashboard" :href="route('jirau.analytics.show', $jirau)">Analítica</x-jirau.action>
                 <form method="POST" action="{{ route('jirau.status', $jirau) }}" class="inline">
                     @csrf
                     <input type="hidden" name="is_active" value="{{ $jirau->is_active ? 0 : 1 }}">
-                    <button type="submit" class="pm-btn pm-btn--ghost">
+                    <x-jirau.action :tone="$jirau->is_active ? 'warn' : 'board'" icon="operate" type="submit">
                         {{ $jirau->is_active ? 'Desativar quadro' : 'Ativar quadro' }}
-                    </button>
+                    </x-jirau.action>
                 </form>
             @endif
-            <button type="button" class="pm-btn pm-btn--ghost" data-jirau-toggle="filters">Filtros</button>
+            <x-jirau.action tone="filter" icon="filter" data-jirau-toggle="filters">Filtros</x-jirau.action>
             @if($isAdmin)
-                <button type="button" class="pm-btn pm-btn--ghost" data-jirau-toggle="steps">Etapas</button>
-                <button type="button" class="pm-btn pm-btn--ghost" data-jirau-toggle="members">Pessoas</button>
-                <button type="button" class="pm-btn pm-btn--ghost" data-jirau-toggle="new-board">Novo quadro</button>
-                <button type="button" class="pm-btn pm-btn--primary" data-jirau-toggle="new-card">Novo cartão</button>
-            @else
-                <button type="button" class="pm-btn pm-btn--primary" data-jirau-toggle="demand">Nova demanda</button>
+                <x-jirau.action tone="steps" icon="flow" data-jirau-toggle="steps">Etapas</x-jirau.action>
+                <x-jirau.action tone="people" icon="users" data-jirau-toggle="members">Pessoas</x-jirau.action>
             @endif
         </div>
     </div>
 
-    <form method="GET" action="{{ route('jirau.show', $jirau) }}" class="jirau-filters" data-jirau-panel="filters" hidden>
-        <input type="search" name="q" value="{{ $filters['q'] }}" placeholder="Buscar título ou descrição" class="jirau-input">
-        <select name="type" class="jirau-input">
-            <option value="">Tipo</option>
-            @foreach($types as $value => $label)
-                <option value="{{ $value }}" @selected($filters['type'] === $value)>{{ $label }}</option>
-            @endforeach
-        </select>
-        <select name="priority" class="jirau-input">
-            <option value="">Prioridade</option>
-            @foreach($priorities as $value => $label)
-                <option value="{{ $value }}" @selected($filters['priority'] === $value)>{{ $label }}</option>
-            @endforeach
-        </select>
-        <select name="label" class="jirau-input">
-            <option value="">Etiqueta</option>
-            @foreach($jirau->labels as $label)
-                <option value="{{ $label->id }}" @selected((string) $filters['label'] === (string) $label->id)>{{ $label->name }}</option>
-            @endforeach
-        </select>
-        <button type="submit" class="pm-btn pm-btn--primary">Filtrar</button>
-        <a href="{{ route('jirau.show', $jirau) }}" class="pm-btn pm-btn--ghost">Limpar</a>
-    </form>
+    <x-jirau.dialog name="filters" title="Filtros">
+        <form method="GET" action="{{ route('jirau.show', $jirau) }}" class="jirau-dialog__form jirau-filters jirau-filters--dialog">
+            <input type="search" name="q" value="{{ $filters['q'] }}" placeholder="Buscar título ou descrição" class="jirau-input">
+            <select name="type" class="jirau-input">
+                <option value="">Tipo</option>
+                @foreach($types as $value => $label)
+                    <option value="{{ $value }}" @selected($filters['type'] === $value)>{{ $label }}</option>
+                @endforeach
+            </select>
+            <select name="priority" class="jirau-input">
+                <option value="">Prioridade</option>
+                @foreach($priorities as $value => $label)
+                    <option value="{{ $value }}" @selected($filters['priority'] === $value)>{{ $label }}</option>
+                @endforeach
+            </select>
+            <select name="label" class="jirau-input">
+                <option value="">Etiqueta</option>
+                @foreach($jirau->labels as $label)
+                    <option value="{{ $label->id }}" @selected((string) $filters['label'] === (string) $label->id)>{{ $label->name }}</option>
+                @endforeach
+            </select>
+            <button type="submit" class="pm-btn pm-btn--primary">Filtrar</button>
+            <a href="{{ route('jirau.show', $jirau) }}" class="pm-btn pm-btn--ghost">Limpar</a>
+        </form>
+    </x-jirau.dialog>
 
     @if(! $isAdmin)
         @php
@@ -135,39 +164,11 @@
     @endif
 
     @if($isAdmin)
-        @php $renameOpen = old('_board_rename') === '1'; @endphp
-        <div
-            id="jirau-rename-board-dialog"
-            class="jirau-dialog"
-            data-jirau-panel="rename-board"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="jirau-rename-board-title"
-            aria-hidden="{{ $renameOpen ? 'false' : 'true' }}"
-            @unless($renameOpen) hidden @endunless
-        >
-            <button type="button" class="jirau-dialog__backdrop" data-jirau-dialog-close aria-label="Fechar"></button>
-            <div class="jirau-dialog__panel">
-                <div class="jirau-dialog__head">
-                    <div>
-                        <p class="jirau-dialog__eyebrow">Jirau</p>
-                        <h2 id="jirau-rename-board-title">Renomear quadro</h2>
-                    </div>
-                    <button type="button" class="jirau-dialog__close" data-jirau-dialog-close aria-label="Fechar">✕</button>
-                </div>
-                <form method="POST" action="{{ route('jirau.update', $jirau) }}" class="jirau-dialog__form">
-                    @csrf
-                    @method('PUT')
-                    <input type="hidden" name="_board_rename" value="1">
-                    <p>O nome aparece na lista de quadros, na ficha do projeto e no topo deste Jirau.</p>
-                    <x-ui.input name="board_name" label="Nome do quadro" :value="$jirau->name" required maxlength="120" />
-                    <button type="submit" class="pm-btn pm-btn--primary">Salvar nome</button>
-                </form>
-            </div>
-        </div>
-        <form method="POST" action="{{ route('jirau.cards.store', $jirau) }}" class="jirau-compose" data-jirau-panel="new-card" enctype="multipart/form-data" hidden>
+        @php $newCardOpen = old('_form') === 'new-card'; @endphp
+        <x-jirau.dialog name="new-card" title="Novo cartão" :open="$newCardOpen" wide>
+        <form method="POST" action="{{ route('jirau.cards.store', $jirau) }}" class="jirau-dialog__form jirau-compose jirau-compose--dialog" enctype="multipart/form-data">
             @csrf
-            <h2>Novo cartão</h2>
+            <input type="hidden" name="_form" value="new-card">
             <div class="jirau-compose__grid">
                 <x-ui.input name="title" label="Título" required />
                 <label class="block text-sm">
@@ -235,9 +236,10 @@
             </fieldset>
             <button type="submit" class="pm-btn pm-btn--primary">Criar cartão</button>
         </form>
+        </x-jirau.dialog>
 
-        <section class="jirau-members" data-jirau-panel="steps" hidden>
-            <h2>Etapas do projeto</h2>
+        <x-jirau.dialog name="steps" title="Etapas do projeto" wide>
+            <div class="jirau-members jirau-members--dialog">
             <p>O % da ficha do projeto segue as etapas. Junte-as a este Jirau ou crie novas daqui — vice-versa na ficha.</p>
             <ul class="jirau-members__list">
                 @forelse($jirau->project?->steps ?? [] as $step)
@@ -281,10 +283,12 @@
                     <button type="submit" class="pm-btn pm-btn--ghost" @disabled($unlinkedSteps->isEmpty())>Trazer para este Jirau</button>
                 </form>
             </div>
-        </section>
+            </div>
+        </x-jirau.dialog>
 
-        <section class="jirau-members" data-jirau-panel="members" @if(! $errors->hasAny(['name', 'username', 'email', 'password', 'login'])) hidden @endif>
-            <h2>Pessoas do Jirau</h2>
+        @php $membersOpen = $errors->hasAny(['name', 'username', 'email', 'password', 'login']); @endphp
+        <x-jirau.dialog name="members" title="Pessoas do Jirau" :open="$membersOpen" wide>
+            <div class="jirau-members jirau-members--dialog">
             <p>Membros entram só neste quadro. Podem criar demandas, sem alocar faixa nem estimativa.</p>
             <ul class="jirau-members__list">
                 @forelse($jirau->members->sortBy('name') as $member)
@@ -324,7 +328,8 @@
                     <button type="submit" class="pm-btn pm-btn--ghost">Adicionar ao Jirau</button>
                 </form>
             </div>
-        </section>
+            </div>
+        </x-jirau.dialog>
     @endif
 
     <div class="jirau-board" data-jirau-lanes>
@@ -332,6 +337,12 @@
             @include('jirau.partials.column')
         @endforeach
     </div>
+
+    @if($isAdmin)
+        @foreach($jirau->columns as $column)
+            @include('jirau.partials.column-settings-dialog')
+        @endforeach
+    @endif
 </div>
 
 @if($openCard)

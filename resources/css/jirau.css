@@ -23,6 +23,113 @@ html:has([data-jirau-shell]) .admin-content:has(.jirau-home) {
     gap: 0.55rem;
 }
 
+.jirau-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border-radius: 999px;
+    padding: 0.42rem 0.85rem;
+    font-size: 0.8rem;
+    font-weight: 750;
+    line-height: 1.2;
+    border: 1px solid transparent;
+    background: var(--admin-chip, var(--color-panel));
+    color: inherit;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.jirau-action:hover {
+    filter: brightness(1.06);
+}
+
+.jirau-action--card {
+    background: color-mix(in oklab, #2f6bff 16%, transparent);
+    border-color: color-mix(in oklab, #2f6bff 28%, transparent);
+    color: #1d4ed8;
+}
+
+.jirau-action--board {
+    background: color-mix(in oklab, #16a34a 16%, transparent);
+    border-color: color-mix(in oklab, #16a34a 28%, transparent);
+    color: #15803d;
+}
+
+.jirau-action--filter {
+    background: color-mix(in oklab, #0891b2 16%, transparent);
+    border-color: color-mix(in oklab, #0891b2 28%, transparent);
+    color: #0e7490;
+}
+
+.jirau-action--steps {
+    background: color-mix(in oklab, #7c3aed 16%, transparent);
+    border-color: color-mix(in oklab, #7c3aed 28%, transparent);
+    color: #6d28d9;
+}
+
+.jirau-action--people {
+    background: color-mix(in oklab, #ea580c 16%, transparent);
+    border-color: color-mix(in oklab, #ea580c 28%, transparent);
+    color: #c2410c;
+}
+
+.jirau-action--analytics {
+    background: color-mix(in oklab, #0f766e 16%, transparent);
+    border-color: color-mix(in oklab, #0f766e 28%, transparent);
+    color: #0f766e;
+}
+
+.jirau-action--project {
+    background: color-mix(in oklab, #2563eb 16%, transparent);
+    border-color: color-mix(in oklab, #2563eb 28%, transparent);
+    color: #1d4ed8;
+}
+
+.jirau-action--column {
+    background: color-mix(in oklab, var(--jirau-col, #2f6bff) 16%, transparent);
+    border-color: color-mix(in oklab, var(--jirau-col, #2f6bff) 30%, transparent);
+    color: var(--jirau-col, #2f6bff);
+    padding: 0.32rem 0.65rem;
+    font-size: 0.72rem;
+}
+
+.jirau-action--warn {
+    background: color-mix(in oklab, #dc2626 14%, transparent);
+    border-color: color-mix(in oklab, #dc2626 28%, transparent);
+    color: #b91c1c;
+}
+
+.jirau-action--neutral {
+    border-color: var(--admin-glass-border, var(--color-line));
+}
+
+html.dark .jirau-action--card { color: #93c5fd; }
+html.dark .jirau-action--board { color: #86efac; }
+html.dark .jirau-action--filter { color: #67e8f9; }
+html.dark .jirau-action--steps { color: #c4b5fd; }
+html.dark .jirau-action--people { color: #fdba74; }
+html.dark .jirau-action--analytics { color: #5eead4; }
+html.dark .jirau-action--project { color: #93c5fd; }
+html.dark .jirau-action--warn { color: #fca5a5; }
+
+.jirau-rename {
+    display: inline-flex;
+    min-width: 0;
+    flex: 1 1 12rem;
+}
+
+.jirau-rename__input {
+    width: min(22rem, 100%);
+    font: inherit;
+    font-weight: 700;
+}
+
+[data-jirau-rename] {
+    cursor: text;
+}
+
 .jirau-rename-row {
     display: grid;
     gap: 0.25rem;
@@ -48,18 +155,97 @@ html:has([data-jirau-shell]) .admin-content:has(.jirau-home) {
 .jirau-home__grid {
     display: grid;
     gap: 1rem;
-    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(17.5rem, 1fr));
+    align-items: stretch;
 }
 
 .jirau-home__card {
-    display: block;
-    padding: 1.15rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    min-height: 13.5rem;
+    padding: 1.05rem 1.15rem 1rem;
     border: 1px solid var(--admin-glass-border, var(--color-line));
     border-radius: var(--admin-radius-sm, 1rem);
-    background: var(--admin-glass, var(--color-panel));
+    background:
+        linear-gradient(180deg, color-mix(in oklab, var(--jirau-col, #2f6bff) 14%, transparent), transparent 42%),
+        var(--admin-glass, var(--color-panel));
     box-shadow: var(--admin-shadow-soft);
-    text-decoration: none;
     color: inherit;
+    border-top: 3px solid var(--jirau-col, #2f6bff);
+    transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.jirau-home__card:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in oklab, var(--jirau-col, #2f6bff) 38%, var(--admin-glass-border, var(--color-line)));
+    box-shadow: 0 16px 32px rgba(15, 27, 45, 0.1);
+}
+
+.jirau-home__card.is-inactive {
+    opacity: 0.72;
+}
+
+.jirau-home__card.is-dragging {
+    opacity: 0.55;
+    transform: none;
+    box-shadow: 0 18px 36px rgba(15, 27, 45, 0.16);
+}
+
+.jirau-home__card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.65rem;
+}
+
+.jirau-home__tools {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.jirau-home__mark {
+    display: inline-flex;
+    height: 2rem;
+    width: 2rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.7rem;
+    background: color-mix(in oklab, var(--jirau-col, #2f6bff) 18%, transparent);
+    color: var(--jirau-col, #2f6bff);
+}
+
+.jirau-home__count {
+    min-width: 1.65rem;
+    height: 1.65rem;
+    padding: 0 0.35rem;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 750;
+    font-variant-numeric: tabular-nums;
+    background: color-mix(in oklab, var(--jirau-col, #2f6bff) 16%, transparent);
+    color: inherit;
+}
+
+.jirau-home__grip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid var(--admin-glass-border, var(--color-line));
+    border-radius: 0.65rem;
+    background: color-mix(in oklab, var(--admin-glass, var(--color-panel)) 80%, transparent);
+    color: var(--admin-muted, var(--color-mist));
+    cursor: grab;
+    touch-action: none;
+}
+
+.jirau-home__grip:active {
+    cursor: grabbing;
 }
 
 .jirau-home__kicker {
@@ -71,16 +257,59 @@ html:has([data-jirau-shell]) .admin-content:has(.jirau-home) {
 }
 
 .jirau-home__card h2 {
-    margin: 0.35rem 0 0.5rem;
+    margin: 0.28rem 0 0.55rem;
     font-family: var(--font-display);
-    font-size: 1.15rem;
+    font-size: 1.18rem;
+    line-height: 1.25;
+}
+
+.jirau-home__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-bottom: 0.55rem;
+}
+
+.jirau-home__meta {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--admin-muted, var(--color-mist));
+}
+
+.jirau-home__meta strong {
+    color: inherit;
+    font-variant-numeric: tabular-nums;
+}
+
+.jirau-home__open {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: auto;
+    align-self: start;
+    padding: 0.42rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 750;
+    color: var(--jirau-col, #2f6bff);
+    background: color-mix(in oklab, var(--jirau-col, #2f6bff) 12%, transparent);
+    border: 1px solid color-mix(in oklab, var(--jirau-col, #2f6bff) 22%, transparent);
+    text-decoration: none;
+}
+
+.jirau-home__open:hover {
+    filter: brightness(1.06);
 }
 
 .jirau-home__empty {
     grid-column: 1 / -1;
-    padding: 1.5rem;
+    display: grid;
+    gap: 0.85rem;
+    justify-items: start;
+    padding: 1.6rem;
     border: 1px dashed var(--admin-glass-border, var(--color-line));
     border-radius: 1rem;
+    background: color-mix(in oklab, var(--admin-glass, var(--color-panel)) 70%, transparent);
 }
 
 .jirau-filters,
@@ -184,8 +413,23 @@ html:has([data-jirau-shell]) .admin-content:has(.jirau-home) {
     box-shadow: var(--admin-shadow, 0 24px 60px rgba(0, 0, 0, 0.35));
 }
 
-.jirau-dialog__panel--board {
-    width: min(100%, 34rem);
+.jirau-dialog__panel--board,
+.jirau-dialog__panel--wide {
+    width: min(100%, 44rem);
+}
+
+.jirau-filters--dialog,
+.jirau-compose--dialog,
+.jirau-members--dialog {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.jirau-filters--dialog {
+    display: grid;
 }
 
 .jirau-dialog__head {
@@ -447,6 +691,13 @@ html:has([data-jirau-shell]) .admin-content:has(.jirau-home) {
     display: flex;
     align-items: flex-start;
     gap: 0.35rem;
+    min-width: 0;
+}
+
+.jirau-column__name {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
     min-width: 0;
 }
 
@@ -728,6 +979,7 @@ html:has([data-jirau-shell]) .admin-content:has(.jirau-home) {
 .jirau-column__count {
     min-width: 1.6rem;
     height: 1.6rem;
+    flex: none;
     border-radius: 999px;
     display: grid;
     place-items: center;

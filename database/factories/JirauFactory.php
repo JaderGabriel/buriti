@@ -24,6 +24,7 @@ class JirauFactory extends Factory
             'name' => 'Jirau '.fake()->unique()->word(),
             'template' => JirauTemplate::Development,
             'is_active' => true,
+            'sort_order' => 0,
             'created_by' => User::factory(),
         ];
     }

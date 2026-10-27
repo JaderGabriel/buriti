@@ -725,4 +725,51 @@ class TelegramBotTest extends TestCase
                 && str_contains($text, 'Abrir cartão');
         });
     }
+
+    public function test_status_and_jiraus_exclude_demo_board(): void
+    {
+        $this->loginAdmin();
+
+        $real = Jirau::factory()->create([
+            'name' => 'Portal fiscal',
+            'created_by' => $this->admin->id,
+        ]);
+        $demo = Jirau::factory()->create([
+            'name' => Jirau::DEMO_NAME,
+            'created_by' => $this->admin->id,
+        ]);
+        JirauCard::factory()->create([
+            'jirau_id' => $real->id,
+            'column_id' => $real->inboxColumn()?->id,
+            'title' => 'Pedido real',
+        ]);
+        JirauCard::factory()->create([
+            'jirau_id' => $demo->id,
+            'column_id' => $demo->inboxColumn()?->id,
+            'title' => 'Pedido do Demo',
+        ]);
+
+        $this->postWebhook([
+            'message' => ['chat' => ['id' => 999001], 'text' => '/jiraus'],
+        ])->assertOk();
+
+        Http::assertSent(function ($request) {
+            $text = (string) ($request->data()['text'] ?? '');
+
+            return str_contains($text, 'Portal fiscal')
+                && ! str_contains($text, Jirau::DEMO_NAME)
+                && ! str_contains($text, 'Pedido do Demo');
+        });
+
+        $this->postWebhook([
+            'message' => ['chat' => ['id' => 999001], 'text' => '/status'],
+        ])->assertOk();
+
+        Http::assertSent(function ($request) {
+            $text = (string) ($request->data()['text'] ?? '');
+
+            return str_contains($text, 'Jiraus ativos: <b>1</b>')
+                && str_contains($text, 'Cartões abertos: <b>1</b> (inbox: 1)');
+        });
+    }
 }

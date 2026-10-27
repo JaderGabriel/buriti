@@ -70,6 +70,35 @@ class JirauOverviewAndStaffTest extends TestCase
         $this->assertStringContainsString('jirau-card__hit', $html);
     }
 
+    public function test_overview_excludes_demo_board_cards_and_count(): void
+    {
+        $admin = User::factory()->create();
+        $real = Jirau::factory()->create(['name' => 'Portal cliente', 'created_by' => $admin->id]);
+        $demo = Jirau::factory()->create([
+            'name' => Jirau::DEMO_NAME,
+            'created_by' => $admin->id,
+        ]);
+
+        JirauCard::factory()->create([
+            'jirau_id' => $real->id,
+            'column_id' => $real->inboxColumn()->id,
+            'title' => 'Demanda real',
+        ]);
+        JirauCard::factory()->create([
+            'jirau_id' => $demo->id,
+            'column_id' => $demo->inboxColumn()->id,
+            'title' => 'Cartão do Demo',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('jirau.overview'))
+            ->assertOk()
+            ->assertSee('Demanda real', false)
+            ->assertSee('1 quadro no filtro', false)
+            ->assertDontSee('Cartão do Demo', false)
+            ->assertDontSee(Jirau::DEMO_NAME, false);
+    }
+
     public function test_inactive_boards_are_hidden_from_overview_until_filtered(): void
     {
         $admin = User::factory()->create();
@@ -134,8 +163,9 @@ class JirauOverviewAndStaffTest extends TestCase
         $this->actingAs($admin)
             ->get(route('jirau.show', $jirau))
             ->assertOk()
-            ->assertSee('Renomear', false)
-            ->assertSee('jirau-rename-board-dialog', false);
+            ->assertSee('data-jirau-rename="board"', false)
+            ->assertSee('data-jirau-rename-form="board"', false)
+            ->assertDontSee('jirau-rename-board-dialog', false);
 
         $this->actingAs($admin)
             ->from(route('jirau.show', $jirau))
@@ -175,8 +205,8 @@ class JirauOverviewAndStaffTest extends TestCase
         $this->actingAs($member)
             ->get(route('jirau.show', $jirau))
             ->assertOk()
-            ->assertDontSee('Renomear', false)
-            ->assertDontSee('jirau-rename-board-dialog', false);
+            ->assertDontSee('data-jirau-rename="board"', false)
+            ->assertDontSee('data-jirau-rename-form="board"', false);
 
         $this->assertSame('Quadro original', $jirau->fresh()->name);
     }

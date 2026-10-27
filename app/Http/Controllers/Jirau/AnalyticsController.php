@@ -33,13 +33,14 @@ class AnalyticsController extends Controller
             : null;
 
         $boardOptions = Jirau::query()
+            ->withoutDemo()
             ->with('project:id,name')
             ->when($filters['projeto'], fn ($q) => $q->where('project_id', $filters['projeto']))
             ->orderBy('name')
             ->get(['id', 'name', 'project_id', 'is_active']);
 
         return view('jirau.analytics', [
-            'jirau' => $selectedBoard,
+            'jirau' => $selectedBoard && ! $selectedBoard->isDemo() ? $selectedBoard : null,
             'isAdmin' => true,
             'metrics' => $this->metrics->snapshot($user, $filters),
             'filters' => $filters,
@@ -47,7 +48,7 @@ class AnalyticsController extends Controller
             'priorities' => JirauCardPriority::options(),
             'templates' => JirauTemplate::options(),
             'projects' => Project::query()
-                ->whereHas('jiraus')
+                ->whereHas('jiraus', fn ($q) => $q->withoutDemo())
                 ->orderBy('name')
                 ->get(['id', 'name']),
             'boardOptions' => $boardOptions,

@@ -174,6 +174,42 @@ class JirauEvidenceAndNotifyTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_demo_board_does_not_notify_actions_or_due_reminders(): void
+    {
+        $this->fakeTelegramApi();
+
+        $admin = User::factory()->telegramLinked('555001')->create();
+        $demo = Jirau::factory()->create([
+            'name' => Jirau::DEMO_NAME,
+            'created_by' => $admin->id,
+        ]);
+        $member = User::factory()->withoutAdminAccess()->create();
+        $demo->members()->attach($member->id);
+
+        $this->actingAs($member)
+            ->post(route('jirau.demands.store', $demo), [
+                'title' => 'Pedido do Demo',
+                'priority' => JirauCardPriority::High->value,
+            ])
+            ->assertRedirect();
+
+        Http::assertNothingSent();
+        $this->assertTrue(JirauCard::query()->where('title', 'Pedido do Demo')->exists());
+
+        $doing = $demo->columns()->where('slug', 'doing')->first();
+        $card = JirauCard::factory()->create([
+            'jirau_id' => $demo->id,
+            'column_id' => $doing->id,
+            'title' => 'Prazo do Demo',
+            'due_at' => now()->addMinutes(8),
+            'telegram_reminder_sent_at' => null,
+        ]);
+
+        $this->artisan('jirau:telegram-reminders')->assertSuccessful();
+        $this->assertNull($card->fresh()->telegram_reminder_sent_at);
+        Http::assertNothingSent();
+    }
+
     public function test_admin_can_assign_column_watchers_and_member_cannot(): void
     {
         [$jirau, $member] = $this->boardWithMember();
@@ -198,7 +234,8 @@ class JirauEvidenceAndNotifyTest extends TestCase
         $this->actingAs($admin)
             ->get(route('jirau.show', $jirau))
             ->assertOk()
-            ->assertSee('Avisar', false)
+            ->assertSee('Faixa', false)
+            ->assertSee('Quem avisar', false)
             ->assertSee('Lia Tester', false);
     }
 

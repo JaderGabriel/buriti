@@ -8,8 +8,11 @@ use App\Models\Contact;
 use App\Models\Opportunity;
 use App\Models\OpportunityStageEvent;
 use App\Models\Project;
+use App\Models\Task;
 use App\Models\User;
+use App\Services\SettingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -25,6 +28,7 @@ class CrmConsolidationTest extends TestCase
         $this->admin = User::factory()->create();
         $this->admin->forceFill(['telegram_chat_id' => '999001'])->save();
         config(['services.telegram.bot_token' => 'test-token']);
+        Cache::flush();
     }
 
     public function test_opportunity_can_exist_without_company(): void
@@ -134,16 +138,23 @@ class CrmConsolidationTest extends TestCase
         $this->assertSame($contact->company_id, $opportunity->fresh()->company_id);
     }
 
-    public function test_follow_up_notifies_stale_opportunities(): void
+    public function test_follow_up_sends_one_weekly_summary_without_stale_notice(): void
     {
-        app(\App\Services\SettingService::class)->putMany([
+        app(SettingService::class)->putMany([
             'telegram_notify_chat_id' => '999001',
         ]);
 
         Opportunity::factory()->create([
-            'title' => 'Negociação parada',
+            'title' => 'Cadastro recente',
             'stage' => OpportunityStage::Negotiation,
-            'updated_at' => now()->subDays(10),
+            'created_at' => now()->subDays(4),
+            'updated_at' => now()->subDays(4),
+        ]);
+        Opportunity::factory()->create([
+            'title' => 'Outra negociação',
+            'stage' => OpportunityStage::Proposal,
+            'created_at' => now()->subDays(4),
+            'updated_at' => now()->subDays(4),
         ]);
 
         Http::fake([
@@ -151,10 +162,26 @@ class CrmConsolidationTest extends TestCase
         ]);
 
         $this->artisan('opportunities:follow-up', ['--days' => 7])
-            ->expectsOutputToContain('1 avisos enviados')
+            ->expectsOutputToContain('enviado, 1 chat')
             ->assertSuccessful();
 
-        Http::assertSent(fn ($request) => str_contains($request->url(), 'sendMessage'));
+        Http::assertSentCount(1);
+        Http::assertSent(function ($request) {
+            $text = (string) ($request->data()['text'] ?? '');
+
+            return str_contains($request->url(), 'sendMessage')
+                && str_contains($text, 'Resumo comercial da semana')
+                && str_contains($text, 'Oportunidades abertas')
+                && ! str_contains($text, 'sem actividade')
+                && ! str_contains($text, '7+ dias')
+                && ! str_contains($text, 'Cadastro recente');
+        });
+
+        $this->artisan('opportunities:follow-up', ['--days' => 7])
+            ->expectsOutputToContain('já enviado nesta semana')
+            ->assertSuccessful();
+
+        Http::assertSentCount(1);
     }
 
     public function test_featured_project_appears_in_home_highlight(): void
@@ -182,7 +209,7 @@ class CrmConsolidationTest extends TestCase
     public function test_contact_activity_form_prefills_task_from_query(): void
     {
         $contact = Contact::factory()->create();
-        $task = \App\Models\Task::factory()->create([
+        $task = Task::factory()->create([
             'contact_id' => $contact->id,
             'title' => 'Reunião prefilling',
         ]);

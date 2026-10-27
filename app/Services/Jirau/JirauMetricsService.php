@@ -163,6 +163,7 @@ class JirauMetricsService
     private function boards(User $actor, array $filters): Collection
     {
         $query = $this->access->visibleQuery($actor)
+            ->withoutDemo()
             ->with(['project:id,name', 'columns'])
             ->orderBy('name')
             ->orderBy('id');

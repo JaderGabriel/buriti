@@ -3,75 +3,107 @@
 namespace App\Services;
 
 use App\Enums\OpportunityStage;
+use App\Models\Contact;
+use App\Models\ContactMessage;
+use App\Models\CrmActivity;
 use App\Models\Opportunity;
+use App\Models\OpportunityStageEvent;
+use App\Models\Task;
 use App\Models\User;
 use App\Services\Telegram\TelegramApiClient;
+use Illuminate\Support\Facades\Cache;
 
 class OpportunityFollowUpService
 {
+    public const CACHE_PREFIX = 'crm:telegram-weekly-digest:';
+
     public function __construct(
         private TelegramApiClient $telegram,
         private SettingService $settings,
+        private FunnelMetricsService $funnel,
     ) {}
 
     /**
-     * @return array{checked: int, notified: int}
+     * @return array{sent: bool, chats: int, skipped: bool}
      */
-    public function notifyStale(int $days = 7): array
+    public function notifyWeeklySummary(int $days = 7, bool $force = false): array
     {
-        $cutoff = now()->subDays(max(1, $days));
+        $days = max(1, $days);
+        $weekKey = self::CACHE_PREFIX.now()->format('o-W');
 
-        $opportunities = Opportunity::query()
-            ->with(['contact', 'clientCompany'])
-            ->whereIn('stage', [
-                OpportunityStage::Qualified->value,
-                OpportunityStage::Proposal->value,
-                OpportunityStage::Negotiation->value,
-            ])
-            ->whereDoesntHave('activities', fn ($q) => $q->where('happened_at', '>=', $cutoff))
-            ->get();
+        if (! $force && Cache::has($weekKey)) {
+            return ['sent' => false, 'chats' => 0, 'skipped' => true];
+        }
 
-        $notified = 0;
-        foreach ($opportunities as $opportunity) {
-            if ($this->notify($opportunity, $days)) {
-                $notified++;
+        $chatIds = $this->chatIds();
+        if ($chatIds === [] || ! $this->telegram->configured()) {
+            return ['sent' => false, 'chats' => 0, 'skipped' => false];
+        }
+
+        $text = $this->summaryText($days);
+        $chats = 0;
+        foreach ($chatIds as $chatId) {
+            if ($this->telegram->sendMessage($chatId, $text)) {
+                $chats++;
             }
+        }
+
+        if ($chats > 0) {
+            Cache::put($weekKey, true, now()->addDays($days + 1));
         }
 
         return [
-            'checked' => $opportunities->count(),
-            'notified' => $notified,
+            'sent' => $chats > 0,
+            'chats' => $chats,
+            'skipped' => false,
         ];
     }
 
-    private function notify(Opportunity $opportunity, int $days): bool
+    private function summaryText(int $days): string
     {
-        $chatIds = $this->chatIds();
-        if ($chatIds === [] || ! $this->telegram->configured()) {
-            return false;
+        $from = now()->subDays($days)->startOfDay();
+        $funnel = $this->funnel->snapshot();
+        $openCount = Opportunity::query()->open()->count();
+        $openValue = (float) Opportunity::query()->open()->sum('value');
+        $stageBits = [];
+        foreach ([
+            OpportunityStage::Lead,
+            OpportunityStage::Qualified,
+            OpportunityStage::Proposal,
+            OpportunityStage::Negotiation,
+        ] as $stage) {
+            $count = (int) ($funnel['count_by_stage'][$stage->value] ?? 0);
+            $stageBits[] = $stage->label().' '.$count;
         }
 
-        $url = route('admin.opportunities.edit', $opportunity);
-        $stage = $opportunity->stage?->label() ?? $opportunity->stage?->value;
-        $text = implode("\n", array_filter([
-            '⏳ <b>Follow-up comercial</b>',
+        $won = OpportunityStageEvent::query()
+            ->where('to_stage', OpportunityStage::Won->value)
+            ->where('changed_at', '>=', $from)
+            ->count();
+        $lost = OpportunityStageEvent::query()
+            ->where('to_stage', OpportunityStage::Lost->value)
+            ->where('changed_at', '>=', $from)
+            ->count();
+
+        return implode("\n", array_filter([
+            '📊 <b>Resumo comercial da semana</b>',
+            $from->format('d/m').' – '.now()->format('d/m'),
             '',
-            'Oportunidade <b>'.$this->escape($opportunity->title).'</b> em <i>'.$this->escape((string) $stage).'</i>',
-            'sem actividade há '.$days.'+ dias.',
-            $opportunity->contact ? '👤 '.$this->escape($opportunity->contact->name) : null,
-            $opportunity->companyLabel() ? '🏢 '.$this->escape($opportunity->companyLabel()) : null,
+            'Novos contactos: <b>'.Contact::query()->where('created_at', '>=', $from)->count().'</b>',
+            'Actividades: <b>'.CrmActivity::query()->where('happened_at', '>=', $from)->count().'</b>',
+            'Oportunidades abertas: <b>'.$openCount.'</b> · '.$this->money($openValue),
+            implode(' · ', $stageBits),
+            'Fechadas na semana: ganhas <b>'.$won.'</b> · perdidas <b>'.$lost.'</b>',
+            'Tarefas em aberto: <b>'.Task::query()->open()->count().'</b>',
+            'Mensagens por ler: <b>'.ContactMessage::query()->unread()->count().'</b>',
             '',
-            '<a href="'.$this->escape($url).'">Abrir no admin</a>',
+            'CRM: <code>/oportunidades</code> · <code>/contatos</code> · <code>/tarefas</code>',
         ]));
+    }
 
-        $ok = false;
-        foreach ($chatIds as $chatId) {
-            if ($this->telegram->sendMessage($chatId, $text)) {
-                $ok = true;
-            }
-        }
-
-        return $ok;
+    private function money(float $value): string
+    {
+        return 'R$ '.number_format($value, 0, ',', '.');
     }
 
     /** @return list<string> */
@@ -82,11 +114,11 @@ class OpportunityFollowUpService
             ->where('is_active', true)
             ->whereNotNull('telegram_chat_id')
             ->pluck('telegram_chat_id')
-            ->map(fn ($id) => trim((string) $id))
+            ->map(fn ($id) => $this->normalizeChatId((string) $id))
             ->filter()
             ->values();
 
-        $notify = trim((string) ($this->settings->get('telegram_notify_chat_id') ?? ''));
+        $notify = $this->normalizeChatId((string) ($this->settings->get('telegram_notify_chat_id') ?? ''));
         if ($notify !== '') {
             $ids->push($notify);
         }
@@ -94,8 +126,10 @@ class OpportunityFollowUpService
         return $ids->unique()->values()->all();
     }
 
-    private function escape(string $value): string
+    private function normalizeChatId(string $id): string
     {
-        return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $id = trim($id);
+
+        return preg_match('/^-?\d+$/', $id) === 1 ? $id : '';
     }
 }

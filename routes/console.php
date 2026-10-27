@@ -19,6 +19,6 @@ Schedule::command('jirau:telegram-reminders')
     ->appendOutputTo(storage_path('logs/jirau-reminders.log'));
 
 Schedule::command('opportunities:follow-up')
-    ->dailyAt('09:00')
+    ->weeklyOn(1, '09:00')
     ->withoutOverlapping(30)
     ->appendOutputTo(storage_path('logs/opportunity-follow-ups.log'));

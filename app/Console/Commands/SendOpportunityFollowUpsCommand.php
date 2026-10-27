@@ -7,19 +7,29 @@ use Illuminate\Console\Command;
 
 class SendOpportunityFollowUpsCommand extends Command
 {
-    protected $signature = 'opportunities:follow-up {--days=7 : Dias sem actividade}';
+    protected $signature = 'opportunities:follow-up
+                            {--days=7 : Janela do resumo em dias}
+                            {--force : Enviar mesmo se já foi nesta semana}';
 
-    protected $description = 'Avisa no Telegram oportunidades paradas em qualified/proposta/negociação';
+    protected $description = 'Envia um resumo comercial semanal no Telegram';
 
     public function handle(OpportunityFollowUpService $followUps): int
     {
-        $days = max(1, (int) $this->option('days'));
-        $result = $followUps->notifyStale($days);
+        $result = $followUps->notifyWeeklySummary(
+            max(1, (int) $this->option('days')),
+            (bool) $this->option('force'),
+        );
+
+        if ($result['skipped']) {
+            $this->info('Resumo comercial já enviado nesta semana.');
+
+            return self::SUCCESS;
+        }
 
         $this->info(sprintf(
-            'Follow-ups: %d oportunidades paradas, %d avisos enviados.',
-            $result['checked'],
-            $result['notified']
+            'Resumo comercial: %s, %d chat(s).',
+            $result['sent'] ? 'enviado' : 'não enviado',
+            $result['chats'],
         ));
 
         return self::SUCCESS;

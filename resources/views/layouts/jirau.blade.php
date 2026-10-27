@@ -8,8 +8,8 @@
     $jirauFirstName = explode(' ', trim($jirauUser->name))[0] ?? 'olá';
     $runtimeVersions = $runtimeVersions ?? \App\Support\RuntimeVersions::labels();
     $navJiraus = ($jirauUser->is_admin || $jirauUser->jirau_role)
-        ? \App\Models\Jirau::query()->with('project')->orderBy('name')->get()
-        : $jirauUser->jiraus()->with('project')->orderBy('name')->get();
+        ? \App\Models\Jirau::query()->with('project')->orderBy('sort_order')->orderBy('name')->get()
+        : $jirauUser->jiraus()->with('project')->orderBy('sort_order')->orderBy('name')->get();
     $currentJirau = $jirau ?? null;
     $modules = \App\Support\AdminNavigation::modules($jirauUser, (int) ($adminUnreadMessages ?? 0));
     $currentModule = \App\Support\AdminNavigation::current($modules);
@@ -98,7 +98,7 @@
             </div>
             <div class="admin-topbar__right">
                 @if($jirauUser->is_admin)
-                    <button type="button" class="pm-btn pm-btn--primary" data-jirau-toggle="new-board">Novo quadro</button>
+                    <x-jirau.action tone="board" icon="plus" data-jirau-toggle="new-board">Novo quadro</x-jirau.action>
                 @endif
                 <span class="admin-user admin-user--chip">
                     @if($jirauUser->avatarUrl())

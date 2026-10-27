@@ -21,6 +21,10 @@ class JirauNotifier
 
     public function demandCreated(Jirau $jirau, JirauCard $card, User $actor): void
     {
+        if ($this->silenced($jirau)) {
+            return;
+        }
+
         $card->loadMissing(['column.watchers', 'assignee']);
 
         $this->deliver($this->cardMessage(
@@ -37,6 +41,10 @@ class JirauNotifier
 
     public function cardCreated(Jirau $jirau, JirauCard $card, User $actor): void
     {
+        if ($this->silenced($jirau)) {
+            return;
+        }
+
         $card->loadMissing(['column.watchers', 'assignee']);
 
         $this->deliver($this->cardMessage(
@@ -53,7 +61,7 @@ class JirauNotifier
 
     public function cardUpdated(Jirau $jirau, JirauCard $card, User $actor, array $changes): void
     {
-        if ($changes === []) {
+        if ($this->silenced($jirau) || $changes === []) {
             return;
         }
 
@@ -72,6 +80,10 @@ class JirauNotifier
 
     public function cardMoved(Jirau $jirau, JirauCard $card, User $actor, JirauColumn $from, JirauColumn $to, bool $cataloged): void
     {
+        if ($this->silenced($jirau)) {
+            return;
+        }
+
         $card->loadMissing(['column.watchers', 'assignee']);
         $to->loadMissing('watchers');
 
@@ -93,6 +105,10 @@ class JirauNotifier
 
     public function cardArchived(Jirau $jirau, JirauCard $card, User $actor): void
     {
+        if ($this->silenced($jirau)) {
+            return;
+        }
+
         $card->loadMissing(['column.watchers', 'assignee']);
 
         $this->deliver($this->cardMessage(
@@ -105,7 +121,7 @@ class JirauNotifier
 
     public function commentFromMember(Jirau $jirau, JirauCard $card, JirauComment $comment, User $actor): void
     {
-        if ($actor->is_admin) {
+        if ($actor->is_admin || $this->silenced($jirau)) {
             return;
         }
 
@@ -124,6 +140,10 @@ class JirauNotifier
 
     public function dueReminder(Jirau $jirau, JirauCard $card): void
     {
+        if ($this->silenced($jirau)) {
+            return;
+        }
+
         $card->loadMissing(['column.watchers', 'assignee']);
         $due = $card->due_at?->timezone(config('app.timezone'))?->format('d/m/Y H:i');
 
@@ -181,6 +201,13 @@ class JirauNotifier
         foreach ($this->chatIds() as $chatId) {
             $this->telegram->sendMessage($chatId, $text);
         }
+    }
+
+    private function silenced(Jirau $jirau): bool
+    {
+        $jirau->loadMissing('project');
+
+        return $jirau->isDemo();
     }
 
     /** @param  list<string|null>  $lines */

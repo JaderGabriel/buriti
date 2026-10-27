@@ -21,6 +21,7 @@ class JirauOverviewService
         $estado = in_array($estado, ['ativos', 'inativos', 'todos'], true) ? $estado : 'ativos';
 
         $boards = Jirau::query()
+            ->withoutDemo()
             ->when($estado === 'ativos', fn ($q) => $q->where('is_active', true))
             ->when($estado === 'inativos', fn ($q) => $q->where('is_active', false))
             ->orderBy('name')

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\JirauTemplate;
 use Database\Factories\JirauFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,6 +16,10 @@ class Jirau extends Model
     /** @use HasFactory<JirauFactory> */
     use HasFactory;
 
+    public const DEMO_NAME = 'Jirau DEMO';
+
+    public const DEMO_PROJECT_NAME = 'Jirau demonstração';
+
     protected $table = 'jiraus';
 
     protected $fillable = [
@@ -22,6 +27,7 @@ class Jirau extends Model
         'name',
         'template',
         'is_active',
+        'sort_order',
         'created_by',
     ];
 
@@ -30,6 +36,7 @@ class Jirau extends Model
         return [
             'template' => JirauTemplate::class,
             'is_active' => 'boolean',
+            'sort_order' => 'integer',
         ];
     }
 
@@ -63,6 +70,19 @@ class Jirau extends Model
         return $this->belongsToMany(User::class, 'jirau_members')
             ->withPivot('invited_by')
             ->withTimestamps();
+    }
+
+    public function scopeWithoutDemo(Builder $query): Builder
+    {
+        return $query
+            ->where('name', '!=', self::DEMO_NAME)
+            ->whereDoesntHave('project', fn (Builder $project) => $project->where('name', self::DEMO_PROJECT_NAME));
+    }
+
+    public function isDemo(): bool
+    {
+        return $this->name === self::DEMO_NAME
+            || $this->project?->name === self::DEMO_PROJECT_NAME;
     }
 
     public function inboxColumn(): ?JirauColumn

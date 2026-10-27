@@ -1078,6 +1078,7 @@ HTML;
     {
         $limit = $this->listLimit($argument);
         $items = Jirau::query()
+            ->withoutDemo()
             ->with('project:id,name')
             ->withCount([
                 'cards as open_count' => fn ($query) => $query
@@ -1910,13 +1911,15 @@ HTML;
         $tasks = Task::query()->open()->count();
         $activities = CrmActivity::query()->where('happened_at', '>=', now()->subDays(7))->count();
         $unread = ContactMessage::query()->unread()->count();
-        $jiraus = Jirau::query()->where('is_active', true)->count();
+        $jiraus = Jirau::query()->withoutDemo()->where('is_active', true)->count();
         $openCards = JirauCard::query()
             ->active()
+            ->whereHas('jirau', fn ($query) => $query->withoutDemo())
             ->whereHas('column', fn ($column) => $column->where('is_done', false))
             ->count();
         $inboxCards = JirauCard::query()
             ->active()
+            ->whereHas('jirau', fn ($query) => $query->withoutDemo())
             ->whereHas('column', fn ($column) => $column->where('is_inbox', true))
             ->count();
 

@@ -37,6 +37,7 @@ class SendJirauTelegramRemindersCommand extends Command
             ->where('due_at', '>=', $windowStart)
             ->where('due_at', '<=', $windowEnd)
             ->whereHas('column', fn ($query) => $query->where('is_done', false))
+            ->whereHas('jirau', fn ($query) => $query->withoutDemo())
             ->with(['jirau.project', 'column.watchers', 'assignee'])
             ->orderBy('due_at')
             ->get();
