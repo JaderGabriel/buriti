@@ -77,6 +77,8 @@ class JirauNotifier
 
         $title = $cataloged ? 'Demanda catalogada no Jirau' : 'Cartão movido no Jirau';
 
+        $due = $card->due_at?->timezone(config('app.timezone'))?->format('d/m/Y H:i');
+
         $this->deliver($this->cardMessage(
             $title,
             $jirau,
@@ -84,6 +86,7 @@ class JirauNotifier
             [
                 'Por: '.$this->escape($actor->name),
                 $this->escape($from->name).' → '.$this->escape($to->name),
+                $due ? 'Prazo: '.$this->escape($due) : null,
             ],
         ), $this->mergeUsers($to->watchers, $card->assignee));
     }

@@ -23,7 +23,7 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\Jirau\AnalyticsController as JirauAnalyticsController;
 use App\Http\Controllers\Jirau\BoardController as JirauBoardController;
 use App\Http\Controllers\Jirau\CardController as JirauCardController;
-use App\Http\Controllers\Jirau\ColumnWatcherController as JirauColumnWatcherController;
+use App\Http\Controllers\Jirau\ColumnController as JirauColumnController;
 use App\Http\Controllers\Jirau\EvidenceController as JirauEvidenceController;
 use App\Http\Controllers\Jirau\MemberController as JirauMemberController;
 use App\Http\Controllers\Jirau\OverviewController as JirauOverviewController;
@@ -80,12 +80,16 @@ Route::post('/admin/logout', [LoginController::class, 'destroy'])
 
 Route::prefix('jirau')->name('jirau.')->middleware(['auth', 'jirau'])->group(function () {
     Route::get('/', [JirauBoardController::class, 'home'])->name('home');
+    Route::post('/quadros', [JirauBoardController::class, 'store'])
+        ->middleware('throttle:20,1')
+        ->name('boards.store');
     Route::get('/analitica', [JirauAnalyticsController::class, 'index'])->name('analytics');
     Route::get('/geral', JirauOverviewController::class)->name('overview');
     Route::get('/equipe', [JirauStaffController::class, 'index'])->name('staff');
     Route::post('/equipe', [JirauStaffController::class, 'store'])->name('staff.store');
     Route::get('/{jirau}/analitica', [JirauAnalyticsController::class, 'show'])->name('analytics.show');
     Route::post('/{jirau}/estado', [JirauStatusController::class, 'update'])->name('status');
+    Route::put('/{jirau}', [JirauBoardController::class, 'update'])->name('update');
     Route::get('/{jirau}', [JirauBoardController::class, 'show'])->name('show');
 
     Route::post('/{jirau}/demandas', [JirauCardController::class, 'storeDemand'])
@@ -117,8 +121,12 @@ Route::prefix('jirau')->name('jirau.')->middleware(['auth', 'jirau'])->group(fun
         ->name('cards.links.store');
     Route::delete('/{jirau}/cartoes/{card}/links/{link}', [JirauEvidenceController::class, 'destroyLink'])
         ->name('cards.links.destroy');
-    Route::put('/{jirau}/faixas/{column}/avisos', [JirauColumnWatcherController::class, 'update'])
+    Route::put('/{jirau}/faixas/{column}', [JirauColumnController::class, 'update'])
+        ->name('columns.update');
+    Route::put('/{jirau}/faixas/{column}/avisos', [JirauColumnController::class, 'update'])
         ->name('columns.watchers');
+    Route::post('/{jirau}/faixas/ordenar', [JirauColumnController::class, 'reorder'])
+        ->name('columns.reorder');
 
     Route::post('/{jirau}/membros', [JirauMemberController::class, 'store'])->name('members.store');
     Route::delete('/{jirau}/membros/{user}', [JirauMemberController::class, 'destroy'])->name('members.destroy');

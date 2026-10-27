@@ -36,7 +36,7 @@
                 <span class="jirau-chip jirau-chip--warn">Aguardando triagem</span>
             @endif
             @if($card->due_at)
-                <span class="jirau-chip {{ $card->due_at->isPast() ? 'jirau-chip--warn' : '' }}">{{ $card->due_at->format('d/m') }}</span>
+                <span class="jirau-chip {{ $card->due_at->isPast() ? 'jirau-chip--warn' : '' }}" data-jirau-due>{{ $card->due_at->format('d/m') }}</span>
             @endif
             @if($progress['total'] > 0)
                 <span class="jirau-chip">{{ $progress['done'] }}/{{ $progress['total'] }}</span>

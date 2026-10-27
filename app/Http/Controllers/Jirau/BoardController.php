@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Jirau;
 
 use App\Enums\JirauCardPriority;
 use App\Enums\JirauCardType;
-use App\Enums\JirauTemplate;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Jirau\StoreBoardRequest;
+use App\Http\Requests\Jirau\UpdateBoardRequest;
 use App\Models\Jirau;
 use App\Models\JirauCard;
+use App\Models\Project;
 use App\Models\User;
 use App\Services\Jirau\JirauAccess;
 use App\Services\Jirau\JirauBoardService;
@@ -49,6 +51,33 @@ class BoardController extends Controller
             'jirau' => null,
             'isAdmin' => (bool) $user->is_admin,
         ]);
+    }
+
+    public function store(StoreBoardRequest $request): RedirectResponse
+    {
+        $project = Project::query()->findOrFail($request->projectId());
+
+        $jirau = $this->boards->createForProject(
+            $project,
+            $request->user(),
+            $request->boardName(),
+            $request->template(),
+        );
+
+        return redirect()
+            ->route('jirau.show', $jirau)
+            ->with('success', 'Jirau «'.$jirau->name.'» criado com o modelo '.$jirau->template->label().'.');
+    }
+
+    public function update(UpdateBoardRequest $request, Jirau $jirau): RedirectResponse
+    {
+        $this->access->assertView($request->user(), $jirau);
+
+        $this->boards->rename($jirau, $request->boardName());
+
+        return redirect()
+            ->back(fallback: route('jirau.show', $jirau))
+            ->with('success', 'Quadro renomeado para «'.$jirau->name.'».');
     }
 
     public function show(Request $request, Jirau $jirau): View
@@ -133,7 +162,6 @@ class BoardController extends Controller
             'estimates' => JirauBoardService::estimateOptions(),
             'assignees' => User::assignableOnJirau()->get(['id', 'name', 'jirau_role', 'is_admin']),
             'moveUrlTemplate' => url('/jirau/'.$jirau->id.'/cartoes/__ID__/mover'),
-            'templates' => JirauTemplate::cases(),
             'unlinkedSteps' => $jirau->project
                 ? $jirau->project->steps->filter(fn ($step) => $step->jirauCard === null)->values()
                 : collect(),

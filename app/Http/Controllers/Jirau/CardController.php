@@ -82,10 +82,14 @@ class CardController extends Controller
         app(JirauStepService::class)
             ->syncCompletionFromCard($moved->fresh(['column', 'projectStep']));
 
+        $moved = $moved->fresh();
+
         return response()->json([
             'ok' => true,
             'id' => $moved->id,
             'column_id' => $moved->column_id,
+            'due_at' => $moved->due_at?->timezone(config('app.timezone'))?->format('d/m'),
+            'due_past' => (bool) $moved->due_at?->isPast(),
         ]);
     }
 

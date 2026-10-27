@@ -202,6 +202,9 @@
                 @include('admin.partials.modulebar', ['moduleItems' => $moduleItems, 'moduleLabel' => $moduleLabel])
             </div>
             <div class="admin-topbar__right">
+                @if($jirauUser->is_admin)
+                    <button type="button" class="pm-btn pm-btn--primary" data-jirau-toggle="new-board">Novo quadro</button>
+                @endif
                 <span class="admin-user admin-user--chip">
                     @if($jirauUser->avatarUrl())
                         <img src="{{ $jirauUser->avatarUrl() }}" alt="" class="admin-user__avatar">
@@ -221,5 +224,9 @@
             @yield('content')
         </div>
     </div>
+
+    @if($jirauUser->is_admin)
+        @include('jirau.partials.create-board-dialog')
+    @endif
 </div>
 @endsection

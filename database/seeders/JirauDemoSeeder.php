@@ -21,6 +21,8 @@ class JirauDemoSeeder extends Seeder
 
     public const DEMO_PASSWORD = 'jirau-demo-2026';
 
+    public const DEMO_BOARD_NAME = 'Jirau DEMO';
+
     public function run(): void
     {
         $admin = User::query()->where('is_admin', true)->orderBy('id')->first();
@@ -43,8 +45,12 @@ class JirauDemoSeeder extends Seeder
         $jirau = $project->jirau ?: $boards->createForProject(
             $project,
             $admin ?? User::factory()->create(['name' => 'Admin Jirau']),
-            'Jirau · Demonstração',
+            self::DEMO_BOARD_NAME,
         );
+
+        if ($jirau->name !== self::DEMO_BOARD_NAME) {
+            $jirau->forceFill(['name' => self::DEMO_BOARD_NAME])->save();
+        }
 
         $member = User::query()->firstOrNew(['username' => self::DEMO_USERNAME]);
         $member->fill([

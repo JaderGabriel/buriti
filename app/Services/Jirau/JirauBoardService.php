@@ -47,6 +47,19 @@ class JirauBoardService
         });
     }
 
+    public function rename(Jirau $jirau, string $name): Jirau
+    {
+        $from = $jirau->name;
+        $jirau->forceFill(['name' => $name])->save();
+
+        $this->audit->record('jirau.renamed', $jirau, [
+            'summary' => $name,
+            'from' => $from,
+        ]);
+
+        return $jirau;
+    }
+
     public function provisionDefaults(Jirau $jirau, ?JirauTemplate $template = null): void
     {
         $template ??= $jirau->template ?? JirauTemplate::Development;
@@ -100,6 +113,10 @@ class JirauBoardService
             }
         }
         $max = (int) $jirau->cards()->where('column_id', $column->id)->max('sort_order');
+        $due = $data['due_at'] ?? null;
+        if ($due === null || $due === '') {
+            $due = $column->dueFromDefault();
+        }
 
         $card = $jirau->cards()->create([
             'column_id' => $column->id,
@@ -110,7 +127,7 @@ class JirauBoardService
             'type' => $data['type'] ?? JirauCardType::Task->value,
             'priority' => $data['priority'] ?? JirauCardPriority::Medium->value,
             'estimate' => $data['estimate'] ?? null,
-            'due_at' => $data['due_at'] ?? null,
+            'due_at' => $due,
             'sort_order' => $max + 10,
             'triaged_at' => $column->is_inbox ? null : now(),
         ]);
@@ -217,6 +234,10 @@ class JirauBoardService
         $card->column_id = $column->id;
         if ($fromInbox && ! $column->is_inbox && $card->triaged_at === null) {
             $card->triaged_at = now();
+        }
+        $arrived = ! $from || (int) $from->id !== (int) $column->id;
+        if ($arrived) {
+            $column->applyDefaultDueTo($card);
         }
         $card->save();
 

@@ -166,43 +166,44 @@
 
         @if($editing)
             <section class="pm-panel mt-6">
-                <header class="pm-panel__head">
+                <header class="pm-panel__head flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <h2>Jirau</h2>
                         <p>Um projeto pode ter vários quadros. Escolha o modelo ao criar: desenvolvimento, consultoria, treinamento ou atividades.</p>
                     </div>
+                    <button type="button" class="pm-btn pm-btn--primary" data-jirau-toggle="new-board">Adicionar quadro</button>
                 </header>
                 @if($project->jiraus->isNotEmpty())
                     <ul class="jirau-members__list mb-4">
                         @foreach($project->jiraus as $board)
                             <li>
-                                <span>
-                                    <strong>{{ $board->name }}</strong>
+                                <form method="POST" action="{{ route('jirau.update', $board) }}" class="jirau-rename-row">
+                                    @csrf
+                                    @method('PUT')
+                                    <input
+                                        type="text"
+                                        name="board_name"
+                                        value="{{ $board->name }}"
+                                        required
+                                        maxlength="120"
+                                        aria-label="Nome do quadro"
+                                        class="jirau-input"
+                                    >
                                     <small>{{ $board->template?->label() }}{{ $board->is_active ? '' : ' · inativo' }}</small>
-                                </span>
+                                    <button type="submit" class="pm-card__btn">Salvar nome</button>
+                                </form>
                                 <a href="{{ route('jirau.show', $board) }}" class="pm-btn pm-btn--ghost">Abrir</a>
                             </li>
                         @endforeach
                     </ul>
+                @else
+                    <p class="pm-board__empty">Ainda sem quadro. Use o botão para criar o primeiro Jirau deste projeto.</p>
                 @endif
-                <form method="POST" action="{{ route('admin.projects.jirau.store', $project) }}" class="space-y-3">
-                    @csrf
-                    <x-ui.input name="name" label="Nome do quadro (opcional)" />
-                    <fieldset class="jirau-templates">
-                        <legend>Modelo</legend>
-                        @foreach(\App\Enums\JirauTemplate::cases() as $template)
-                            <label class="jirau-template">
-                                <input type="radio" name="template" value="{{ $template->value }}" @checked($template === \App\Enums\JirauTemplate::Development) required>
-                                <span>
-                                    <strong>{{ $template->label() }}</strong>
-                                    <small>{{ $template->description() }}</small>
-                                </span>
-                            </label>
-                        @endforeach
-                    </fieldset>
-                    <button type="submit" class="pm-btn pm-btn--primary">{{ $project->jiraus->isEmpty() ? 'Criar Jirau' : 'Criar outro quadro' }}</button>
-                </form>
             </section>
+            @include('jirau.partials.create-board-dialog', [
+                'lockProject' => true,
+                'selectedProject' => $project,
+            ])
 
             <section class="pm-panel mt-6">
                 <header class="pm-panel__head">

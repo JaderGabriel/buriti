@@ -13,6 +13,7 @@
         </div>
         <div class="jirau-workspace__actions">
             @if($isAdmin)
+                <button type="button" class="pm-btn pm-btn--primary" data-jirau-toggle="new-board">Novo quadro</button>
                 <a href="{{ route('jirau.overview') }}" class="pm-btn pm-btn--ghost">Quadro geral</a>
                 <a href="{{ route('jirau.staff') }}" class="pm-btn pm-btn--ghost">Equipe</a>
                 <a href="{{ route('jirau.analytics') }}" class="pm-btn pm-btn--ghost">Analítica</a>
@@ -36,8 +37,8 @@
         @empty
             <div class="jirau-home__empty">
                 @if($isAdmin)
-                    <p>Nenhum Jirau ainda. Abra um projeto em andamento e crie o quadro.</p>
-                    <a href="{{ route('admin.projects.index') }}" class="pm-btn pm-btn--primary">Ir aos projetos</a>
+                    <p>Nenhum Jirau ainda. Escolha um projeto existente e crie o quadro aqui.</p>
+                    <button type="button" class="pm-btn pm-btn--primary" data-jirau-toggle="new-board">Adicionar quadro</button>
                 @else
                     <p>Você ainda não foi convidado para um Jirau.</p>
                 @endif

@@ -53,6 +53,7 @@ class JirauTemplateAndStepsTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.projects.edit', $project))
             ->assertOk()
+            ->assertSee('Adicionar quadro', false)
             ->assertSee('Criar outro quadro', false)
             ->assertSee('Consultoria', false)
             ->assertSee('Treinamento', false)
@@ -68,6 +69,63 @@ class JirauTemplateAndStepsTest extends TestCase
             ->assertSee('Novo quadro', false)
             ->assertSee('Nova etapa', false)
             ->assertSee('Juntar etapas soltas', false);
+    }
+
+    public function test_admin_can_create_board_from_jirau_home_without_opening_project(): void
+    {
+        $admin = User::factory()->create();
+        $alpha = Project::factory()->create(['name' => 'Cliente Alfa']);
+        $beta = Project::factory()->create(['name' => 'Cliente Beta']);
+
+        $this->actingAs($admin)
+            ->get(route('jirau.home'))
+            ->assertOk()
+            ->assertSee('Novo quadro', false)
+            ->assertSee('jirau-create-board-dialog', false)
+            ->assertSee('Cliente Alfa', false)
+            ->assertSee('Cliente Beta', false)
+            ->assertSee('Consultoria', false);
+
+        $this->actingAs($admin)
+            ->from(route('jirau.home'))
+            ->post(route('jirau.boards.store'), [
+                'project_id' => $beta->id,
+                'board_name' => 'Consultoria Beta',
+                'template' => JirauTemplate::Consulting->value,
+                '_board_create' => '1',
+            ])
+            ->assertRedirect();
+
+        $board = Jirau::query()->where('name', 'Consultoria Beta')->first();
+        $this->assertNotNull($board);
+        $this->assertSame($beta->id, $board->project_id);
+        $this->assertSame(JirauTemplate::Consulting, $board->template);
+        $this->assertSame(0, $alpha->jiraus()->count());
+        $this->assertSame(1, $beta->jiraus()->count());
+    }
+
+    public function test_create_board_from_jirau_requires_existing_project(): void
+    {
+        $admin = User::factory()->create();
+
+        $this->actingAs($admin)
+            ->from(route('jirau.home'))
+            ->post(route('jirau.boards.store'), [
+                'template' => JirauTemplate::Development->value,
+                '_board_create' => '1',
+            ])
+            ->assertSessionHasErrors('project_id');
+
+        $this->actingAs($admin)
+            ->from(route('jirau.home'))
+            ->post(route('jirau.boards.store'), [
+                'project_id' => 99999,
+                'template' => JirauTemplate::Development->value,
+                '_board_create' => '1',
+            ])
+            ->assertSessionHasErrors('project_id');
+
+        $this->assertSame(0, Jirau::query()->count());
     }
 
     public function test_unknown_template_is_rejected(): void
@@ -98,6 +156,13 @@ class JirauTemplateAndStepsTest extends TestCase
                 'template' => JirauTemplate::Activities->value,
             ])
             ->assertRedirect(route('jirau.home'));
+
+        $this->actingAs($member)
+            ->post(route('jirau.boards.store'), [
+                'project_id' => $project->id,
+                'template' => JirauTemplate::Activities->value,
+            ])
+            ->assertForbidden();
 
         $this->actingAs($member)
             ->post(route('jirau.steps.import', $jirau))

@@ -123,6 +123,64 @@ class JirauOverviewAndStaffTest extends TestCase
         $this->assertFalse($jirau->fresh()->is_active);
     }
 
+    public function test_admin_can_rename_a_board(): void
+    {
+        $admin = User::factory()->create();
+        $jirau = Jirau::factory()->create([
+            'created_by' => $admin->id,
+            'name' => 'Quadro antigo',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('jirau.show', $jirau))
+            ->assertOk()
+            ->assertSee('Renomear', false)
+            ->assertSee('jirau-rename-board-dialog', false);
+
+        $this->actingAs($admin)
+            ->from(route('jirau.show', $jirau))
+            ->put(route('jirau.update', $jirau), [
+                'board_name' => '  Jirau DEMO  ',
+                '_board_rename' => '1',
+            ])
+            ->assertRedirect();
+
+        $this->assertSame('Jirau DEMO', $jirau->fresh()->name);
+    }
+
+    public function test_rename_rejects_blank_name_and_members_cannot_rename(): void
+    {
+        $admin = User::factory()->create();
+        $jirau = Jirau::factory()->create([
+            'created_by' => $admin->id,
+            'name' => 'Quadro original',
+        ]);
+        $member = User::factory()->withoutAdminAccess()->create();
+        $jirau->members()->attach($member->id);
+
+        $this->actingAs($admin)
+            ->from(route('jirau.show', $jirau))
+            ->put(route('jirau.update', $jirau), [
+                'board_name' => '   ',
+                '_board_rename' => '1',
+            ])
+            ->assertSessionHasErrors('board_name');
+
+        $this->actingAs($member)
+            ->put(route('jirau.update', $jirau), [
+                'board_name' => 'Hack',
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($member)
+            ->get(route('jirau.show', $jirau))
+            ->assertOk()
+            ->assertDontSee('Renomear', false)
+            ->assertDontSee('jirau-rename-board-dialog', false);
+
+        $this->assertSame('Quadro original', $jirau->fresh()->name);
+    }
+
     public function test_admin_creates_staff_and_assigns_card(): void
     {
         $admin = User::factory()->create();

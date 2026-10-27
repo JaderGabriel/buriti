@@ -131,6 +131,13 @@ class Project extends Model
         return $query->where('is_public', true);
     }
 
+    public function scopeForJirauPicker(Builder $query): Builder
+    {
+        return $query
+            ->orderByRaw("CASE status WHEN 'active' THEN 0 WHEN 'paused' THEN 1 ELSE 2 END")
+            ->orderBy('name');
+    }
+
     public function scopeOrdered(Builder $query): Builder
     {
         return $query

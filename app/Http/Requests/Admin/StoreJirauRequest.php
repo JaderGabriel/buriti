@@ -18,6 +18,7 @@ class StoreJirauRequest extends FormRequest
     {
         return [
             'name' => ['nullable', 'string', 'max:120'],
+            'board_name' => ['nullable', 'string', 'max:120'],
             'template' => ['required', Rule::enum(JirauTemplate::class)],
         ];
     }
@@ -29,7 +30,7 @@ class StoreJirauRequest extends FormRequest
 
     public function boardName(): ?string
     {
-        $name = trim((string) ($this->validated('name') ?? ''));
+        $name = trim((string) ($this->validated('board_name') ?? $this->validated('name') ?? ''));
 
         return $name !== '' ? $name : null;
     }

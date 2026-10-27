@@ -3233,14 +3233,123 @@ function initJirauBoard() {
                 column_id: Number(column.dataset.columnId),
                 ordered_ids: ids.map((value) => Number(value)),
             }),
+        }).then((response) => response.json()).then((data) => {
+            if (! data?.due_at) {
+                return;
+            }
+            const meta = card.querySelector('.jirau-card__meta');
+            if (! meta) {
+                return;
+            }
+            let chip = card.querySelector('[data-jirau-due]');
+            if (! chip) {
+                chip = document.createElement('span');
+                chip.className = 'jirau-chip';
+                chip.setAttribute('data-jirau-due', '');
+                meta.appendChild(chip);
+            }
+            chip.textContent = data.due_at;
+            chip.classList.toggle('jirau-chip--warn', Boolean(data.due_past));
         }).catch(() => {});
+    };
+
+    board.querySelectorAll('[data-jirau-color-picker]').forEach((picker) => {
+        picker.addEventListener('input', () => {
+            const radio = picker.closest('label')?.querySelector('[data-jirau-color-custom]');
+            if (radio) {
+                radio.value = picker.value;
+                radio.checked = true;
+            }
+        });
+    });
+
+    const reorderUrl = board.dataset.reorderUrl || '';
+    let colDrag = null;
+
+    const persistColumnOrder = () => {
+        if (! reorderUrl) {
+            return;
+        }
+        const ids = [...board.querySelectorAll('[data-jirau-column]')].map((el) => Number(el.dataset.columnId));
+        fetch(reorderUrl, {
+            method: 'POST',
+            headers: csrfHeaders(),
+            body: JSON.stringify({ ordered_ids: ids }),
+        }).catch(() => {});
+    };
+
+    const onColumnPointerDown = (event) => {
+        const handle = event.target.closest('[data-jirau-column-handle]');
+        if (! handle || event.button !== 0) {
+            return;
+        }
+        const column = handle.closest('[data-jirau-column]');
+        if (! column) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        colDrag = {
+            column,
+            pointerId: event.pointerId,
+            startX: event.clientX,
+            moved: false,
+        };
+        handle.setPointerCapture?.(event.pointerId);
+    };
+
+    const onColumnPointerMove = (event) => {
+        if (! colDrag || event.pointerId !== colDrag.pointerId) {
+            return;
+        }
+        if (! colDrag.moved && Math.abs(event.clientX - colDrag.startX) < MOVE_THRESHOLD) {
+            return;
+        }
+        colDrag.moved = true;
+        colDrag.column.classList.add('is-column-drag');
+        const target = columnOf(document.elementFromPoint(event.clientX, event.clientY));
+        if (! target || target === colDrag.column) {
+            return;
+        }
+        const parent = target.parentElement;
+        if (! parent) {
+            return;
+        }
+        const columns = [...parent.querySelectorAll(':scope > [data-jirau-column]')];
+        const from = columns.indexOf(colDrag.column);
+        const to = columns.indexOf(target);
+        if (from < 0 || to < 0 || from === to) {
+            return;
+        }
+        if (from < to) {
+            parent.insertBefore(colDrag.column, target.nextSibling);
+        } else {
+            parent.insertBefore(colDrag.column, target);
+        }
+    };
+
+    const onColumnPointerUp = (event) => {
+        if (! colDrag || event.pointerId !== colDrag.pointerId) {
+            return;
+        }
+        const moved = colDrag.moved;
+        colDrag.column.classList.remove('is-column-drag');
+        try {
+            event.target.releasePointerCapture?.(colDrag.pointerId);
+        } catch {
+            // ignore
+        }
+        colDrag = null;
+        if (moved) {
+            persistColumnOrder();
+        }
     };
 
     const onPointerDown = (event) => {
         if (event.button !== 0) {
             return;
         }
-        if (event.target.closest('button, input, textarea, select, label')) {
+        if (event.target.closest('button, input, textarea, select, label, details, summary, a')) {
             return;
         }
         const card = event.target.closest('[data-jirau-card]');
@@ -3330,6 +3439,10 @@ function initJirauBoard() {
         }
     };
 
+    board.addEventListener('pointerdown', onColumnPointerDown, true);
+    board.addEventListener('pointermove', onColumnPointerMove);
+    board.addEventListener('pointerup', onColumnPointerUp);
+    board.addEventListener('pointercancel', onColumnPointerUp);
     board.addEventListener('pointerdown', onPointerDown);
     board.addEventListener('pointermove', onPointerMove);
     board.addEventListener('pointerup', onPointerUp);

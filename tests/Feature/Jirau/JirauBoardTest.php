@@ -62,6 +62,9 @@ class JirauBoardTest extends TestCase
             ->assertSee('data-admin-nav-toggle', false)
             ->assertSee('admin-modulebar', false)
             ->assertDontSee('Novo cartão', false)
+            ->assertDontSee('Novo quadro', false)
+            ->assertDontSee('jirau-create-board-dialog', false)
+            ->assertDontSee('Renomear', false)
             ->getContent();
 
         $this->assertMatchesRegularExpression('/id="jirau-demand-dialog"[^>]*\bhidden\b/', $html);
@@ -341,7 +344,7 @@ class JirauBoardTest extends TestCase
             'username' => JirauDemoSeeder::DEMO_USERNAME,
             'is_admin' => 0,
         ]);
-        $this->assertTrue(Jirau::query()->where('name', 'Jirau · Demonstração')->exists());
+        $this->assertTrue(Jirau::query()->where('name', JirauDemoSeeder::DEMO_BOARD_NAME)->exists());
 
         $this->post(route('login'), [
             'login' => JirauDemoSeeder::DEMO_USERNAME,

@@ -5,16 +5,20 @@
     class="jirau-workspace"
     data-jirau-board
     data-move-url="{{ $moveUrlTemplate }}"
+    data-reorder-url="{{ route('jirau.columns.reorder', $jirau) }}"
     data-can-drag="{{ $isAdmin ? '1' : '0' }}"
 >
     <div class="jirau-workspace__header">
         <div>
             <p class="pm-workspace__eyebrow">Jirau · {{ $jirau->project?->name }}</p>
-            <h1 class="pm-workspace__title">
-                {{ $jirau->name }}
+            <h1 class="pm-workspace__title jirau-workspace__heading">
+                <span>{{ $jirau->name }}</span>
                 @unless($jirau->is_active)
                     <span class="jirau-chip jirau-chip--warn">Inativo</span>
                 @endunless
+                @if($isAdmin)
+                    <button type="button" class="pm-btn pm-btn--ghost" data-jirau-toggle="rename-board">Renomear</button>
+                @endif
             </h1>
             <p class="pm-workspace__lead">
                 {{ $jirau->template?->lead() ?? 'Demandas entram na triagem; o admin estima e posiciona.' }}
@@ -131,6 +135,36 @@
     @endif
 
     @if($isAdmin)
+        @php $renameOpen = old('_board_rename') === '1'; @endphp
+        <div
+            id="jirau-rename-board-dialog"
+            class="jirau-dialog"
+            data-jirau-panel="rename-board"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="jirau-rename-board-title"
+            aria-hidden="{{ $renameOpen ? 'false' : 'true' }}"
+            @unless($renameOpen) hidden @endunless
+        >
+            <button type="button" class="jirau-dialog__backdrop" data-jirau-dialog-close aria-label="Fechar"></button>
+            <div class="jirau-dialog__panel">
+                <div class="jirau-dialog__head">
+                    <div>
+                        <p class="jirau-dialog__eyebrow">Jirau</p>
+                        <h2 id="jirau-rename-board-title">Renomear quadro</h2>
+                    </div>
+                    <button type="button" class="jirau-dialog__close" data-jirau-dialog-close aria-label="Fechar">✕</button>
+                </div>
+                <form method="POST" action="{{ route('jirau.update', $jirau) }}" class="jirau-dialog__form">
+                    @csrf
+                    @method('PUT')
+                    <input type="hidden" name="_board_rename" value="1">
+                    <p>O nome aparece na lista de quadros, na ficha do projeto e no topo deste Jirau.</p>
+                    <x-ui.input name="board_name" label="Nome do quadro" :value="$jirau->name" required maxlength="120" />
+                    <button type="submit" class="pm-btn pm-btn--primary">Salvar nome</button>
+                </form>
+            </div>
+        </div>
         <form method="POST" action="{{ route('jirau.cards.store', $jirau) }}" class="jirau-compose" data-jirau-panel="new-card" enctype="multipart/form-data" hidden>
             @csrf
             <h2>Novo cartão</h2>
@@ -248,28 +282,6 @@
                 </form>
             </div>
         </section>
-
-        @if($jirau->project)
-            <form method="POST" action="{{ route('admin.projects.jirau.store', $jirau->project) }}" class="jirau-compose" data-jirau-panel="new-board" hidden>
-                @csrf
-                <h2>Novo Jirau neste projeto</h2>
-                <p>Um projeto pode ter vários quadros — por exemplo desenvolvimento e consultoria em paralelo.</p>
-                <x-ui.input name="name" label="Nome (opcional)" />
-                <fieldset class="jirau-templates">
-                    <legend>Modelo</legend>
-                    @foreach($templates as $template)
-                        <label class="jirau-template">
-                            <input type="radio" name="template" value="{{ $template->value }}" @checked($template === \App\Enums\JirauTemplate::Development) required>
-                            <span>
-                                <strong>{{ $template->label() }}</strong>
-                                <small>{{ $template->description() }}</small>
-                            </span>
-                        </label>
-                    @endforeach
-                </fieldset>
-                <button type="submit" class="pm-btn pm-btn--primary">Criar quadro</button>
-            </form>
-        @endif
 
         <section class="jirau-members" data-jirau-panel="members" @if(! $errors->hasAny(['name', 'username', 'email', 'password', 'login'])) hidden @endif>
             <h2>Pessoas do Jirau</h2>

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\JirauOverviewLane;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -19,6 +20,7 @@ class JirauColumn extends Model
         'is_inbox',
         'is_done',
         'color',
+        'default_due_hours',
     ];
 
     protected function casts(): array
@@ -28,7 +30,74 @@ class JirauColumn extends Model
             'is_done' => 'boolean',
             'wip_limit' => 'integer',
             'sort_order' => 'integer',
+            'default_due_hours' => 'integer',
         ];
+    }
+
+    /** @return array<int, string> */
+    public static function defaultDueOptions(): array
+    {
+        return [
+            2 => '2 horas',
+            4 => '4 horas',
+            8 => '8 horas',
+            24 => '1 dia',
+            48 => '2 dias',
+            72 => '3 dias',
+            120 => '5 dias',
+            168 => '1 semana',
+        ];
+    }
+
+    /** @return list<string> */
+    public static function colorOptions(): array
+    {
+        return [
+            '#c74634',
+            '#e24b35',
+            '#c4a035',
+            '#0f9d58',
+            '#2f6bff',
+            '#2f7ec4',
+            '#1a5f9e',
+            '#7c3aed',
+            '#5b6b82',
+        ];
+    }
+
+    public function defaultDueLabel(): ?string
+    {
+        if ($this->default_due_hours === null) {
+            return null;
+        }
+
+        return self::defaultDueOptions()[$this->default_due_hours] ?? $this->default_due_hours.'h';
+    }
+
+    public function dueFromDefault(?CarbonInterface $from = null): ?CarbonInterface
+    {
+        if ($this->default_due_hours === null || $this->default_due_hours < 1) {
+            return null;
+        }
+
+        return ($from ?? now())->addHours($this->default_due_hours);
+    }
+
+    public function applyDefaultDueTo(JirauCard $card): bool
+    {
+        if ($card->due_at !== null) {
+            return false;
+        }
+
+        $due = $this->dueFromDefault();
+        if (! $due) {
+            return false;
+        }
+
+        $card->due_at = $due;
+        $card->telegram_reminder_sent_at = null;
+
+        return true;
     }
 
     public function jirau(): BelongsTo
