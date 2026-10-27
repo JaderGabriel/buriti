@@ -31,6 +31,7 @@ use App\Http\Controllers\Jirau\OverviewController as JirauOverviewController;
 use App\Http\Controllers\Jirau\StaffController as JirauStaffController;
 use App\Http\Controllers\Jirau\StatusController as JirauStatusController;
 use App\Http\Controllers\Jirau\StepController as JirauStepController;
+use App\Http\Controllers\Jirau\TimeController as JirauTimeController;
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\TelegramWebhookController;
 use Illuminate\Support\Facades\Route;
@@ -104,6 +105,9 @@ Route::prefix('jirau')->name('jirau.')->middleware(['auth', 'jirau'])->group(fun
     Route::put('/{jirau}/cartoes/{card}', [JirauCardController::class, 'update'])->name('cards.update');
     Route::post('/{jirau}/cartoes/{card}/mover', [JirauCardController::class, 'move'])->name('cards.move');
     Route::post('/{jirau}/cartoes/{card}/arquivar', [JirauCardController::class, 'archive'])->name('cards.archive');
+    Route::post('/{jirau}/cartoes/{card}/tempo', [JirauTimeController::class, 'toggle'])
+        ->middleware('throttle:60,1')
+        ->name('cards.time.toggle');
     Route::match(['POST', 'PUT'], '/{jirau}/cartoes/{card}/comentarios', [JirauCardController::class, 'comment'])
         ->middleware('throttle:40,1')
         ->name('cards.comments.store');

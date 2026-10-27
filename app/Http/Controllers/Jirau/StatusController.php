@@ -7,6 +7,7 @@ use App\Http\Requests\Jirau\ToggleJirauActiveRequest;
 use App\Models\Jirau;
 use App\Services\AuditLogger;
 use App\Services\Jirau\JirauAccess;
+use App\Services\Jirau\JirauTimeService;
 use Illuminate\Http\RedirectResponse;
 
 class StatusController extends Controller
@@ -14,6 +15,7 @@ class StatusController extends Controller
     public function __construct(
         private JirauAccess $access,
         private AuditLogger $audit,
+        private JirauTimeService $time,
     ) {}
 
     public function update(ToggleJirauActiveRequest $request, Jirau $jirau): RedirectResponse
@@ -22,6 +24,9 @@ class StatusController extends Controller
         $this->access->assertView($request->user(), $jirau);
 
         $active = $request->boolean('is_active');
+        if (! $active) {
+            $this->time->pauseOnBoard($jirau);
+        }
         $jirau->forceFill(['is_active' => $active])->save();
 
         $this->audit->record('jirau.'.($active ? 'activated' : 'deactivated'), $jirau, [

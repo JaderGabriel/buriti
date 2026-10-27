@@ -41,10 +41,29 @@ class JirauAccess
         return $this->canView($user, $jirau) && $jirau->is_active;
     }
 
+    public function canTrackTime(?User $user, Jirau $jirau): bool
+    {
+        return $this->canView($user, $jirau)
+            && $jirau->is_active
+            && (bool) $user?->isAssignableOnJirau();
+    }
+
+    public function canSeeTimeHistory(?User $user): bool
+    {
+        return $this->canManage($user);
+    }
+
     public function assertWritable(?User $user, Jirau $jirau): void
     {
         $this->assertView($user, $jirau);
         abort_unless($jirau->is_active, 403, 'Este quadro está inativo. Reative-o para alterar cartões.');
+    }
+
+    public function assertTrackTime(?User $user, Jirau $jirau): void
+    {
+        $this->assertView($user, $jirau);
+        abort_unless($user?->isAssignableOnJirau(), 403, 'Quem demanda não aponta horas neste quadro.');
+        abort_unless($jirau->is_active, 403, 'Este quadro está inativo. Reative-o para apontar horas.');
     }
 
     /** @return Builder<Jirau> */

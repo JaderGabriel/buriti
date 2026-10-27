@@ -43,7 +43,9 @@ class JirauOverviewService
                     'jirau.project',
                     'jirau.company',
                     'creator',
+                    'runningTimeEntries',
                 ])
+                ->withSum('timeEntries as closed_seconds', 'seconds')
                 ->withCount([
                     'checklistItems',
                     'checklistItems as done_checklist_items_count' => fn ($q) => $q->where('is_done', true),

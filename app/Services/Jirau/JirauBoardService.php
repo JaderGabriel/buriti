@@ -359,6 +359,7 @@ class JirauBoardService
 
         $moved = $card->fresh(['column.watchers', 'assignee', 'jirau.project']);
         if ($from && (int) $from->id !== (int) $column->id) {
+            app(JirauTimeService::class)->followColumn($moved, $column);
             $this->notifier->cardMoved(
                 $moved->jirau,
                 $moved,
@@ -379,6 +380,7 @@ class JirauBoardService
         }
 
         $card->loadMissing(['column.watchers', 'assignee', 'jirau.project']);
+        app(JirauTimeService::class)->pauseOnCard($card);
         $card->update(['archived_at' => now()]);
         $this->audit->record('jirau.card_archived', $card, ['summary' => $card->title]);
         $this->notifier->cardArchived($card->jirau, $card, $actor);

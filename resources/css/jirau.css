@@ -1197,8 +1197,23 @@ html.dark .jirau-action--warn { color: #fca5a5; }
     opacity: 0.45;
 }
 
+.jirau-card.is-tracking {
+    box-shadow: 0 0 0 1px color-mix(in oklab, #16a34a 42%, transparent);
+}
+
 .jirau-card {
     cursor: pointer;
+}
+
+.jirau-card__track {
+    padding: 0 0.55rem 0.55rem;
+}
+
+.jirau-card__track .jirau-action {
+    width: 100%;
+    justify-content: center;
+    border-radius: 0.55rem;
+    font-size: 0.75rem;
 }
 
 .jirau-card__hit {
@@ -1301,7 +1316,6 @@ html.dark .jirau-action--warn { color: #fca5a5; }
 .jirau-drawer__head {
     position: relative;
     margin-bottom: 1rem;
-    padding-right: 4.5rem;
 }
 
 .jirau-drawer__head h2 {
@@ -1311,12 +1325,62 @@ html.dark .jirau-action--warn { color: #fca5a5; }
     line-height: 1.25;
 }
 
+.jirau-drawer__head-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
 .jirau-drawer__close {
-    position: absolute;
-    top: 0;
-    right: 0;
     font-size: 0.85rem;
     color: var(--admin-muted, var(--color-mist));
+}
+
+.jirau-time__toggle {
+    display: inline-flex;
+}
+
+.jirau-time__total {
+    margin: 0 0 0.65rem;
+    font-size: 0.92rem;
+    font-weight: 700;
+}
+
+.jirau-time__columns,
+.jirau-time__log {
+    list-style: none;
+    margin: 0 0 0.85rem;
+    padding: 0;
+    display: grid;
+    gap: 0.45rem;
+}
+
+.jirau-time__columns li,
+.jirau-time__log li {
+    display: grid;
+    gap: 0.1rem;
+    padding: 0.45rem 0.55rem;
+    border-radius: 0.55rem;
+    background: color-mix(in oklab, var(--admin-fill, rgba(47, 107, 255, 0.08)) 80%, transparent);
+}
+
+.jirau-time__columns strong,
+.jirau-time__log strong {
+    font-size: 0.82rem;
+}
+
+.jirau-time__columns span,
+.jirau-time__log span,
+.jirau-time__log time,
+.jirau-time__columns small {
+    font-size: 0.75rem;
+    color: var(--admin-muted, var(--color-mist));
+}
+
+.jirau-time__log li.is-running {
+    background: color-mix(in oklab, #16a34a 12%, transparent);
 }
 
 .jirau-drawer__form,

@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Services\Jirau\JirauAccess;
 use App\Services\Jirau\JirauBoardService;
 use App\Services\Jirau\JirauEvidenceService;
+use App\Services\Jirau\JirauTimeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,6 +29,7 @@ class BoardController extends Controller
         private JirauAccess $access,
         private JirauBoardService $boards,
         private JirauEvidenceService $evidence,
+        private JirauTimeService $time,
     ) {}
 
     public function home(Request $request): View|RedirectResponse
@@ -145,7 +147,15 @@ class BoardController extends Controller
 
         $cardQuery = $jirau->cards()
             ->active()
-            ->with(['labels', 'assignee', 'creator', 'checklistItems', 'projectStep'])
+            ->with([
+                'labels',
+                'assignee',
+                'creator',
+                'checklistItems',
+                'projectStep',
+                'runningTimeEntries.user:id,name,jirau_role,is_admin',
+            ])
+            ->withSum('timeEntries as closed_seconds', 'seconds')
             ->withCount([
                 'checklistItems',
                 'checklistItems as done_checklist_items_count' => fn ($q) => $q->where('is_done', true),
@@ -191,11 +201,15 @@ class BoardController extends Controller
                     'projectStep',
                     'attachments',
                     'links',
+                    'runningTimeEntries.user:id,name,jirau_role,is_admin',
+                    'timeEntries.user:id,name,jirau_role,is_admin',
                 ])
+                ->withSum('timeEntries as closed_seconds', 'seconds')
                 ->find($cardId);
         }
 
         $isAdmin = $this->access->canManage($request->user());
+        $actor = $request->user();
 
         return view('jirau.board', [
             'jirau' => $jirau,
@@ -204,6 +218,11 @@ class BoardController extends Controller
             'isAdmin' => $isAdmin,
             'canOperate' => $isAdmin && $jirau->is_active,
             'canDemand' => ! $isAdmin && $jirau->is_active,
+            'canTrackTime' => $this->access->canTrackTime($actor, $jirau),
+            'canSeeTimeHistory' => $this->access->canSeeTimeHistory($actor),
+            'timeSnapshot' => $openCard && $this->access->canSeeTimeHistory($actor)
+                ? $this->time->snapshot($openCard)
+                : null,
             'types' => JirauCardType::options(),
             'adminTypes' => JirauCardType::adminOptions(),
             'priorities' => JirauCardPriority::options(),

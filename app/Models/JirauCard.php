@@ -93,6 +93,61 @@ class JirauCard extends Model
         return $this->hasMany(JirauCardLink::class, 'card_id')->latest();
     }
 
+    public function timeEntries(): HasMany
+    {
+        return $this->hasMany(JirauTimeEntry::class, 'card_id')->orderByDesc('started_at')->orderByDesc('id');
+    }
+
+    public function runningTimeEntries(): HasMany
+    {
+        return $this->hasMany(JirauTimeEntry::class, 'card_id')->whereNull('ended_at');
+    }
+
+    public function spentSeconds(): int
+    {
+        if ($this->relationLoaded('timeEntries')) {
+            return (int) $this->timeEntries->sum(fn (JirauTimeEntry $entry) => $entry->elapsedSeconds());
+        }
+
+        $closed = (int) ($this->closed_seconds ?? 0);
+        $running = $this->relationLoaded('runningTimeEntries')
+            ? $this->runningTimeEntries
+            : collect();
+
+        return $closed + (int) $running->sum(fn (JirauTimeEntry $entry) => $entry->elapsedSeconds());
+    }
+
+    public function spentLabel(): string
+    {
+        return JirauTimeEntry::formatSeconds($this->spentSeconds());
+    }
+
+    public function isTrackedBy(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        $running = $this->relationLoaded('runningTimeEntries')
+            ? $this->runningTimeEntries
+            : $this->runningTimeEntries()->where('user_id', $user->id)->get();
+
+        return $running->contains(fn (JirauTimeEntry $entry) => (int) $entry->user_id === (int) $user->id);
+    }
+
+    public function runningEntryFor(?User $user): ?JirauTimeEntry
+    {
+        if (! $user) {
+            return null;
+        }
+
+        $running = $this->relationLoaded('runningTimeEntries')
+            ? $this->runningTimeEntries
+            : $this->runningTimeEntries()->where('user_id', $user->id)->get();
+
+        return $running->first(fn (JirauTimeEntry $entry) => (int) $entry->user_id === (int) $user->id);
+    }
+
     public function key(): string
     {
         return 'JR-'.$this->id;

@@ -1,10 +1,14 @@
 @php
     $progress = $card->checklistProgress();
     $canDrag = $canDrag ?? false;
+    $canTrackTime = $canTrackTime ?? false;
+    $canSeeTimeHistory = $canSeeTimeHistory ?? false;
+    $tracker = auth()->user();
     $cardHref = route('jirau.show', ['jirau' => $jirau, 'cartao' => $card->id]);
+    $tracking = $canTrackTime && $card->isTrackedBy($tracker);
 @endphp
 <article
-    class="jirau-card jirau-card--{{ $card->type->value }} jirau-card--p-{{ $card->priority->value }}"
+    class="jirau-card jirau-card--{{ $card->type->value }} jirau-card--p-{{ $card->priority->value }} {{ $tracking ? 'is-tracking' : '' }}"
     data-jirau-card
     data-card-id="{{ $card->id }}"
     data-column-id="{{ $card->column_id }}"
@@ -29,6 +33,9 @@
         <div class="jirau-card__meta">
             @if($card->project_step_id)
                 <span class="jirau-chip" title="Etapa do projeto">Etapa</span>
+            @endif
+            @if($canSeeTimeHistory && $card->spentSeconds() > 0)
+                <span class="jirau-chip" title="Tempo apontado">{{ $card->spentLabel() }}</span>
             @endif
             @if($card->estimate)
                 <span class="jirau-chip" title="Estimativa">{{ $card->estimate }} pts</span>
@@ -59,4 +66,5 @@
     @else
         </a>
     @endif
+    @include('jirau.partials.time-toggle', ['card' => $card, 'jirau' => $jirau, 'compact' => true])
 </article>

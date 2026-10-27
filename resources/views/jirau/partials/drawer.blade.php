@@ -1,6 +1,8 @@
 @php
     $canManageEvidence = $canManageEvidence ?? false;
     $canWrite = $jirau->is_active;
+    $canTrackTime = $canTrackTime ?? false;
+    $canSeeTimeHistory = $canSeeTimeHistory ?? false;
 @endphp
 <div class="jirau-drawer-wrap">
     <a href="{{ route('jirau.show', $jirau) }}" class="jirau-drawer__backdrop" aria-label="Fechar cartão"></a>
@@ -8,7 +10,10 @@
         <header class="jirau-drawer__head">
             <p class="jirau-card__key">{{ $card->key() }} · {{ $card->type->label() }} · {{ $card->column?->name }}</p>
             <h2 id="jirau-card-title">{{ $card->title }}</h2>
-            <a href="{{ route('jirau.show', $jirau) }}" class="jirau-drawer__close">Fechar</a>
+            <div class="jirau-drawer__head-actions">
+                @include('jirau.partials.time-toggle', ['card' => $card, 'jirau' => $jirau, 'compact' => false])
+                <a href="{{ route('jirau.show', $jirau) }}" class="jirau-drawer__close">Fechar</a>
+            </div>
         </header>
 
         @unless($canWrite)
@@ -96,6 +101,8 @@
                 <p class="jirau-hint">Prioridade: {{ $card->priority->label() }}{{ $card->estimate ? ' · '.$card->estimate.' pts' : '' }}{{ $card->assignee ? ' · '.$card->assignee->name : '' }}</p>
             </div>
         @endunless
+
+        @include('jirau.partials.time-history')
 
         <section class="jirau-drawer__block">
             <h3>Evidências</h3>

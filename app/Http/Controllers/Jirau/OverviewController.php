@@ -28,6 +28,8 @@ class OverviewController extends Controller
         return view('jirau.overview', [
             'jirau' => null,
             'isAdmin' => true,
+            'canSeeTimeHistory' => true,
+            'canTrackTime' => false,
             'estado' => $snapshot['estado'],
             'projectId' => $snapshot['project_id'],
             'boardCount' => $snapshot['boards'],
