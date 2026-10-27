@@ -5,6 +5,7 @@ namespace App\Services\Jirau;
 use App\Enums\JirauCardPriority;
 use App\Enums\JirauCardType;
 use App\Enums\JirauTemplate;
+use App\Models\Company;
 use App\Models\Jirau;
 use App\Models\JirauCard;
 use App\Models\JirauColumn;
@@ -27,11 +28,17 @@ class JirauBoardService
         User $actor,
         ?string $name = null,
         JirauTemplate $template = JirauTemplate::Development,
+        ?Company $company = null,
+        ?string $contractName = null,
     ): Jirau {
-        return DB::transaction(function () use ($project, $actor, $name, $template) {
+        return DB::transaction(function () use ($project, $actor, $name, $template, $company, $contractName) {
+            $company ??= $project->clientCompany;
+            $contract = trim((string) $contractName) ?: null;
             $jirau = Jirau::query()->create([
                 'project_id' => $project->id,
-                'name' => $name ?: ($template->label().' · '.$project->name),
+                'company_id' => $company?->id,
+                'contract_name' => $contract,
+                'name' => $name ?: $this->defaultBoardName($project, $template, $company, $contract),
                 'template' => $template,
                 'sort_order' => ((int) Jirau::query()->max('sort_order')) + 10,
                 'created_by' => $actor->id,
@@ -42,11 +49,24 @@ class JirauBoardService
             $this->audit->record('jirau.created', $jirau, [
                 'summary' => $jirau->name,
                 'project_id' => $project->id,
+                'company_id' => $company?->id,
+                'contract_name' => $contract,
                 'template' => $template->value,
             ]);
 
-            return $jirau->fresh(['columns', 'labels', 'project']);
+            return $jirau->fresh(['columns', 'labels', 'project', 'company']);
         });
+    }
+
+    private function defaultBoardName(
+        Project $project,
+        JirauTemplate $template,
+        ?Company $company,
+        ?string $contract,
+    ): string {
+        $tail = $contract ?: ($company?->displayName() ?: $project->name);
+
+        return $template->label().' · '.$tail;
     }
 
     /** @param  list<int>  $orderedIds */

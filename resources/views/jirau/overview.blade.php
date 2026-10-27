@@ -8,7 +8,8 @@
             <h1 class="pm-workspace__title">Quadro geral</h1>
             <p class="pm-workspace__lead">
                 Leitura unificada dos cartões nos Jiraus — não se cria trabalho aqui.
-                Cada cartão abre no quadro de origem. {{ $boardCount }} quadro{{ $boardCount === 1 ? '' : 's' }} no filtro.
+                Filtre por projeto para ver os quadros de vários contratos.
+                {{ $boardCount }} quadro{{ $boardCount === 1 ? '' : 's' }} no filtro.
             </p>
         </div>
         <div class="jirau-workspace__actions">
@@ -18,6 +19,15 @@
     </div>
 
     <form method="GET" action="{{ route('jirau.overview') }}" class="jirau-filters">
+        <label class="block text-sm">
+            <span class="text-mist">Projeto</span>
+            <select name="projeto" class="jirau-input" onchange="this.form.submit()">
+                <option value="">Todos os projetos</option>
+                @foreach($projects as $project)
+                    <option value="{{ $project->id }}" @selected((int) ($projectId ?? 0) === (int) $project->id)>{{ $project->name }}</option>
+                @endforeach
+            </select>
+        </label>
         <label class="block text-sm">
             <span class="text-mist">Estado dos quadros</span>
             <select name="estado" class="jirau-input" onchange="this.form.submit()">

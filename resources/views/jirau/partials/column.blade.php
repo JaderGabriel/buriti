@@ -3,6 +3,7 @@
     $over = $column->wip_limit !== null && $count > $column->wip_limit;
     $watchers = $column->watchers;
     $dueLabel = $column->defaultDueLabel();
+    $canOperate = $canOperate ?? false;
     $columnRenameOpen = (string) old('_column_rename') === (string) $column->id;
     $columnMeta = collect([
         $column->wip_limit ? 'WIP '.$column->wip_limit : null,
@@ -18,7 +19,7 @@
 >
     <header class="jirau-column__head">
         <div class="jirau-column__title">
-            @if($isAdmin)
+            @if($canOperate)
                 <button type="button" class="jirau-column__grip" data-jirau-column-handle aria-label="Reordenar faixa {{ $column->name }}" title="Arrastar para reordenar">
                     <span></span><span></span><span></span>
                 </button>
@@ -26,7 +27,7 @@
             <div>
                 <div class="jirau-column__name">
                     <span class="jirau-column__count" title="{{ $count }} cartão{{ $count === 1 ? '' : 's' }}">{{ $count }}</span>
-                    @if($isAdmin)
+                    @if($canOperate)
                         <h2
                             data-jirau-rename="column-{{ $column->id }}"
                             title="Clique duas vezes para alterar o nome"
@@ -69,7 +70,7 @@
                     @endforeach
                 </div>
             @endif
-            @if($isAdmin)
+            @if($canOperate)
                 <x-jirau.action
                     tone="column"
                     icon="settings"
@@ -84,7 +85,7 @@
 
     <div class="jirau-column__list" data-jirau-list>
         @forelse($column->cards as $card)
-            @include('jirau.partials.card', ['card' => $card, 'jirau' => $jirau, 'canDrag' => $isAdmin])
+            @include('jirau.partials.card', ['card' => $card, 'jirau' => $jirau, 'canDrag' => $canOperate])
         @empty
             <p class="jirau-column__empty">
                 {{ $column->is_inbox ? 'Nenhuma demanda na triagem.' : 'Vazio' }}

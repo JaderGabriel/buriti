@@ -120,7 +120,7 @@ class ProjectController extends Controller
             'trashedAttachments.deleter',
             'steps',
             'jirau',
-            'jiraus',
+            'jiraus.company',
             'steps.jirauCard.jirau',
         ]);
         $project->loadCount([

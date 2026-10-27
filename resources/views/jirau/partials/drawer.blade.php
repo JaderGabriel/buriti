@@ -1,5 +1,6 @@
 @php
     $canManageEvidence = $canManageEvidence ?? false;
+    $canWrite = $jirau->is_active;
 @endphp
 <div class="jirau-drawer-wrap">
     <a href="{{ route('jirau.show', $jirau) }}" class="jirau-drawer__backdrop" aria-label="Fechar cartão"></a>
@@ -10,7 +11,11 @@
             <a href="{{ route('jirau.show', $jirau) }}" class="jirau-drawer__close">Fechar</a>
         </header>
 
-        <form id="jirau-card-form" method="POST" action="{{ route('jirau.cards.update', [$jirau, $card]) }}" class="jirau-drawer__form">
+        @unless($canWrite)
+            <p class="jirau-readonly">Quadro inativo — este cartão está só para consulta.</p>
+        @endunless
+
+        <form id="jirau-card-form" method="POST" action="{{ route('jirau.cards.update', [$jirau, $card]) }}" class="jirau-drawer__form" @unless($canWrite) hidden @endunless>
             @csrf
             @method('PUT')
             <input type="hidden" name="save_card" value="1">
@@ -78,8 +83,19 @@
                 </p>
             @endif
 
-            <button type="submit" class="pm-btn pm-btn--primary">Salvar</button>
+            @if($canWrite)
+                <button type="submit" class="pm-btn pm-btn--primary">Salvar</button>
+            @endif
         </form>
+
+        @unless($canWrite)
+            <div class="jirau-drawer__form">
+                @if($card->description)
+                    <p>{{ $card->description }}</p>
+                @endif
+                <p class="jirau-hint">Prioridade: {{ $card->priority->label() }}{{ $card->estimate ? ' · '.$card->estimate.' pts' : '' }}{{ $card->assignee ? ' · '.$card->assignee->name : '' }}</p>
+            </div>
+        @endunless
 
         <section class="jirau-drawer__block">
             <h3>Evidências</h3>
@@ -135,7 +151,7 @@
             @endif
         </section>
 
-        @if($isAdmin)
+        @if($isAdmin && $canWrite)
             <section class="jirau-drawer__block">
                 <h3>Etapa do projeto</h3>
                 @if($card->projectStep)
@@ -175,21 +191,26 @@
             <ul class="jirau-check">
                 @foreach($card->checklistItems as $item)
                     <li @class(['is-done' => $item->is_done])>
-                        <form method="POST" action="{{ route('jirau.cards.checklist.toggle', [$jirau, $card, $item]) }}">
-                            @csrf
-                            @method('PATCH')
-                            <button type="submit">{{ $item->is_done ? '☑' : '☐' }} {{ $item->title }}</button>
-                        </form>
-                        @if($isAdmin)
-                            <form method="POST" action="{{ route('jirau.cards.checklist.destroy', [$jirau, $card, $item]) }}" data-confirm="Remover item?">
+                        @if($canWrite)
+                            <form method="POST" action="{{ route('jirau.cards.checklist.toggle', [$jirau, $card, $item]) }}">
                                 @csrf
-                                @method('DELETE')
-                                <button type="submit" class="jirau-check__del">✕</button>
+                                @method('PATCH')
+                                <button type="submit">{{ $item->is_done ? '☑' : '☐' }} {{ $item->title }}</button>
                             </form>
+                            @if($isAdmin)
+                                <form method="POST" action="{{ route('jirau.cards.checklist.destroy', [$jirau, $card, $item]) }}" data-confirm="Remover item?">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="jirau-check__del">✕</button>
+                                </form>
+                            @endif
+                        @else
+                            <span>{{ $item->is_done ? '☑' : '☐' }} {{ $item->title }}</span>
                         @endif
                     </li>
                 @endforeach
             </ul>
+            @if($canWrite)
             <div class="jirau-inline">
                 <input
                     form="jirau-card-form"
@@ -211,6 +232,7 @@
                     class="pm-btn pm-btn--ghost"
                 >Adicionar</button>
             </div>
+            @endif
             @error('item')
                 <p class="jirau-hint" style="color: #c74634">{{ $message }}</p>
             @enderror
@@ -229,6 +251,7 @@
                     <li class="jirau-members__empty">Sem comentários ainda.</li>
                 @endforelse
             </ul>
+            @if($canWrite)
             <div>
                 <x-ui.input type="textarea" name="body" label="Comentar" rows="3" form="jirau-card-form" />
                 <button
@@ -241,9 +264,10 @@
                     class="pm-btn pm-btn--ghost"
                 >Publicar</button>
             </div>
+            @endif
         </section>
 
-        @if($isAdmin)
+        @if($isAdmin && $canWrite)
             <form method="POST" action="{{ route('jirau.cards.archive', [$jirau, $card]) }}" class="mt-4" data-confirm="Arquivar este cartão?">
                 @csrf
                 <button type="submit" class="pm-card__btn pm-card__btn--danger">Arquivar</button>

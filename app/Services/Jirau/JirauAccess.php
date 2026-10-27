@@ -36,6 +36,17 @@ class JirauAccess
         abort_unless($this->canManage($user), 403, 'Só o admin do quadro pode fazer isso.');
     }
 
+    public function canWrite(?User $user, Jirau $jirau): bool
+    {
+        return $this->canView($user, $jirau) && $jirau->is_active;
+    }
+
+    public function assertWritable(?User $user, Jirau $jirau): void
+    {
+        $this->assertView($user, $jirau);
+        abort_unless($jirau->is_active, 403, 'Este quadro está inativo. Reative-o para alterar cartões.');
+    }
+
     /** @return Builder<Jirau> */
     public function visibleQuery(User $user): Builder
     {

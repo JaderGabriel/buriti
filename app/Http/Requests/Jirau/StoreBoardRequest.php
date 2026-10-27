@@ -18,6 +18,8 @@ class StoreBoardRequest extends FormRequest
     {
         return [
             'project_id' => ['required', 'integer', Rule::exists('projects', 'id')],
+            'company_id' => ['nullable', 'integer', Rule::exists('companies', 'id')],
+            'contract_name' => ['nullable', 'string', 'max:120'],
             'name' => ['nullable', 'string', 'max:120'],
             'board_name' => ['nullable', 'string', 'max:120'],
             'template' => ['required', Rule::enum(JirauTemplate::class)],
@@ -29,6 +31,8 @@ class StoreBoardRequest extends FormRequest
     {
         return [
             'project_id' => 'projeto',
+            'company_id' => 'empresa',
+            'contract_name' => 'contrato',
             'board_name' => 'nome do quadro',
             'template' => 'modelo',
         ];
@@ -59,5 +63,19 @@ class StoreBoardRequest extends FormRequest
     public function projectId(): int
     {
         return (int) $this->validated('project_id');
+    }
+
+    public function companyId(): ?int
+    {
+        $id = (int) ($this->validated('company_id') ?? 0);
+
+        return $id > 0 ? $id : null;
+    }
+
+    public function contractName(): ?string
+    {
+        $name = trim((string) ($this->validated('contract_name') ?? ''));
+
+        return $name !== '' ? $name : null;
     }
 }

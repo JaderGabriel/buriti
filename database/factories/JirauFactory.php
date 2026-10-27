@@ -21,6 +21,8 @@ class JirauFactory extends Factory
     {
         return [
             'project_id' => Project::factory(),
+            'company_id' => null,
+            'contract_name' => null,
             'name' => 'Jirau '.fake()->unique()->word(),
             'template' => JirauTemplate::Development,
             'is_active' => true,
@@ -32,6 +34,13 @@ class JirauFactory extends Factory
     public function configure(): static
     {
         return $this->afterCreating(function (Jirau $jirau): void {
+            if ($jirau->company_id === null) {
+                $companyId = $jirau->project()->value('company_id');
+                if ($companyId) {
+                    $jirau->forceFill(['company_id' => $companyId])->saveQuietly();
+                }
+            }
+
             if ($jirau->columns()->exists()) {
                 return;
             }

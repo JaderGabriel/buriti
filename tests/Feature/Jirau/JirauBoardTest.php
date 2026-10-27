@@ -4,6 +4,8 @@ namespace Tests\Feature\Jirau;
 
 use App\Enums\JirauCardPriority;
 use App\Enums\JirauCardType;
+use App\Enums\JirauTemplate;
+use App\Models\Company;
 use App\Models\Jirau;
 use App\Models\JirauCard;
 use App\Models\Project;
@@ -464,7 +466,8 @@ class JirauBoardTest extends TestCase
             ->assertSee('Arquivo Vazio', false)
             ->assertSee('Arquivo Cheio', false)
             ->assertSee('jirau-home__idle', false)
-            ->assertSee(route('jirau.boards.destroy', $inactiveEmpty), false)
+            ->assertSee('Ver quadro', false)
+            ->assertDontSee(route('jirau.boards.destroy', $inactiveEmpty), false)
             ->assertDontSee(route('jirau.boards.destroy', $active), false)
             ->assertDontSee(route('jirau.boards.destroy', $inactiveBusy), false)
             ->getContent();
@@ -639,6 +642,140 @@ class JirauBoardTest extends TestCase
             ->assertSee('Novo quadro', false)
             ->assertDontSee('Renomear', false)
             ->assertDontSee('>Faixa</span>', false);
+    }
+
+    public function test_inactive_board_has_no_write_actions(): void
+    {
+        $admin = User::factory()->create();
+        $jirau = Jirau::factory()->create([
+            'created_by' => $admin->id,
+            'is_active' => false,
+        ]);
+        $member = User::factory()->withoutAdminAccess()->create();
+        $jirau->members()->attach($member->id);
+
+        $this->actingAs($admin)
+            ->get(route('jirau.show', $jirau))
+            ->assertOk()
+            ->assertSee('Quadro inativo', false)
+            ->assertSee('Ativar quadro', false)
+            ->assertDontSee('Novo cartão', false)
+            ->assertDontSee('data-jirau-toggle="new-card"', false)
+            ->assertDontSee('data-jirau-toggle="new-column"', false)
+            ->assertDontSee('data-jirau-toggle="steps"', false)
+            ->assertDontSee('data-jirau-toggle="members"', false)
+            ->assertDontSee('data-jirau-rename="board"', false)
+            ->assertDontSee('Remover quadro', false)
+            ->assertDontSee('data-can-drag="1"', false);
+
+        $this->actingAs($member)
+            ->get(route('jirau.show', $jirau))
+            ->assertOk()
+            ->assertDontSee('Nova demanda', false)
+            ->assertDontSee('jirau-demand-dialog', false);
+    }
+
+    public function test_cannot_write_on_inactive_board(): void
+    {
+        $admin = User::factory()->create();
+        $jirau = Jirau::factory()->create([
+            'created_by' => $admin->id,
+            'is_active' => false,
+        ]);
+        $member = User::factory()->withoutAdminAccess()->create();
+        $jirau->members()->attach($member->id);
+        $column = $jirau->inboxColumn();
+
+        $this->actingAs($admin)
+            ->delete(route('jirau.boards.destroy', $jirau))
+            ->assertForbidden();
+
+        $card = JirauCard::factory()->create([
+            'jirau_id' => $jirau->id,
+            'column_id' => $column->id,
+            'title' => 'Cartão parado',
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('jirau.cards.store', $jirau), [
+                'title' => 'Não deve nascer',
+                'type' => JirauCardType::Task->value,
+                'priority' => JirauCardPriority::Medium->value,
+                'column_id' => $column->id,
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($admin)
+            ->put(route('jirau.cards.update', [$jirau, $card]), [
+                'title' => 'Não deve gravar',
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($member)
+            ->post(route('jirau.demands.store', $jirau), [
+                'title' => 'Demanda bloqueada',
+                'priority' => JirauCardPriority::Medium->value,
+            ])
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('jiraus', ['id' => $jirau->id]);
+        $this->assertSame('Cartão parado', $card->fresh()->title);
+        $this->assertSame(1, $jirau->cards()->count());
+    }
+
+    public function test_same_project_can_have_boards_for_different_companies(): void
+    {
+        $admin = User::factory()->create();
+        $alpha = Company::factory()->create(['name' => 'Alpha Ltda', 'trade_name' => 'Alpha']);
+        $beta = Company::factory()->create(['name' => 'Beta SA', 'trade_name' => 'Beta']);
+        $project = Project::factory()->create([
+            'name' => 'Portal compartilhado',
+            'company_id' => $alpha->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('jirau.boards.store'), [
+                'project_id' => $project->id,
+                'company_id' => $alpha->id,
+                'contract_name' => 'Manutenção 2026',
+                'board_name' => 'Jirau Alpha',
+                'template' => JirauTemplate::Development->value,
+                '_board_create' => '1',
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($admin)
+            ->post(route('jirau.boards.store'), [
+                'project_id' => $project->id,
+                'company_id' => $beta->id,
+                'contract_name' => 'Implantação Beta',
+                'board_name' => 'Jirau Beta',
+                'template' => JirauTemplate::Consulting->value,
+                '_board_create' => '1',
+            ])
+            ->assertRedirect();
+
+        $boards = $project->jiraus()->orderBy('name')->get();
+        $this->assertCount(2, $boards);
+        $this->assertSame($alpha->id, $boards[0]->company_id);
+        $this->assertSame('Manutenção 2026', $boards[0]->contract_name);
+        $this->assertSame($beta->id, $boards[1]->company_id);
+        $this->assertSame('Implantação Beta', $boards[1]->contract_name);
+
+        $this->actingAs($admin)
+            ->get(route('jirau.show', $boards[0]))
+            ->assertOk()
+            ->assertSee('Portal compartilhado · Alpha · Manutenção 2026', false)
+            ->assertSee('Jirau Beta', false)
+            ->assertSee('Beta · Implantação Beta', false);
+
+        $this->actingAs($admin)
+            ->get(route('jirau.home'))
+            ->assertOk()
+            ->assertSee('Manutenção 2026', false)
+            ->assertSee('Implantação Beta', false)
+            ->assertSee('name="company_id"', false)
+            ->assertSee('name="contract_name"', false);
     }
 
     public function test_demo_seeder_creates_board_and_member_login(): void

@@ -2,20 +2,20 @@
 
 @section('content')
 <div
-    class="jirau-workspace"
+    class="jirau-workspace {{ $jirau->is_active ? '' : 'is-readonly' }}"
     data-jirau-board
     data-move-url="{{ $moveUrlTemplate }}"
     data-reorder-url="{{ route('jirau.columns.reorder', $jirau) }}"
-    data-can-drag="{{ $isAdmin ? '1' : '0' }}"
+    data-can-drag="{{ ($canOperate ?? false) ? '1' : '0' }}"
 >
     <div class="jirau-workspace__header">
         <div>
-            <p class="pm-workspace__eyebrow">Jirau · {{ $jirau->project?->name }}</p>
+            <p class="pm-workspace__eyebrow">Jirau · {{ $jirau->allocationLabel() }}</p>
             @php $renameOpen = old('_board_rename') === '1'; @endphp
             <h1 class="pm-workspace__title jirau-workspace__heading">
                 <span class="jirau-workspace__identity">
                     @include('jirau.partials.project-mark', ['project' => $jirau->project])
-                    @if($isAdmin)
+                    @if($canOperate ?? false)
                     <span
                         data-jirau-rename="board"
                         title="Clique duas vezes para alterar o nome"
@@ -48,9 +48,9 @@
                 @unless($jirau->is_active)
                     <span class="jirau-chip jirau-chip--warn">Inativo</span>
                 @endunless
-                @if($isAdmin)
+                @if($canOperate ?? false)
                     <x-jirau.action tone="card" icon="plus" data-jirau-toggle="new-card">Novo cartão</x-jirau.action>
-                @else
+                @elseif($canDemand ?? false)
                     <x-jirau.action tone="card" icon="plus" data-jirau-toggle="demand">Nova demanda</x-jirau.action>
                 @endif
             </h1>
@@ -63,7 +63,7 @@
                     @foreach($jirau->project->jiraus as $board)
                         <a href="{{ route('jirau.show', $board) }}" @class(['is-current' => (int) $board->id === (int) $jirau->id])>
                             {{ $board->name }}
-                            <small>{{ $board->template?->label() }}</small>
+                            <small>{{ $board->company?->displayName() }}{{ $board->contract_name ? ' · '.$board->contract_name : '' }}{{ $board->template ? ' · '.$board->template->label() : '' }}</small>
                         </a>
                     @endforeach
                 </nav>
@@ -72,10 +72,14 @@
         <div class="jirau-workspace__actions">
             @if($isAdmin && $jirau->project)
                 <x-jirau.action tone="project" icon="project" :href="route('admin.projects.edit', $jirau->project)">Ficha do projeto</x-jirau.action>
-                <x-jirau.action tone="steps" icon="flow" data-jirau-toggle="steps">Fases</x-jirau.action>
+                @if($canOperate ?? false)
+                    <x-jirau.action tone="steps" icon="flow" data-jirau-toggle="steps">Fases</x-jirau.action>
+                @endif
             @endif
             @if($isAdmin)
-                <x-jirau.action tone="board" icon="plus" data-jirau-toggle="new-column">Etapa</x-jirau.action>
+                @if($canOperate ?? false)
+                    <x-jirau.action tone="board" icon="plus" data-jirau-toggle="new-column">Etapa</x-jirau.action>
+                @endif
                 <x-jirau.action tone="analytics" icon="dashboard" :href="route('jirau.analytics.show', $jirau)">Analítica</x-jirau.action>
                 <form method="POST" action="{{ route('jirau.status', $jirau) }}" class="inline">
                     @csrf
@@ -84,7 +88,7 @@
                         {{ $jirau->is_active ? 'Desativar quadro' : 'Ativar quadro' }}
                     </x-jirau.action>
                 </form>
-                @if($jirau->isEmpty() && ! $jirau->isDemo())
+                @if(($canOperate ?? false) && $jirau->isEmpty() && ! $jirau->isDemo())
                     <form
                         method="POST"
                         action="{{ route('jirau.boards.destroy', $jirau) }}"
@@ -98,11 +102,15 @@
                 @endif
             @endif
             <x-jirau.action tone="filter" icon="filter" data-jirau-toggle="filters">Filtros</x-jirau.action>
-            @if($isAdmin)
+            @if($canOperate ?? false)
                 <x-jirau.action tone="people" icon="users" data-jirau-toggle="members">Pessoas</x-jirau.action>
             @endif
         </div>
     </div>
+
+    @unless($jirau->is_active)
+        <p class="jirau-readonly">Quadro inativo — cartões e etapas ficam só para consulta. Reative para voltar a operar.</p>
+    @endunless
 
     <x-jirau.dialog name="filters" title="Filtros">
         <form method="GET" action="{{ route('jirau.show', $jirau) }}" class="jirau-dialog__form jirau-filters jirau-filters--dialog">
@@ -130,7 +138,7 @@
         </form>
     </x-jirau.dialog>
 
-    @if(! $isAdmin)
+    @if($canDemand ?? false)
         @php
             $demandOpen = collect($errors->keys())->contains(fn ($key) => in_array($key, ['title', 'description', 'priority', 'photos', 'drive_url'], true) || str_starts_with((string) $key, 'photos.') || str_starts_with((string) $key, 'drive_url'));
         @endphp
@@ -179,7 +187,7 @@
         </div>
     @endif
 
-    @if($isAdmin)
+    @if($canOperate ?? false)
         @php $newCardOpen = old('_form') === 'new-card'; @endphp
         <x-jirau.dialog name="new-card" title="Novo cartão" :open="$newCardOpen" wide>
         <form method="POST" action="{{ route('jirau.cards.store', $jirau) }}" class="jirau-dialog__form jirau-compose jirau-compose--dialog" enctype="multipart/form-data">
@@ -380,7 +388,7 @@
         @foreach($jirau->columns as $column)
             @include('jirau.partials.column')
         @endforeach
-        @if($isAdmin)
+        @if($canOperate ?? false)
             <button type="button" class="jirau-column jirau-column--add" data-jirau-toggle="new-column">
                 <x-ui.icon name="plus" class="h-5 w-5" />
                 <span>Etapa</span>
@@ -388,7 +396,7 @@
         @endif
     </div>
 
-    @if($isAdmin)
+    @if($canOperate ?? false)
         @foreach($jirau->columns as $column)
             @include('jirau.partials.column-settings-dialog')
         @endforeach

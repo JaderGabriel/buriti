@@ -12,20 +12,23 @@ class JirauOverviewService
     /**
      * @return array{
      *     estado: string,
+     *     project_id: ?int,
      *     boards: int,
      *     lanes: array<string, Collection<int, JirauCard>>
      * }
      */
-    public function snapshot(string $estado = 'ativos'): array
+    public function snapshot(string $estado = 'ativos', ?int $projectId = null): array
     {
         $estado = in_array($estado, ['ativos', 'inativos', 'todos'], true) ? $estado : 'ativos';
+        $projectId = $projectId && $projectId > 0 ? $projectId : null;
 
         $boards = Jirau::query()
             ->withoutDemo()
             ->when($estado === 'ativos', fn ($q) => $q->where('is_active', true))
             ->when($estado === 'inativos', fn ($q) => $q->where('is_active', false))
+            ->when($projectId, fn ($q) => $q->where('project_id', $projectId))
             ->orderBy('name')
-            ->get(['id', 'name', 'is_active', 'project_id']);
+            ->get(['id', 'name', 'is_active', 'project_id', 'company_id', 'contract_name']);
 
         $ids = $boards->modelKeys();
         $cards = $ids === []
@@ -38,6 +41,7 @@ class JirauOverviewService
                     'labels',
                     'assignee',
                     'jirau.project',
+                    'jirau.company',
                     'creator',
                 ])
                 ->withCount([
@@ -58,6 +62,7 @@ class JirauOverviewService
 
         return [
             'estado' => $estado,
+            'project_id' => $projectId,
             'boards' => $boards->count(),
             'lanes' => $lanes,
         ];

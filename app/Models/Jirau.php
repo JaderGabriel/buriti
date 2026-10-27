@@ -24,6 +24,8 @@ class Jirau extends Model
 
     protected $fillable = [
         'project_id',
+        'company_id',
+        'contract_name',
         'name',
         'template',
         'is_active',
@@ -43,6 +45,38 @@ class Jirau extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    public function contractLabel(): string
+    {
+        $named = trim((string) $this->contract_name);
+        if ($named !== '') {
+            return $named;
+        }
+
+        return $this->company?->displayName() ?? 'Contrato';
+    }
+
+    public function allocationLabel(): string
+    {
+        $project = $this->project?->name ?? 'Projeto';
+        $company = $this->company?->displayName();
+        $contract = trim((string) $this->contract_name);
+
+        if ($company && $contract !== '' && strcasecmp($contract, $company) !== 0) {
+            return $project.' · '.$company.' · '.$contract;
+        }
+
+        if ($company) {
+            return $project.' · '.$company;
+        }
+
+        return $project;
     }
 
     public function creator(): BelongsTo

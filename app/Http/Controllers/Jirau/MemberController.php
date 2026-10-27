@@ -22,7 +22,7 @@ class MemberController extends Controller
     public function store(StoreMemberRequest $request, Jirau $jirau): RedirectResponse
     {
         $this->access->assertManage($request->user());
-        $this->access->assertView($request->user(), $jirau);
+        $this->access->assertWritable($request->user(), $jirau);
 
         $data = $request->validated();
         $user = $data['mode'] === 'attach'
@@ -60,7 +60,7 @@ class MemberController extends Controller
     public function destroy(Request $request, Jirau $jirau, User $user): RedirectResponse
     {
         $this->access->assertManage($request->user());
-        $this->access->assertView($request->user(), $jirau);
+        $this->access->assertWritable($request->user(), $jirau);
 
         $jirau->members()->detach($user->id);
 

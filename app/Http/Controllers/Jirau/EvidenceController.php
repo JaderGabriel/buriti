@@ -69,7 +69,7 @@ class EvidenceController extends Controller
 
     public function showPhoto(Request $request, Jirau $jirau, JirauCard $card, Attachment $attachment): StreamedResponse
     {
-        $this->assertCard($request, $jirau, $card);
+        $this->assertCard($request, $jirau, $card, write: false);
         abort_unless((int) $attachment->attachable_id === (int) $card->id, 404);
         abort_unless($attachment->attachable_type === $card->getMorphClass(), 404);
         abort_unless($attachment->kind === 'photo', 404);
@@ -89,9 +89,13 @@ class EvidenceController extends Controller
         );
     }
 
-    private function assertCard(Request $request, Jirau $jirau, JirauCard $card): void
+    private function assertCard(Request $request, Jirau $jirau, JirauCard $card, bool $write = true): void
     {
-        $this->access->assertView($request->user(), $jirau);
+        if ($write) {
+            $this->access->assertWritable($request->user(), $jirau);
+        } else {
+            $this->access->assertView($request->user(), $jirau);
+        }
         abort_unless((int) $card->jirau_id === (int) $jirau->id, 404);
         $card->loadMissing('column');
     }

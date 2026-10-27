@@ -22,7 +22,7 @@ class StepController extends Controller
     public function store(StoreBoardStepRequest $request, Jirau $jirau): RedirectResponse
     {
         $this->access->assertManage($request->user());
-        $this->access->assertView($request->user(), $jirau);
+        $this->access->assertWritable($request->user(), $jirau);
 
         $data = $request->validated();
         $data['create_card'] = $request->boolean('create_card', true);
@@ -37,7 +37,7 @@ class StepController extends Controller
     public function import(Request $request, Jirau $jirau): RedirectResponse
     {
         $this->access->assertManage($request->user());
-        $this->access->assertView($request->user(), $jirau);
+        $this->access->assertWritable($request->user(), $jirau);
 
         $count = $this->steps->importUnlinkedSteps($jirau, $request->user());
 
@@ -84,7 +84,7 @@ class StepController extends Controller
 
     private function assertCard(Request $request, Jirau $jirau, JirauCard $card): void
     {
-        $this->access->assertView($request->user(), $jirau);
+        $this->access->assertWritable($request->user(), $jirau);
         abort_unless((int) $card->jirau_id === (int) $jirau->id, 404);
     }
 }

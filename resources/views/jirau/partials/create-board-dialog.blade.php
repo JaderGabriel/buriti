@@ -7,8 +7,14 @@
         : ($createBoardProjects ?? \App\Models\Project::query()
             ->forJirauPicker()
             ->withCount('jiraus')
-            ->get(['id', 'name', 'status']));
+            ->get(['id', 'name', 'status', 'company_id']));
+    $createBoardCompanies = $createBoardCompanies ?? \App\Models\Company::query()
+        ->orderByRaw("CASE status WHEN 'active' THEN 0 ELSE 1 END")
+        ->orderBy('trade_name')
+        ->orderBy('name')
+        ->get(['id', 'name', 'trade_name', 'status']);
     $selectedProjectId = (int) old('project_id', $selectedProjectId ?? $selectedProject?->id ?? $currentJirau?->project_id ?? 0);
+    $selectedCompanyId = (int) old('company_id', $selectedCompanyId ?? $selectedProject?->company_id ?? $currentJirau?->company_id ?? 0);
     $createBoardOpen = old('_board_create') === '1';
     $submitLabel = $lockProject && $selectedProject && $selectedProject->jiraus->isNotEmpty()
         ? 'Criar outro quadro'
@@ -33,20 +39,20 @@
             </div>
             <button type="button" class="jirau-dialog__close" data-jirau-dialog-close aria-label="Fechar">✕</button>
         </div>
-        <form method="POST" action="{{ route('jirau.boards.store') }}" class="jirau-dialog__form">
+        <form method="POST" action="{{ route('jirau.boards.store') }}" class="jirau-dialog__form" data-jirau-create-board>
             @csrf
             <input type="hidden" name="_board_create" value="1">
             @if($lockProject)
-                <input type="hidden" name="project_id" value="{{ $selectedProject?->id }}">
-                <p>Quadro para <strong>{{ $selectedProject?->name }}</strong>. Um projeto pode ter vários Jiraus em paralelo.</p>
+                <input type="hidden" name="project_id" value="{{ $selectedProject?->id }}" data-jirau-board-project data-company-id="{{ $selectedProject?->company_id }}">
+                <p>Quadro para <strong>{{ $selectedProject?->name }}</strong>. O mesmo projeto pode ter um Jirau em cada empresa ou contrato.</p>
             @elseif($createBoardProjects->isEmpty())
                 <p>Cadastre um projeto primeiro — o quadro nasce ligado a ele.</p>
                 <a href="{{ route('admin.projects.index') }}" class="pm-btn pm-btn--primary">Ir aos projetos</a>
             @else
-                <p>Escolha um projeto existente e o modelo. Não precisa abrir a ficha do projeto.</p>
+                <p>Escolha o projeto, a empresa/contrato e o modelo. Cada quadro concentra as atividades daquela alocação.</p>
                 <label class="block text-sm">
                     <span class="text-mist">Projeto</span>
-                    <select name="project_id" class="jirau-input mt-1.5 w-full" required>
+                    <select name="project_id" class="jirau-input mt-1.5 w-full" required data-jirau-board-project>
                         <option value="">Selecione…</option>
                         @foreach(\App\Enums\ProjectStatus::boardOrder() as $pickerStatus)
                             @php
@@ -55,7 +61,11 @@
                             @continue($bucket->isEmpty())
                             <optgroup label="{{ \App\Enums\ProjectStatus::from($pickerStatus)->label() }}">
                                 @foreach($bucket as $pickerProject)
-                                    <option value="{{ $pickerProject->id }}" @selected((int) $pickerProject->id === $selectedProjectId)>
+                                    <option
+                                        value="{{ $pickerProject->id }}"
+                                        data-company-id="{{ $pickerProject->company_id }}"
+                                        @selected((int) $pickerProject->id === $selectedProjectId)
+                                    >
                                         {{ $pickerProject->name }}
                                         @if(($pickerProject->jiraus_count ?? 0) > 0)
                                             · {{ $pickerProject->jiraus_count }} quadro{{ $pickerProject->jiraus_count === 1 ? '' : 's' }}
@@ -68,6 +78,21 @@
                 </label>
             @endif
             @if($lockProject || $createBoardProjects->isNotEmpty())
+                <label class="block text-sm">
+                    <span class="text-mist">Empresa</span>
+                    <select name="company_id" class="jirau-input mt-1.5 w-full" data-jirau-board-company>
+                        <option value="">Empresa do projeto</option>
+                        @foreach($createBoardCompanies as $pickerCompany)
+                            <option value="{{ $pickerCompany->id }}" @selected((int) $pickerCompany->id === $selectedCompanyId)>
+                                {{ $pickerCompany->displayName() }}
+                                @if($pickerCompany->status !== \App\Enums\CompanyStatus::Active)
+                                    · {{ $pickerCompany->status->label() }}
+                                @endif
+                            </option>
+                        @endforeach
+                    </select>
+                </label>
+                <x-ui.input name="contract_name" label="Contrato (opcional)" />
                 <x-ui.input name="board_name" label="Nome do quadro (opcional)" />
                 <fieldset class="jirau-templates">
                     <legend>Modelo</legend>

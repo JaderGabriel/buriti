@@ -18,7 +18,7 @@
             <p class="pm-workspace__eyebrow">Jirau</p>
             <h1 class="pm-workspace__title">Quadros ágeis</h1>
             <p class="pm-workspace__lead">
-                Cada projeto em andamento ganha um Jirau. Membros pedem demandas; o admin posiciona, estima e conduz o fluxo.
+                Um projeto pode ter vários Jiraus — um por empresa ou contrato. Membros pedem demandas; o admin posiciona, estima e conduz o fluxo.
                 @if($isAdmin && $activeBoards->count() > 1)
                     Arraste pelo ícone para reordenar os ativos.
                 @endif
@@ -64,14 +64,14 @@
                 <header class="jirau-home__idle-head">
                     <p class="jirau-home__kicker">Arquivo</p>
                     <h2 id="jirau-idle-title">Quadros inativos</h2>
-                    <p>Ficam fora do quadro geral. Dá para reativar ou remover se estiverem vazios.</p>
+                    <p>Ficam fora do quadro geral. Sem ações nos cartões — reative o quadro para voltar a operar.</p>
                 </header>
                 <div class="jirau-home__grid jirau-home__grid--idle">
                     @foreach($inactiveBoards as $board)
                         @include('jirau.partials.home-card', [
                             'board' => $board,
                             'draggable' => false,
-                            'canDelete' => $isAdmin && $board->isEmpty() && ! $board->isDemo(),
+                            'canDelete' => false,
                         ])
                     @endforeach
                 </div>

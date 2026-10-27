@@ -7,6 +7,16 @@ html:has([data-jirau-shell]) .admin-content:has(.jirau-home) {
     min-width: 0;
 }
 
+.jirau-readonly {
+    margin: 0 0 1rem;
+    padding: 0.7rem 1rem;
+    border-radius: 0.7rem;
+    border: 1px solid color-mix(in oklab, #c74634 28%, transparent);
+    background: color-mix(in oklab, #c74634 10%, transparent);
+    font-size: 0.88rem;
+    line-height: 1.45;
+}
+
 .jirau-workspace__header {
     display: flex;
     flex-wrap: wrap;

@@ -169,7 +169,7 @@
                 <header class="pm-panel__head flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <h2>Jirau</h2>
-                        <p>Um projeto pode ter vários quadros. Escolha o modelo ao criar: desenvolvimento, consultoria, treinamento ou atividades.</p>
+                        <p>Um projeto pode ter um Jirau por empresa ou contrato. Cada quadro concentra as atividades daquela alocação.</p>
                     </div>
                     <button type="button" class="pm-btn pm-btn--primary" data-jirau-toggle="new-board">Adicionar quadro</button>
                 </header>
@@ -189,7 +189,7 @@
                                         aria-label="Nome do quadro"
                                         class="jirau-input"
                                     >
-                                    <small>{{ $board->template?->label() }}{{ $board->is_active ? '' : ' · inativo' }}</small>
+                                    <small>{{ $board->company?->displayName() }}{{ $board->contract_name ? ' · '.$board->contract_name : '' }}{{ $board->template ? ' · '.$board->template->label() : '' }}{{ $board->is_active ? '' : ' · inativo' }}</small>
                                     <button type="submit" class="pm-card__btn">Salvar nome</button>
                                 </form>
                                 <a href="{{ route('jirau.show', $board) }}" class="pm-btn pm-btn--ghost">Abrir</a>

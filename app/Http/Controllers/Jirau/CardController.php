@@ -32,7 +32,7 @@ class CardController extends Controller
 
     public function storeDemand(StoreDemandRequest $request, Jirau $jirau): RedirectResponse
     {
-        $this->access->assertView($request->user(), $jirau);
+        $this->access->assertWritable($request->user(), $jirau);
 
         $card = $this->boards->createDemand($jirau, $request->user(), $request->validated());
         $this->attachEvidence($request, $card);
@@ -45,7 +45,7 @@ class CardController extends Controller
     public function store(StoreCardRequest $request, Jirau $jirau): RedirectResponse
     {
         $this->access->assertManage($request->user());
-        $this->access->assertView($request->user(), $jirau);
+        $this->access->assertWritable($request->user(), $jirau);
 
         $card = $this->boards->createCard($jirau, $request->user(), $request->validated());
         $this->attachEvidence($request, $card);
@@ -202,7 +202,7 @@ class CardController extends Controller
 
     private function assertCard(Request $request, Jirau $jirau, JirauCard $card): void
     {
-        $this->access->assertView($request->user(), $jirau);
+        $this->access->assertWritable($request->user(), $jirau);
         abort_unless((int) $card->jirau_id === (int) $jirau->id, 404);
     }
 }

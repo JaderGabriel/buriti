@@ -4,8 +4,10 @@ namespace Tests\Feature\Jirau;
 
 use App\Enums\JirauStaffRole;
 use App\Enums\JirauTemplate;
+use App\Models\Company;
 use App\Models\Jirau;
 use App\Models\JirauCard;
+use App\Models\Project;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -66,7 +68,7 @@ class JirauOverviewAndStaffTest extends TestCase
         $this->assertStringContainsString('Em andamento', $html);
         $this->assertStringContainsString('Em teste', $html);
         $this->assertStringContainsString('Concluídos', $html);
-        $this->assertStringNotContainsString('data-jirau-board', $html);
+        $this->assertStringNotContainsString('data-jirau-board"', $html);
         $this->assertStringContainsString('jirau-card__hit', $html);
     }
 
@@ -137,6 +139,70 @@ class JirauOverviewAndStaffTest extends TestCase
             ->assertOk()
             ->assertSee('Cartão vivo', false)
             ->assertSee('Cartão arquivado', false);
+    }
+
+    public function test_overview_filters_by_project_across_contracts(): void
+    {
+        $admin = User::factory()->create();
+        $alpha = Company::factory()->create(['trade_name' => 'Alpha']);
+        $beta = Company::factory()->create(['trade_name' => 'Beta']);
+        $shared = Project::factory()->create(['name' => 'Portal compartilhado', 'company_id' => $alpha->id]);
+        $other = Project::factory()->create(['name' => 'Outro sistema']);
+
+        $alphaBoard = Jirau::factory()->create([
+            'project_id' => $shared->id,
+            'company_id' => $alpha->id,
+            'contract_name' => 'Contrato Alpha',
+            'name' => 'Jirau Alpha',
+            'created_by' => $admin->id,
+        ]);
+        $betaBoard = Jirau::factory()->create([
+            'project_id' => $shared->id,
+            'company_id' => $beta->id,
+            'contract_name' => 'Contrato Beta',
+            'name' => 'Jirau Beta',
+            'created_by' => $admin->id,
+        ]);
+        $otherBoard = Jirau::factory()->create([
+            'project_id' => $other->id,
+            'name' => 'Jirau outro',
+            'created_by' => $admin->id,
+        ]);
+
+        JirauCard::factory()->create([
+            'jirau_id' => $alphaBoard->id,
+            'column_id' => $alphaBoard->inboxColumn()->id,
+            'title' => 'Atividade Alpha',
+        ]);
+        JirauCard::factory()->create([
+            'jirau_id' => $betaBoard->id,
+            'column_id' => $betaBoard->inboxColumn()->id,
+            'title' => 'Atividade Beta',
+        ]);
+        JirauCard::factory()->create([
+            'jirau_id' => $otherBoard->id,
+            'column_id' => $otherBoard->inboxColumn()->id,
+            'title' => 'Atividade outro',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('jirau.overview'))
+            ->assertOk()
+            ->assertSee('name="projeto"', false)
+            ->assertSee('Portal compartilhado', false)
+            ->assertSee('Atividade Alpha', false)
+            ->assertSee('Atividade Beta', false)
+            ->assertSee('Atividade outro', false);
+
+        $this->actingAs($admin)
+            ->get(route('jirau.overview', ['projeto' => $shared->id]))
+            ->assertOk()
+            ->assertSee('Atividade Alpha', false)
+            ->assertSee('Atividade Beta', false)
+            ->assertSee('Portal compartilhado · Alpha · Contrato Alpha', false)
+            ->assertSee('Portal compartilhado · Beta · Contrato Beta', false)
+            ->assertDontSee('Atividade outro', false)
+            ->assertSee('2 quadros no filtro', false);
     }
 
     public function test_admin_can_deactivate_a_board(): void

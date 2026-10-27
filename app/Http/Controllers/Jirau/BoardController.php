@@ -9,6 +9,7 @@ use App\Http\Requests\Jirau\DeleteBoardRequest;
 use App\Http\Requests\Jirau\ReorderBoardsRequest;
 use App\Http\Requests\Jirau\StoreBoardRequest;
 use App\Http\Requests\Jirau\UpdateBoardRequest;
+use App\Models\Company;
 use App\Models\Jirau;
 use App\Models\JirauCard;
 use App\Models\Project;
@@ -34,7 +35,7 @@ class BoardController extends Controller
         $user = $request->user();
 
         $query = Jirau::query()
-            ->with(['project', 'columns'])
+            ->with(['project', 'company', 'columns'])
             ->withCount([
                 'cards as cards_count',
                 'cards as open_cards_count' => fn ($q) => $q->whereNull('archived_at'),
@@ -70,6 +71,8 @@ class BoardController extends Controller
         $this->access->assertManage($request->user());
         $this->access->assertView($request->user(), $jirau);
 
+        $this->access->assertWritable($request->user(), $jirau);
+
         $name = $jirau->name;
         $this->boards->deleteEmpty($jirau);
 
@@ -82,11 +85,17 @@ class BoardController extends Controller
     {
         $project = Project::query()->findOrFail($request->projectId());
 
+        $company = $request->companyId()
+            ? Company::query()->find($request->companyId())
+            : $project->clientCompany;
+
         $jirau = $this->boards->createForProject(
             $project,
             $request->user(),
             $request->boardName(),
             $request->template(),
+            $company,
+            $request->contractName(),
         );
 
         return redirect()
@@ -105,6 +114,7 @@ class BoardController extends Controller
     public function update(UpdateBoardRequest $request, Jirau $jirau): RedirectResponse
     {
         $this->access->assertView($request->user(), $jirau);
+        $this->access->assertWritable($request->user(), $jirau);
 
         $this->boards->rename($jirau, $request->boardName());
 
@@ -118,8 +128,9 @@ class BoardController extends Controller
         $this->access->assertView($request->user(), $jirau);
 
         $jirau->load([
+            'company',
             'project.steps.jirauCard',
-            'project.jiraus',
+            'project.jiraus.company',
             'labels',
             'members',
             'columns' => fn ($q) => $q->with(['watchers:id,name,jirau_role,is_admin'])->withCount(['cards as cards_count']),
@@ -184,11 +195,15 @@ class BoardController extends Controller
                 ->find($cardId);
         }
 
+        $isAdmin = $this->access->canManage($request->user());
+
         return view('jirau.board', [
             'jirau' => $jirau,
             'openCard' => $openCard,
             'filters' => $filters,
-            'isAdmin' => $this->access->canManage($request->user()),
+            'isAdmin' => $isAdmin,
+            'canOperate' => $isAdmin && $jirau->is_active,
+            'canDemand' => ! $isAdmin && $jirau->is_active,
             'types' => JirauCardType::options(),
             'adminTypes' => JirauCardType::adminOptions(),
             'priorities' => JirauCardPriority::options(),
@@ -198,7 +213,7 @@ class BoardController extends Controller
             'unlinkedSteps' => $jirau->project
                 ? $jirau->project->steps->filter(fn ($step) => $step->jirauCard === null)->values()
                 : collect(),
-            'canManageEvidence' => $openCard
+            'canManageEvidence' => $openCard && $jirau->is_active
                 ? $this->evidence->canManage($request->user(), $openCard)
                 : false,
         ]);

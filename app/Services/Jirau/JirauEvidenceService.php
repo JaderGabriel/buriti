@@ -48,6 +48,11 @@ class JirauEvidenceService
             return false;
         }
 
+        $card->loadMissing('jirau');
+        if (! $card->jirau?->is_active) {
+            return false;
+        }
+
         if ($user->is_admin || $user->jirau_role !== null) {
             return true;
         }

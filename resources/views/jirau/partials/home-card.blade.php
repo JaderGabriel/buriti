@@ -40,6 +40,12 @@
     <p class="jirau-home__kicker">{{ $board->project?->name ?? 'Projeto' }}</p>
     <h2>{{ $board->name }}</h2>
     <div class="jirau-home__chips">
+        @if($board->company)
+            <span class="jirau-chip" title="Empresa / contrato">{{ $board->company->displayName() }}</span>
+        @endif
+        @if($board->contract_name)
+            <span class="jirau-chip" title="Contrato">{{ $board->contract_name }}</span>
+        @endif
         @if($template)
             <span class="jirau-chip">{{ $template->label() }}</span>
         @endif
@@ -57,7 +63,7 @@
     <div class="jirau-home__foot">
         <a href="{{ route('jirau.show', $board) }}" class="jirau-home__open">
             <x-ui.icon name="jirau" class="h-4 w-4" />
-            <span>Abrir quadro</span>
+            <span>{{ $board->is_active ? 'Abrir quadro' : 'Ver quadro' }}</span>
         </a>
         @include('jirau.partials.project-mark', [
             'project' => $board->project,

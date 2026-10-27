@@ -24,7 +24,7 @@
         <p class="jirau-card__key">{{ $card->key() }} · {{ $card->type->label() }}</p>
         <h3 class="jirau-card__title">{{ $card->title }}</h3>
         @if(! empty($showBoard) && $card->jirau)
-            <p class="jirau-card__board">{{ $card->jirau->project?->name ?? $card->jirau->name }}</p>
+            <p class="jirau-card__board">{{ $card->jirau->allocationLabel() }}</p>
         @endif
         <div class="jirau-card__meta">
             @if($card->project_step_id)

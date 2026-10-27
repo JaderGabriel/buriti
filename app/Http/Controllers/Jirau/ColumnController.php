@@ -23,7 +23,7 @@ class ColumnController extends Controller
     public function store(StoreColumnRequest $request, Jirau $jirau): RedirectResponse
     {
         $this->access->assertManage($request->user());
-        $this->access->assertView($request->user(), $jirau);
+        $this->access->assertWritable($request->user(), $jirau);
 
         $column = $this->boards->addColumn($jirau, $request->validated());
 
@@ -35,7 +35,7 @@ class ColumnController extends Controller
     public function update(UpdateColumnRequest $request, Jirau $jirau, JirauColumn $column): RedirectResponse
     {
         $this->access->assertManage($request->user());
-        $this->access->assertView($request->user(), $jirau);
+        $this->access->assertWritable($request->user(), $jirau);
         abort_unless((int) $column->jirau_id === (int) $jirau->id, 404);
 
         $data = $request->validated();
@@ -62,7 +62,7 @@ class ColumnController extends Controller
     public function reorder(ReorderColumnsRequest $request, Jirau $jirau): JsonResponse
     {
         $this->access->assertManage($request->user());
-        $this->access->assertView($request->user(), $jirau);
+        $this->access->assertWritable($request->user(), $jirau);
 
         foreach ($request->validated('ordered_ids') as $index => $id) {
             JirauColumn::query()

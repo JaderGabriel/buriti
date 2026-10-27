@@ -3696,6 +3696,32 @@ function initDriveViewer() {
     });
 }
 
+function initJirauCreateBoard() {
+    document.querySelectorAll('[data-jirau-create-board]').forEach((form) => {
+        const projectField = form.querySelector('[data-jirau-board-project]');
+        const companySelect = form.querySelector('[data-jirau-board-company]');
+        if (! projectField || ! companySelect || form.dataset.companySyncBound === '1') {
+            return;
+        }
+        form.dataset.companySyncBound = '1';
+
+        const companyFromProject = () => {
+            if (projectField instanceof HTMLSelectElement) {
+                return projectField.selectedOptions[0]?.getAttribute('data-company-id') || '';
+            }
+
+            return projectField.getAttribute('data-company-id') || '';
+        };
+
+        projectField.addEventListener('change', () => {
+            const companyId = companyFromProject();
+            if (companyId && [...companySelect.options].some((option) => option.value === companyId)) {
+                companySelect.value = companyId;
+            }
+        });
+    });
+}
+
 function initJirauHome() {
     const home = document.querySelector('[data-jirau-home]');
     if (! home || home.dataset.canDrag !== '1' || home.dataset.dndBound === '1') {
@@ -4324,6 +4350,7 @@ initTaskDayCreateFallback();
 initProjectBoard();
 initJirauBoard();
 initJirauHome();
+initJirauCreateBoard();
 initHomeProjectBoard();
 initProjectCardMinimize();
 initOpportunityBoard();
