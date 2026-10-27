@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\User;
+use Illuminate\Support\Str;
 
 final class AdminNavigation
 {
@@ -148,7 +149,7 @@ final class AdminNavigation
                 'route' => 'admin.settings.edit',
                 'label' => 'Sistema',
                 'icon' => 'settings',
-                'pattern' => ['admin.users.*', 'admin.integrations.*', 'admin.settings.*'],
+                'pattern' => ['admin.users.*', 'admin.integrations.*', 'admin.settings.*', 'admin.roadmap.*'],
                 'items' => [
                     [
                         'route' => 'admin.users.index',
@@ -167,6 +168,12 @@ final class AdminNavigation
                         'label' => 'Configurações',
                         'pattern' => 'admin.settings.*',
                         'icon' => 'settings',
+                    ],
+                    [
+                        'route' => 'admin.roadmap.show',
+                        'label' => 'Roadmap',
+                        'pattern' => 'admin.roadmap.*',
+                        'icon' => 'roadmap',
                     ],
                 ],
             ],
@@ -197,5 +204,104 @@ final class AdminNavigation
         return is_array($pattern)
             ? request()->routeIs(...$pattern)
             : request()->routeIs($pattern);
+    }
+
+    /**
+     * @return list<array{type: string, id: string, title: string, subtitle: string, url: string, group: string}>
+     */
+    public static function search(string $term, ?User $user = null): array
+    {
+        $term = trim($term);
+        if ($term === '') {
+            return [];
+        }
+
+        $hits = [];
+
+        foreach (self::modules($user) as $module) {
+            $moduleId = (string) ($module['id'] ?? '');
+            if (self::matchesTerm($term, $module['label'] ?? '', $moduleId, self::keywordsFor($moduleId))) {
+                $hits[] = [
+                    'type' => 'módulo',
+                    'id' => 'module:'.$moduleId,
+                    'title' => $module['label'],
+                    'subtitle' => 'Módulo',
+                    'url' => route($module['route']),
+                    'group' => $moduleId,
+                ];
+            }
+
+            foreach ($module['items'] ?? [] as $item) {
+                $sameAsModule = ($item['route'] ?? null) === ($module['route'] ?? null)
+                    && ($item['label'] ?? '') === ($module['label'] ?? '');
+                if ($sameAsModule) {
+                    continue;
+                }
+
+                $routeName = (string) ($item['route'] ?? '');
+                if (! self::matchesTerm(
+                    $term,
+                    $item['label'] ?? '',
+                    $module['label'] ?? '',
+                    $routeName,
+                    self::keywordsFor($routeName),
+                    self::keywordsFor($moduleId)
+                )) {
+                    continue;
+                }
+
+                $hits[] = [
+                    'type' => 'página',
+                    'id' => 'page:'.($routeName !== '' ? $routeName : Str::slug((string) ($item['label'] ?? 'item'))),
+                    'title' => $item['label'],
+                    'subtitle' => $module['label'],
+                    'url' => $item['url'] ?? route($item['route']),
+                    'group' => $moduleId,
+                ];
+            }
+        }
+
+        return $hits;
+    }
+
+    private static function matchesTerm(string $term, string ...$parts): bool
+    {
+        $needle = self::fold($term);
+        if ($needle === '') {
+            return false;
+        }
+
+        return str_contains(self::fold(implode(' ', $parts)), $needle);
+    }
+
+    private static function fold(string $value): string
+    {
+        return Str::lower(Str::ascii($value));
+    }
+
+    private static function keywordsFor(string $key): string
+    {
+        return [
+            'home' => 'painel dashboard inicio',
+            'comercial' => 'crm vendas leads comercial',
+            'entrega' => 'projetos portfolio entrega',
+            'jirau' => 'kanban agil board quadro',
+            'sistema' => 'admin sistema',
+            'admin.messages.index' => 'inbox email mail mensagens',
+            'admin.companies.index' => 'company empresas clientes',
+            'admin.contacts.index' => 'contactos telefone contatos',
+            'admin.opportunities.index' => 'pipeline negocio oportunidades',
+            'admin.projects.index' => 'portfolio projetos',
+            'admin.home-projects.edit' => 'home vitrine site',
+            'admin.tasks.index' => 'tarefas calendario calendar agenda',
+            'jirau.home' => 'boards quadros',
+            'jirau.overview' => 'overview geral',
+            'jirau.analytics' => 'analytics bi analitica',
+            'jirau.staff' => 'staff time equipe',
+            'admin.users.index' => 'users usuarios',
+            'admin.integrations.edit' => 'google telegram integracoes',
+            'admin.settings.edit' => 'settings config configuracoes',
+            'admin.roadmap.show' => 'roadmap produto ideias concorrentes pipedrive hubspot modulos',
+        ][$key] ?? '';
     }
 }

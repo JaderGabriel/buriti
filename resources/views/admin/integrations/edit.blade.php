@@ -209,10 +209,12 @@
     </form>
 
     <section class="mt-12">
-        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand">Roadmap</p>
+        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand">Playbook</p>
         <h2 class="mt-2 font-display text-2xl font-bold">Como usar as ferramentas com o site</h2>
         <p class="mt-2 max-w-2xl text-sm text-mist">
             Sugestões de fluxo BURI-TI: do formulário público à operação, ligando quem (CRM) ao quê (projetos) e quando (agenda/Trello).
+            Módulos e impacto de produto:
+            <a class="text-brand-bright hover:underline" href="{{ route('admin.roadmap.show') }}">Sistema → Roadmap</a>.
         </p>
 
         <ol class="mt-8 space-y-5">

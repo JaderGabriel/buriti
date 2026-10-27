@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\OpportunityController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\ProjectController;
 use App\Http\Controllers\Admin\ProjectStepController;
+use App\Http\Controllers\Admin\RoadmapController;
 use App\Http\Controllers\Admin\SearchController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\TaskController;
@@ -266,6 +267,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::delete('/anexos/{attachment}/eliminar', [AttachmentController::class, 'purge'])
         ->withTrashed()
         ->name('attachments.purge');
+
+    Route::get('/sistema/roadmap', [RoadmapController::class, 'show'])->name('roadmap.show');
 
     Route::get('/configuracoes', [SettingController::class, 'edit'])->name('settings.edit');
     Route::put('/configuracoes', [SettingController::class, 'update'])->name('settings.update');

@@ -9,7 +9,7 @@ Stack: **Laravel 13**, **Blade**, **Vite**, **Tailwind CSS 4**, **Alpine.js**, M
 - GitHub: [JaderGabriel](https://github.com/JaderGabriel)
 - LinkedIn: [jadergabriel](https://www.linkedin.com/in/jadergabriel/)
 
-Documentação de consolidação do CRM: [`docs/CRM-CONSOLIDACAO.md`](docs/CRM-CONSOLIDACAO.md).
+Documentação de consolidação do CRM: [`docs/CRM-CONSOLIDACAO.md`](docs/CRM-CONSOLIDACAO.md). Roadmap de módulos e impacto: [`docs/ROADMAP.md`](docs/ROADMAP.md) (leitura no admin: Sistema → Roadmap).
 
 ## Funcionalidades
 
@@ -239,7 +239,7 @@ resources/views/
   components/            # Blade components (UI, anexos, CRM)
   site/                  # Landing
   admin/                 # Painel
-docs/                    # Documentação de produto / consolidação
+docs/                    # Consolidação CRM + roadmap de produto
 ```
 
 Fluxo típico: **Request → FormRequest → Controller → Model/Service → View**.

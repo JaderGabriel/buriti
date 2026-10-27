@@ -330,4 +330,39 @@ class AdminPanelTest extends TestCase
             app(SettingService::class)->calendarSrc()
         );
     }
+
+    public function test_search_suggests_modules_and_submodules(): void
+    {
+        $this->actingAs($this->admin)
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('data-admin-search', false)
+            ->assertSee('data-admin-search-list', false)
+            ->assertSee('Buscar módulo, contato, empresa', false);
+
+        $this->actingAs($this->admin)
+            ->getJson(route('admin.search', ['q' => 'agen']))
+            ->assertOk()
+            ->assertJsonFragment([
+                'title' => 'Agenda',
+                'type' => 'página',
+                'subtitle' => 'Entrega',
+            ]);
+
+        $this->actingAs($this->admin)
+            ->getJson(route('admin.search', ['q' => 'jir']))
+            ->assertOk()
+            ->assertJsonFragment([
+                'title' => 'Jirau',
+                'type' => 'módulo',
+            ]);
+
+        $this->actingAs($this->admin)
+            ->getJson(route('admin.search', ['q' => 'config']))
+            ->assertOk()
+            ->assertJsonFragment([
+                'title' => 'Configurações',
+                'subtitle' => 'Sistema',
+            ]);
+    }
 }

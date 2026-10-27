@@ -241,3 +241,5 @@ O CRM já cobre o ciclo comercial completo para operação solo/pequena equipa. 
 A geração assistida de contratos (prompt + revisão humana, secção 3.1) continua **futura**; nesta fatia ficou a base OAuth/pastas/cópia de modelo.
 
 Este documento deve ser actualizado quando cada fatia do roadmap for concluída (data + commit/tag).
+
+O mapa de módulos novos, concorrentes e impacto está em [`ROADMAP.md`](ROADMAP.md) e na área admin **Sistema → Roadmap**. Os contratos assistidos (secção 3.1) entram lá na onda Próximo; não reabrir P0–P2 daqui.

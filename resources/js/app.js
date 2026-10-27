@@ -781,6 +781,212 @@ function initAdminShell() {
     });
 }
 
+function initRoadmapFilters() {
+    const root = document.querySelector('[data-roadmap]');
+    if (! root) {
+        return;
+    }
+
+    const buttons = root.querySelectorAll('[data-roadmap-filter]');
+    const items = root.querySelectorAll('[data-roadmap-item]');
+    const empty = root.querySelector('[data-roadmap-empty]');
+
+    const apply = (filter) => {
+        let shown = 0;
+        items.forEach((item) => {
+            const match = filter === 'all'
+                || item.dataset.wave === filter
+                || item.dataset.module === filter
+                || item.dataset.kind === filter;
+            item.hidden = ! match;
+            if (match) {
+                shown += 1;
+            }
+        });
+        buttons.forEach((button) => {
+            button.setAttribute('aria-pressed', button.dataset.roadmapFilter === filter ? 'true' : 'false');
+        });
+        if (empty) {
+            empty.hidden = shown > 0;
+        }
+    };
+
+    buttons.forEach((button) => {
+        button.addEventListener('click', () => apply(button.dataset.roadmapFilter || 'all'));
+    });
+}
+
+function initAdminSearch() {
+    const escapeHtml = (value) => String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+
+    const slug = (value) => String(value ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]+/g, '-');
+
+    document.querySelectorAll('[data-admin-search]').forEach((form) => {
+        const input = form.querySelector('[data-admin-search-input]');
+        const list = form.querySelector('[data-admin-search-list]');
+        if (! input || ! list) {
+            return;
+        }
+
+        let timer = 0;
+        let seq = 0;
+        let hits = [];
+        let active = -1;
+
+        const setExpanded = (open) => {
+            input.setAttribute('aria-expanded', open ? 'true' : 'false');
+            list.hidden = ! open;
+        };
+
+        const close = () => {
+            window.clearTimeout(timer);
+            hits = [];
+            active = -1;
+            list.innerHTML = '';
+            input.removeAttribute('aria-activedescendant');
+            setExpanded(false);
+        };
+
+        const paintActive = () => {
+            list.querySelectorAll('[data-admin-search-hit]').forEach((el, index) => {
+                el.classList.toggle('is-active', index === active);
+                if (index === active) {
+                    input.setAttribute('aria-activedescendant', el.id);
+                    el.scrollIntoView({ block: 'nearest' });
+                }
+            });
+            if (active < 0) {
+                input.removeAttribute('aria-activedescendant');
+            }
+        };
+
+        const render = (nextHits) => {
+            hits = nextHits;
+            active = hits.length ? 0 : -1;
+            if (! hits.length) {
+                close();
+                return;
+            }
+
+            list.innerHTML = hits.map((hit, index) => {
+                const group = slug(hit.group);
+                const type = String(hit.type || 'resultado');
+                const typeSlug = slug(type);
+                const optionId = `${list.id}-opt-${index}`;
+
+                return `<li>
+                    <a
+                        id="${optionId}"
+                        class="admin-search__hit admin-search__hit--${escapeHtml(typeSlug)}${group ? ` admin-search__hit--${escapeHtml(group)}` : ''}${index === 0 ? ' is-active' : ''}"
+                        role="option"
+                        href="${escapeHtml(hit.url)}"
+                        data-admin-search-hit
+                        data-index="${index}"
+                    >
+                        <span class="admin-search__hit-type">${escapeHtml(type)}</span>
+                        <span class="admin-search__hit-title">${escapeHtml(hit.title)}</span>
+                        ${hit.subtitle ? `<span class="admin-search__hit-sub">${escapeHtml(hit.subtitle)}</span>` : ''}
+                    </a>
+                </li>`;
+            }).join('');
+            setExpanded(true);
+            paintActive();
+        };
+
+        const lookup = async (query) => {
+            const requestId = ++seq;
+            const url = new URL(form.getAttribute('action'), window.location.origin);
+            url.searchParams.set('q', query);
+
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+                if (! response.ok || requestId !== seq) {
+                    return;
+                }
+                const payload = await response.json();
+                if (requestId !== seq) {
+                    return;
+                }
+                render(Array.isArray(payload.hits) ? payload.hits.slice(0, 10) : []);
+            } catch {
+                if (requestId === seq) {
+                    close();
+                }
+            }
+        };
+
+        input.addEventListener('input', () => {
+            const query = input.value.trim();
+            window.clearTimeout(timer);
+            if (query.length < 1) {
+                close();
+                return;
+            }
+            timer = window.setTimeout(() => lookup(query), 160);
+        });
+
+        input.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                if (! list.hidden) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    close();
+                }
+                return;
+            }
+
+            if (list.hidden || ! hits.length) {
+                return;
+            }
+
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                active = (active + 1) % hits.length;
+                paintActive();
+                return;
+            }
+
+            if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                active = (active - 1 + hits.length) % hits.length;
+                paintActive();
+                return;
+            }
+
+            if (event.key === 'Enter' && active >= 0 && hits[active]?.url) {
+                event.preventDefault();
+                window.location.assign(hits[active].url);
+            }
+        });
+
+        form.addEventListener('submit', (event) => {
+            if (! list.hidden && active >= 0 && hits[active]?.url) {
+                event.preventDefault();
+                window.location.assign(hits[active].url);
+            }
+        });
+
+        document.addEventListener('click', (event) => {
+            if (! form.contains(event.target)) {
+                close();
+            }
+        });
+    });
+}
+
 function initAvatarPreviews() {
     document.querySelectorAll('[data-avatar-preview]').forEach((root) => {
         const input = root.querySelector('[data-avatar-preview-input]');
@@ -3556,6 +3762,8 @@ initProjectBooks();
 initCookieBanner();
 initBackToTop();
 initAdminShell();
+initAdminSearch();
+initRoadmapFilters();
 initAvatarPreviews();
 initPasswordFields();
 initDocumentMasks();

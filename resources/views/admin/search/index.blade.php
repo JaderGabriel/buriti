@@ -3,7 +3,7 @@
 @section('content')
     <div class="mb-8">
         <h1 class="font-display text-2xl font-bold sm:text-3xl">Busca</h1>
-        <p class="mt-1 text-mist">Contatos, empresas, oportunidades e atividades</p>
+        <p class="mt-1 text-mist">Módulos, páginas, contatos, empresas, oportunidades e atividades</p>
     </div>
 
     <form method="GET" action="{{ route('admin.search') }}" class="mb-6 max-w-xl">

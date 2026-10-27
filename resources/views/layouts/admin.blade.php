@@ -55,20 +55,7 @@
             @include('admin.partials.module-pin', ['currentModule' => $currentModule])
         </div>
 
-        <form method="GET" action="{{ route('admin.search') }}" class="admin-search admin-search--sidebar">
-            <label class="sr-only" for="admin-search">Buscar no CRM</label>
-            <span class="admin-search__icon" aria-hidden="true">
-                <x-ui.icon name="search" class="h-4 w-4" />
-            </span>
-            <input
-                id="admin-search"
-                type="search"
-                name="q"
-                value="{{ request('q') }}"
-                placeholder="Buscar contato, empresa…"
-                class="admin-search__input"
-            >
-        </form>
+        @include('admin.partials.search', ['id' => 'admin-search', 'class' => 'admin-search--sidebar'])
 
         @include('admin.partials.module-nav', ['modules' => $modules, 'runtimeVersions' => $runtimeVersions])
 
@@ -93,20 +80,7 @@
                 </button>
                 <p class="admin-topbar__title admin-mobile-only">Admin BURI-TI</p>
                 @include('admin.partials.modulebar', ['moduleItems' => $moduleItems, 'moduleLabel' => $moduleLabel])
-                <form method="GET" action="{{ route('admin.search') }}" class="admin-search admin-search--top">
-                    <label class="sr-only" for="admin-search-top">Buscar no CRM</label>
-                    <span class="admin-search__icon" aria-hidden="true">
-                        <x-ui.icon name="search" class="h-4 w-4" />
-                    </span>
-                    <input
-                        id="admin-search-top"
-                        type="search"
-                        name="q"
-                        value="{{ request('q') }}"
-                        placeholder="Buscar qualquer coisa…"
-                        class="admin-search__input"
-                    >
-                </form>
+                @include('admin.partials.search', ['id' => 'admin-search-top', 'class' => 'admin-search--top'])
             </div>
 
             <div class="admin-topbar__right">
