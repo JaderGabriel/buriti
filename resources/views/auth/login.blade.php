@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Login — BURI-TI')
+@section('title', 'Login — '.$product['name'])
 
 @section('body')
 <div class="login-shell" data-login-page>
@@ -9,10 +9,10 @@
     <div class="login-frame">
         <aside class="login-brand">
             <a href="{{ route('home') }}" class="login-brand-mark">
-                <img src="{{ asset('images/logo-buriti.png') }}" alt="BURI-TI" class="h-14 w-14 object-contain sm:h-16 sm:w-16">
+                <img src="{{ asset('images/logo-buriti.png') }}" alt="{{ $product['name'] }}" class="h-14 w-14 object-contain sm:h-16 sm:w-16">
                 <div>
-                    <p class="font-display text-xl font-bold tracking-[0.14em] text-snow sm:text-2xl">BURI-TI</p>
-                    <p class="mt-1 text-[11px] uppercase tracking-[0.22em] text-mist">Tecnologia para Pessoas</p>
+                    <p class="font-display text-xl font-bold tracking-[0.14em] text-snow sm:text-2xl">{{ $product['name'] }}</p>
+                    <p class="mt-1 text-[11px] uppercase tracking-[0.22em] text-mist">{{ $product['tagline'] }}</p>
                 </div>
             </a>
 

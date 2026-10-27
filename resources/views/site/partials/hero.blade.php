@@ -9,7 +9,7 @@
                     Tecnologia que o gestor entende
                     <span class="text-brand-bright"> e a operação usa</span>.
                 </h1>
-                <p class="mt-4 text-lg font-medium text-blue sm:text-xl">BURI-TI — Tecnologia para Pessoas</p>
+                <p class="mt-4 text-lg font-medium text-blue sm:text-xl">{{ $product['name'] }} — {{ $product['tagline'] }}</p>
                 <p class="reveal-delay-1 mt-6 max-w-2xl text-base leading-relaxed text-mist sm:text-lg">
                     Consultoria, sistemas, Moodle e painéis de indicadores. Da proposta à operação, com escopo claro e acompanhamento próximo.
                 </p>

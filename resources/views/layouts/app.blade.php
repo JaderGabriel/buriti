@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="description" content="BURI-TI — Tecnologia para Pessoas. Consultoria em TI, sistemas, painéis de indicadores e gestão de projetos — da proposta à operação.">
-    <title>@yield('title', 'BURI-TI — Tecnologia para Pessoas')</title>
+    <meta name="description" content="{{ $product['name'] }} — {{ $product['tagline'] }}. Consultoria em TI, sistemas, painéis de indicadores e gestão de projetos — da proposta à operação.">
+    <title>@yield('title', $product['name'].' — '.$product['tagline'])</title>
     <link rel="icon" href="{{ asset('images/logo-buriti.png') }}" type="image/png">
     <script>
         (() => {

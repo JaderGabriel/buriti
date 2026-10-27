@@ -23,6 +23,8 @@ final class ProductRoadmap
             'summary' => self::summary($ideas),
             'filters' => self::filters(),
             'scoring' => self::scoringHelp(),
+            'product' => RuntimeVersions::product(),
+            'currentRelease' => self::currentRelease(),
         ];
     }
 
@@ -124,8 +126,8 @@ final class ProductRoadmap
             ['id' => 'home', 'label' => 'Início', 'items' => ['Dashboard', 'Próximas acções', 'Funil']],
             ['id' => 'comercial', 'label' => 'Comercial', 'items' => ['Mensagens', 'Empresas', 'Contatos', 'Oportunidades']],
             ['id' => 'entrega', 'label' => 'Entrega', 'items' => ['Projetos', 'Vitrine', 'Agenda']],
-            ['id' => 'jirau', 'label' => 'Jirau', 'items' => ['Quadros', 'Visão geral', 'Analítica', 'Equipe']],
-            ['id' => 'sistema', 'label' => 'Sistema', 'items' => ['Usuários', 'Integrações', 'Configurações']],
+            ['id' => 'jirau', 'label' => 'Jirau', 'items' => ['Quadros', 'Visão geral', 'Analítica / horas', 'Equipe']],
+            ['id' => 'sistema', 'label' => 'Sistema', 'items' => ['Usuários', 'Integrações', 'Configurações', 'Roadmap']],
         ];
     }
 
@@ -138,7 +140,7 @@ final class ProductRoadmap
             ['id' => 'home', 'label' => 'Início', 'state' => 'keep', 'items' => ['Dashboard', 'Funil', 'Relatório comercial']],
             ['id' => 'comercial', 'label' => 'Comercial', 'state' => 'grow', 'items' => ['Inbox unificada', 'WhatsApp', 'Propostas', 'Playbooks']],
             ['id' => 'entrega', 'label' => 'Entrega', 'state' => 'grow', 'items' => ['Projetos', 'Contratos', 'Apontamento', 'NPS']],
-            ['id' => 'jirau', 'label' => 'Jirau', 'state' => 'grow', 'items' => ['Templates', 'SLA / WIP', 'Quadros']],
+            ['id' => 'jirau', 'label' => 'Jirau', 'state' => 'grow', 'items' => ['Templates', 'Horas', 'SLA / WIP', 'Quadros']],
             ['id' => 'sistema', 'label' => 'Sistema', 'state' => 'grow', 'items' => ['Papéis', 'Auditoria', 'Roadmap']],
             ['id' => 'portal', 'label' => 'Portal', 'state' => 'new', 'items' => ['Login do cliente', 'Status do projeto', 'Ficheiros']],
             ['id' => 'financeiro', 'label' => 'Financeiro', 'state' => 'new', 'items' => ['Faturas', 'A receber', 'Vínculo à proposta']],
@@ -233,6 +235,8 @@ final class ProductRoadmap
             ['id' => 'modulo', 'label' => 'Módulo'],
             ['id' => 'submodulo', 'label' => 'Submódulo'],
             ['id' => 'recurso', 'label' => 'Recurso'],
+            ['id' => 'shipped', 'label' => 'Entregue'],
+            ['id' => 'partial', 'label' => 'Parcial'],
         ];
     }
 
@@ -312,8 +316,32 @@ final class ProductRoadmap
             'sistema' => 'Sistema',
             'novo' => 'Novo módulo',
         ][$idea['module'] ?? ''] ?? '';
+        $idea['status'] = (string) ($idea['status'] ?? 'planned');
+        $idea['status_label'] = match ($idea['status']) {
+            'shipped' => 'Entregue',
+            'partial' => 'Parcial',
+            default => 'Planejado',
+        };
 
         return $idea;
+    }
+
+    /**
+     * @return array{short: string, release: string, headline: string, items: list<string>}
+     */
+    public static function currentRelease(): array
+    {
+        return [
+            'short' => RuntimeVersions::short(),
+            'release' => RuntimeVersions::release(),
+            'headline' => 'Tempo no Jirau, pessoas no cartão e inbox no sino.',
+            'items' => [
+                'Sino de notificações ao lado do perfil, com caixa persistida (Jirau, mensagens do site e agenda) e card que fecha de verdade.',
+                'Fazer/Encerrar no cartão, histórico de horas para o admin e extrato na analítica (projeto, pessoa, empresa).',
+                'Vários responsáveis e atores no mesmo cartão (excepto o demandante).',
+                'Faixa no quadro geral por etapa; um Jirau por empresa/contrato; inativos sem acção; apagar quadro vazio.',
+            ],
+        ];
     }
 
     /**
@@ -342,13 +370,31 @@ final class ProductRoadmap
                 'kind' => 'recurso',
                 'module' => 'jirau',
                 'wave' => 'agora',
+                'status' => 'shipped',
+                'shipped_in' => '1.6',
                 'valor' => 4,
                 'esforco' => 2,
                 'risco' => 1,
                 'inspired' => 'Trello, ClickUp, Monday',
-                'summary' => 'Clonar um quadro (colunas, WIP, prazos padrão, checklists) a partir de um modelo “Moodle”, “i-Educar” ou “site Laravel”.',
-                'impact' => 'JSON de templates + comando de clone. O schema de colunas já tem cor, ordem e default_due. Sem módulo novo. Pouca regressão se o clone for transaccional.',
+                'summary' => 'Entregue: clonar um quadro (colunas, prazos padrão, checklists) a partir de um modelo Moodle, i-Educar, consultoria ou site Laravel.',
+                'impact' => 'JSON de templates + clone transaccional. Schema de colunas já tinha cor, ordem e default_due.',
                 'surfaces' => ['Jirau', 'colunas', 'checklists'],
+            ],
+            [
+                'id' => 'inbox-app',
+                'title' => 'Inbox in-app',
+                'kind' => 'recurso',
+                'module' => 'sistema',
+                'wave' => 'agora',
+                'status' => 'shipped',
+                'shipped_in' => '1.7',
+                'valor' => 4,
+                'esforco' => 2,
+                'risco' => 1,
+                'inspired' => 'Linear, GitHub, Slack',
+                'summary' => 'Entregue: sino ao lado do perfil, caixa persistida, lidas, eventos de Jirau, site e agenda. Telegram continua.',
+                'impact' => 'Tabela user_notifications + sino na topbar admin/Jirau. Sem módulo novo na barra.',
+                'surfaces' => ['Topbar', 'Jirau', 'Mensagens', 'Agenda'],
             ],
             [
                 'id' => 'follow-up-sla',
@@ -454,13 +500,14 @@ final class ProductRoadmap
                 'kind' => 'submodulo',
                 'module' => 'entrega',
                 'wave' => 'proximo',
+                'status' => 'partial',
                 'valor' => 4,
                 'esforco' => 3,
                 'risco' => 2,
                 'inspired' => 'Accelo, Clockify, Scoro',
-                'summary' => 'Time entry ligado a projeto e, opcionalmente, a cartão Jirau. Base para fatura futura, não timesheet corporativo.',
-                'impact' => 'Tabela time_entries, UI na ficha do projeto e no cartão. Jirau ganha um campo; não vira módulo novo. Sem isto o Financeiro não tem o que faturar.',
-                'surfaces' => ['Projetos', 'Jirau', 'utilizadores'],
+                'summary' => 'Parcial: Fazer/Encerrar no cartão Jirau, histórico admin e extrato na analítica já existem. Falta apontamento na ficha do projeto como base de fatura.',
+                'impact' => 'jirau_time_entries + analítica. UI na ficha do projeto ainda falta. Sem isto o Financeiro não tem o que faturar no CRM.',
+                'surfaces' => ['Jirau', 'Analítica', 'Projetos', 'utilizadores'],
             ],
             [
                 'id' => 'sla-jirau',

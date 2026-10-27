@@ -5,33 +5,74 @@ namespace App\Support;
 final class RuntimeVersions
 {
     /**
-     * @return array{laravel: string, php: string, server: string, version: string, codename: string, release: string}
+     * Identidade de produto (muda em config/buriti.php e reflecte-se em todo o UI).
+     *
+     * @return array{name: string, version: string, codename: string, tagline: string, short: string, release: string}
      */
-    public static function labels(): array
+    public static function product(): array
     {
         return [
-            'laravel' => app()->version(),
-            'php' => PHP_VERSION,
-            'server' => self::server(),
+            'name' => self::name(),
             'version' => self::version(),
             'codename' => self::codename(),
+            'tagline' => self::tagline(),
+            'short' => self::short(),
             'release' => self::release(),
         ];
     }
 
+    /**
+     * @return array{laravel: string, php: string, server: string, name: string, version: string, codename: string, tagline: string, short: string, release: string}
+     */
+    public static function labels(): array
+    {
+        return array_merge(self::product(), [
+            'laravel' => app()->version(),
+            'php' => PHP_VERSION,
+            'server' => self::server(),
+        ]);
+    }
+
+    public static function name(): string
+    {
+        return trim((string) config('buriti.name', 'BURI-TI'));
+    }
+
     public static function version(): string
     {
-        return trim((string) config('buriti.version', '1.6'));
+        return trim((string) config('buriti.version', '1.7'));
     }
 
     public static function codename(): string
     {
-        return trim((string) config('buriti.codename', 'Vereda'));
+        return trim((string) config('buriti.codename', 'Igarapé'));
+    }
+
+    public static function tagline(): string
+    {
+        return trim((string) config('buriti.tagline', 'Tecnologia para Pessoas'));
+    }
+
+    public static function short(): string
+    {
+        return trim(self::version().' '.self::codename());
     }
 
     public static function release(): string
     {
-        return trim('BURI-TI '.self::version().' '.self::codename());
+        return trim(self::name().' '.self::short());
+    }
+
+    public static function format(string $as = 'release'): string
+    {
+        return match ($as) {
+            'name' => self::name(),
+            'version' => self::version(),
+            'codename' => self::codename(),
+            'tagline' => self::tagline(),
+            'short' => self::short(),
+            default => self::release(),
+        };
     }
 
     private static function server(): string

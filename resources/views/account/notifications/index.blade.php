@@ -1,6 +1,6 @@
 @extends($layout)
 
-@section('title', 'Notificações — BURI-TI')
+@section('title', 'Notificações — '.$product['name'])
 
 @section('content')
     <div class="notify-inbox">

@@ -2,11 +2,16 @@
 
 return [
     /*
-    | Versão do BURI-TI (site, CRM e Jirau). Vereda é o caminho alagado do
-    | Cerrado onde o buriti (Mauritia flexuosa) cresce — o palmeiral da casa.
+    | Identidade visual do produto. RuntimeVersions / product_*() / <x-product.release>
+    | lêem daqui — mudar versão ou codinome actualiza rodapé, sidebar, títulos e roadmap.
+    |
+    | Igarapé é o curso d'água que segue a vereda do Cerrado: o palmeiral do
+    | buriti (Mauritia flexuosa) encontra o rio.
     */
-    'version' => '1.6',
-    'codename' => 'Vereda',
+    'name' => 'BURI-TI',
+    'version' => '1.7',
+    'codename' => 'Igarapé',
+    'tagline' => 'Tecnologia para Pessoas',
 
     'contact' => [
         'email' => 'jadergabriel8@gmail.com',

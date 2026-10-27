@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', ($jirau?->name ?? 'Jirau').' — BURI-TI')
+@section('title', ($jirau?->name ?? 'Jirau').' — '.$product['name'])
 
 @section('body')
 @php
@@ -59,7 +59,7 @@
                 <img src="{{ asset('images/logo-buriti.png') }}" alt="" class="admin-brand__logo">
                 <span class="admin-brand__text">
                     <span class="admin-brand__name">Jirau</span>
-                    <span class="admin-brand__tag">Quadro ágil BURI-TI</span>
+                    <span class="admin-brand__tag">Quadro ágil · <x-product.release as="short" /></span>
                 </span>
             </a>
             <button type="button" class="admin-icon-btn admin-icon-btn--ghost" data-admin-nav-toggle aria-label="Minimizar menu" title="Minimizar menu">

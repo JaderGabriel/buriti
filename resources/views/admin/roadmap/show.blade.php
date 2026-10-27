@@ -6,17 +6,29 @@
             <p class="admin-hero__kicker">Sistema</p>
             <h1 class="admin-hero__title">Roadmap de produto</h1>
             <p class="admin-hero__lead">
-                Ideias de módulos, submódulos e recursos inspirados em concorrentes — com impacto medido sobre o BURI-TI, não um backlog prometido.
+                Ideias de módulos, submódulos e recursos inspirados em concorrentes — com impacto medido sobre o {{ $product['name'] }}, não um backlog prometido.
             </p>
         </div>
         <div class="admin-hero__date" title="Documento vivo em docs/ROADMAP.md">
-            <strong>{{ $summary['total'] }} ideias</strong>
-            <span>índice médio {{ $summary['avg_indice'] }}</span>
+            <strong><x-product.release as="short" /></strong>
+            <span>{{ $summary['total'] }} ideias · índice médio {{ $summary['avg_indice'] }}</span>
         </div>
     </div>
 
+    @if(! empty($currentRelease['items']))
+        <section class="roadmap-shipped" aria-label="Entregue nesta versão">
+            <p class="roadmap-shipped__kicker">Nesta versão · {{ $currentRelease['short'] }}</p>
+            <h2 class="roadmap-shipped__title">{{ $currentRelease['headline'] }}</h2>
+            <ul class="roadmap-shipped__list">
+                @foreach($currentRelease['items'] as $item)
+                    <li>{{ $item }}</li>
+                @endforeach
+            </ul>
+        </section>
+    @endif
+
     <p class="mb-6 max-w-3xl text-sm text-mist">
-        O BURI-TI é o sistema operativo de uma consultoria pequena (site + CRM + Jirau), não um HubSpot. Cada ideia abaixo diz <em>o que copiar</em>, <em>em que onda</em> e <em>o que parte no código</em> se for feita.
+        O {{ $product['name'] }} é o sistema operativo de uma consultoria pequena (site + CRM + Jirau), não um HubSpot. Cada ideia abaixo diz <em>o que copiar</em>, <em>em que onda</em> e <em>o que parte no código</em> se for feita.
         Texto longo no repositório em <code class="text-snow">docs/ROADMAP.md</code>
         ·
         <a class="text-brand-bright hover:underline" href="{{ route('admin.integrations.edit') }}">playbook das integrações actuais</a>
@@ -125,6 +137,7 @@
                     data-wave="{{ $idea['wave'] }}"
                     data-module="{{ $idea['module'] }}"
                     data-kind="{{ $idea['kind'] }}"
+                    data-status="{{ $idea['status'] ?? 'planned' }}"
                     id="ideia-{{ $idea['id'] }}"
                 >
                     <header class="roadmap-idea__head">
@@ -132,6 +145,9 @@
                             <span>{{ $idea['kind_label'] }}</span>
                             <span>{{ $idea['module_label'] }}</span>
                             <span>{{ $idea['wave_label'] }}</span>
+                            @if(($idea['status'] ?? 'planned') !== 'planned')
+                                <span class="roadmap-idea__status roadmap-idea__status--{{ $idea['status'] }}">{{ $idea['status_label'] }}</span>
+                            @endif
                         </div>
                         <p class="roadmap-idea__score" title="Índice de impacto">
                             <strong>{{ $idea['indice'] }}</strong>

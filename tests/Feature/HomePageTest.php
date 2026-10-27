@@ -127,7 +127,7 @@ class HomePageTest extends TestCase
         $this->assertGreaterThan($copyrightPos, $versionsPos);
         $this->assertStringContainsString($versions['php'], $html);
         $this->assertStringContainsString($versions['laravel'], $html);
-        $this->assertStringContainsString('1.6 Vereda', $html);
+        $this->assertStringContainsString(RuntimeVersions::short(), $html);
     }
 
     public function test_home_page_shows_public_projects_only(): void

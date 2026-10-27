@@ -48,7 +48,7 @@ class LegalPagesTest extends TestCase
             ->assertSee('site-versions', false)
             ->assertSee($versions['php'], false)
             ->assertSee($versions['laravel'], false)
-            ->assertSee('1.6 Vereda', false)
+            ->assertSee(RuntimeVersions::short(), false)
             ->assertSee('©', false)
             ->assertSee('Desenvolvido e mantido por', false)
             ->assertSee('Política de Privacidade', false)

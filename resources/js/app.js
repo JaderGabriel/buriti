@@ -781,6 +781,50 @@ function initAdminShell() {
     });
 }
 
+function initAdminNotifications() {
+    document.querySelectorAll('[data-admin-notify]').forEach((root) => {
+        const toggle = root.querySelector('[data-admin-notify-toggle]');
+        const panel = root.querySelector('[data-admin-notify-panel]');
+        if (! toggle || ! panel) {
+            return;
+        }
+
+        const setOpen = (open) => {
+            panel.toggleAttribute('hidden', ! open);
+            toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        };
+
+        setOpen(false);
+
+        toggle.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setOpen(panel.hasAttribute('hidden'));
+        });
+
+        root.querySelectorAll('[data-admin-notify-close]').forEach((button) => {
+            button.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setOpen(false);
+                toggle.focus();
+            });
+        });
+
+        document.addEventListener('click', (event) => {
+            if (! root.contains(event.target)) {
+                setOpen(false);
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                setOpen(false);
+            }
+        });
+    });
+}
+
 function initRoadmapFilters() {
     const root = document.querySelector('[data-roadmap]');
     if (! root) {
@@ -797,7 +841,8 @@ function initRoadmapFilters() {
             const match = filter === 'all'
                 || item.dataset.wave === filter
                 || item.dataset.module === filter
-                || item.dataset.kind === filter;
+                || item.dataset.kind === filter
+                || item.dataset.status === filter;
             item.hidden = ! match;
             if (match) {
                 shown += 1;
@@ -4384,6 +4429,7 @@ initProjectBooks();
 initCookieBanner();
 initBackToTop();
 initAdminShell();
+initAdminNotifications();
 initAdminSearch();
 initRoadmapFilters();
 initAvatarPreviews();

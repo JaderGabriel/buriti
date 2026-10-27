@@ -1,6 +1,6 @@
 @extends('layouts.site')
 
-@section('title', 'Cookies — BURI-TI')
+@section('title', 'Cookies — '.$product['name'])
 
 @section('content')
     <section class="section-shell">

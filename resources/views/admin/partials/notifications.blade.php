@@ -3,18 +3,14 @@
     $items = $adminRecentNotifications ?? collect();
 @endphp
 
-<div
-    class="admin-notify"
-    x-data="{ open: false }"
-    @keydown.escape.window="open = false"
-    @click.outside="open = false"
->
+<div class="admin-notify" data-admin-notify>
     <button
         type="button"
         class="admin-icon-btn admin-notify__btn"
-        @click="open = !open"
-        :aria-expanded="open.toString()"
+        data-admin-notify-toggle
+        aria-expanded="false"
         aria-haspopup="true"
+        aria-controls="admin-notify-panel"
         aria-label="Notificações{{ $unread > 0 ? ' ('.$unread.' não lidas)' : '' }}"
         title="Notificações"
     >
@@ -25,24 +21,33 @@
     </button>
 
     <div
+        id="admin-notify-panel"
         class="admin-notify__panel"
-        x-cloak
-        x-show="open"
-        x-transition
+        data-admin-notify-panel
         role="dialog"
         aria-label="Lista de notificações"
+        hidden
     >
         <header class="admin-notify__head">
             <div>
                 <p class="admin-notify__eyebrow">Inbox</p>
                 <h2 class="admin-notify__title">Notificações</h2>
             </div>
-            @if($unread > 0)
-                <form method="POST" action="{{ route('account.notifications.read-all') }}">
-                    @csrf
-                    <button type="submit" class="admin-notify__mark">Marcar lidas</button>
-                </form>
-            @endif
+            <div class="admin-notify__actions">
+                @if($unread > 0)
+                    <form method="POST" action="{{ route('account.notifications.read-all') }}">
+                        @csrf
+                        <button type="submit" class="admin-notify__mark">Marcar lidas</button>
+                    </form>
+                @endif
+                <button
+                    type="button"
+                    class="admin-notify__close"
+                    data-admin-notify-close
+                    aria-label="Fechar notificações"
+                    title="Fechar"
+                >✕</button>
+            </div>
         </header>
 
         <ul class="admin-notify__list">

@@ -25,7 +25,14 @@ class NotificationInboxTest extends TestCase
             ->assertSee('aria-label="Notificações"', false)
             ->assertSee('admin-topbar__account', false)
             ->assertSee('admin-notify', false)
+            ->assertSee('data-admin-notify-panel', false)
+            ->assertSee('aria-label="Fechar notificações"', false)
             ->getContent();
+
+        $this->assertMatchesRegularExpression(
+            '/data-admin-notify-panel[^>]*\bhidden\b|\bhidden\b[^>]*data-admin-notify-panel/',
+            $html
+        );
 
         $account = strpos($html, 'admin-topbar__account');
         $bell = strpos($html, 'admin-notify');
@@ -49,7 +56,8 @@ class NotificationInboxTest extends TestCase
         $this->actingAs($staff)
             ->get(route('jirau.home'))
             ->assertOk()
-            ->assertSee('aria-label="Notificações"', false)
+            ->assertSee('data-admin-notify-toggle', false)
+            ->assertSee('aria-label="Fechar notificações"', false)
             ->assertSee('Cartão movido no Jirau');
 
         $this->actingAs($staff)

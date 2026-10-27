@@ -1,6 +1,6 @@
 @extends('layouts.site')
 
-@section('title', 'BURI-TI — Tecnologia para Pessoas')
+@section('title', $product['name'].' — '.$product['tagline'])
 
 @section('content')
     @include('site.partials.hero')

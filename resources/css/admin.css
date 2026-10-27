@@ -928,6 +928,37 @@ html.dark .admin-nav__group {
     backdrop-filter: blur(22px);
 }
 
+.admin-notify__panel[hidden] {
+    display: none !important;
+}
+
+.admin-notify__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.admin-notify__close {
+    display: inline-flex;
+    height: 1.75rem;
+    width: 1.75rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 0.55rem;
+    background: transparent;
+    color: var(--admin-muted);
+    font-size: 0.95rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.admin-notify__close:hover {
+    background: var(--admin-fill);
+    color: var(--admin-text);
+}
+
 .admin-notify__head {
     display: flex;
     align-items: flex-start;
@@ -1851,6 +1882,40 @@ html:has([data-admin-shell]) .drive-viewer__dialog {
 }
 
 /* —— Roadmap de produto (Sistema) —— */
+.roadmap-shipped {
+    margin: 0 0 1.4rem;
+    padding: 1rem 1.15rem 1.1rem;
+    border: 1px solid var(--admin-glass-border);
+    border-radius: 1.15rem;
+    background: color-mix(in oklab, var(--admin-blue) 8%, var(--admin-glass));
+    box-shadow: var(--admin-shadow-soft);
+}
+
+.roadmap-shipped__kicker {
+    margin: 0;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--admin-blue);
+}
+
+.roadmap-shipped__title {
+    margin: 0.25rem 0 0.7rem;
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 800;
+}
+
+.roadmap-shipped__list {
+    margin: 0;
+    padding: 0 0 0 1.1rem;
+    display: grid;
+    gap: 0.35rem;
+    color: var(--admin-muted);
+    font-size: 0.88rem;
+}
+
 .roadmap-waves {
     display: grid;
     grid-template-columns: 1fr;
@@ -2182,6 +2247,16 @@ html.dark .roadmap-filters__btn[aria-pressed='true'] {
     border-radius: 99px;
     border: 1px solid var(--admin-glass-border);
     color: var(--admin-muted);
+}
+
+.roadmap-idea__status--shipped {
+    color: #0f9d58;
+    border-color: color-mix(in oklab, #0f9d58 40%, var(--admin-glass-border));
+}
+
+.roadmap-idea__status--partial {
+    color: #d97706;
+    border-color: color-mix(in oklab, #d97706 40%, var(--admin-glass-border));
 }
 
 .roadmap-idea__score {

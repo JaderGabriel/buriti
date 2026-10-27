@@ -10,10 +10,10 @@
     <header class="sticky top-0 z-50 border-b border-line" data-site-header>
         <div class="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
             <a href="{{ route('home') }}" class="flex min-w-0 items-center gap-2.5 sm:gap-3">
-                <img src="{{ asset('images/logo-buriti.png') }}" alt="BURI-TI" class="h-9 w-9 object-contain sm:h-10 sm:w-10">
+                <img src="{{ asset('images/logo-buriti.png') }}" alt="{{ $product['name'] }}" class="h-9 w-9 object-contain sm:h-10 sm:w-10">
                 <div class="min-w-0 leading-tight">
-                    <span class="font-display text-sm font-bold tracking-[0.12em] text-snow sm:text-base">BURI-TI</span>
-                    <p class="truncate text-[11px] uppercase tracking-[0.18em] text-mist">Tecnologia para Pessoas</p>
+                    <span class="font-display text-sm font-bold tracking-[0.12em] text-snow sm:text-base">{{ $product['name'] }}</span>
+                    <p class="truncate text-[11px] uppercase tracking-[0.18em] text-mist">{{ $product['tagline'] }}</p>
                 </div>
             </a>
 
@@ -108,7 +108,7 @@
             <div class="col-span-2 md:col-span-1">
                 <div class="flex items-center gap-3">
                     <img src="{{ asset('images/logo-buriti.png') }}" alt="" class="h-9 w-9 object-contain">
-                    <span class="font-display text-lg font-bold tracking-wide">BURI-TI</span>
+                    <span class="font-display text-lg font-bold tracking-wide">{{ $product['name'] }}</span>
                 </div>
                 <p class="mt-3 max-w-sm text-sm leading-relaxed text-mist">Software, dados e indicadores para operações que precisam de resultado claro — da proposta ao dia a dia.</p>
             </div>
@@ -136,9 +136,9 @@
             </div>
         </div>
         <div class="site-footer__legal border-t border-line px-4 py-3 text-center text-xs text-mist/80 sm:px-6">
-            <p>© {{ date('Y') }} BURI-TI — Tecnologia para Pessoas</p>
+            <p>© {{ date('Y') }} {{ $product['name'] }} — {{ $product['tagline'] }}</p>
             <p class="mt-1.5">
-                Desenvolvido e mantido por <span class="text-snow">BURI-TI</span>
+                Desenvolvido e mantido por <span class="text-snow">{{ $product['name'] }}</span>
                 ·
                 <a href="https://buriti.dev.br" class="hover:text-snow">buriti.dev.br</a>
             </p>
@@ -163,7 +163,7 @@
                     </li>
                     <li>
                         <span>Sistema</span>
-                        {{ $runtimeVersions['version'] }} {{ $runtimeVersions['codename'] }}
+                        <x-product.release as="short" />
                     </li>
                 </ul>
             </div>

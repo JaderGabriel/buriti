@@ -57,7 +57,7 @@
             <span>Laravel {{ $runtimeVersions['laravel'] }}</span>
             <span>PHP {{ $runtimeVersions['php'] }}</span>
             <span>Server {{ $runtimeVersions['server'] }}</span>
-            <span>{{ $runtimeVersions['release'] }}</span>
+            <span><x-product.release /></span>
         </p>
     @endisset
 </nav>

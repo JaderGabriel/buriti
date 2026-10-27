@@ -1,10 +1,18 @@
 # Roadmap de produto BURI-TI
 
-Ideias de **módulos**, **submódulos** e **recursos** inspirados em concorrentes, com impacto medido sobre o sistema actual (site + CRM + Jirau, versão **1.6 Vereda**).
+Ideias de **módulos**, **submódulos** e **recursos** inspirados em concorrentes, com impacto medido sobre o sistema actual (site + CRM + Jirau). A versão visível no admin vem de `config/buriti.php` (`RuntimeVersions`); este ficheiro acompanha o lançamento **1.7 Igarapé**.
 
 Este ficheiro é o artefacto no Git. A leitura operacional está em **Sistema → Roadmap** (`/admin/sistema/roadmap`). Complementa a consolidação do CRM em [`CRM-CONSOLIDACAO.md`](CRM-CONSOLIDACAO.md).
 
 Não é um compromisso de entrega. É um mapa para não copiar HubSpot inteiro nem ignorar o que Pipedrive, Accelo e o mercado BR já resolveram.
+
+## Entregue no 1.7 Igarapé
+
+- Sino de notificações ao lado do perfil, caixa persistida (Jirau, site, agenda) e card que fecha.
+- Tempo no cartão Jirau (Fazer/Encerrar), histórico admin e extrato de horas na analítica.
+- Vários responsáveis e atores no cartão (excepto o demandante).
+- Faixa no quadro geral por etapa; Jirau por empresa/contrato; inativos sem acção; apagar quadro vazio.
+- Templates de quadro (Moodle, i-Educar, consultoria, site) — já na 1.6, marcados como entregues no catálogo.
 
 ## Como o impacto é medido
 
@@ -99,8 +107,11 @@ As caixas a partir de **Proposta** são as ideias deste documento. Lead e Qualif
 **Relatório de conversão** — submódulo Comercial · valor 4 · esforço M · risco 1 · índice **38**
 Página de leitura sobre o `FunnelMetricsService` (win rate, tempo em estágio, origem). Sem schema. Impacto: queries + menu. Não mexe nas regras de reunião.
 
-**Templates de quadro Jirau** — recurso Jirau · valor 4 · esforço M · risco 1 · índice **38**
-Clonar colunas/WIP/checklists a partir de um modelo Moodle, i-Educar ou site Laravel. Impacto: JSON + clone transaccional; `default_due` nas colunas já existe.
+**Templates de quadro Jirau** — recurso Jirau · **entregue (1.6)** · valor 4 · esforço M · risco 1 · índice **38**
+Clonar colunas/checklists a partir de um modelo Moodle, i-Educar, consultoria ou site Laravel.
+
+**Inbox in-app** — recurso Sistema · **entregue (1.7)** · valor 4 · esforço M · risco 1 · índice **38**
+Sino ao lado do perfil, caixa persistida, lidas. Telegram continua.
 
 **SLA de follow-up** — recurso Comercial · valor 4 · esforço M · risco 2 · índice **36**
 Prazo máximo sem próxima acção por estágio. O job Telegram já existe. Impacto: settings; **não** auto-concluir actividade.
@@ -125,8 +136,8 @@ Receita curta “lead → tarefa 24h → Telegram”. Risco: ruído no bot e con
 **Contratos assistidos** — submódulo Entrega · valor 4 · esforço L · risco 3 · índice **23**
 Modelo Drive + revisão humana. Continuação da secção 3.1 de [`CRM-CONSOLIDACAO.md`](CRM-CONSOLIDACAO.md).
 
-**Apontamento de horas** — submódulo Entrega · valor 4 · esforço L · risco 2 · índice **24**
-`time_entries` ligados a projeto e cartão Jirau. Pré-requisito do Financeiro.
+**Apontamento de horas** — submódulo Entrega · **parcial (1.7)** · valor 4 · esforço L · risco 2 · índice **24**
+Fazer/Encerrar no cartão e extrato na analítica já existem. Falta apontamento na ficha do projeto (base de fatura).
 
 **SLA e WIP no Jirau** — recurso Jirau · valor 4 · esforço L · risco 2 · índice **24**
 Limite WIP + aging. Watchers de coluna já existem.
@@ -177,4 +188,4 @@ Playbooks internos. Até o Portal precisar disto, o Notion em Integrações cheg
 
 A consolidação de 2026 fechou P0–P2 do funil (empresa canónica, inbox, follow-up, funil, Drive). O que ficou futuro lá — **contratos assistidos** — entra aqui na onda Próximo. Não reabrir P0.
 
-Quando uma ideia deste mapa for feita, actualizar este ficheiro (data + tag) e o índice na página admin.
+Quando uma ideia deste mapa for feita, actualizar o catálogo em `ProductRoadmap` (status + shipped_in). A página admin e os indicadores de versão lêem `RuntimeVersions` — não duplicar o número da versão à mão no Blade.

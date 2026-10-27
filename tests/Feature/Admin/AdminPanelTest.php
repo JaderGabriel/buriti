@@ -86,7 +86,7 @@ class AdminPanelTest extends TestCase
             ->assertSee('Laravel '.$versions['laravel'], false)
             ->assertSee('PHP '.$versions['php'], false)
             ->assertSee('Server '.$versions['server'], false)
-            ->assertSee('BURI-TI 1.6 Vereda', false)
+            ->assertSee(RuntimeVersions::release(), false)
             ->assertDontSee('Sistema Linux', false)
             ->assertSee('data-admin-nav-toggle', false)
             ->assertSee('admin-modulebar', false)

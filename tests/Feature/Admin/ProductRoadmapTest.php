@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin;
 
 use App\Models\User;
 use App\Support\ProductRoadmap;
+use App\Support\RuntimeVersions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -35,6 +36,8 @@ class ProductRoadmapTest extends TestCase
             (int) round((5 * 20 - 2 * 4) / 3),
             collect($ideas)->firstWhere('id', 'propostas')['indice']
         );
+        $this->assertSame('shipped', collect($ideas)->firstWhere('id', 'inbox-app')['status']);
+        $this->assertSame('partial', collect($ideas)->firstWhere('id', 'apontamento')['status']);
     }
 
     public function test_admin_can_read_roadmap_page(): void
@@ -51,7 +54,10 @@ class ProductRoadmapTest extends TestCase
             ->assertSee('Índice de impacto', false)
             ->assertSee('data-roadmap', false)
             ->assertSee('Como cada onda mexe no sistema', false)
-            ->assertSee('Accelo', false);
+            ->assertSee('Accelo', false)
+            ->assertSee(RuntimeVersions::short(), false)
+            ->assertSee('Nesta versão', false)
+            ->assertSee('Inbox in-app', false);
     }
 
     public function test_search_finds_roadmap_entry(): void

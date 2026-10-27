@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Admin — BURI-TI')
+@section('title', 'Admin — '.$product['name'])
 
 @section('body')
 @php
@@ -38,11 +38,11 @@
         data-open="false"
     >
         <div class="admin-brand">
-            <a href="{{ route('admin.dashboard') }}" class="admin-brand__link" data-admin-close title="BURI-TI">
+            <a href="{{ route('admin.dashboard') }}" class="admin-brand__link" data-admin-close title="{{ $product['name'] }}">
                 <img src="{{ asset('images/logo-buriti.png') }}" alt="" class="admin-brand__logo">
                 <span class="admin-brand__text">
-                    <span class="admin-brand__name">BURI-TI</span>
-                    <span class="admin-brand__tag">Painel admin</span>
+                    <span class="admin-brand__name">{{ $product['name'] }}</span>
+                    <span class="admin-brand__tag">Painel admin · <x-product.release as="short" /></span>
                 </span>
             </a>
             <button type="button" class="admin-icon-btn admin-icon-btn--ghost" data-admin-nav-toggle aria-label="Minimizar menu" title="Minimizar menu">
@@ -78,7 +78,7 @@
                 <button type="button" class="admin-icon-btn" data-admin-nav-toggle aria-label="Minimizar menu" title="Minimizar menu">
                     <span class="admin-menu-lines" aria-hidden="true"></span>
                 </button>
-                <p class="admin-topbar__title admin-mobile-only">Admin BURI-TI</p>
+                <p class="admin-topbar__title admin-mobile-only">Admin {{ $product['name'] }}</p>
                 @include('admin.partials.modulebar', ['moduleItems' => $moduleItems, 'moduleLabel' => $moduleLabel])
                 @include('admin.partials.search', ['id' => 'admin-search-top', 'class' => 'admin-search--top'])
             </div>
