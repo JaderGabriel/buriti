@@ -15,10 +15,10 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
 
-// Campos privilegiados (is_admin, is_active, jirau_role, telegram_chat_id, last_login_*)
+// Campos privilegiados (is_admin, is_active, jirau_role, telegram_chat_id, totp_*, last_login_*)
 // só via forceFill em paths controlados — nunca mass assignment.
 #[Fillable(['name', 'username', 'email', 'password', 'avatar_path'])]
-#[Hidden(['password', 'remember_token'])]
+#[Hidden(['password', 'remember_token', 'totp_secret', 'totp_last_step'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -34,7 +34,19 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'jirau_role' => JirauStaffRole::class,
             'last_login_at' => 'datetime',
+            'totp_secret' => 'encrypted',
+            'totp_confirmed_at' => 'datetime',
         ];
+    }
+
+    public function hasIosTwoFactor(): bool
+    {
+        return filled($this->totp_secret) && $this->totp_confirmed_at !== null;
+    }
+
+    public function hasTelegramTwoFactor(): bool
+    {
+        return filled($this->telegram_chat_id);
     }
 
     public function isJirauStaff(): bool
@@ -131,6 +143,24 @@ class User extends Authenticatable
     public function unlinkTelegramChat(): void
     {
         $this->forceFill(['telegram_chat_id' => null])->save();
+    }
+
+    public function confirmIosTwoFactor(string $secret, int $step): void
+    {
+        $this->forceFill([
+            'totp_secret' => $secret,
+            'totp_confirmed_at' => now(),
+            'totp_last_step' => $step,
+        ])->save();
+    }
+
+    public function unlinkIosTwoFactor(): void
+    {
+        $this->forceFill([
+            'totp_secret' => null,
+            'totp_confirmed_at' => null,
+            'totp_last_step' => null,
+        ])->save();
     }
 
     public function avatarUrl(): ?string

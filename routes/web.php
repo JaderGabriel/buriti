@@ -182,6 +182,15 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
         ->name('profile.sessions.destroy-others');
     Route::delete('/perfil/sessoes/{session}', [ProfileController::class, 'destroySession'])
         ->name('profile.sessions.destroy');
+    Route::post('/perfil/2fa/ios', [ProfileController::class, 'startIosTwoFactor'])
+        ->middleware('throttle:10,1')
+        ->name('profile.ios-2fa.start');
+    Route::post('/perfil/2fa/ios/confirmar', [ProfileController::class, 'confirmIosTwoFactor'])
+        ->middleware('throttle:10,1')
+        ->name('profile.ios-2fa.confirm');
+    Route::delete('/perfil/2fa/ios', [ProfileController::class, 'destroyIosTwoFactor'])
+        ->middleware('throttle:10,1')
+        ->name('profile.ios-2fa.destroy');
 
     Route::resource('usuarios', UserController::class)
         ->parameters(['usuarios' => 'user'])

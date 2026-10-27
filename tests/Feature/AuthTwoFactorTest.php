@@ -4,8 +4,10 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Services\Auth\PasswordTwoFactorService;
+use App\Services\Auth\TotpService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
 class AuthTwoFactorTest extends TestCase
@@ -19,6 +21,9 @@ class AuthTwoFactorTest extends TestCase
         parent::setUp();
 
         $this->fakeTelegramApi();
+        config(['app.url' => 'https://buriti.test']);
+        URL::forceRootUrl('https://buriti.test');
+        URL::forceScheme('https');
 
         $this->admin = User::factory()->telegramLinked()->create([
             'email' => 'admin@buriti.test',
@@ -39,8 +44,14 @@ class AuthTwoFactorTest extends TestCase
         $this->assertTrue(session()->has(PasswordTwoFactorService::SESSION_KEY));
 
         Http::assertSent(function ($request) {
+            $text = (string) ($request->data()['text'] ?? '');
+            $markup = $request->data()['reply_markup'] ?? [];
+            $buttonUrl = $markup['inline_keyboard'][0][0]['url'] ?? '';
+
             return str_contains($request->url(), 'sendMessage')
-                && str_contains((string) ($request->data()['text'] ?? ''), '<code>');
+                && str_contains($text, '<code>')
+                && str_contains($text, 'is your BURI-TI verification code.')
+                && str_contains($buttonUrl, '/admin/login/2fa?code=');
         });
     }
 
@@ -57,7 +68,9 @@ class AuthTwoFactorTest extends TestCase
             ->assertSee('data-otp-form', false)
             ->assertSee('data-otp-keypad', false)
             ->assertSee('data-otp-cell', false)
-            ->assertSee('autocomplete="one-time-code"', false);
+            ->assertSee('autocomplete="one-time-code"', false)
+            ->assertSee('id="one-time-code"', false)
+            ->assertSee('enterkeyhint="done"', false);
     }
 
     public function test_valid_telegram_code_completes_password_login(): void
@@ -191,5 +204,110 @@ class AuthTwoFactorTest extends TestCase
     {
         $this->get(route('login.two-factor'))
             ->assertRedirect(route('login'));
+    }
+
+    public function test_two_factor_page_prefills_code_from_telegram_link(): void
+    {
+        $this->post(route('login'), [
+            'login' => $this->admin->email,
+            'password' => 'secret123',
+        ]);
+
+        $code = $this->lastTelegramTwoFactorCode();
+
+        $this->get(route('login.two-factor', ['code' => $code]))
+            ->assertOk()
+            ->assertSee('value="'.$code.'"', false)
+            ->assertSee('data-otp-prefill="'.$code.'"', false);
+    }
+
+    public function test_telegram_link_without_challenge_asks_to_return_to_safari(): void
+    {
+        $this->followingRedirects()
+            ->get(route('login.two-factor', ['code' => '123456']))
+            ->assertSee('mesmo Safari', false);
+    }
+
+    public function test_ios_two_factor_logs_in_without_telegram(): void
+    {
+        $totp = app(TotpService::class);
+        $secret = $totp->generateSecret();
+        $user = User::factory()->iosTwoFactor($secret)->create([
+            'email' => 'ios@buriti.test',
+            'username' => 'iosadmin',
+            'password' => 'secret123',
+        ]);
+
+        $this->post(route('login'), [
+            'login' => $user->email,
+            'password' => 'secret123',
+        ])->assertRedirect(route('login.two-factor'));
+
+        Http::assertNothingSent();
+        $this->assertGuest();
+
+        $this->get(route('login.two-factor'))
+            ->assertOk()
+            ->assertDontSee('Enviar pelo Telegram', false)
+            ->assertDontSee('Reenviar código', false);
+
+        $this->post(route('login.two-factor.confirm'), [
+            'code' => $totp->at($secret, time()),
+        ])->assertRedirect(route('admin.dashboard'));
+
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_ios_is_preferred_when_telegram_is_also_linked(): void
+    {
+        $totp = app(TotpService::class);
+        $secret = $totp->generateSecret();
+        $this->admin->forceFill([
+            'totp_secret' => $secret,
+            'totp_confirmed_at' => now(),
+        ])->save();
+
+        $this->post(route('login'), [
+            'login' => $this->admin->email,
+            'password' => 'secret123',
+        ])->assertRedirect(route('login.two-factor'));
+
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), 'sendMessage'));
+
+        $this->get(route('login.two-factor'))
+            ->assertOk()
+            ->assertSee('Enviar pelo Telegram', false);
+
+        $this->post(route('login.two-factor.confirm'), [
+            'code' => $totp->at($secret, time()),
+        ])->assertRedirect(route('admin.dashboard'));
+
+        $this->assertAuthenticatedAs($this->admin);
+    }
+
+    public function test_telegram_remains_available_as_fallback_when_ios_is_linked(): void
+    {
+        $totp = app(TotpService::class);
+        $secret = $totp->generateSecret();
+        $this->admin->forceFill([
+            'totp_secret' => $secret,
+            'totp_confirmed_at' => now(),
+        ])->save();
+
+        $this->post(route('login'), [
+            'login' => $this->admin->email,
+            'password' => 'secret123',
+        ]);
+
+        $this->from(route('login.two-factor'))
+            ->post(route('login.two-factor.resend'))
+            ->assertRedirect(route('login.two-factor'))
+            ->assertSessionHas('status');
+
+        $this->post(route('login.two-factor.confirm'), [
+            'code' => $this->lastTelegramTwoFactorCode(),
+        ])->assertRedirect(route('admin.dashboard'));
+
+        $this->assertAuthenticatedAs($this->admin);
     }
 }

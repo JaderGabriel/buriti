@@ -85,4 +85,14 @@ class UserFactory extends Factory
             $user->forceFill(['telegram_chat_id' => $chatId]);
         });
     }
+
+    public function iosTwoFactor(string $secret): static
+    {
+        return $this->afterMaking(function (User $user) use ($secret) {
+            $user->forceFill([
+                'totp_secret' => $secret,
+                'totp_confirmed_at' => now(),
+            ]);
+        });
+    }
 }

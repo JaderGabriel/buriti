@@ -3,7 +3,7 @@
 @section('content')
     <div class="mb-8">
         <h1 class="font-display text-2xl font-bold sm:text-3xl">Meu perfil</h1>
-        <p class="mt-1 text-mist">Foto, dados da conta, senha e sessões ativas — cada bloco salva por conta própria.</p>
+        <p class="mt-1 text-mist">Foto, dados da conta, senha, verificação em dois fatores e sessões — cada bloco salva por conta própria.</p>
     </div>
 
     <div class="grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">
@@ -68,6 +68,70 @@
         </div>
 
         <div class="space-y-6">
+            <section class="rounded-sm border border-line bg-panel p-5 sm:p-6">
+                <p class="text-xs font-semibold uppercase tracking-[0.14em] text-mist">Verificação em dois fatores</p>
+                <p class="mt-1 text-sm text-mist">O iPhone usa o app Senhas. O Telegram continua como alternativa.</p>
+
+                <div class="mt-4 space-y-3">
+                    <div class="flex items-start justify-between gap-3 border-b border-line pb-3">
+                        <div>
+                            <p class="text-sm font-semibold text-snow">iPhone · app Senhas</p>
+                            <p class="mt-0.5 text-xs text-mist">
+                                {{ $user->hasIosTwoFactor() ? 'Vinculado — o Safari preenche o código nestes acessos.' : 'Ainda não vinculado.' }}
+                            </p>
+                        </div>
+                    </div>
+
+                    @error('totp')
+                        <p class="text-xs text-red-400">{{ $message }}</p>
+                    @enderror
+
+                    @if ($user->hasIosTwoFactor())
+                        <form method="POST" action="{{ route('admin.profile.ios-2fa.destroy') }}" class="space-y-3">
+                            @csrf
+                            @method('DELETE')
+                            <x-ui.input type="password" name="current_password" label="Senha atual para remover" autocomplete="current-password" />
+                            <x-ui.button type="submit" variant="danger">Remover iPhone</x-ui.button>
+                        </form>
+                    @elseif ($totpUri && $totpSecret)
+                        <a href="{{ $totpUri }}" class="inline-flex items-center justify-center rounded-sm bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-bright">
+                            Adicionar no app Senhas
+                        </a>
+                        <p class="text-xs text-mist">No computador, copie a chave e adicione em Senhas → Código de verificação.</p>
+                        <p class="break-all font-mono text-sm tracking-widest text-snow">{{ $totpSecret }}</p>
+                        <form method="POST" action="{{ route('admin.profile.ios-2fa.confirm') }}" class="space-y-3">
+                            @csrf
+                            <x-ui.input
+                                name="code"
+                                label="Código do app Senhas"
+                                inputmode="numeric"
+                                autocomplete="one-time-code"
+                                maxlength="6"
+                                pattern="[0-9]*"
+                                placeholder="000000"
+                            />
+                            <x-ui.button type="submit">Confirmar vínculo</x-ui.button>
+                        </form>
+                    @else
+                        <form method="POST" action="{{ route('admin.profile.ios-2fa.start') }}">
+                            @csrf
+                            <x-ui.button type="submit">Vincular iPhone</x-ui.button>
+                        </form>
+                    @endif
+
+                    <div class="border-t border-line pt-3">
+                        <p class="text-sm font-semibold text-snow">Telegram</p>
+                        <p class="mt-0.5 text-xs text-mist">
+                            @if ($user->hasTelegramTwoFactor())
+                                Vinculado via bot. Nos acessos, o iPhone tem preferência; o Telegram permanece como reserva.
+                            @else
+                                No bot, use /login e-mail | senha uma vez para vincular.
+                            @endif
+                        </p>
+                    </div>
+                </div>
+            </section>
+
             <x-admin.session-list
                 :sessions="$sessions"
                 :session-driver="$sessionDriver"

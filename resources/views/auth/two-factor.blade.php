@@ -18,18 +18,13 @@
 
             <div class="mt-auto hidden lg:block">
                 <p class="font-display text-3xl font-bold leading-tight text-snow">Quase lá</p>
-                <p class="mt-3 max-w-sm text-sm leading-relaxed text-mist">
-                    Enviamos um código de 6 dígitos no Telegram vinculado à sua conta.
-                </p>
             </div>
         </aside>
 
         <section class="login-panel" aria-labelledby="otp-heading">
             <div class="login-panel-inner login-panel-inner--otp">
                 <div class="mb-6 text-center sm:mb-8">
-                    <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-bright">Verificação em dois fatores</p>
-                    <h1 id="otp-heading" class="mt-2 font-display text-2xl font-bold text-snow sm:text-3xl">Digite o código</h1>
-                    <p class="mt-2 text-sm text-mist">Abra o Telegram e informe os 6 dígitos. O acesso conclui sozinho ao completar.</p>
+                    <h1 id="otp-heading" class="font-display text-2xl font-bold text-snow sm:text-3xl">Digite o código</h1>
                 </div>
 
                 @if (session('status'))
@@ -49,35 +44,39 @@
                     action="{{ route('login.two-factor.confirm') }}"
                     class="otp-form{{ $errors->has('code') ? ' is-error' : '' }}"
                     data-otp-form
+                    data-otp-prefill="{{ old('code', $prefillCode ?? '') }}"
+                    autocomplete="on"
                     novalidate
                 >
                     @csrf
-                    <input
-                        type="text"
-                        name="code"
-                        id="otp-code"
-                        class="otp-value"
-                        inputmode="numeric"
-                        autocomplete="one-time-code"
-                        maxlength="6"
-                        pattern="[0-9]*"
-                        aria-label="Código de 6 dígitos"
-                        data-otp-value
-                        value="{{ old('code') }}"
-                    >
-
                     <div class="otp-track" role="group" aria-label="Dígitos do código" data-otp-track>
+                        <input
+                            type="text"
+                            name="code"
+                            id="one-time-code"
+                            class="otp-value"
+                            inputmode="numeric"
+                            autocomplete="one-time-code"
+                            maxlength="6"
+                            pattern="[0-9]*"
+                            autocapitalize="none"
+                            autocorrect="off"
+                            spellcheck="false"
+                            enterkeyhint="done"
+                            aria-label="Código de 6 dígitos"
+                            data-otp-value
+                            value="{{ old('code', $prefillCode ?? '') }}"
+                        >
                         @for ($i = 0; $i < 6; $i++)
                             @if ($i === 3)
                                 <span class="otp-gap" aria-hidden="true"></span>
                             @endif
-                            <button
-                                type="button"
+                            <span
                                 class="otp-cell"
                                 data-otp-cell
                                 data-index="{{ $i }}"
-                                aria-label="Dígito {{ $i + 1 }}"
-                            ></button>
+                                aria-hidden="true"
+                            ></span>
                         @endfor
                     </div>
 
@@ -96,18 +95,24 @@
                 </form>
 
                 <div class="mt-6 flex flex-col items-center gap-3 text-sm">
-                    <form method="POST" action="{{ route('login.two-factor.resend') }}">
-                        @csrf
-                        <button
-                            type="submit"
-                            class="font-semibold text-brand-bright transition hover:text-snow disabled:cursor-not-allowed disabled:opacity-50"
-                            data-otp-resend
-                            data-otp-resend-wait="{{ (int) $resendWait }}"
-                            @disabled($resendWait > 0)
-                        >
-                            Reenviar código
-                        </button>
-                    </form>
+                    @if ($telegramAvailable ?? true)
+                        <form method="POST" action="{{ route('login.two-factor.resend') }}">
+                            @csrf
+                            <button
+                                type="submit"
+                                class="font-semibold text-brand-bright transition hover:text-snow disabled:cursor-not-allowed disabled:opacity-50"
+                                data-otp-resend
+                                data-otp-resend-wait="{{ (int) $resendWait }}"
+                                @disabled($resendWait > 0)
+                            >
+                                @if (($preferIos ?? false) && ! ($telegramSent ?? false))
+                                    Enviar pelo Telegram
+                                @else
+                                    Reenviar código
+                                @endif
+                            </button>
+                        </form>
+                    @endif
 
                     <form method="POST" action="{{ route('login.two-factor.cancel') }}">
                         @csrf

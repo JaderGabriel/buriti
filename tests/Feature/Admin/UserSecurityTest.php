@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin;
 
 use App\Models\LoginActivity;
 use App\Models\User;
+use App\Services\Auth\TotpService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -249,7 +250,9 @@ class UserSecurityTest extends TestCase
             ->assertOk()
             ->assertSee('Meu perfil', false)
             ->assertSee('Sessões ativas', false)
-            ->assertSee('Histórico de login', false);
+            ->assertSee('Histórico de login', false)
+            ->assertSee('Verificação em dois fatores', false)
+            ->assertSee('Vincular iPhone', false);
     }
 
     public function test_users_index_shows_system_login_logs(): void
@@ -372,5 +375,71 @@ class UserSecurityTest extends TestCase
         $response->assertHeader('X-Frame-Options', 'SAMEORIGIN');
         $response->assertHeader('X-Content-Type-Options', 'nosniff');
         $response->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    }
+
+    public function test_admin_can_link_ios_passwords_two_factor(): void
+    {
+        $this->actingAs($this->admin)
+            ->from(route('admin.profile.edit'))
+            ->post(route('admin.profile.ios-2fa.start'))
+            ->assertRedirect(route('admin.profile.edit'));
+
+        $secret = session(TotpService::SETUP_SESSION_KEY);
+        $this->assertNotEmpty($secret);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.profile.edit'))
+            ->assertOk()
+            ->assertSee('otpauth://totp/', false)
+            ->assertSee('Adicionar no app Senhas', false);
+
+        $this->actingAs($this->admin)
+            ->from(route('admin.profile.edit'))
+            ->post(route('admin.profile.ios-2fa.confirm'), [
+                'code' => app(TotpService::class)->at($secret, time()),
+            ])
+            ->assertRedirect(route('admin.profile.edit'));
+
+        $this->assertTrue($this->admin->fresh()->hasIosTwoFactor());
+        $this->assertFalse(session()->has(TotpService::SETUP_SESSION_KEY));
+    }
+
+    public function test_cannot_remove_ios_two_factor_without_telegram(): void
+    {
+        $totp = app(TotpService::class);
+        $this->admin->forceFill([
+            'totp_secret' => $totp->generateSecret(),
+            'totp_confirmed_at' => now(),
+        ])->save();
+
+        $this->actingAs($this->admin)
+            ->from(route('admin.profile.edit'))
+            ->delete(route('admin.profile.ios-2fa.destroy'), [
+                'current_password' => 'password',
+            ])
+            ->assertRedirect(route('admin.profile.edit'))
+            ->assertSessionHasErrors('totp');
+
+        $this->assertTrue($this->admin->fresh()->hasIosTwoFactor());
+    }
+
+    public function test_can_remove_ios_two_factor_when_telegram_is_linked(): void
+    {
+        $totp = app(TotpService::class);
+        $this->admin->forceFill([
+            'telegram_chat_id' => '999001',
+            'totp_secret' => $totp->generateSecret(),
+            'totp_confirmed_at' => now(),
+        ])->save();
+
+        $this->actingAs($this->admin)
+            ->from(route('admin.profile.edit'))
+            ->delete(route('admin.profile.ios-2fa.destroy'), [
+                'current_password' => 'password',
+            ])
+            ->assertRedirect(route('admin.profile.edit'))
+            ->assertSessionHas('success');
+
+        $this->assertFalse($this->admin->fresh()->hasIosTwoFactor());
     }
 }

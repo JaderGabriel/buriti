@@ -85,15 +85,24 @@ class LoginController extends Controller
     public function twoFactor(Request $request): View|RedirectResponse
     {
         if (! $this->twoFactor->hasChallenge($request)) {
+            $hint = $this->prefillCode($request) !== ''
+                ? 'Abra esta tela no mesmo Safari em que pediu o código e cole os 6 dígitos, ou entre de novo.'
+                : 'A verificação expirou. Entre com usuário e senha de novo.';
+
             return redirect()
                 ->route('login')
-                ->withErrors(['login' => 'A verificação expirou. Entre com usuário e senha de novo.']);
+                ->withErrors(['login' => $hint]);
         }
 
         $payload = $this->twoFactor->payload($request) ?? [];
+        $telegramAvailable = $this->twoFactor->telegramChannelAvailable($payload);
 
         return view('auth.two-factor', [
             'resendWait' => $this->twoFactor->resendWait($payload),
+            'prefillCode' => $this->prefillCode($request),
+            'preferIos' => $this->twoFactor->prefersIos($payload),
+            'telegramAvailable' => $telegramAvailable,
+            'telegramSent' => $this->twoFactor->telegramSent($payload),
         ]);
     }
 
@@ -147,7 +156,7 @@ class LoginController extends Controller
             return back()->withErrors(['code' => $result['message'] ?? 'Não foi possível reenviar.']);
         }
 
-        return back()->with('status', 'Enviamos um novo código no Telegram.');
+        return back()->with('status', 'Código enviado no Telegram.');
     }
 
     public function cancelTwoFactor(Request $request): RedirectResponse
@@ -235,6 +244,13 @@ class LoginController extends Controller
         $this->security->markSuccessfulLogin($user, $request);
 
         return redirect()->intended(AuthHome::url($user));
+    }
+
+    private function prefillCode(Request $request): string
+    {
+        $code = preg_replace('/\D+/', '', (string) $request->query('code')) ?? '';
+
+        return strlen($code) === 6 ? $code : '';
     }
 
     public function destroy(Request $request): RedirectResponse

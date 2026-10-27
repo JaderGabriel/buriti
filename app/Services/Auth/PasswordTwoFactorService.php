@@ -18,7 +18,10 @@ class PasswordTwoFactorService
 
     public const RESEND_SECONDS = 45;
 
-    public function __construct(private TelegramApiClient $api) {}
+    public function __construct(
+        private TelegramApiClient $api,
+        private TotpService $totp,
+    ) {}
 
     public function enabled(): bool
     {
@@ -37,22 +40,30 @@ class PasswordTwoFactorService
      */
     public function start(User $user, bool $remember, Request $request): array
     {
-        if (! $this->enabled()) {
+        $preferIos = $user->hasIosTwoFactor();
+        $telegramAvailable = $this->telegramAvailableFor($user);
+
+        if (! $preferIos && ! $telegramAvailable) {
+            if (! $this->enabled()) {
+                return [
+                    'ok' => false,
+                    'message' => 'Configure o Telegram ou vincule o app Senhas do iPhone no perfil para concluir o acesso.',
+                ];
+            }
+
             return [
                 'ok' => false,
-                'message' => 'O Telegram não está configurado para enviar o código de verificação.',
+                'message' => 'Esta conta ainda não tem verificação em dois fatores. No perfil, vincule o iPhone (Senhas) ou, no bot, use /login e-mail | senha uma vez.',
             ];
         }
 
-        $chatId = trim((string) $user->telegram_chat_id);
-        if ($chatId === '') {
-            return [
-                'ok' => false,
-                'message' => 'Esta conta ainda não tem Telegram vinculado. No bot, use /login e-mail | senha uma vez e tente de novo.',
-            ];
+        if ($preferIos) {
+            $this->storeChallenge($user, $remember, $request, null, true, $telegramAvailable, false);
+
+            return ['ok' => true];
         }
 
-        $issued = $this->issue($user, $remember, $chatId, $request);
+        $issued = $this->issueTelegram($user, $remember, $request);
         if ($issued === null) {
             return [
                 'ok' => false,
@@ -87,22 +98,19 @@ class PasswordTwoFactorService
         }
 
         $user = User::query()->find($payload['user_id'] ?? null);
-        $chatId = trim((string) ($user?->telegram_chat_id ?? ''));
-        if (! $user || $chatId === '') {
-            $this->forget($request);
-
+        if (! $user || ! $this->telegramAvailableFor($user)) {
             return [
                 'ok' => false,
-                'message' => 'Não foi possível reenviar o código. Entre de novo.',
+                'message' => 'O Telegram não está disponível para esta conta.',
                 'remaining' => 0,
             ];
         }
 
-        $issued = $this->issue($user, (bool) ($payload['remember'] ?? false), $chatId, $request, $this->tokenFrom($request));
+        $issued = $this->issueTelegram($user, (bool) ($payload['remember'] ?? false), $request, $this->tokenFrom($request), $payload);
         if ($issued === null) {
             return [
                 'ok' => false,
-                'message' => 'Não foi possível reenviar o código no Telegram. Tente de novo em instantes.',
+                'message' => 'Não foi possível enviar o código no Telegram. Tente de novo em instantes.',
                 'remaining' => self::RESEND_SECONDS,
             ];
         }
@@ -138,11 +146,22 @@ class PasswordTwoFactorService
         }
 
         $normalized = preg_replace('/\D+/', '', $code) ?? '';
-        $expected = (string) ($payload['hash'] ?? '');
-        $matches = strlen($normalized) === 6
-            && hash_equals($expected, hash_hmac('sha256', $normalized, $this->hmacKey($token)));
+        $user = User::query()->find($payload['user_id'] ?? null);
+        if (! $user || ! $user->is_admin || ! $user->is_active) {
+            $this->forget($request);
 
-        if (! $matches) {
+            return [
+                'ok' => false,
+                'message' => 'Esta conta não pode entrar no painel.',
+                'locked' => true,
+            ];
+        }
+
+        $matched = strlen($normalized) === 6 && (
+            $this->matchesIos($user, $normalized) || $this->matchesTelegram($token, $payload, $normalized)
+        );
+
+        if (! $matched) {
             $payload['attempts'] = $attempts + 1;
             Cache::put($this->cacheKey($token), $payload, self::TTL_SECONDS);
 
@@ -160,17 +179,6 @@ class PasswordTwoFactorService
             return [
                 'ok' => false,
                 'message' => 'Código inválido. '.$left.' tentativa'.($left === 1 ? '' : 's').' restante'.($left === 1 ? '' : 's').'.',
-            ];
-        }
-
-        $user = User::query()->find($payload['user_id'] ?? null);
-        if (! $user || ! $user->is_admin || ! $user->is_active) {
-            $this->forget($request);
-
-            return [
-                'ok' => false,
-                'message' => 'Esta conta não pode entrar no painel.',
-                'locked' => true,
             ];
         }
 
@@ -222,48 +230,155 @@ class PasswordTwoFactorService
         return is_string($token) && $token !== '' ? $token : null;
     }
 
+    public function prefersIos(array $payload): bool
+    {
+        return (bool) ($payload['prefer_ios'] ?? false);
+    }
+
+    public function telegramChannelAvailable(array $payload): bool
+    {
+        if (array_key_exists('telegram_available', $payload)) {
+            return (bool) $payload['telegram_available'];
+        }
+
+        return true;
+    }
+
+    public function telegramSent(array $payload): bool
+    {
+        return is_string($payload['hash'] ?? null) && $payload['hash'] !== '';
+    }
+
     /**
+     * @param  array<string, mixed>|null  $existing
      * @return array{token: string, code: string}|null
      */
-    private function issue(User $user, bool $remember, string $chatId, Request $request, ?string $existingToken = null): ?array
+    private function issueTelegram(User $user, bool $remember, Request $request, ?string $existingToken = null, ?array $existing = null): ?array
     {
-        $token = $existingToken ?: Str::random(40);
+        $chatId = trim((string) $user->telegram_chat_id);
         $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-        if (! $this->sendCode($chatId, $code, $user->name)) {
+        if ($chatId === '' || ! $this->sendCode($chatId, $code, $user->name)) {
             return null;
+        }
+
+        $token = $this->storeChallenge(
+            $user,
+            $remember,
+            $request,
+            $code,
+            (bool) ($existing['prefer_ios'] ?? $user->hasIosTwoFactor()),
+            true,
+            true,
+            $existingToken,
+        );
+
+        return ['token' => $token, 'code' => $code];
+    }
+
+    private function storeChallenge(
+        User $user,
+        bool $remember,
+        Request $request,
+        ?string $telegramCode,
+        bool $preferIos,
+        bool $telegramAvailable,
+        bool $telegramJustSent,
+        ?string $existingToken = null,
+    ): string {
+        $token = $existingToken ?: Str::random(40);
+        $hash = null;
+        if (is_string($telegramCode) && $telegramCode !== '') {
+            $hash = hash_hmac('sha256', $telegramCode, $this->hmacKey($token));
         }
 
         Cache::put($this->cacheKey($token), [
             'user_id' => $user->id,
-            'hash' => hash_hmac('sha256', $code, $this->hmacKey($token)),
+            'hash' => $hash,
             'attempts' => 0,
             'remember' => $remember,
-            'sent_at' => now()->timestamp,
+            'sent_at' => $telegramJustSent ? now()->timestamp : 0,
+            'prefer_ios' => $preferIos,
+            'telegram_available' => $telegramAvailable,
         ], self::TTL_SECONDS);
 
         $request->session()->put(self::SESSION_KEY, $token);
 
-        return ['token' => $token, 'code' => $code];
+        return $token;
+    }
+
+    private function telegramAvailableFor(User $user): bool
+    {
+        return $this->enabled() && $user->hasTelegramTwoFactor();
+    }
+
+    private function matchesIos(User $user, string $code): bool
+    {
+        if (! $user->hasIosTwoFactor()) {
+            return false;
+        }
+
+        $secret = (string) $user->totp_secret;
+        $step = $this->totp->matchingStep($secret, $code);
+        if ($step === null) {
+            return false;
+        }
+
+        $last = $user->totp_last_step;
+        if ($last !== null && $step <= (int) $last) {
+            return false;
+        }
+
+        $user->forceFill(['totp_last_step' => $step])->save();
+
+        return true;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function matchesTelegram(string $token, array $payload, string $code): bool
+    {
+        $expected = (string) ($payload['hash'] ?? '');
+        if ($expected === '') {
+            return false;
+        }
+
+        return hash_equals($expected, hash_hmac('sha256', $code, $this->hmacKey($token)));
     }
 
     private function sendCode(string $chatId, string $code, string $name): bool
     {
         $safeName = htmlspecialchars($name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         $safeCode = htmlspecialchars($code, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $verifyUrl = route('login.two-factor', ['code' => $code], true);
 
         $text = implode("\n", [
             '🔐 <b>Código de verificação BURI-TI</b>',
             '',
+            $safeCode.' is your BURI-TI verification code.',
+            '',
             'Olá, '.$safeName.'.',
-            'Use este código de 6 dígitos para entrar no painel:',
+            'Toque no código para copiar e volte à tela de login. No iPhone, o teclado pode sugerir o código neste campo.',
             '',
             '<code>'.$safeCode.'</code>',
             '',
             'Válido por 5 minutos. Se não foi você, ignore esta mensagem.',
         ]);
 
-        return $this->api->sendMessage($chatId, $text);
+        $replyMarkup = null;
+        if (str_starts_with($verifyUrl, 'https://')) {
+            $replyMarkup = [
+                'inline_keyboard' => [[
+                    [
+                        'text' => 'Abrir tela de verificação',
+                        'url' => $verifyUrl,
+                    ],
+                ]],
+            ];
+        }
+
+        return $this->api->sendMessage($chatId, $text, $replyMarkup);
     }
 
     private function cacheKey(string $token): string

@@ -1114,7 +1114,10 @@ function initOtpChallenge() {
     const keypad = form.querySelector('[data-otp-keypad]');
     const resend = document.querySelector('[data-otp-resend]');
     const length = cells.length;
-    let digits = String(valueInput?.value || '').replace(/\D+/g, '').slice(0, length).split('');
+    const prefill = String(form.getAttribute('data-otp-prefill') || valueInput?.value || '')
+        .replace(/\D+/g, '')
+        .slice(0, length);
+    let digits = prefill.split('');
     let submitting = false;
 
     const paint = () => {
@@ -1157,13 +1160,25 @@ function initOtpChallenge() {
         submitIfComplete();
     };
 
-    form.addEventListener('click', () => valueInput?.focus());
+    form.addEventListener('click', () => valueInput?.focus({ preventScroll: true }));
 
     valueInput?.addEventListener('input', () => {
         setFromString(valueInput.value);
     });
 
+    valueInput?.addEventListener('paste', (event) => {
+        const pasted = event.clipboardData?.getData('text') || '';
+        if (! pasted) {
+            return;
+        }
+        event.preventDefault();
+        setFromString(pasted);
+    });
+
     document.addEventListener('keydown', (event) => {
+        if (document.activeElement === valueInput) {
+            return;
+        }
         if (! form.contains(document.activeElement) && document.activeElement !== document.body) {
             return;
         }
@@ -1187,6 +1202,7 @@ function initOtpChallenge() {
         if (action === 'back') {
             event.preventDefault();
             popDigit();
+            valueInput?.focus({ preventScroll: true });
             return;
         }
         if (action === 'submit') {
@@ -1194,6 +1210,7 @@ function initOtpChallenge() {
         }
         event.preventDefault();
         pushDigit(action);
+        valueInput?.focus({ preventScroll: true });
     });
 
     if (resend) {
@@ -1216,7 +1233,10 @@ function initOtpChallenge() {
     }
 
     paint();
-    window.setTimeout(() => valueInput?.focus(), 50);
+    if (! form.classList.contains('is-error') && digits.length === length) {
+        submitIfComplete();
+    }
+    window.setTimeout(() => valueInput?.focus({ preventScroll: true }), 50);
 }
 
 function initTelegramLogin() {
