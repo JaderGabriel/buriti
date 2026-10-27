@@ -59,8 +59,29 @@
         </div>
 
         <nav class="admin-nav" aria-label="Jiraus">
-            <div class="admin-nav__group">
-                @if($jirauUser->is_admin)
+            @if($jirauUser->is_admin)
+                <div class="admin-nav__group admin-nav__group--jirau">
+                    <p class="admin-nav__label">Jirau</p>
+                    <a
+                        href="{{ route('jirau.home') }}"
+                        data-admin-close
+                        @class(['admin-nav__link', 'is-active' => request()->routeIs('jirau.home')])
+                    >
+                        <span class="admin-nav__icon">
+                            <x-ui.icon name="jirau" class="h-4 w-4" />
+                        </span>
+                        <span class="admin-nav__text">Quadros</span>
+                    </a>
+                    <a
+                        href="{{ route('jirau.overview') }}"
+                        data-admin-close
+                        @class(['admin-nav__link', 'is-active' => request()->routeIs('jirau.overview')])
+                    >
+                        <span class="admin-nav__icon">
+                            <x-ui.icon name="flow" class="h-4 w-4" />
+                        </span>
+                        <span class="admin-nav__text">Quadro geral</span>
+                    </a>
                     <a
                         href="{{ route('jirau.analytics') }}"
                         data-admin-close
@@ -72,16 +93,6 @@
                         <span class="admin-nav__text">Analítica</span>
                     </a>
                     <a
-                        href="{{ route('jirau.overview') }}"
-                        data-admin-close
-                        @class(['admin-nav__link', 'is-active' => request()->routeIs('jirau.overview')])
-                    >
-                        <span class="admin-nav__icon">
-                            <x-ui.icon name="jirau" class="h-4 w-4" />
-                        </span>
-                        <span class="admin-nav__text">Quadro geral</span>
-                    </a>
-                    <a
                         href="{{ route('jirau.staff') }}"
                         data-admin-close
                         @class(['admin-nav__link', 'is-active' => request()->routeIs('jirau.staff', 'jirau.staff.store')])
@@ -89,10 +100,10 @@
                         <span class="admin-nav__icon">
                             <x-ui.icon name="users" class="h-4 w-4" />
                         </span>
-                        <span class="admin-nav__text">Equipe TI</span>
+                        <span class="admin-nav__text">Equipe</span>
                     </a>
-                @endif
-            </div>
+                </div>
+            @endif
             <div class="admin-nav__group">
                 <p class="admin-nav__label">Quadros</p>
                 @forelse($navJiraus as $navBoard)
@@ -125,7 +136,7 @@
             @endif
             <span class="admin-user__meta">
                 <span class="admin-user__name">{{ $jirauUser->name }}</span>
-                <span class="admin-user__handle">{{ $jirauUser->is_admin ? 'Admin do quadro' : ($jirauUser->jirau_role?->label() ?? 'Membro do projeto') }}</span>
+                <span class="admin-user__handle">{{ $jirauUser->jirauTeamLabel() }}</span>
             </span>
         </div>
     </aside>
@@ -147,7 +158,7 @@
                     @endif
                     <span class="admin-user__meta">
                         <span class="admin-user__name">{{ $jirauFirstName }}</span>
-                        <span class="admin-user__handle">{{ $jirauUser->is_admin ? 'Admin' : ($jirauUser->jirau_role?->label() ?? 'Membro') }}</span>
+                        <span class="admin-user__handle">{{ $jirauUser->jirauTeamLabel() }}</span>
                     </span>
                 </span>
             </div>

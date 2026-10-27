@@ -1,6 +1,6 @@
 # BURI-TI
 
-Site institucional e painel administrativo da **BURI-TI** — *Tecnologia para Pessoas*.
+Site institucional e painel administrativo da **BURI-TI** — *Tecnologia para Pessoas*. CRM **1.5 Vereda**.
 
 Stack: **Laravel 13**, **Blade**, **Vite**, **Tailwind CSS 4**, **Alpine.js**, MySQL.
 

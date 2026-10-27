@@ -45,7 +45,7 @@
                 <span class="jirau-chip">{{ $card->comments_count }}</span>
             @endif
             @if($card->assignee)
-                <span class="jirau-avatar" title="{{ $card->assignee->name }}{{ $card->assignee->jirau_role ? ' · '.$card->assignee->jirau_role->label() : '' }}">{{ $card->assignee->initials() }}</span>
+                <span class="jirau-avatar" title="{{ $card->assignee->name }} · {{ $card->assignee->jirauTeamLabel() }}">{{ $card->assignee->initials() }}</span>
             @endif
         </div>
     @if($canDrag)

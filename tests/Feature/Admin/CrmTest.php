@@ -495,6 +495,9 @@ class CrmTest extends TestCase
             ->assertSee('>Agenda</a>', false)
             ->assertSee('Comercial', false)
             ->assertSee('Entrega', false)
+            ->assertSee('Jirau', false)
+            ->assertSee('Quadros', false)
+            ->assertSee('admin-nav__group--jirau', false)
             ->assertSee('Sistema', false);
     }
 

@@ -133,7 +133,10 @@ class JirauOverviewAndStaffTest extends TestCase
             ->get(route('jirau.staff'))
             ->assertOk()
             ->assertSee('Equipe de TI', false)
-            ->assertSee('Novo da equipe', false);
+            ->assertSee('Novo da equipe', false)
+            ->assertSee($admin->name, false)
+            ->assertSee('Membro Admin', false)
+            ->assertSee('@'.$admin->username, false);
 
         $this->actingAs($admin)
             ->from(route('jirau.staff'))
@@ -190,6 +193,35 @@ class JirauOverviewAndStaffTest extends TestCase
             ->assertSessionHasErrors('assigned_to');
 
         $this->assertNull($card->fresh()->assigned_to);
+    }
+
+    public function test_system_admin_appears_on_jirau_team_as_admin_member(): void
+    {
+        $admin = User::factory()->create([
+            'name' => 'Jader Gabriel',
+            'username' => 'jadergabriel',
+        ]);
+        $dev = User::factory()->staff(JirauStaffRole::Developer)->create([
+            'name' => 'Ana Dev',
+            'username' => 'ana.dev',
+        ]);
+
+        $html = $this->actingAs($admin)
+            ->get(route('jirau.staff'))
+            ->assertOk()
+            ->assertSee('Jader Gabriel', false)
+            ->assertSee('Membro Admin', false)
+            ->assertSee('Ana Dev', false)
+            ->assertSee('Dev', false)
+            ->getContent();
+
+        $adminPos = strpos($html, 'Jader Gabriel');
+        $devPos = strpos($html, 'Ana Dev');
+        $this->assertNotFalse($adminPos);
+        $this->assertNotFalse($devPos);
+        $this->assertLessThan($devPos, $adminPos);
+        $this->assertSame('Membro Admin', $admin->jirauTeamLabel());
+        $this->assertSame('Dev', $dev->jirauTeamLabel());
     }
 
     public function test_staff_can_login_without_board_membership(): void

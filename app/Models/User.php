@@ -56,6 +56,15 @@ class User extends Authenticatable
         return $this->is_active && ($this->is_admin || $this->jirau_role !== null);
     }
 
+    public function jirauTeamLabel(): string
+    {
+        if ($this->is_admin) {
+            return 'Membro Admin';
+        }
+
+        return $this->jirau_role?->label() ?? 'Membro';
+    }
+
     /** @return Builder<User> */
     public static function assignableOnJirau(): Builder
     {

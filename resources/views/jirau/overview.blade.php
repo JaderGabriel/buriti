@@ -12,7 +12,7 @@
             </p>
         </div>
         <div class="jirau-workspace__actions">
-            <a href="{{ route('jirau.staff') }}" class="pm-btn pm-btn--ghost">Equipe TI</a>
+            <a href="{{ route('jirau.staff') }}" class="pm-btn pm-btn--ghost">Equipe</a>
             <a href="{{ route('jirau.home') }}" class="pm-btn pm-btn--ghost">Quadros</a>
         </div>
     </div>

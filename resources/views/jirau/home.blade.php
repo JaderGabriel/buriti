@@ -14,7 +14,7 @@
         <div class="jirau-workspace__actions">
             @if($isAdmin)
                 <a href="{{ route('jirau.overview') }}" class="pm-btn pm-btn--ghost">Quadro geral</a>
-                <a href="{{ route('jirau.staff') }}" class="pm-btn pm-btn--ghost">Equipe TI</a>
+                <a href="{{ route('jirau.staff') }}" class="pm-btn pm-btn--ghost">Equipe</a>
                 <a href="{{ route('jirau.analytics') }}" class="pm-btn pm-btn--ghost">Analítica</a>
                 <a href="{{ route('admin.projects.index') }}" class="pm-btn pm-btn--ghost">Abrir projetos</a>
             @endif

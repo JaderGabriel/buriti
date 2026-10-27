@@ -7,8 +7,8 @@
             <p class="pm-workspace__eyebrow">Jirau</p>
             <h1 class="pm-workspace__title">Equipe de TI</h1>
             <p class="pm-workspace__lead">
-                Dev, tester, PO e afins recebem cartões nos quadros. Não são admin do painel —
-                entram no Jirau com usuário e senha, sem 2FA.
+                O admin do sistema entra como Membro Admin. Dev, tester, PO e afins recebem cartões
+                nos quadros — não são admin do painel e entram no Jirau com usuário e senha, sem 2FA.
             </p>
         </div>
         <div class="jirau-workspace__actions">
@@ -25,7 +25,7 @@
                         <span>
                             <strong>{{ $person->name }}</strong>
                             <small>
-                                {{ $person->jirau_role?->label() }}
+                                {{ $person->jirauTeamLabel() }}
                                 · {{ '@'.$person->username }}
                                 · {{ $person->is_active ? 'ativa' : 'inativa' }}
                             </small>

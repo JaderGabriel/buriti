@@ -5,7 +5,7 @@ namespace App\Support;
 final class RuntimeVersions
 {
     /**
-     * @return array{laravel: string, php: string, server: string, system: string}
+     * @return array{laravel: string, php: string, server: string, release: string}
      */
     public static function labels(): array
     {
@@ -13,8 +13,16 @@ final class RuntimeVersions
             'laravel' => app()->version(),
             'php' => PHP_VERSION,
             'server' => self::server(),
-            'system' => self::system(),
+            'release' => self::release(),
         ];
+    }
+
+    public static function release(): string
+    {
+        $version = trim((string) config('buriti.version', '1.5'));
+        $codename = trim((string) config('buriti.codename', 'Vereda'));
+
+        return trim('CRM '.$version.' '.$codename);
     }
 
     private static function server(): string
@@ -54,13 +62,5 @@ final class RuntimeVersions
             PHP_SAPI !== '' => PHP_SAPI,
             default => 'n/d',
         };
-    }
-
-    private static function system(): string
-    {
-        $os = php_uname('s');
-        $release = explode('-', php_uname('r'))[0];
-
-        return trim($os.' '.$release);
     }
 }

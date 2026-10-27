@@ -49,7 +49,8 @@ class AdminPanelTest extends TestCase
             ->assertSee('Laravel '.$versions['laravel'], false)
             ->assertSee('PHP '.$versions['php'], false)
             ->assertSee('Server '.$versions['server'], false)
-            ->assertSee('Sistema '.$versions['system'], false)
+            ->assertSee('CRM 1.5 Vereda', false)
+            ->assertDontSee('Sistema Linux', false)
             ->getContent();
 
         $settingsPos = strpos($html, '>Configurações<');

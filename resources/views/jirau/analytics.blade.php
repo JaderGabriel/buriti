@@ -57,7 +57,7 @@
                 <option value="none" @selected(($filters['usuario'] ?? null) === 'none')>Sem responsável</option>
                 @foreach($people as $person)
                     <option value="{{ $person->id }}" @selected((string) ($filters['usuario'] ?? '') === (string) $person->id)>
-                        {{ $person->name }}{{ $person->jirau_role ? ' · '.$person->jirau_role->label() : ' · Admin' }}
+                        {{ $person->name }} · {{ $person->jirauTeamLabel() }}
                     </option>
                 @endforeach
             </select>

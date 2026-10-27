@@ -60,30 +60,6 @@
                     'icon' => 'project',
                 ],
                 [
-                    'route' => 'jirau.home',
-                    'label' => 'Jirau',
-                    'pattern' => ['jirau.home', 'jirau.show', 'jirau.cards.*', 'jirau.demands.*', 'jirau.members.*', 'jirau.steps.*', 'jirau.status'],
-                    'icon' => 'jirau',
-                ],
-                [
-                    'route' => 'jirau.analytics',
-                    'label' => 'Analítica',
-                    'pattern' => ['jirau.analytics', 'jirau.analytics.show'],
-                    'icon' => 'bi',
-                ],
-                [
-                    'route' => 'jirau.overview',
-                    'label' => 'Quadro geral',
-                    'pattern' => 'jirau.overview',
-                    'icon' => 'flow',
-                ],
-                [
-                    'route' => 'jirau.staff',
-                    'label' => 'Equipe TI',
-                    'pattern' => ['jirau.staff', 'jirau.staff.store'],
-                    'icon' => 'users',
-                ],
-                [
                     'route' => 'admin.home-projects.edit',
                     'label' => 'Site',
                     'pattern' => 'admin.home-projects.*',
@@ -94,6 +70,36 @@
                     'label' => 'Agenda',
                     'pattern' => 'admin.tasks.*',
                     'icon' => 'task',
+                ],
+            ],
+        ],
+        [
+            'label' => 'Jirau',
+            'class' => 'admin-nav__group--jirau',
+            'items' => [
+                [
+                    'route' => 'jirau.home',
+                    'label' => 'Quadros',
+                    'pattern' => ['jirau.home', 'jirau.show', 'jirau.cards.*', 'jirau.demands.*', 'jirau.members.*', 'jirau.steps.*', 'jirau.status'],
+                    'icon' => 'jirau',
+                ],
+                [
+                    'route' => 'jirau.overview',
+                    'label' => 'Quadro geral',
+                    'pattern' => 'jirau.overview',
+                    'icon' => 'flow',
+                ],
+                [
+                    'route' => 'jirau.analytics',
+                    'label' => 'Analítica',
+                    'pattern' => ['jirau.analytics', 'jirau.analytics.show'],
+                    'icon' => 'bi',
+                ],
+                [
+                    'route' => 'jirau.staff',
+                    'label' => 'Equipe',
+                    'pattern' => ['jirau.staff', 'jirau.staff.store'],
+                    'icon' => 'users',
                 ],
             ],
         ],
@@ -172,7 +178,7 @@
 
         <nav class="admin-nav" aria-label="Menu do painel">
             @foreach($navGroups as $group)
-                <div class="admin-nav__group">
+                <div @class(['admin-nav__group', $group['class'] ?? null])>
                     @if($group['label'])
                         <p class="admin-nav__label">{{ $group['label'] }}</p>
                     @endif
@@ -198,7 +204,7 @@
                 <span>Laravel {{ $runtimeVersions['laravel'] }}</span>
                 <span>PHP {{ $runtimeVersions['php'] }}</span>
                 <span>Server {{ $runtimeVersions['server'] }}</span>
-                <span>Sistema {{ $runtimeVersions['system'] }}</span>
+                <span>{{ $runtimeVersions['release'] }}</span>
             </p>
         </nav>
 

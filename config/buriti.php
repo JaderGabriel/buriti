@@ -1,6 +1,13 @@
 <?php
 
 return [
+    /*
+    | Versão do CRM BURI-TI. Vereda é o caminho alagado do Cerrado onde o
+    | buriti (Mauritia flexuosa) cresce — o mesmo palmeiral que dá nome à casa.
+    */
+    'version' => '1.5',
+    'codename' => 'Vereda',
+
     'contact' => [
         'email' => 'jadergabriel8@gmail.com',
         'phone' => '+55 38 99175-8416',

@@ -47,7 +47,7 @@
                             <option value="">Não alocado</option>
                             @foreach($assignees ?? [] as $person)
                                 <option value="{{ $person->id }}" @selected((string) old('assigned_to', $card->assigned_to) === (string) $person->id)>
-                                    {{ $person->name }}{{ $person->jirau_role ? ' · '.$person->jirau_role->label() : ' · Admin' }}
+                                    {{ $person->name }} · {{ $person->jirauTeamLabel() }}
                                 </option>
                             @endforeach
                         </select>

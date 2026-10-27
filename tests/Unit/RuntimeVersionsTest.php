@@ -7,13 +7,14 @@ use Tests\TestCase;
 
 class RuntimeVersionsTest extends TestCase
 {
-    public function test_labels_include_laravel_php_server_and_system(): void
+    public function test_labels_include_laravel_php_server_and_release(): void
     {
         $labels = RuntimeVersions::labels();
 
         $this->assertSame(app()->version(), $labels['laravel']);
         $this->assertSame(PHP_VERSION, $labels['php']);
         $this->assertNotSame('', $labels['server']);
-        $this->assertStringContainsString(php_uname('s'), $labels['system']);
+        $this->assertSame('CRM 1.5 Vereda', $labels['release']);
+        $this->assertSame('CRM 1.5 Vereda', RuntimeVersions::release());
     }
 }

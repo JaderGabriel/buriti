@@ -8,6 +8,7 @@ use App\Http\Requests\Jirau\StoreStaffRequest;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\Jirau\JirauAccess;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -27,7 +28,11 @@ class StaffController extends Controller
             'jirau' => null,
             'isAdmin' => true,
             'staff' => User::query()
-                ->whereNotNull('jirau_role')
+                ->where(function (Builder $query) {
+                    $query->where('is_admin', true)
+                        ->orWhereNotNull('jirau_role');
+                })
+                ->orderByDesc('is_admin')
                 ->orderBy('name')
                 ->get(),
             'roles' => JirauStaffRole::options(),

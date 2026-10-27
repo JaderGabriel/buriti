@@ -148,7 +148,7 @@
                     <select name="assigned_to" class="mt-1.5 w-full rounded-sm border border-line bg-ink px-3 py-2.5">
                         <option value="">Não alocado</option>
                         @foreach($assignees as $person)
-                            <option value="{{ $person->id }}">{{ $person->name }}{{ $person->jirau_role ? ' · '.$person->jirau_role->label() : ' · Admin' }}</option>
+                            <option value="{{ $person->id }}">{{ $person->name }} · {{ $person->jirauTeamLabel() }}</option>
                         @endforeach
                     </select>
                 </label>
