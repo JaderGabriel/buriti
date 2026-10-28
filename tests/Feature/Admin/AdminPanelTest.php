@@ -254,6 +254,13 @@ class AdminPanelTest extends TestCase
         $this->assertSame('doing', $task->status->value);
         $this->assertSame('https://meet.google.com/abc-defg-hij', $task->meet_url);
         $this->assertTrue($task->want_meet);
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.tasks.destroy', $task))
+            ->assertRedirect(route('admin.tasks.index'))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('tasks', ['id' => $task->id]);
     }
 
     public function test_tasks_index_supports_calendar_and_board_views(): void

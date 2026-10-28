@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin;
 
 use App\Models\Task;
 use App\Models\User;
+use App\Services\GoogleCalendarService;
 use App\Services\SettingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -121,7 +122,7 @@ class GoogleCalendarSyncTest extends TestCase
             'google_calendar_embed' => 'https://calendar.google.com/calendar/embed?src='.rawurlencode($groupId).'&ctz=America%2FSao_Paulo',
         ]);
 
-        $service = app(\App\Services\GoogleCalendarService::class);
+        $service = app(GoogleCalendarService::class);
 
         $this->assertSame($groupId, $service->resolvedCalendarId());
         $this->assertTrue($service->integrationStatus()['calendar_matches_embed']);
@@ -201,5 +202,76 @@ class GoogleCalendarSyncTest extends TestCase
             ->assertOk()
             ->assertSee('Reunião só no Google', false)
             ->assertSee('Google Agenda', false);
+    }
+
+    public function test_oauth_callback_rejects_invalid_or_missing_state(): void
+    {
+        $this->actingAs($this->admin)
+            ->withSession(['google_oauth_state' => 'expected-state'])
+            ->get(route('admin.google.callback', ['state' => 'other-state', 'code' => 'auth-code']))
+            ->assertRedirectContains(route('admin.settings.edit'))
+            ->assertSessionHas('error');
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.google.callback', ['code' => 'auth-code']))
+            ->assertRedirectContains(route('admin.settings.edit'))
+            ->assertSessionHas('error');
+    }
+
+    public function test_oauth_callback_handles_denied_and_missing_code(): void
+    {
+        $this->actingAs($this->admin)
+            ->withSession(['google_oauth_state' => 'state-ok'])
+            ->get(route('admin.google.callback', ['state' => 'state-ok', 'error' => 'access_denied']))
+            ->assertRedirectContains(route('admin.settings.edit'))
+            ->assertSessionHas('error');
+
+        $this->actingAs($this->admin)
+            ->withSession(['google_oauth_state' => 'state-ok'])
+            ->get(route('admin.google.callback', ['state' => 'state-ok']))
+            ->assertRedirectContains(route('admin.settings.edit'))
+            ->assertSessionHas('error');
+    }
+
+    public function test_oauth_callback_stores_refresh_token(): void
+    {
+        Http::fake([
+            'oauth2.googleapis.com/token' => Http::response([
+                'access_token' => 'access-token-test',
+                'refresh_token' => 'refresh-from-google',
+                'expires_in' => 3600,
+            ], 200),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->withSession(['google_oauth_state' => 'state-ok'])
+            ->get(route('admin.google.callback', [
+                'state' => 'state-ok',
+                'code' => 'auth-code-test',
+            ]))
+            ->assertRedirectContains(route('admin.settings.edit'))
+            ->assertSessionHas('success');
+
+        $this->assertSame('refresh-from-google', $this->settings->getSecret('google_refresh_token'));
+    }
+
+    public function test_oauth_disconnect_clears_refresh_token(): void
+    {
+        $this->settings->putSecret('google_refresh_token', 'refresh-token-test');
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.google.disconnect'))
+            ->assertRedirectContains(route('admin.settings.edit'))
+            ->assertSessionHas('success');
+
+        $this->assertNull($this->settings->getSecret('google_refresh_token'));
+    }
+
+    public function test_oauth_test_reports_error_when_google_is_not_linked(): void
+    {
+        $this->actingAs($this->admin)
+            ->post(route('admin.google.test'))
+            ->assertRedirectContains(route('admin.settings.edit'))
+            ->assertSessionHas('error');
     }
 }

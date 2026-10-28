@@ -239,6 +239,75 @@ class JirauEvidenceAndNotifyTest extends TestCase
             ->assertSee('Lia Tester', false);
     }
 
+    public function test_member_can_add_and_remove_photo_and_drive_link_on_own_inbox_card(): void
+    {
+        Storage::fake('local');
+        [$jirau, $member] = $this->boardWithMember();
+        $card = JirauCard::factory()->demand()->create([
+            'jirau_id' => $jirau->id,
+            'column_id' => $jirau->inboxColumn()?->id,
+            'created_by' => $member->id,
+            'title' => 'Print extra',
+        ]);
+
+        $this->actingAs($member)
+            ->post(route('jirau.cards.photos.store', [$jirau, $card]), [
+                'photos' => [UploadedFile::fake()->image('extra.jpg')],
+            ])
+            ->assertRedirect(route('jirau.show', ['jirau' => $jirau, 'cartao' => $card->id]));
+
+        $photo = $card->fresh()->photoAttachments()->first();
+        $this->assertNotNull($photo);
+        Storage::disk('local')->assertExists($photo->path);
+
+        $this->actingAs($member)
+            ->post(route('jirau.cards.links.store', [$jirau, $card]), [
+                'drive_url' => 'https://drive.google.com/file/d/xyz789/view',
+            ])
+            ->assertRedirect(route('jirau.show', ['jirau' => $jirau, 'cartao' => $card->id]));
+
+        $link = $card->fresh()->links()->first();
+        $this->assertNotNull($link);
+        $this->assertSame('drive', $link->kind);
+
+        $this->actingAs($member)
+            ->delete(route('jirau.cards.photos.destroy', [$jirau, $card, $photo]))
+            ->assertRedirect(route('jirau.show', ['jirau' => $jirau, 'cartao' => $card->id]));
+
+        $this->assertSoftDeleted('attachments', ['id' => $photo->id]);
+
+        $this->actingAs($member)
+            ->delete(route('jirau.cards.links.destroy', [$jirau, $card, $link]))
+            ->assertRedirect(route('jirau.show', ['jirau' => $jirau, 'cartao' => $card->id]));
+
+        $this->assertDatabaseMissing('jirau_card_links', ['id' => $link->id]);
+    }
+
+    public function test_member_cannot_attach_evidence_to_another_users_card(): void
+    {
+        Storage::fake('local');
+        [$jirau, $member] = $this->boardWithMember();
+        $admin = User::query()->where('is_admin', true)->first();
+        $card = JirauCard::factory()->create([
+            'jirau_id' => $jirau->id,
+            'column_id' => $jirau->columns()->where('slug', 'doing')->value('id'),
+            'created_by' => $admin->id,
+            'title' => 'Cartão da equipe',
+        ]);
+
+        $this->actingAs($member)
+            ->post(route('jirau.cards.photos.store', [$jirau, $card]), [
+                'photos' => [UploadedFile::fake()->image('intruso.jpg')],
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($member)
+            ->post(route('jirau.cards.links.store', [$jirau, $card]), [
+                'drive_url' => 'https://drive.google.com/file/d/abc/view',
+            ])
+            ->assertForbidden();
+    }
+
     public function test_demand_form_exposes_safe_evidence_fields(): void
     {
         [$jirau, $member] = $this->boardWithMember();

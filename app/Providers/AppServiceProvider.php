@@ -46,6 +46,10 @@ class AppServiceProvider extends ServiceProvider
 
         Route::bind('item', function (string $value, $route) {
             $card = $route->parameter('card');
+            if (! $card instanceof JirauCard) {
+                $card = JirauCard::query()->find($card);
+            }
+
             if ($card instanceof JirauCard) {
                 return $card->checklistItems()->whereKey($value)->firstOrFail();
             }

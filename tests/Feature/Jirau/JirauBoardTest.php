@@ -8,6 +8,7 @@ use App\Enums\JirauTemplate;
 use App\Models\Company;
 use App\Models\Jirau;
 use App\Models\JirauCard;
+use App\Models\JirauChecklistItem;
 use App\Models\Project;
 use App\Models\User;
 use Database\Seeders\AdminSeeder;
@@ -249,6 +250,144 @@ class JirauBoardTest extends TestCase
         $this->assertSame('Título atualizado', $fresh->title);
         $this->assertSame('Texto revisado', $fresh->description);
         $this->assertTrue($fresh->checklistItems()->where('title', 'Escrever o teste')->exists());
+    }
+
+    public function test_admin_can_toggle_and_delete_checklist_item(): void
+    {
+        $admin = User::factory()->create();
+        $jirau = Jirau::factory()->create(['created_by' => $admin->id]);
+        $card = JirauCard::factory()->create([
+            'jirau_id' => $jirau->id,
+            'column_id' => $jirau->columns()->where('slug', 'doing')->value('id'),
+        ]);
+        $item = $card->checklistItems()->create([
+            'title' => 'Revisar copy',
+            'is_done' => false,
+            'sort_order' => 10,
+        ]);
+
+        $this->actingAs($admin)
+            ->patch(route('jirau.cards.checklist.toggle', [$jirau, $card, $item]))
+            ->assertRedirect(route('jirau.show', ['jirau' => $jirau, 'cartao' => $card->id]));
+
+        $this->assertTrue($item->fresh()->is_done);
+
+        $this->actingAs($admin)
+            ->delete(route('jirau.cards.checklist.destroy', [$jirau, $card, $item]))
+            ->assertRedirect(route('jirau.show', ['jirau' => $jirau, 'cartao' => $card->id]));
+
+        $this->assertDatabaseMissing('jirau_checklist_items', ['id' => $item->id]);
+    }
+
+    public function test_checklist_item_from_another_card_cannot_be_toggled_or_deleted(): void
+    {
+        $admin = User::factory()->create();
+        $jirau = Jirau::factory()->create(['created_by' => $admin->id]);
+        $doing = $jirau->columns()->where('slug', 'doing')->value('id');
+        $card = JirauCard::factory()->create([
+            'jirau_id' => $jirau->id,
+            'column_id' => $doing,
+            'title' => 'Cartão alvo',
+        ]);
+        $other = JirauCard::factory()->create([
+            'jirau_id' => $jirau->id,
+            'column_id' => $doing,
+            'title' => 'Outro cartão',
+        ]);
+        $foreign = $other->checklistItems()->create([
+            'title' => 'Item alheio',
+            'is_done' => false,
+            'sort_order' => 10,
+        ]);
+
+        $this->actingAs($admin)
+            ->patch(route('jirau.cards.checklist.toggle', [$jirau, $card, $foreign]))
+            ->assertNotFound();
+
+        $this->assertFalse($foreign->fresh()->is_done);
+
+        $this->actingAs($admin)
+            ->delete(route('jirau.cards.checklist.destroy', [$jirau, $card, $foreign]))
+            ->assertNotFound();
+
+        $this->assertDatabaseHas('jirau_checklist_items', ['id' => $foreign->id]);
+        $this->assertInstanceOf(JirauChecklistItem::class, $foreign->fresh());
+    }
+
+    public function test_member_can_toggle_checklist_but_cannot_delete_item(): void
+    {
+        $admin = User::factory()->create();
+        $jirau = Jirau::factory()->create(['created_by' => $admin->id]);
+        $member = User::factory()->withoutAdminAccess()->create();
+        $jirau->members()->attach($member->id);
+        $card = JirauCard::factory()->create([
+            'jirau_id' => $jirau->id,
+            'column_id' => $jirau->columns()->where('slug', 'doing')->value('id'),
+        ]);
+        $item = $card->checklistItems()->create([
+            'title' => 'Só o admin apaga',
+            'is_done' => false,
+            'sort_order' => 10,
+        ]);
+
+        $this->actingAs($member)
+            ->patch(route('jirau.cards.checklist.toggle', [$jirau, $card, $item]))
+            ->assertRedirect();
+
+        $this->assertTrue($item->fresh()->is_done);
+
+        $this->actingAs($member)
+            ->delete(route('jirau.cards.checklist.destroy', [$jirau, $card, $item]))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('jirau_checklist_items', ['id' => $item->id]);
+    }
+
+    public function test_admin_can_archive_card_and_member_cannot(): void
+    {
+        $admin = User::factory()->create();
+        $jirau = Jirau::factory()->create(['created_by' => $admin->id]);
+        $member = User::factory()->withoutAdminAccess()->create();
+        $jirau->members()->attach($member->id);
+        $card = JirauCard::factory()->create([
+            'jirau_id' => $jirau->id,
+            'column_id' => $jirau->columns()->where('slug', 'doing')->value('id'),
+            'title' => 'Pronto para arquivo',
+        ]);
+
+        $this->actingAs($member)
+            ->post(route('jirau.cards.archive', [$jirau, $card]))
+            ->assertForbidden();
+
+        $this->assertNull($card->fresh()->archived_at);
+
+        $this->actingAs($admin)
+            ->post(route('jirau.cards.archive', [$jirau, $card]))
+            ->assertRedirect(route('jirau.show', $jirau))
+            ->assertSessionHas('success', 'Cartão arquivado.');
+
+        $this->assertNotNull($card->fresh()->archived_at);
+    }
+
+    public function test_admin_can_remove_board_member(): void
+    {
+        $admin = User::factory()->create();
+        $jirau = Jirau::factory()->create(['created_by' => $admin->id]);
+        $member = User::factory()->withoutAdminAccess()->create(['name' => 'Ana Cliente']);
+        $jirau->members()->attach($member->id, ['invited_by' => $admin->id]);
+
+        $this->actingAs($member)
+            ->delete(route('jirau.members.destroy', [$jirau, $member]))
+            ->assertForbidden();
+
+        $this->assertTrue($jirau->fresh()->members()->whereKey($member->id)->exists());
+
+        $this->actingAs($admin)
+            ->delete(route('jirau.members.destroy', [$jirau, $member]))
+            ->assertRedirect(route('jirau.show', $jirau))
+            ->assertSessionHas('success');
+
+        $this->assertFalse($jirau->fresh()->members()->whereKey($member->id)->exists());
     }
 
     public function test_member_comment_saves_edits_only_on_own_inbox_demand(): void

@@ -471,4 +471,40 @@ class UserSecurityTest extends TestCase
 
         $this->assertFalse($this->admin->fresh()->hasIosTwoFactor());
     }
+
+    public function test_admin_can_update_and_delete_another_user(): void
+    {
+        $user = User::factory()->withoutAdminAccess()->create([
+            'name' => 'Colaborador',
+            'username' => 'colabuser',
+            'email' => 'colab@buriti.dev.br',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.users.update', $user), [
+                'name' => 'Colaborador Atualizado',
+                'username' => 'colabuser',
+                'email' => 'colab@buriti.dev.br',
+            ])
+            ->assertRedirect(route('admin.users.edit', $user))
+            ->assertSessionHas('success');
+
+        $this->assertSame('Colaborador Atualizado', $user->fresh()->name);
+        $this->assertFalse($user->fresh()->is_admin);
+
+        $this->actingAs($this->admin)
+            ->from(route('admin.users.index'))
+            ->delete(route('admin.users.destroy', $this->admin))
+            ->assertRedirect(route('admin.users.index'))
+            ->assertSessionHasErrors('user');
+
+        $this->assertDatabaseHas('users', ['id' => $this->admin->id]);
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.users.destroy', $user))
+            ->assertRedirect(route('admin.users.index'))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('users', ['id' => $user->id]);
+    }
 }

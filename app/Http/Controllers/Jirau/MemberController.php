@@ -57,21 +57,21 @@ class MemberController extends Controller
             ->with('success', $user->name.' pode entrar só neste Jirau.'.$hint);
     }
 
-    public function destroy(Request $request, Jirau $jirau, User $user): RedirectResponse
+    public function destroy(Request $request, Jirau $jirau, User $member): RedirectResponse
     {
         $this->access->assertManage($request->user());
         $this->access->assertWritable($request->user(), $jirau);
 
-        $jirau->members()->detach($user->id);
+        $jirau->members()->detach($member->id);
 
         $this->audit->record('jirau.member_removed', $jirau, [
-            'summary' => $user->username,
-            'user_id' => $user->id,
+            'summary' => $member->username,
+            'user_id' => $member->id,
         ]);
 
         return redirect()
             ->route('jirau.show', $jirau)
-            ->with('success', $user->name.' saiu deste Jirau.');
+            ->with('success', $member->name.' saiu deste Jirau.');
     }
 
     private function findAttachable(string $login): User

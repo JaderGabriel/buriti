@@ -2212,12 +2212,6 @@ HTML;
     {
         $row = [];
 
-        $e164 = PhoneNumber::e164Digits($phone);
-        if ($e164 !== null) {
-            // Telegram recusa tel: nos botões URL (400 Wrong port number).
-            $row[] = ['text' => '📞 Ligar', 'callback_data' => 'call:'.$e164];
-        }
-
         $whatsapp = PhoneNumber::whatsappHref($phone);
         if ($whatsapp !== null && str_starts_with($whatsapp, 'https://')) {
             $row[] = ['text' => '💬 WhatsApp', 'url' => $whatsapp];

@@ -20,6 +20,7 @@ use App\Models\User;
 use App\Services\SettingService;
 use App\Services\Telegram\TelegramShareCardService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -258,10 +259,9 @@ class TelegramBotTest extends TestCase
                 && ! str_contains($text, 'wa.me')
                 && ! str_contains($text, 'ligar/')
                 && ! str_contains($text, 'tel:')
-                && ($buttons[0]['text'] ?? null) === '📞 Ligar'
-                && ($buttons[0]['callback_data'] ?? null) === 'call:5511988887777'
-                && ($buttons[1]['text'] ?? null) === '💬 WhatsApp'
-                && ($buttons[1]['url'] ?? null) === 'https://wa.me/5511988887777';
+                && ($buttons[0]['text'] ?? null) === '💬 WhatsApp'
+                && ($buttons[0]['url'] ?? null) === 'https://wa.me/5511988887777'
+                && count($buttons) === 1;
         });
 
         Http::assertSent(function ($request) {
@@ -304,10 +304,9 @@ class TelegramBotTest extends TestCase
                 && ! str_contains($text, 'wa.me')
                 && ! str_contains($text, 'ligar/')
                 && ! str_contains($text, 'tel:')
-                && ($buttons[0]['text'] ?? null) === '📞 Ligar'
-                && ($buttons[0]['callback_data'] ?? null) === 'call:5538991758416'
-                && ($buttons[1]['text'] ?? null) === '💬 WhatsApp'
-                && ($buttons[1]['url'] ?? null) === 'https://wa.me/5538991758416';
+                && ($buttons[0]['text'] ?? null) === '💬 WhatsApp'
+                && ($buttons[0]['url'] ?? null) === 'https://wa.me/5538991758416'
+                && count($buttons) === 1;
         });
 
         Http::assertSent(function ($request) {
@@ -318,31 +317,6 @@ class TelegramBotTest extends TestCase
                 && ($data['first_name'] ?? null) === 'Maria'
                 && ($data['last_name'] ?? null) === 'Lead'
                 && str_contains((string) ($data['vcard'] ?? ''), 'EMAIL:maria.lead@buriti.test');
-        });
-    }
-
-    public function test_ligar_button_sends_native_contact_to_call_or_save(): void
-    {
-        $this->loginAdmin();
-
-        $this->postWebhook([
-            'callback_query' => [
-                'id' => 'cb-ligar-1',
-                'from' => ['id' => 999001],
-                'message' => ['chat' => ['id' => 999001]],
-                'data' => 'call:5538991758416',
-            ],
-        ])->assertOk();
-
-        Http::assertSent(fn ($request) => str_contains($request->url(), 'answerCallbackQuery')
-            && ($request->data()['callback_query_id'] ?? null) === 'cb-ligar-1');
-
-        Http::assertSent(function ($request) {
-            $data = $request->data();
-
-            return str_contains($request->url(), 'sendContact')
-                && ($data['phone_number'] ?? null) === '+5538991758416'
-                && ($data['first_name'] ?? null) === 'Contato';
         });
     }
 
@@ -864,5 +838,213 @@ class TelegramBotTest extends TestCase
             return str_contains($text, 'Jiraus ativos: <b>1</b>')
                 && str_contains($text, 'Cartões abertos: <b>1</b> (inbox: 1)');
         });
+    }
+
+    public function test_id_command_is_public(): void
+    {
+        $this->postWebhook([
+            'message' => ['chat' => ['id' => 424242], 'text' => '/id'],
+        ])->assertOk();
+
+        Http::assertSent(function ($request) {
+            $text = (string) ($request->data()['text'] ?? '');
+
+            return str_contains($request->url(), 'sendMessage')
+                && str_contains($text, 'Chat ID')
+                && str_contains($text, '424242');
+        });
+    }
+
+    public function test_eu_requires_session_and_shows_admin_after_login(): void
+    {
+        $this->postWebhook([
+            'message' => ['chat' => ['id' => 999001], 'text' => '/eu'],
+        ])->assertOk();
+
+        Http::assertSent(fn ($request) => str_contains((string) ($request->data()['text'] ?? ''), 'administradores'));
+
+        $this->loginAdmin();
+
+        $this->postWebhook([
+            'message' => ['chat' => ['id' => 999001], 'text' => '/eu'],
+        ])->assertOk();
+
+        Http::assertSent(function ($request) {
+            $text = (string) ($request->data()['text'] ?? '');
+
+            return str_contains($text, 'Sessão Telegram')
+                && str_contains($text, 'admin@buriti.test')
+                && str_contains($text, '999001');
+        });
+    }
+
+    public function test_allowlist_blocks_unknown_chats_including_public_commands(): void
+    {
+        app(SettingService::class)->putMany([
+            'telegram_allowed_chat_ids' => '111222',
+        ]);
+
+        $this->postWebhook([
+            'message' => ['chat' => ['id' => 999001], 'text' => '/id'],
+        ])->assertOk();
+
+        Http::assertSent(fn ($request) => str_contains(
+            (string) ($request->data()['text'] ?? ''),
+            'não está na lista de IDs autorizados',
+        ));
+
+        $this->postWebhook([
+            'message' => ['chat' => ['id' => 111222], 'text' => '/id'],
+        ])->assertOk();
+
+        Http::assertSent(function ($request) {
+            $text = (string) ($request->data()['text'] ?? '');
+
+            return str_contains($text, 'Chat ID')
+                && str_contains($text, '111222');
+        });
+    }
+
+    public function test_login_locks_after_five_failures_per_chat(): void
+    {
+        for ($i = 1; $i <= 5; $i++) {
+            $this->postWebhook([
+                'message' => [
+                    'message_id' => 4000 + $i,
+                    'chat' => ['id' => 888001],
+                    'text' => '/login admin@buriti.test | senha-errada',
+                ],
+            ])->assertOk();
+        }
+
+        $this->postWebhook([
+            'message' => [
+                'message_id' => 4010,
+                'chat' => ['id' => 888001],
+                'text' => '/login admin@buriti.test | password',
+            ],
+        ])->assertOk();
+
+        Http::assertSent(fn ($request) => str_contains(
+            (string) ($request->data()['text'] ?? ''),
+            'Demasiadas tentativas',
+        ));
+
+        $this->assertNull($this->admin->fresh()->telegram_chat_id);
+    }
+
+    public function test_login_global_lock_blocks_other_chats(): void
+    {
+        Cache::put('telegram:login-fail:global', 30, 900);
+
+        $this->postWebhook([
+            'message' => [
+                'message_id' => 5001,
+                'chat' => ['id' => 777001],
+                'text' => '/login admin@buriti.test | password',
+            ],
+        ])->assertOk();
+
+        Http::assertSent(fn ($request) => str_contains(
+            (string) ($request->data()['text'] ?? ''),
+            'Demasiadas tentativas',
+        ));
+
+        $this->assertNull($this->admin->fresh()->telegram_chat_id);
+    }
+
+    public function test_bot_lists_shows_marks_read_and_deletes_messages(): void
+    {
+        $this->loginAdmin();
+
+        $message = ContactMessage::factory()->create([
+            'name' => 'Carla Site',
+            'subject' => 'Orçamento institucional',
+            'message' => 'Preciso de um site novo.',
+            'read_at' => null,
+        ]);
+
+        $this->postWebhook([
+            'message' => ['chat' => ['id' => 999001], 'text' => '/mensagens'],
+        ])->assertOk();
+
+        Http::assertSent(function ($request) use ($message) {
+            $text = (string) ($request->data()['text'] ?? '');
+
+            return str_contains($text, 'Mensagens')
+                && str_contains($text, (string) $message->id)
+                && str_contains($text, 'Carla Site');
+        });
+
+        $this->postWebhook([
+            'message' => ['chat' => ['id' => 999001], 'text' => '/mensagem '.$message->id],
+        ])->assertOk();
+
+        Http::assertSent(function ($request) use ($message) {
+            $text = (string) ($request->data()['text'] ?? '');
+
+            return str_contains($text, 'Mensagem #'.$message->id)
+                && str_contains($text, 'Orçamento institucional')
+                && str_contains($text, 'Preciso de um site novo.');
+        });
+
+        $this->postWebhook([
+            'message' => ['chat' => ['id' => 999001], 'text' => '/mensagem lida '.$message->id],
+        ])->assertOk();
+
+        $this->assertNotNull($message->fresh()->read_at);
+
+        $this->postWebhook([
+            'message' => ['chat' => ['id' => 999001], 'text' => '/mensagem del '.$message->id],
+        ])->assertOk();
+
+        Http::assertSent(fn ($request) => str_contains(
+            (string) ($request->data()['text'] ?? ''),
+            '/mensagem del '.$message->id.' ok',
+        ));
+
+        $this->assertDatabaseHas('contact_messages', ['id' => $message->id]);
+
+        $this->postWebhook([
+            'message' => ['chat' => ['id' => 999001], 'text' => '/mensagem del '.$message->id.' ok'],
+        ])->assertOk();
+
+        $this->assertDatabaseMissing('contact_messages', ['id' => $message->id]);
+    }
+
+    public function test_send_contact_failure_does_not_drop_crm_message(): void
+    {
+        $this->loginAdmin();
+
+        Http::fake([
+            'api.telegram.org/*/sendContact' => Http::response([
+                'ok' => false,
+                'description' => 'Bad Request: phone number invalid',
+            ], 400),
+            'api.telegram.org/*' => Http::response(['ok' => true, 'result' => true]),
+        ]);
+
+        $contact = Contact::factory()->create([
+            'name' => 'Maria Lead',
+            'email' => 'maria.lead@buriti.test',
+            'phone' => '+55 (38) 99175-8416',
+        ]);
+
+        $this->postWebhook([
+            'message' => [
+                'chat' => ['id' => 999001],
+                'text' => '/contato '.$contact->id,
+            ],
+        ])->assertOk();
+
+        Http::assertSent(function ($request) {
+            $text = (string) ($request->data()['text'] ?? '');
+
+            return str_contains($request->url(), 'sendMessage')
+                && str_contains($text, 'Maria Lead')
+                && str_contains($text, '+55 (38) 99175-8416');
+        });
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'sendContact'));
     }
 }

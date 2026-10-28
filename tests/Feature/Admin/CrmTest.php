@@ -590,4 +590,46 @@ class CrmTest extends TestCase
             ->get(route('admin.contacts.activities.edit', [$other, $activity]))
             ->assertNotFound();
     }
+
+    public function test_admin_can_delete_contact_message_contact_company_and_opportunity(): void
+    {
+        $message = ContactMessage::factory()->create(['subject' => 'Pedido antigo']);
+        $company = Company::factory()->create(['name' => 'Empresa Removível']);
+        $contact = Contact::factory()->create([
+            'name' => 'Contato Removível',
+            'company_id' => $company->id,
+        ]);
+        $opportunity = Opportunity::factory()->create([
+            'contact_id' => $contact->id,
+            'title' => 'Oportunidade removível',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.messages.destroy', $message))
+            ->assertRedirect(route('admin.messages.index'))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('contact_messages', ['id' => $message->id]);
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.opportunities.destroy', $opportunity))
+            ->assertRedirect(route('admin.contacts.show', $contact))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('opportunities', ['id' => $opportunity->id]);
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.contacts.destroy', $contact))
+            ->assertRedirect(route('admin.contacts.index'))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('contacts', ['id' => $contact->id]);
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.companies.destroy', $company))
+            ->assertRedirect(route('admin.companies.index'))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('companies', ['id' => $company->id]);
+    }
 }

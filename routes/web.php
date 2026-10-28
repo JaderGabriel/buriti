@@ -156,7 +156,7 @@ Route::prefix('jirau')->name('jirau.')->middleware(['auth', 'jirau'])->scopeBind
         ->name('columns.reorder');
 
     Route::post('/{jirau}/membros', [JirauMemberController::class, 'store'])->name('members.store');
-    Route::delete('/{jirau}/membros/{user}', [JirauMemberController::class, 'destroy'])->name('members.destroy');
+    Route::delete('/{jirau}/membros/{member}', [JirauMemberController::class, 'destroy'])->name('members.destroy');
 
     Route::post('/{jirau}/etapas', [JirauStepController::class, 'store'])->name('steps.store');
     Route::post('/{jirau}/etapas/importar', [JirauStepController::class, 'import'])->name('steps.import');

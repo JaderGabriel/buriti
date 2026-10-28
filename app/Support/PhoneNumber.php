@@ -175,7 +175,7 @@ class PhoneNumber
 
     /**
      * Número formatado (DDI + DDD + assinante) para o texto do Telegram — sem link.
-     * Ligar e WhatsApp vão em botões; o cartão nativo (sendContact) guarda na agenda.
+     * WhatsApp vai em botão; o cartão nativo (sendContact) guarda na agenda.
      */
     public static function telegramHtml(?string $phone, string $fallbackIso = 'BR'): ?string
     {
