@@ -89,7 +89,7 @@ final class AdminNavigation
                 'route' => 'admin.projects.index',
                 'label' => 'Entrega',
                 'icon' => 'project',
-                'pattern' => ['admin.projects.*', 'admin.home-projects.*', 'admin.tasks.*'],
+                'pattern' => ['admin.projects.*', 'admin.home-projects.*', 'admin.tasks.*', 'admin.testimonials.*'],
                 'items' => [
                     [
                         'route' => 'admin.projects.index',
@@ -108,6 +108,12 @@ final class AdminNavigation
                         'label' => 'Agenda',
                         'pattern' => 'admin.tasks.*',
                         'icon' => 'task',
+                    ],
+                    [
+                        'route' => 'admin.testimonials.index',
+                        'label' => 'Depoimentos',
+                        'pattern' => 'admin.testimonials.*',
+                        'icon' => 'quote',
                     ],
                 ],
             ],
@@ -290,7 +296,7 @@ final class AdminNavigation
         return [
             'home' => 'painel dashboard inicio',
             'comercial' => 'crm vendas leads comercial',
-            'entrega' => 'projetos portfolio entrega',
+            'entrega' => 'projetos portfolio entrega depoimentos',
             'jirau' => 'kanban agil board quadro',
             'sistema' => 'admin sistema',
             'admin.messages.index' => 'inbox email mail mensagens',
@@ -300,6 +306,7 @@ final class AdminNavigation
             'admin.projects.index' => 'portfolio projetos',
             'admin.home-projects.edit' => 'home vitrine site',
             'admin.tasks.index' => 'tarefas calendario calendar agenda',
+            'admin.testimonials.index' => 'depoimentos testemunho nps estrelas avaliacao selo autenticidade',
             'jirau.home' => 'boards quadros',
             'jirau.overview' => 'overview geral',
             'jirau.analytics' => 'analytics bi analitica',

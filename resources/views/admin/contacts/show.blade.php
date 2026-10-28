@@ -127,6 +127,10 @@
                 <x-ui.icon name="opportunity" class="h-4 w-4" />
                 Oportunidade
             </a>
+            <a href="{{ route('admin.testimonials.create', ['contact_id' => $contact->id]) }}" class="contact-dossier__quick-btn">
+                <x-ui.icon name="quote" class="h-4 w-4" />
+                Depoimento
+            </a>
             <form method="POST" action="{{ route('admin.contacts.destroy', $contact) }}" data-confirm="Remover este contato e dados relacionados?">
                 @csrf
                 @method('DELETE')

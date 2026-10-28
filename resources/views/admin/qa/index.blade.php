@@ -7,6 +7,8 @@
         $lastByCommand = $dashboard['last_by_command'];
         $firstGroup = $groups[0]['id'] ?? 'suite';
         $areaIds = collect($groups)->pluck('id')->values()->all();
+        $modulesById = collect($dashboard['modules'])->keyBy('id');
+        $cmdAnchor = static fn (string $id): string => 'qa-cmd-'.str_replace('.', '-', $id);
         $lastSuite = $dashboard['last_suite'] ?? null;
         $healthIcon = match ($health['tone']) {
             'ok' => 'qualified',
@@ -26,8 +28,19 @@
             applyHash() {
                 const name = (window.location.hash || '').replace(/^#/, '');
                 const area = name.match(/^qa-area-([a-z0-9_-]+)$/i);
+                const command = name.match(/^qa-cmd-([a-z0-9-]+)$/i);
                 if (area && this.areas.includes(area[1])) {
                     this.tab = area[1];
+                    this.section = 'qa-console';
+                    this.openPane(area[1]);
+                    return;
+                }
+                if (command) {
+                    const pane = document.getElementById(name)?.closest('details.qa-pane');
+                    const paneId = pane?.id?.replace(/^qa-area-/, '');
+                    if (paneId && this.areas.includes(paneId)) {
+                        this.tab = paneId;
+                    }
                     this.section = 'qa-console';
                     return;
                 }
@@ -40,6 +53,18 @@
                     return;
                 }
                 this.section = 'qa-kpis';
+            },
+            openPane(id) {
+                const pane = document.getElementById('qa-area-' + id);
+                if (pane instanceof HTMLDetailsElement) {
+                    pane.open = true;
+                }
+            },
+            expandAll() {
+                this.$root.querySelectorAll('.qa-console details.qa-pane').forEach((el) => { el.open = true; });
+            },
+            collapseAll() {
+                this.$root.querySelectorAll('.qa-console details.qa-pane').forEach((el) => { el.open = false; });
             },
         }"
         x-init="applyHash(); window.addEventListener('hashchange', () => applyHash())"
@@ -106,65 +131,80 @@
             <aside id="qa-modules" class="qa-panel" aria-labelledby="qa-areas-title">
                 <header class="qa-panel__head">
                     <div>
-                        <p class="qa-panel__eyebrow">Módulos</p>
+                        <p class="qa-panel__eyebrow">Sumário</p>
                         <h2 id="qa-areas-title" class="qa-panel__title">Saúde por área</h2>
                     </div>
                 </header>
-                <nav class="qa-panel__body qa-nav" aria-label="Áreas de teste">
-                    @foreach ($dashboard['modules'] as $module)
-                        <a
-                            href="#qa-area-{{ $module['id'] }}"
-                            @class([
-                                'qa-navitem',
-                                'qa-navitem--'.$module['status'],
-                            ])
-                            data-tone="{{ $module['tone'] }}"
-                            :class="{ 'is-active': tab === '{{ $module['id'] }}' }"
-                            :aria-current="tab === '{{ $module['id'] }}' ? 'location' : false"
+                <nav class="qa-panel__body qa-toc" aria-label="Sumário de testes por área">
+                    @foreach ($groups as $group)
+                        @php $module = $modulesById[$group['id']] ?? null; @endphp
+                        <div
+                            class="qa-toc__area qa-navitem--{{ $module['status'] ?? 'idle' }}"
+                            data-tone="{{ $group['id'] }}"
+                            :class="{ 'is-active': tab === '{{ $group['id'] }}' }"
                         >
-                            <span class="qa-navitem__icon" aria-hidden="true">
-                                <x-ui.icon :name="$module['icon']" class="h-4 w-4" />
-                            </span>
-                            <span class="qa-navitem__copy">
-                                <span class="qa-navitem__label">{{ $module['label'] }}</span>
-                                <span class="qa-navitem__meta">
-                                    {{ $module['status_label'] }}
-                                    @if($module['run'])
-                                        · {{ $module['run']->created_at?->timezone(config('app.timezone'))->diffForHumans() }}
-                                    @endif
+                            <a
+                                href="#qa-area-{{ $group['id'] }}"
+                                class="qa-navitem"
+                                :aria-current="tab === '{{ $group['id'] }}' ? 'location' : false"
+                            >
+                                <span class="qa-navitem__icon" aria-hidden="true">
+                                    <x-ui.icon :name="$group['icon'] ?? 'diagnose'" class="h-4 w-4" />
                                 </span>
-                            </span>
-                            <span class="qa-navitem__pip" aria-hidden="true"></span>
-                        </a>
+                                <span class="qa-navitem__copy">
+                                    <span class="qa-navitem__label">{{ $group['label'] }}</span>
+                                    <span class="qa-navitem__meta">
+                                        {{ count($group['commands']) }} teste{{ count($group['commands']) === 1 ? '' : 's' }}
+                                        · {{ $module['status_label'] ?? 'Sem dados' }}
+                                    </span>
+                                </span>
+                                <span class="qa-navitem__pip" aria-hidden="true"></span>
+                            </a>
+                            <ul class="qa-toc__tests">
+                                @foreach ($group['commands'] as $item)
+                                    <li>
+                                        <a href="#{{ $cmdAnchor($item['id']) }}">{{ $item['label'] }}</a>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
                     @endforeach
                 </nav>
             </aside>
 
             <section id="qa-console" class="qa-console" x-ref="console">
+                <div class="qa-console__bar">
+                    <p>Temas de teste</p>
+                    <div>
+                        <button type="button" class="qa-console__tool" @click="expandAll()">Abrir todos</button>
+                        <button type="button" class="qa-console__tool" @click="collapseAll()">Fechar todos</button>
+                    </div>
+                </div>
                 @foreach ($groups as $group)
-                    <article
+                    <details
                         id="qa-area-{{ $group['id'] }}"
                         class="qa-panel qa-pane"
                         data-tone="{{ $group['id'] }}"
                         :class="{ 'is-current': tab === '{{ $group['id'] }}' }"
                     >
-                        <header class="qa-panel__head">
+                        <summary class="qa-panel__head qa-pane__summary">
                             <div class="qa-panel__title-wrap">
                                 <span class="qa-panel__icon" aria-hidden="true">
                                     <x-ui.icon :name="$group['icon'] ?? 'diagnose'" class="h-5 w-5" />
                                 </span>
                                 <div>
-                                    <p class="qa-panel__eyebrow">Comandos</p>
+                                    <p class="qa-panel__eyebrow">{{ count($group['commands']) }} teste{{ count($group['commands']) === 1 ? '' : 's' }}</p>
                                     <h2 class="qa-panel__title">{{ $group['label'] }}</h2>
                                 </div>
                             </div>
-                        </header>
+                            <span class="qa-pane__toggle" aria-hidden="true"></span>
+                        </summary>
                         <p class="qa-pane__lead">{{ $group['description'] }}</p>
                         <div class="qa-panel__body">
                             <ul class="qa-commands">
                                 @foreach ($group['commands'] as $item)
                                     @php $last = $lastByCommand[$item['id']] ?? null; @endphp
-                                    <li class="qa-command">
+                                    <li id="{{ $cmdAnchor($item['id']) }}" class="qa-command">
                                         <span class="qa-command__icon" aria-hidden="true">
                                             <x-ui.icon :name="$item['icon']" class="h-4 w-4" />
                                         </span>
@@ -209,7 +249,7 @@
                                 @endforeach
                             </ul>
                         </div>
-                    </article>
+                    </details>
                 @endforeach
             </section>
 

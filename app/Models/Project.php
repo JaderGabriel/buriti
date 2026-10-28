@@ -84,6 +84,11 @@ class Project extends Model
         return $this->hasMany(Jirau::class)->orderBy('name')->orderBy('id');
     }
 
+    public function testimonials(): HasMany
+    {
+        return $this->hasMany(Testimonial::class)->latest('id');
+    }
+
     /**
      * Progresso preferencialmente pelas etapas do projeto; se não houver, usa atividades da agenda.
      *

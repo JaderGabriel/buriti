@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\RoadmapController;
 use App\Http\Controllers\Admin\SearchController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\TaskController;
+use App\Http\Controllers\Admin\TestimonialController as AdminTestimonialController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\ContactController;
@@ -36,6 +37,7 @@ use App\Http\Controllers\Jirau\StepController as JirauStepController;
 use App\Http\Controllers\Jirau\TimeController as JirauTimeController;
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\TelegramWebhookController;
+use App\Http\Controllers\TestimonialController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [SiteController::class, 'home'])->name('home');
@@ -45,6 +47,19 @@ Route::get('/cookies', [SiteController::class, 'cookies'])->name('cookies');
 Route::post('/contato', [ContactController::class, 'store'])
     ->middleware('throttle:5,1')
     ->name('contact.store');
+
+Route::get('/depoimento/selo/{code?}', [TestimonialController::class, 'seal'])
+    ->name('testimonials.seal');
+Route::get('/depoimento/obrigado/{uuid}', [TestimonialController::class, 'thanks'])
+    ->where('uuid', '[0-9a-fA-F-]{36}')
+    ->name('testimonials.thanks');
+Route::get('/depoimento/{token}', [TestimonialController::class, 'write'])
+    ->where('token', '[a-f0-9]{64}')
+    ->name('testimonials.write');
+Route::post('/depoimento/{token}', [TestimonialController::class, 'submit'])
+    ->where('token', '[a-f0-9]{64}')
+    ->middleware('throttle:8,1')
+    ->name('testimonials.submit');
 
 Route::post('/webhooks/telegram/{secret}', TelegramWebhookController::class)
     ->middleware('throttle:120,1')
@@ -278,6 +293,19 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
         ->name('projects.steps.toggle');
     Route::delete('/projetos/{project}/etapas/{step}', [ProjectStepController::class, 'destroy'])
         ->name('projects.steps.destroy');
+
+    Route::get('/depoimentos', [AdminTestimonialController::class, 'index'])->name('testimonials.index');
+    Route::get('/depoimentos/convidar', [AdminTestimonialController::class, 'create'])->name('testimonials.create');
+    Route::post('/depoimentos', [AdminTestimonialController::class, 'store'])
+        ->middleware('throttle:30,1')
+        ->name('testimonials.store');
+    Route::get('/depoimentos/{testimonial}', [AdminTestimonialController::class, 'show'])->name('testimonials.show');
+    Route::post('/depoimentos/{testimonial}/mediar', [AdminTestimonialController::class, 'moderate'])
+        ->name('testimonials.moderate');
+    Route::put('/depoimentos/{testimonial}/projeto', [AdminTestimonialController::class, 'project'])
+        ->name('testimonials.project');
+    Route::post('/depoimentos/{testimonial}/reenviar', [AdminTestimonialController::class, 'reinvite'])
+        ->name('testimonials.reinvite');
 
     Route::get('/tarefas', [TaskController::class, 'index'])->name('tasks.index');
     Route::get('/tarefas/exportar.ics', [TaskController::class, 'export'])->name('tasks.export');

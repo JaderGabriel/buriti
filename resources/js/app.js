@@ -104,8 +104,29 @@ function nearestScroller(el) {
     return window;
 }
 
+function revealForAnchor(target) {
+    let node = target;
+
+    while (node && node !== document.documentElement) {
+        if (node instanceof HTMLDetailsElement) {
+            node.open = true;
+        }
+
+        node = node.parentElement;
+    }
+}
+
+function preferredScroller(target) {
+    const consolePane = target.closest('#qa-console');
+    if (consolePane instanceof HTMLElement && (consolePane.scrollHeight - consolePane.clientHeight > 1)) {
+        return consolePane;
+    }
+
+    return nearestScroller(target);
+}
+
 function scrollElementIntoView(target) {
-    const scroller = nearestScroller(target);
+    const scroller = preferredScroller(target);
     const margin = Number.parseFloat(window.getComputedStyle(target).scrollMarginTop) || 0;
 
     if (scroller === window) {
@@ -152,6 +173,7 @@ function initInPageAnchors() {
         }
 
         closeMobileNav();
+        revealForAnchor(target);
 
         if (updateHistory && window.location.hash !== hash) {
             history.pushState(null, '', hash);
@@ -159,7 +181,9 @@ function initInPageAnchors() {
             return true;
         }
 
-        scrollElementIntoView(target);
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => scrollElementIntoView(target));
+        });
 
         return true;
     };

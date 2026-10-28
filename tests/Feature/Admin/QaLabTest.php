@@ -42,6 +42,13 @@ class QaLabTest extends TestCase
             ->assertSee('Centro de testes', false)
             ->assertSee('Taxa de sucesso', false)
             ->assertSee('Saúde por área', false)
+            ->assertSee('Sumário', false)
+            ->assertSee('Temas de teste', false)
+            ->assertSee('Abrir todos', false)
+            ->assertSee('Fechar todos', false)
+            ->assertSee('<details', false)
+            ->assertSee('href="#qa-cmd-crm-health"', false)
+            ->assertSee('id="qa-cmd-crm-health"', false)
             ->assertSee('href="#qa-kpis"', false)
             ->assertSee('id="qa-kpis"', false)
             ->assertSee('href="#qa-console"', false)
@@ -87,6 +94,13 @@ class QaLabTest extends TestCase
         foreach (QaCatalog::groups() as $group) {
             $this->assertStringContainsString('href="#qa-area-'.$group['id'].'"', $html);
             $this->assertStringContainsString('id="qa-area-'.$group['id'].'"', $html);
+            $this->assertGreaterThan(0, count($group['commands']));
+            foreach ($group['commands'] as $command) {
+                $cmdId = 'qa-cmd-'.str_replace('.', '-', $command['id']);
+                $this->assertStringContainsString('href="#'.$cmdId.'"', $html);
+                $this->assertStringContainsString('id="'.$cmdId.'"', $html);
+                $this->assertStringContainsString($command['label'], $html);
+            }
         }
 
         $this->assertStringNotContainsString('@click.prevent', $html);
@@ -94,6 +108,7 @@ class QaLabTest extends TestCase
         $anchors = file_get_contents(base_path('resources/js/app.js'));
         $this->assertIsString($anchors);
         $this->assertStringContainsString('function nearestScroller(', $anchors);
+        $this->assertStringContainsString('function revealForAnchor(', $anchors);
         $this->assertStringContainsString('function scrollElementIntoView(', $anchors);
 
         $run = QaRun::query()->create([

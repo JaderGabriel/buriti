@@ -85,6 +85,11 @@ class Contact extends Model
         return $this->hasMany(IdeaNote::class)->orderByDesc('sort_order')->orderByDesc('id');
     }
 
+    public function testimonials(): HasMany
+    {
+        return $this->hasMany(Testimonial::class)->latest('id');
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('status', ContactStatus::Active);

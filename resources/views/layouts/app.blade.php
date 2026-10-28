@@ -6,6 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="description" content="{{ $product['name'] }} — {{ $product['tagline'] }}. Consultoria em TI, sistemas, painéis de indicadores e gestão de projetos — da proposta à operação.">
     <title>@yield('title', $product['name'].' — '.$product['tagline'])</title>
+    @stack('head')
     <link rel="icon" href="{{ asset('images/logo-buriti.png') }}" type="image/png">
     <script>
         (() => {

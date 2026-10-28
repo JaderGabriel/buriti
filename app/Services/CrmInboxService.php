@@ -9,16 +9,18 @@ use App\Models\ContactMessage;
 use App\Models\CrmActivity;
 use App\Models\Opportunity;
 use App\Models\Task;
+use App\Models\Testimonial;
+use Illuminate\Database\Eloquent\Collection;
 
 class CrmInboxService
 {
     /**
      * @return array{
-     *     unlinked_messages: \Illuminate\Database\Eloquent\Collection<int, ContactMessage>,
-     *     overdue_tasks: \Illuminate\Database\Eloquent\Collection<int, Task>,
-     *     stale_opportunities: \Illuminate\Database\Eloquent\Collection<int, Opportunity>,
-     *     meet_missing: \Illuminate\Database\Eloquent\Collection<int, Task>,
-     *     google_unsynced: \Illuminate\Database\Eloquent\Collection<int, Task>
+     *     unlinked_messages: Collection<int, ContactMessage>,
+     *     overdue_tasks: Collection<int, Task>,
+     *     stale_opportunities: Collection<int, Opportunity>,
+     *     meet_missing: Collection<int, Task>,
+     *     google_unsynced: Collection<int, Task>
      * }
      */
     public function nextActions(?int $companyId = null, int $staleDays = 7): array
@@ -178,6 +180,26 @@ class CrmInboxService
                     'title' => $activity->subject ?: $activity->type->label(),
                     'subtitle' => $activity->contact->name,
                     'url' => route('admin.contacts.activities.edit', [$activity->contact, $activity]),
+                ];
+            });
+
+        Testimonial::query()
+            ->with('contact')
+            ->where(function ($q) use ($like) {
+                $q->where('verification_code', 'like', $like)
+                    ->orWhere('original_display_name', 'like', $like)
+                    ->orWhere('published_display_name', 'like', $like)
+                    ->orWhereHas('contact', fn ($c) => $c->where('name', 'like', $like));
+            })
+            ->limit(6)
+            ->get()
+            ->each(function (Testimonial $testimonial) use (&$hits) {
+                $hits[] = [
+                    'type' => 'depoimento',
+                    'id' => $testimonial->id,
+                    'title' => $testimonial->displayName(),
+                    'subtitle' => $testimonial->verification_code ?: $testimonial->status->label(),
+                    'url' => route('admin.testimonials.show', $testimonial),
                 ];
             });
 

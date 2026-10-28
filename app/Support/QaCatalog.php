@@ -16,6 +16,7 @@ use App\Models\Opportunity;
 use App\Models\Project;
 use App\Models\QaRun;
 use App\Models\Task;
+use App\Models\Testimonial;
 use App\Models\User;
 
 final class QaCatalog
@@ -222,13 +223,13 @@ final class QaCatalog
                 'id' => 'entrega',
                 'label' => 'Entrega',
                 'icon' => 'project',
-                'description' => 'Projetos, vitrine da home, agenda e anexos.',
+                'description' => 'Projetos, vitrine da home, agenda, depoimentos e anexos.',
                 'commands' => [
                     self::command(
                         'delivery.health',
                         'probe',
                         'Saúde da entrega',
-                        'Rotas/views de projetos, vitrine e agenda. Só leitura.',
+                        'Rotas/views de projetos, vitrine, agenda e depoimentos. Só leitura.',
                         'project',
                         null,
                         'module',
@@ -238,16 +239,19 @@ final class QaCatalog
                                 'admin.home-projects.edit',
                                 'admin.tasks.index',
                                 'admin.tasks.export',
+                                'admin.testimonials.index',
                             ],
                             'views' => [
                                 'admin.projects.index',
                                 'admin.home-projects.edit',
                                 'admin.tasks.index',
+                                'admin.testimonials.index',
                             ],
                             'counts' => [
                                 'Projetos' => Project::class,
                                 'Tarefas' => Task::class,
                                 'Anexos' => Attachment::class,
+                                'Depoimentos' => Testimonial::class,
                             ],
                         ],
                     ),

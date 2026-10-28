@@ -4537,7 +4537,12 @@ button.task-agenda__date:hover {
 .crm-badge--won,
 .crm-badge--active { color: #7dcca5; background: color-mix(in oklab, #3d9b6e 18%, transparent); }
 .crm-badge--lost,
-.crm-badge--inactive { color: #a8b0bc; background: color-mix(in oklab, #6b7280 18%, transparent); }
+.crm-badge--inactive,
+.crm-badge--rejected,
+.crm-badge--archived { color: #a8b0bc; background: color-mix(in oklab, #6b7280 18%, transparent); }
+.crm-badge--invited { color: #7eb6e8; background: color-mix(in oklab, #2f7ec4 18%, transparent); }
+.crm-badge--submitted { color: #b8a0e8; background: color-mix(in oklab, #7c5cbf 18%, transparent); }
+.crm-badge--approved { color: #7dcca5; background: color-mix(in oklab, #3d9b6e 18%, transparent); }
 
 .crm-status-strip {
     display: grid;
@@ -4579,6 +4584,11 @@ button.task-agenda__date:hover {
 .crm-status-strip__item--lead .crm-status-strip__icon { background: color-mix(in oklab, #d4a017 22%, transparent); color: #e2b45c; }
 .crm-status-strip__item--active .crm-status-strip__icon { background: color-mix(in oklab, #3d9b6e 22%, transparent); color: #7dcca5; }
 .crm-status-strip__item--inactive .crm-status-strip__icon { background: color-mix(in oklab, #6b7280 22%, transparent); color: #a8b0bc; }
+.crm-status-strip__item--invited .crm-status-strip__icon { background: color-mix(in oklab, #2f7ec4 22%, transparent); color: #7eb6e8; }
+.crm-status-strip__item--submitted .crm-status-strip__icon { background: color-mix(in oklab, #7c5cbf 22%, transparent); color: #b8a0e8; }
+.crm-status-strip__item--approved .crm-status-strip__icon { background: color-mix(in oklab, #3d9b6e 22%, transparent); color: #7dcca5; }
+.crm-status-strip__item--rejected .crm-status-strip__icon,
+.crm-status-strip__item--archived .crm-status-strip__icon { background: color-mix(in oklab, #6b7280 22%, transparent); color: #a8b0bc; }
 
 .crm-status-strip__item strong {
     display: block;

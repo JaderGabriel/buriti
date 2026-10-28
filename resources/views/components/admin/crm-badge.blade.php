@@ -20,6 +20,11 @@
         $tone = $status->tone();
         $icon = $status->icon();
         $title = $status->description();
+    } elseif ($status instanceof \App\Enums\TestimonialStatus) {
+        $label = $status->label();
+        $tone = $status->tone();
+        $icon = $status->icon();
+        $title = $status->description();
     } else {
         $label = '—';
         $tone = 'lead';

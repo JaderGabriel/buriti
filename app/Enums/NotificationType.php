@@ -8,6 +8,7 @@ enum NotificationType: string
     case Jirau = 'jirau';
     case Task = 'task';
     case System = 'system';
+    case Testimonial = 'testimonial';
 
     public function label(): string
     {
@@ -16,6 +17,7 @@ enum NotificationType: string
             self::Jirau => 'Jirau',
             self::Task => 'Agenda',
             self::System => 'Sistema',
+            self::Testimonial => 'Depoimento',
         };
     }
 
@@ -26,6 +28,7 @@ enum NotificationType: string
             self::Jirau => 'jirau',
             self::Task => 'calendar',
             self::System => 'bell',
+            self::Testimonial => 'quote',
         };
     }
 }
