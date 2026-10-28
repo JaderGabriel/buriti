@@ -249,14 +249,19 @@ class TelegramBotTest extends TestCase
             $data = $request->data();
 
             $text = (string) ($data['text'] ?? '');
-            $button = $data['reply_markup']['inline_keyboard'][0][0]['url'] ?? '';
+            $buttons = $data['reply_markup']['inline_keyboard'][0] ?? [];
 
             return ($data['chat_id'] ?? null) == '999001'
                 && str_contains($text, 'Nova mensagem do site')
                 && str_contains($text, 'Lead Site')
-                && str_contains($text, '<code>+55 (11) 98888-7777</code>')
+                && str_contains($text, '+55 (11) 98888-7777')
                 && ! str_contains($text, 'wa.me')
-                && $button === 'https://wa.me/5511988887777';
+                && ! str_contains($text, 'ligar/')
+                && ! str_contains($text, 'tel:')
+                && ($buttons[0]['text'] ?? null) === '📞 Ligar'
+                && ($buttons[0]['callback_data'] ?? null) === 'call:5511988887777'
+                && ($buttons[1]['text'] ?? null) === '💬 WhatsApp'
+                && ($buttons[1]['url'] ?? null) === 'https://wa.me/5511988887777';
         });
 
         Http::assertSent(function ($request) {
@@ -291,13 +296,18 @@ class TelegramBotTest extends TestCase
         Http::assertSent(function ($request) {
             $data = $request->data();
             $text = (string) ($data['text'] ?? '');
-            $button = $data['reply_markup']['inline_keyboard'][0][0]['url'] ?? '';
+            $buttons = $data['reply_markup']['inline_keyboard'][0] ?? [];
 
             return str_contains($request->url(), 'sendMessage')
-                && str_contains($text, '<code>+55 (38) 99175-8416</code>')
+                && str_contains($text, '+55 (38) 99175-8416')
                 && str_contains($text, 'Maria Lead')
                 && ! str_contains($text, 'wa.me')
-                && $button === 'https://wa.me/5538991758416';
+                && ! str_contains($text, 'ligar/')
+                && ! str_contains($text, 'tel:')
+                && ($buttons[0]['text'] ?? null) === '📞 Ligar'
+                && ($buttons[0]['callback_data'] ?? null) === 'call:5538991758416'
+                && ($buttons[1]['text'] ?? null) === '💬 WhatsApp'
+                && ($buttons[1]['url'] ?? null) === 'https://wa.me/5538991758416';
         });
 
         Http::assertSent(function ($request) {
@@ -308,6 +318,31 @@ class TelegramBotTest extends TestCase
                 && ($data['first_name'] ?? null) === 'Maria'
                 && ($data['last_name'] ?? null) === 'Lead'
                 && str_contains((string) ($data['vcard'] ?? ''), 'EMAIL:maria.lead@buriti.test');
+        });
+    }
+
+    public function test_ligar_button_sends_native_contact_to_call_or_save(): void
+    {
+        $this->loginAdmin();
+
+        $this->postWebhook([
+            'callback_query' => [
+                'id' => 'cb-ligar-1',
+                'from' => ['id' => 999001],
+                'message' => ['chat' => ['id' => 999001]],
+                'data' => 'call:5538991758416',
+            ],
+        ])->assertOk();
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'answerCallbackQuery')
+            && ($request->data()['callback_query_id'] ?? null) === 'cb-ligar-1');
+
+        Http::assertSent(function ($request) {
+            $data = $request->data();
+
+            return str_contains($request->url(), 'sendContact')
+                && ($data['phone_number'] ?? null) === '+5538991758416'
+                && ($data['first_name'] ?? null) === 'Contato';
         });
     }
 

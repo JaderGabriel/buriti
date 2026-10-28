@@ -79,6 +79,13 @@ class TelegramBotService
     /** @param  array<string, mixed>  $update */
     public function handleUpdate(array $update): void
     {
+        $callback = $update['callback_query'] ?? null;
+        if (is_array($callback)) {
+            $this->handleCallbackQuery($callback);
+
+            return;
+        }
+
         $message = $update['message'] ?? null;
         if (! is_array($message)) {
             return;
@@ -160,7 +167,7 @@ class TelegramBotService
             '🔗 <a href="'.$this->escape($adminUrl).'">Abrir no admin</a>',
         ]));
 
-        $markup = $this->whatsappKeyboard($message->phone);
+        $markup = $this->phoneActionKeyboard($message->phone);
 
         foreach ($chatIds as $chatId) {
             $this->api->sendMessage($chatId, $text, $markup);
@@ -2097,13 +2104,40 @@ HTML;
         return $raw !== '' ? '<b>Telefone:</b> '.$this->escape($raw) : null;
     }
 
+    /** @param  array<string, mixed>  $callback */
+    private function handleCallbackQuery(array $callback): void
+    {
+        $callbackId = (string) ($callback['id'] ?? '');
+        $chatId = (string) data_get($callback, 'message.chat.id', '');
+        $data = (string) ($callback['data'] ?? '');
+
+        if ($callbackId === '' || $chatId === '') {
+            return;
+        }
+
+        if (! $this->chatPassesAllowlist($chatId) || ! $this->adminSessionForChat($chatId)) {
+            $this->api->answerCallbackQuery($callbackId, 'Acesso restrito.');
+
+            return;
+        }
+
+        if (preg_match('/^call:(\d{8,15})$/', $data, $matches) !== 1) {
+            $this->api->answerCallbackQuery($callbackId);
+
+            return;
+        }
+
+        $this->api->answerCallbackQuery($callbackId);
+        $this->deliverNativeContact($chatId, '+'.$matches[1], 'Contato');
+    }
+
     private function queuePhoneActions(
         ?string $phone,
         ?string $name,
         ?string $email = null,
         ?string $company = null,
     ): void {
-        $this->pendingReplyMarkup = $this->whatsappKeyboard($phone);
+        $this->pendingReplyMarkup = $this->phoneActionKeyboard($phone);
         $this->pendingNativeContact = $this->nativeContactPayload($phone, $name, $email, $company);
     }
 
@@ -2174,17 +2208,27 @@ HTML;
     /**
      * @return array{inline_keyboard: list<list<array{text: string, url: string}>>}|null
      */
-    private function whatsappKeyboard(?string $phone): ?array
+    private function phoneActionKeyboard(?string $phone): ?array
     {
-        $url = PhoneNumber::whatsappHref($phone);
-        if ($url === null || ! str_starts_with($url, 'https://')) {
+        $row = [];
+
+        $e164 = PhoneNumber::e164Digits($phone);
+        if ($e164 !== null) {
+            // Telegram recusa tel: nos botões URL (400 Wrong port number).
+            $row[] = ['text' => '📞 Ligar', 'callback_data' => 'call:'.$e164];
+        }
+
+        $whatsapp = PhoneNumber::whatsappHref($phone);
+        if ($whatsapp !== null && str_starts_with($whatsapp, 'https://')) {
+            $row[] = ['text' => '💬 WhatsApp', 'url' => $whatsapp];
+        }
+
+        if ($row === []) {
             return null;
         }
 
         return [
-            'inline_keyboard' => [[
-                ['text' => 'WhatsApp', 'url' => $url],
-            ]],
+            'inline_keyboard' => [$row],
         ];
     }
 

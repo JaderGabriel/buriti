@@ -174,9 +174,8 @@ class PhoneNumber
     }
 
     /**
-     * Número formatado (DDI + DDD + assinante) para HTML do Telegram.
-     * O parse_mode HTML só aceita http(s) em &lt;a&gt; — tel: é recusado, então
-     * o valor vai em &lt;code&gt; (cópia) e o contacto nativo (sendContact) liga/guarda.
+     * Número formatado (DDI + DDD + assinante) para o texto do Telegram — sem link.
+     * Ligar e WhatsApp vão em botões; o cartão nativo (sendContact) guarda na agenda.
      */
     public static function telegramHtml(?string $phone, string $fallbackIso = 'BR'): ?string
     {
@@ -185,9 +184,7 @@ class PhoneNumber
             return null;
         }
 
-        $label = self::format($raw, $fallbackIso) ?? $raw;
-
-        return '<code>'.htmlspecialchars($label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8').'</code>';
+        return htmlspecialchars(self::format($raw, $fallbackIso) ?? $raw, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 
     /**

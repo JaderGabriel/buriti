@@ -52,6 +52,39 @@ class TelegramApiClient
         }
     }
 
+    public function answerCallbackQuery(string $callbackQueryId, ?string $text = null): bool
+    {
+        if (! $this->configured() || $callbackQueryId === '') {
+            return false;
+        }
+
+        $payload = ['callback_query_id' => $callbackQueryId];
+        if (filled($text)) {
+            $payload['text'] = $text;
+        }
+
+        try {
+            $response = Http::timeout(12)
+                ->asJson()
+                ->post($this->endpoint('answerCallbackQuery'), $payload);
+
+            if (! $response->successful() || ! ($response->json('ok') ?? false)) {
+                Log::warning('Telegram answerCallbackQuery failed', [
+                    'status' => $response->status(),
+                    'body' => $response->json(),
+                ]);
+
+                return false;
+            }
+
+            return true;
+        } catch (\Throwable $e) {
+            Log::warning('Telegram answerCallbackQuery exception', ['message' => $e->getMessage()]);
+
+            return false;
+        }
+    }
+
     /**
      * Contacto nativo do Telegram: ligar e guardar na agenda (DDI + DDD + número).
      */
@@ -185,7 +218,7 @@ class TelegramApiClient
 
         $payload = [
             'url' => $url,
-            'allowed_updates' => ['message'],
+            'allowed_updates' => ['message', 'callback_query'],
             'drop_pending_updates' => $dropPendingUpdates,
         ];
 
