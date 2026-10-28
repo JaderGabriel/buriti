@@ -72,6 +72,7 @@ class AuditLog extends Model
             'user.reactivated' => 'Usuário reativado',
             'message.deleted' => 'Mensagem removida',
             'message.read' => 'Mensagem lida',
+            'qa.run' => 'Teste disparado',
             default => str_replace(['.', '_'], [' → ', ' '], $this->action),
         };
     }

@@ -149,7 +149,7 @@ final class AdminNavigation
                 'route' => 'admin.settings.edit',
                 'label' => 'Sistema',
                 'icon' => 'settings',
-                'pattern' => ['admin.users.*', 'admin.integrations.*', 'admin.settings.*', 'admin.roadmap.*'],
+                'pattern' => ['admin.users.*', 'admin.integrations.*', 'admin.settings.*', 'admin.roadmap.*', 'admin.qa.*'],
                 'items' => [
                     [
                         'route' => 'admin.users.index',
@@ -174,6 +174,12 @@ final class AdminNavigation
                         'label' => 'Roadmap',
                         'pattern' => 'admin.roadmap.*',
                         'icon' => 'roadmap',
+                    ],
+                    [
+                        'route' => 'admin.qa.index',
+                        'label' => 'Testes',
+                        'pattern' => 'admin.qa.*',
+                        'icon' => 'diagnose',
                     ],
                 ],
             ],
@@ -302,6 +308,7 @@ final class AdminNavigation
             'admin.integrations.edit' => 'google telegram integracoes',
             'admin.settings.edit' => 'settings config configuracoes',
             'admin.roadmap.show' => 'roadmap produto ideias concorrentes pipedrive hubspot modulos',
+            'admin.qa.index' => 'testes phpunit suite telegram qa laboratorio probes relatorios',
         ][$key] ?? '';
     }
 }
