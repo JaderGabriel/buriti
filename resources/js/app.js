@@ -78,9 +78,52 @@ function initSiteNav() {
     });
 }
 
+function elementFromHash(hash) {
+    const id = decodeURIComponent(String(hash || '').replace(/^#/, ''));
+    if (! id) {
+        return null;
+    }
+
+    return document.getElementById(id);
+}
+
+function nearestScroller(el) {
+    let node = el.parentElement;
+
+    while (node && node !== document.body && node !== document.documentElement) {
+        const overflowY = window.getComputedStyle(node).overflowY;
+        const canY = overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay';
+
+        if (canY && (node.scrollHeight - node.clientHeight > 1)) {
+            return node;
+        }
+
+        node = node.parentElement;
+    }
+
+    return window;
+}
+
+function scrollElementIntoView(target) {
+    const scroller = nearestScroller(target);
+    const margin = Number.parseFloat(window.getComputedStyle(target).scrollMarginTop) || 0;
+
+    if (scroller === window) {
+        target.scrollIntoView({ behavior: 'auto', block: 'start' });
+        return;
+    }
+
+    const top = target.getBoundingClientRect().top
+        - scroller.getBoundingClientRect().top
+        + scroller.scrollTop
+        - margin;
+
+    scroller.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
+}
+
 /**
  * Saltos #âncora na mesma página: instantâneos, com offset do header sticky.
- * Evita scroll-behavior:smooth lento e reload desnecessário em links absolutos para a home.
+ * No admin o scroller é .admin-content (html/body overflow hidden), não a janela.
  */
 function initInPageAnchors() {
     const closeMobileNav = () => {
@@ -103,13 +146,7 @@ function initInPageAnchors() {
             return false;
         }
 
-        let target = null;
-        try {
-            target = document.querySelector(hash);
-        } catch {
-            return false;
-        }
-
+        const target = elementFromHash(hash);
         if (! target) {
             return false;
         }
@@ -118,12 +155,16 @@ function initInPageAnchors() {
 
         if (updateHistory && window.location.hash !== hash) {
             history.pushState(null, '', hash);
+            window.dispatchEvent(new Event('hashchange'));
+            return true;
         }
 
-        target.scrollIntoView({ behavior: 'auto', block: 'start' });
+        scrollElementIntoView(target);
 
         return true;
     };
+
+    const jumpFromLocation = () => jumpToHash(window.location.hash, { updateHistory: false });
 
     document.addEventListener('click', (event) => {
         const link = event.target.closest?.('a[href]');
@@ -153,7 +194,7 @@ function initInPageAnchors() {
             return;
         }
 
-        if (! document.querySelector(url.hash)) {
+        if (! elementFromHash(url.hash)) {
             return;
         }
 
@@ -161,11 +202,9 @@ function initInPageAnchors() {
         jumpToHash(url.hash);
     });
 
-    if (window.location.hash) {
-        requestAnimationFrame(() => {
-            jumpToHash(window.location.hash, { updateHistory: false });
-        });
-    }
+    window.addEventListener('hashchange', jumpFromLocation);
+    window.addEventListener('load', jumpFromLocation);
+    requestAnimationFrame(() => requestAnimationFrame(jumpFromLocation));
 }
 
 function initCookieBanner() {

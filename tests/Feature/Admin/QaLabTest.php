@@ -52,6 +52,7 @@ class QaLabTest extends TestCase
             ->assertSee('href="#qa-area-comercial"', false)
             ->assertSee('id="qa-area-comercial"', false)
             ->assertDontSee('x-show="tab === \'comercial\'"', false)
+            ->assertDontSee('@click.prevent="', false)
             ->assertSee('Rodar suíte completa', false)
             ->assertSee('qa-kpis', false)
             ->assertSee('qa-flow', false)
@@ -87,6 +88,13 @@ class QaLabTest extends TestCase
             $this->assertStringContainsString('href="#qa-area-'.$group['id'].'"', $html);
             $this->assertStringContainsString('id="qa-area-'.$group['id'].'"', $html);
         }
+
+        $this->assertStringNotContainsString('@click.prevent', $html);
+
+        $anchors = file_get_contents(base_path('resources/js/app.js'));
+        $this->assertIsString($anchors);
+        $this->assertStringContainsString('function nearestScroller(', $anchors);
+        $this->assertStringContainsString('function scrollElementIntoView(', $anchors);
 
         $run = QaRun::query()->create([
             'user_id' => $this->admin->id,
