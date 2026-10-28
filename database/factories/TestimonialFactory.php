@@ -73,4 +73,15 @@ class TestimonialFactory extends Factory
             'moderated_at' => now(),
         ]);
     }
+
+    public function archived(): static
+    {
+        return $this->submitted()->state(fn (array $attrs) => [
+            'status' => TestimonialStatus::Archived,
+            'published_stars' => $attrs['original_stars'] ?? 5,
+            'published_body' => $attrs['original_body'] ?? 'Serviço impecável, entrega no prazo.',
+            'published_display_name' => $attrs['original_display_name'] ?? 'Maria Cliente',
+            'moderated_at' => now(),
+        ]);
+    }
 }

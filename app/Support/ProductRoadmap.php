@@ -127,7 +127,7 @@ final class ProductRoadmap
             ['id' => 'comercial', 'label' => 'Comercial', 'items' => ['Mensagens', 'Empresas', 'Contatos', 'Oportunidades']],
             ['id' => 'entrega', 'label' => 'Entrega', 'items' => ['Projetos', 'Vitrine', 'Agenda']],
             ['id' => 'jirau', 'label' => 'Jirau', 'items' => ['Quadros', 'Visão geral', 'Analítica / horas', 'Equipe']],
-            ['id' => 'sistema', 'label' => 'Sistema', 'items' => ['Usuários', 'Integrações', 'Configurações', 'Roadmap', 'Testes']],
+            ['id' => 'sistema', 'label' => 'Sistema', 'items' => ['Usuários', 'Integrações', 'Configurações', 'E-mail', 'Roadmap', 'Testes']],
         ];
     }
 

@@ -36,12 +36,20 @@ class SettingService
         'notion_default_page_url',
         'telegram_allowed_chat_ids',
         'telegram_notify_chat_id',
+        'mail_mailer',
+        'mail_host',
+        'mail_port',
+        'mail_encryption',
+        'mail_username',
+        'mail_from_address',
+        'mail_from_name',
     ];
 
     /** @var list<string> */
     public const SECRET_KEYS = [
         'google_client_secret',
         'google_refresh_token',
+        'mail_password',
     ];
 
     /** @return array<string, string|null> */
@@ -59,7 +67,7 @@ class SettingService
 
                 return $merged;
             });
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return $this->defaults();
         }
     }
@@ -182,6 +190,13 @@ class SettingService
             'notion_default_page_url' => null,
             'telegram_allowed_chat_ids' => null,
             'telegram_notify_chat_id' => null,
+            'mail_mailer' => null,
+            'mail_host' => null,
+            'mail_port' => null,
+            'mail_encryption' => null,
+            'mail_username' => null,
+            'mail_from_address' => null,
+            'mail_from_name' => null,
         ];
     }
 

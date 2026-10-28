@@ -14,7 +14,7 @@ enum TestimonialStatus: string
     {
         return match ($this) {
             self::Invited => 'Convite',
-            self::Submitted => 'A mediar',
+            self::Submitted => 'Em mediação',
             self::Approved => 'Aprovado',
             self::Rejected => 'Recusado',
             self::Archived => 'Arquivado',
@@ -24,10 +24,10 @@ enum TestimonialStatus: string
     public function description(): string
     {
         return match ($this) {
-            self::Invited => 'À espera do cliente',
+            self::Invited => 'Aguardando o cliente',
             self::Submitted => 'Texto original selado, pendente de mediação',
             self::Approved => 'Resultado mediado e selado',
-            self::Rejected => 'Não segue para o acervo',
+            self::Rejected => 'Não entra no acervo',
             self::Archived => 'Fora de circulação',
         };
     }

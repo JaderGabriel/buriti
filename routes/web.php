@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\HomeProjectsController;
 use App\Http\Controllers\Admin\IdeaNoteController;
 use App\Http\Controllers\Admin\IntegrationController;
 use App\Http\Controllers\Admin\JirauController;
+use App\Http\Controllers\Admin\MailSettingController;
 use App\Http\Controllers\Admin\OpportunityController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\ProjectController;
@@ -344,6 +345,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
 
     Route::get('/configuracoes', [SettingController::class, 'edit'])->name('settings.edit');
     Route::put('/configuracoes', [SettingController::class, 'update'])->name('settings.update');
+    Route::get('/configuracoes/email', [MailSettingController::class, 'edit'])->name('settings.mail');
+    Route::put('/configuracoes/email', [MailSettingController::class, 'update'])->name('settings.mail.update');
+    Route::post('/configuracoes/email/teste', [MailSettingController::class, 'test'])
+        ->middleware('throttle:5,1')
+        ->name('settings.mail.test');
 
     Route::get('/google/connect', [GoogleOAuthController::class, 'redirect'])->name('google.connect');
     Route::get('/google/callback', [GoogleOAuthController::class, 'callback'])->name('google.callback');

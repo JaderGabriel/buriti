@@ -6,7 +6,7 @@
         <div>
             <p class="crm-workspace__eyebrow">Entrega · Depoimentos</p>
             <h1 class="crm-workspace__title">Convidar cliente</h1>
-            <p class="crm-workspace__lead">Gera um link unlisted. O cliente escreve estrelas e comentário; o original fica selado e não pode ser alterado.</p>
+            <p class="crm-workspace__lead">Gera um link não listado para você copiar e enviar. O sistema não dispara e-mail. O cliente escreve estrelas e comentário; o original fica selado.</p>
         </div>
         <a href="{{ route('admin.testimonials.index') }}" class="pm-btn pm-btn--ghost">← Lista</a>
     </div>
@@ -14,7 +14,7 @@
     <form method="POST" action="{{ route('admin.testimonials.store') }}" class="max-w-xl space-y-4 rounded-sm border border-line bg-panel p-5">
         @csrf
         <label class="block text-sm">
-            <span class="mb-1 block text-mist">Contacto</span>
+            <span class="mb-1 block text-mist">Contato</span>
             <select name="contact_id" required class="w-full rounded-sm border border-line bg-ink/40 px-3 py-2 text-snow">
                 <option value="">Escolher…</option>
                 @foreach($contacts as $contact)
@@ -40,7 +40,7 @@
 
         <button type="submit" class="pm-btn pm-btn--primary">
             <x-ui.icon name="mail" class="h-4 w-4" />
-            Gerar link de convite
+            Gerar link para copiar
         </button>
     </form>
 </div>

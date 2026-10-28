@@ -6,7 +6,7 @@
         <div>
             <p class="crm-workspace__eyebrow">Entrega · Qualidade</p>
             <h1 class="crm-workspace__title">Depoimentos</h1>
-            <p class="crm-workspace__lead">O cliente escreve e sela o original. O admin medeia o texto publicado e pode vincular o projeto. Nada disto aparece no site público ainda.</p>
+            <p class="crm-workspace__lead">O cliente escreve e sela o original. O admin medeia o texto publicado e pode vincular o projeto. Nada disso aparece no site público ainda.</p>
         </div>
         <div class="crm-workspace__actions">
             <a href="{{ route('testimonials.seal') }}" class="pm-btn pm-btn--ghost" target="_blank" rel="noopener">
@@ -39,7 +39,7 @@
     <form method="GET" class="mb-6 flex flex-wrap gap-3">
         <input type="search" name="q" value="{{ request('q') }}" placeholder="Buscar cliente, texto ou código BURI-…" class="min-w-[14rem] flex-1 rounded-sm border border-line bg-ink/40 px-3 py-2 text-sm text-snow">
         <select name="status" class="rounded-sm border border-line bg-ink/40 px-3 py-2 text-sm text-snow">
-            <option value="">Todos os estados</option>
+            <option value="">Todos os status</option>
             @foreach($statuses as $value => $label)
                 <option value="{{ $value }}" @selected(request('status') === $value)>{{ $label }}</option>
             @endforeach
@@ -49,7 +49,7 @@
 
     @if($testimonials->isEmpty())
         <div class="rounded-sm border border-dashed border-line px-6 py-16 text-center text-mist">
-            Ainda não há depoimentos. Convide um contacto do CRM — o link não entra no menu do site.
+            Ainda não há depoimentos. Convide um contato do CRM — o link não entra no menu do site.
         </div>
     @else
         <ul class="grid gap-3">

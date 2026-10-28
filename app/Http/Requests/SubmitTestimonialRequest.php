@@ -26,7 +26,7 @@ class SubmitTestimonialRequest extends FormRequest
     {
         return [
             'stars.required' => 'Escolha de 1 a 5 estrelas.',
-            'body.required' => 'Escreva o depoimento com as suas palavras.',
+            'body.required' => 'Escreva o depoimento com suas palavras.',
             'body.min' => 'O depoimento precisa de pelo menos 20 caracteres.',
         ];
     }

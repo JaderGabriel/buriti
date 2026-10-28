@@ -69,7 +69,7 @@ class TestimonialController extends Controller
 
         return redirect()
             ->route('admin.testimonials.show', $invite['testimonial'])
-            ->with('success', 'Convite criado. Envie o link ao cliente — o texto original fica selado quando ele enviar.')
+            ->with('success', 'Link gerado. Copie e envie ao cliente — o sistema não dispara e-mail.')
             ->with('invite_url', $invite['url']);
     }
 
@@ -87,6 +87,12 @@ class TestimonialController extends Controller
 
     public function moderate(ModerateTestimonialRequest $request, Testimonial $testimonial): RedirectResponse
     {
+        if ($testimonial->status === TestimonialStatus::Archived) {
+            return redirect()
+                ->route('admin.testimonials.show', $testimonial)
+                ->with('error', 'Este depoimento está arquivado. A mediação está encerrada.');
+        }
+
         $status = TestimonialStatus::from($request->string('decision')->toString());
 
         $this->testimonials->moderate($testimonial, $request->user(), $status, [
@@ -99,7 +105,7 @@ class TestimonialController extends Controller
 
         return redirect()
             ->route('admin.testimonials.show', $testimonial)
-            ->with('success', 'Mediação gravada. O selo do resultado foi recalculado; o original do cliente permanece intacto.');
+            ->with('success', 'Mediação salva. O selo do resultado foi recalculado; o original do cliente permanece intacto.');
     }
 
     public function project(LinkTestimonialProjectRequest $request, Testimonial $testimonial): RedirectResponse
@@ -123,7 +129,7 @@ class TestimonialController extends Controller
 
         return redirect()
             ->route('admin.testimonials.show', $testimonial)
-            ->with('success', 'Novo link de convite gerado. O anterior deixa de funcionar.')
+            ->with('success', 'Novo link gerado. Copie e envie ao cliente — o anterior deixa de funcionar.')
             ->with('invite_url', $invite['url']);
     }
 }

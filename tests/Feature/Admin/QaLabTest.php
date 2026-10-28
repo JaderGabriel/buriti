@@ -6,6 +6,7 @@ use App\Models\Company;
 use App\Models\Contact;
 use App\Models\ContactMessage;
 use App\Models\QaRun;
+use App\Models\Testimonial;
 use App\Models\User;
 use App\Services\SettingService;
 use App\Support\QaCatalog;
@@ -64,8 +65,18 @@ class QaLabTest extends TestCase
             ->assertSee('qa-kpis', false)
             ->assertSee('qa-flow', false)
             ->assertSee('Suíte Jirau', false)
+            ->assertSee('Suíte Depoimentos', false)
+            ->assertSee('Suíte E-mail', false)
             ->assertSee('Saúde do comercial', false)
             ->assertSee('Saúde do Jirau', false)
+            ->assertSee('Saúde dos depoimentos', false)
+            ->assertSee('Saúde do e-mail', false)
+            ->assertSee('Configuração SMTP', false)
+            ->assertSee('Selos de autenticidade', false)
+            ->assertSee('href="#qa-area-depoimentos"', false)
+            ->assertSee('id="qa-area-depoimentos"', false)
+            ->assertSee('href="#qa-area-email"', false)
+            ->assertSee('id="qa-area-email"', false)
             ->assertSee('Telas públicas (lote)', false)
             ->assertSee('Stack (DB, cache, disco)', false)
             ->assertSee('Ping no bot', false)
@@ -110,6 +121,12 @@ class QaLabTest extends TestCase
         $this->assertStringContainsString('function nearestScroller(', $anchors);
         $this->assertStringContainsString('function revealForAnchor(', $anchors);
         $this->assertStringContainsString('function scrollElementIntoView(', $anchors);
+
+        $css = file_get_contents(base_path('resources/css/admin.css'));
+        $this->assertIsString($css);
+        $this->assertStringContainsString('grid-auto-rows: max-content', $css);
+        $this->assertStringContainsString('details.qa-pane.qa-panel[open]', $css);
+        $this->assertStringContainsString('min-height: min-content', $css);
 
         $run = QaRun::query()->create([
             'user_id' => $this->admin->id,
@@ -508,6 +525,137 @@ class QaLabTest extends TestCase
         $this->assertTrue($run->isPassed());
         $this->assertStringContainsString('rota jirau.home', (string) $run->output);
         $this->assertStringContainsString('Quadros: 0', (string) $run->output);
+    }
+
+    public function test_testimonials_suite_slice_passes_phpunit_paths(): void
+    {
+        $this->fakeQaProcess("OK (20 tests, 80 assertions)\n");
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.qa.store'), ['command' => 'suite.testimonials'])
+            ->assertRedirect();
+
+        $run = QaRun::query()->first();
+        $this->assertNotNull($run);
+        $this->assertTrue($run->isPassed());
+        $this->assertSame('suite.testimonials', $run->command);
+
+        Process::assertRan(function ($process) {
+            $command = $process->command;
+
+            return is_array($command)
+                && in_array('tests/Feature/Admin/TestimonialTest.php', $command, true)
+                && in_array('tests/Unit/TestimonialSealTest.php', $command, true)
+                && ($process->environment['DB_CONNECTION'] ?? null) === 'sqlite';
+        });
+    }
+
+    public function test_testimonials_health_and_seals_pass(): void
+    {
+        Testimonial::factory()->approved()->create([
+            'contact_id' => Contact::factory(),
+        ]);
+        Testimonial::factory()->create([
+            'contact_id' => Contact::factory(),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.qa.store'), ['command' => 'testimonials.health'])
+            ->assertRedirect();
+
+        $health = QaRun::query()->latest('id')->first();
+        $this->assertNotNull($health);
+        $this->assertTrue($health->isPassed());
+        $this->assertStringContainsString('rota admin.testimonials.index', (string) $health->output);
+        $this->assertStringContainsString('rota testimonials.seal', (string) $health->output);
+        $this->assertStringContainsString('view testimonials.form', (string) $health->output);
+        $this->assertStringContainsString('Depoimentos: 2', (string) $health->output);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.qa.store'), ['command' => 'testimonials.seals'])
+            ->assertRedirect();
+
+        $seals = QaRun::query()->latest('id')->first();
+        $this->assertNotNull($seals);
+        $this->assertTrue($seals->isPassed());
+        $this->assertSame(1, $seals->meta['sealed'] ?? null);
+        $this->assertSame(2, $seals->meta['total'] ?? null);
+        $this->assertStringContainsString('íntegros', (string) $seals->summary);
+    }
+
+    public function test_testimonials_seals_detect_tamper(): void
+    {
+        $testimonial = Testimonial::factory()->approved()->create([
+            'contact_id' => Contact::factory(),
+        ]);
+        $testimonial->forceFill(['published_body' => 'Texto forjado no resultado'])->save();
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.qa.store'), ['command' => 'testimonials.seals'])
+            ->assertRedirect();
+
+        $run = QaRun::query()->first();
+        $this->assertNotNull($run);
+        $this->assertFalse($run->isPassed());
+        $this->assertSame(1, $run->meta['failed'] ?? null);
+        $this->assertStringContainsString('FALHOU', (string) $run->output);
+        $this->assertStringContainsString($testimonial->verification_code, (string) $run->output);
+    }
+
+    public function test_mail_suite_slice_passes_phpunit_paths(): void
+    {
+        $this->fakeQaProcess("OK (12 tests, 40 assertions)\n");
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.qa.store'), ['command' => 'suite.mail'])
+            ->assertRedirect();
+
+        $run = QaRun::query()->first();
+        $this->assertNotNull($run);
+        $this->assertTrue($run->isPassed());
+        $this->assertSame('suite.mail', $run->command);
+
+        Process::assertRan(function ($process) {
+            $command = $process->command;
+
+            return is_array($command)
+                && in_array('tests/Feature/Admin/MailSettingsTest.php', $command, true)
+                && in_array('tests/Unit/MailSettingsServiceTest.php', $command, true)
+                && ($process->environment['DB_CONNECTION'] ?? null) === 'sqlite';
+        });
+    }
+
+    public function test_mail_health_and_config_pass_without_sending(): void
+    {
+        app(SettingService::class)->putMany([
+            'mail_mailer' => 'log',
+            'mail_host' => 'smtp.exemplo.com',
+            'mail_from_address' => 'nao-responda@exemplo.com',
+        ]);
+        app(SettingService::class)->putSecret('mail_password', 'nao-pode-aparecer');
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.qa.store'), ['command' => 'mail.health'])
+            ->assertRedirect();
+
+        $health = QaRun::query()->latest('id')->first();
+        $this->assertNotNull($health);
+        $this->assertTrue($health->isPassed());
+        $this->assertStringContainsString('rota admin.settings.mail', (string) $health->output);
+        $this->assertStringContainsString('view mail.test', (string) $health->output);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.qa.store'), ['command' => 'mail.config'])
+            ->assertRedirect();
+
+        $config = QaRun::query()->latest('id')->first();
+        $this->assertNotNull($config);
+        $this->assertTrue($config->isPassed());
+        $this->assertSame('log', $config->meta['mailer'] ?? null);
+        $this->assertTrue((bool) ($config->meta['has_password'] ?? false));
+        $this->assertStringContainsString('snapshot sem senha', (string) $config->output);
+        $this->assertStringNotContainsString('nao-pode-aparecer', (string) $config->output);
+        $this->assertStringNotContainsString('nao-pode-aparecer', json_encode($config->meta));
     }
 
     private function fakeQaProcess(string $output, int $exitCode = 0, string $errorOutput = ''): void

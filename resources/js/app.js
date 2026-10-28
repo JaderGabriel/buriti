@@ -747,6 +747,46 @@ function initPasswordGenerators() {
     });
 }
 
+function initCopyButtons() {
+    document.querySelectorAll('[data-copy]').forEach((button) => {
+        if (button.dataset.copyBound === 'true') {
+            return;
+        }
+
+        button.dataset.copyBound = 'true';
+        button.addEventListener('click', async () => {
+            const selector = button.getAttribute('data-copy');
+            const source = selector ? document.querySelector(selector) : null;
+            let value = '';
+
+            if (source instanceof HTMLInputElement || source instanceof HTMLTextAreaElement) {
+                value = source.value;
+                source.select?.();
+            } else if (source) {
+                value = source.textContent || '';
+            }
+
+            value = value.trim();
+            if (! value) {
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(value);
+            } catch {
+                return;
+            }
+
+            const label = button.querySelector('[data-copy-label]') || button;
+            const original = label.textContent;
+            label.textContent = 'Copiado';
+            window.setTimeout(() => {
+                label.textContent = original || 'Copiar';
+            }, 2000);
+        });
+    });
+}
+
 function initInstantMeetingLinks() {
     document.querySelectorAll('[data-jitsi-new]').forEach((link) => {
         link.addEventListener('click', () => {
@@ -4537,6 +4577,7 @@ initProjectBooks();
 initCookieBanner();
 initBackToTop();
 initAdminShell();
+initCopyButtons();
 initInstantMeetingLinks();
 initAdminNotifications();
 initAdminSearch();

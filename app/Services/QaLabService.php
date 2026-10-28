@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Mail\TestMail;
 use App\Models\ContactMessage;
 use App\Models\QaRun;
+use App\Models\Testimonial;
 use App\Models\User;
 use App\Services\Telegram\TelegramApiClient;
 use App\Services\Telegram\TelegramBotService;
@@ -71,6 +73,8 @@ class QaLabService
                 'ops' => $this->opsHealth(),
                 'migrations' => $this->migrationsStatus(),
                 'google' => $this->googleStatus(),
+                'testimonials.seals' => $this->testimonialSeals(),
+                'mail.config' => $this->mailConfig(),
                 default => [
                     'ok' => false,
                     'summary' => 'Comando desconhecido.',
@@ -662,6 +666,138 @@ class QaLabService
             'meta' => [
                 'failed' => $failed,
                 'total' => count($checks),
+                'checks' => $checks,
+            ],
+        ];
+    }
+
+    /**
+     * @return array{ok: bool, summary: string, output: string, meta: array<string, mixed>}
+     */
+    private function mailConfig(): array
+    {
+        $mail = app(MailSettingsService::class);
+        $settings = app(SettingService::class);
+        $snap = $mail->snapshot();
+        $encoded = json_encode($snap, JSON_UNESCAPED_UNICODE);
+        $secret = $settings->getSecret('mail_password');
+
+        $checks = [];
+        $lines = [];
+
+        foreach (['admin.settings.mail', 'admin.settings.mail.update', 'admin.settings.mail.test'] as $name) {
+            $exists = Route::has($name);
+            $checks[] = ['name' => 'Rota '.$name, 'ok' => $exists, 'detail' => $exists ? 'registada' : 'em falta'];
+            $lines[] = ($exists ? 'OK' : 'FALHOU').' rota '.$name;
+        }
+
+        foreach (['admin.settings.mail', 'mail.test'] as $view) {
+            $exists = View::exists($view);
+            $checks[] = ['name' => 'View '.$view, 'ok' => $exists, 'detail' => $exists ? 'existe' : 'em falta'];
+            $lines[] = ($exists ? 'OK' : 'FALHOU').' view '.$view;
+        }
+
+        $mailable = class_exists(TestMail::class);
+        $checks[] = ['name' => 'Mailable TestMail', 'ok' => $mailable, 'detail' => $mailable ? 'existe' : 'em falta'];
+        $lines[] = ($mailable ? 'OK' : 'FALHOU').' mailable TestMail';
+
+        $noPasswordKey = ! array_key_exists('password', $snap) && ! array_key_exists('mail_password', $snap);
+        $checks[] = ['name' => 'Snapshot sem senha', 'ok' => $noPasswordKey, 'detail' => $noPasswordKey ? 'ausente' : 'vazou chave'];
+        $lines[] = ($noPasswordKey ? 'OK' : 'FALHOU').' snapshot sem senha';
+
+        $leaked = is_string($secret) && $secret !== '' && is_string($encoded) && str_contains($encoded, $secret);
+        $checks[] = ['name' => 'Segredo não vaza', 'ok' => ! $leaked, 'detail' => $leaked ? 'texto da senha no snapshot' : 'ok'];
+        $lines[] = ($leaked ? 'FALHOU' : 'OK').' segredo não vaza';
+
+        $mailer = (string) ($snap['mailer'] ?? '');
+        $checks[] = ['name' => 'Mailer', 'ok' => $mailer !== '', 'detail' => $mailer !== '' ? $mailer : 'vazio'];
+        $lines[] = ($mailer !== '' ? 'OK' : 'FALHOU').' mailer '.$mailer;
+
+        $ready = (bool) ($snap['ready'] ?? false);
+        $checks[] = ['name' => 'SMTP preenchido', 'ok' => true, 'detail' => $ready ? 'pronto' : 'incompleto'];
+        $lines[] = 'OK SMTP '.($ready ? 'pronto' : 'incompleto');
+
+        $hasPassword = (bool) ($snap['has_password'] ?? false);
+        $checks[] = ['name' => 'Senha no painel', 'ok' => true, 'detail' => $hasPassword ? 'definida' : 'não definida'];
+        $lines[] = 'OK senha '.($hasPassword ? 'definida' : 'não definida');
+
+        $failed = collect($checks)->where('ok', false)->count();
+        $ok = $checks !== [] && $failed === 0;
+
+        return [
+            'ok' => $ok,
+            'summary' => $ok
+                ? 'SMTP: overlay e rotas OK (mailer '.$mailer.').'
+                : 'SMTP: '.$failed.' falha(s) em '.count($checks).' checagens.',
+            'output' => implode("\n", $lines),
+            'meta' => [
+                'failed' => $failed,
+                'total' => count($checks),
+                'mailer' => $mailer,
+                'ready' => $ready,
+                'has_password' => $hasPassword,
+                'checks' => $checks,
+            ],
+        ];
+    }
+
+    /**
+     * @return array{ok: bool, summary: string, output: string, meta: array<string, mixed>}
+     */
+    private function testimonialSeals(): array
+    {
+        $rows = Testimonial::query()->orderBy('id')->get();
+        $checks = [];
+        $lines = [];
+        $sealed = 0;
+        $failed = 0;
+
+        foreach ($rows as $row) {
+            $code = $row->verification_code ?: '#'.$row->id;
+            $status = $row->status->value;
+
+            if ($row->source_digest === null) {
+                $checks[] = [
+                    'name' => 'Convite '.$code,
+                    'ok' => true,
+                    'detail' => $status.' (ainda sem selo)',
+                ];
+                $lines[] = 'OK convite '.$code.': '.$status;
+
+                continue;
+            }
+
+            $sealed++;
+            $ok = (bool) ($row->authenticity()['ok'] ?? false);
+            if (! $ok) {
+                $failed++;
+            }
+
+            $checks[] = [
+                'name' => 'Selo '.$code,
+                'ok' => $ok,
+                'detail' => $ok ? 'íntegro ('.$status.')' : 'divergente ('.$status.')',
+            ];
+            $lines[] = ($ok ? 'OK' : 'FALHOU').' '.$code.' '.$status;
+        }
+
+        if ($rows->isEmpty()) {
+            $checks[] = ['name' => 'Inventário', 'ok' => true, 'detail' => 'nenhum depoimento'];
+            $lines[] = 'OK sem depoimentos ainda.';
+        }
+
+        $ok = $failed === 0 && $checks !== [];
+
+        return [
+            'ok' => $ok,
+            'summary' => $failed === 0
+                ? 'Selos: '.$sealed.' íntegros em '.$rows->count().' depoimento(s).'
+                : 'Selos: '.$failed.' divergência(s) em '.$sealed.' selados.',
+            'output' => implode("\n", $lines),
+            'meta' => [
+                'failed' => $failed,
+                'sealed' => $sealed,
+                'total' => $rows->count(),
                 'checks' => $checks,
             ],
         ];

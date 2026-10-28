@@ -3313,6 +3313,155 @@ button.task-agenda__date:hover {
     max-width: 24.5rem;
 }
 
+.testimonial-page {
+    position: relative;
+    min-height: 100vh;
+}
+
+.testimonial-page__frame {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 1.5rem;
+    width: 100%;
+    max-width: 34rem;
+    margin-inline: auto;
+    padding: 1.75rem 1.25rem 3rem;
+}
+
+@media (min-width: 640px) {
+    .testimonial-page__frame {
+        padding: 2.5rem 1.5rem 3.5rem;
+    }
+}
+
+.testimonial-page__brand {
+    display: flex;
+    justify-content: center;
+}
+
+.testimonial-page__card {
+    width: 100%;
+    border: 1px solid var(--color-line);
+    background: color-mix(in oklab, var(--color-panel) 92%, transparent);
+    backdrop-filter: blur(10px);
+    padding: 1.75rem 1.35rem;
+}
+
+@media (min-width: 640px) {
+    .testimonial-page__card {
+        padding: 2.25rem 2rem;
+    }
+}
+
+.testimonial-page__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-brand-bright);
+}
+
+.testimonial-page__title {
+    margin-top: 0.55rem;
+    font-family: var(--font-display);
+    font-size: clamp(1.45rem, 1.2vw + 1.15rem, 1.85rem);
+    font-weight: 800;
+    line-height: 1.2;
+    color: var(--color-snow);
+}
+
+.testimonial-page__lead {
+    margin-top: 0.65rem;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: var(--color-mist);
+}
+
+.testimonial-page__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.85rem;
+    padding: 0.35rem 0.65rem;
+    border: 1px solid var(--color-line);
+    background: color-mix(in oklab, var(--color-ink) 40%, transparent);
+    font-size: 0.75rem;
+    color: var(--color-snow);
+}
+
+.testimonial-page__code {
+    margin-top: 1.25rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 1.05rem;
+    letter-spacing: 0.08em;
+    color: var(--color-brand-bright);
+}
+
+.testimonial-rate {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    gap: 0.2rem;
+}
+
+.testimonial-rate input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+
+.testimonial-rate label {
+    cursor: pointer;
+    color: var(--color-mist);
+    transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.testimonial-rate label svg {
+    pointer-events: none;
+    fill: none;
+    stroke: currentColor;
+}
+
+.testimonial-rate label:hover {
+    transform: translateY(-1px);
+}
+
+.testimonial-rate input:checked ~ label,
+.testimonial-rate label:hover,
+.testimonial-rate label:hover ~ label {
+    color: #e2b45c;
+}
+
+.testimonial-rate input:checked ~ label svg,
+.testimonial-rate label:hover svg,
+.testimonial-rate label:hover ~ label svg {
+    fill: #e2b45c;
+    stroke: #e2b45c;
+}
+
+.testimonial-seal-result {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--color-line);
+}
+
+.testimonial-seal-result__ok {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #7dcca5;
+}
+
 .otp-form {
     position: relative;
 }
@@ -3547,6 +3696,17 @@ button.task-agenda__date:hover {
 
 .pm-btn--ghost:hover {
     border-color: color-mix(in oklab, var(--color-brand-bright) 45%, var(--color-line));
+}
+
+.pm-btn:disabled,
+.pm-btn[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.pm-btn.is-current {
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, #fff 18%, transparent);
 }
 
 .pm-stats {
@@ -5715,10 +5875,33 @@ button.task-agenda__date:hover {
         var(--color-panel);
 }
 
-.contact-dossier__hero--inactive {
+.contact-dossier__hero--inactive,
+.contact-dossier__hero--rejected,
+.contact-dossier__hero--archived {
     border-left-color: #94a3b8;
     background:
         linear-gradient(135deg, color-mix(in oklab, #94a3b8 14%, transparent), transparent 55%),
+        var(--color-panel);
+}
+
+.contact-dossier__hero--invited {
+    border-left-color: #2f7ec4;
+    background:
+        linear-gradient(135deg, color-mix(in oklab, #2f7ec4 16%, transparent), transparent 55%),
+        var(--color-panel);
+}
+
+.contact-dossier__hero--submitted {
+    border-left-color: #7c5cbf;
+    background:
+        linear-gradient(135deg, color-mix(in oklab, #7c5cbf 16%, transparent), transparent 55%),
+        var(--color-panel);
+}
+
+.contact-dossier__hero--approved {
+    border-left-color: #3d9b6e;
+    background:
+        linear-gradient(135deg, color-mix(in oklab, #3d9b6e 16%, transparent), transparent 55%),
         var(--color-panel);
 }
 
@@ -5743,6 +5926,12 @@ button.task-agenda__date:hover {
     font-size: 1.1rem;
     font-weight: 800;
     color: var(--color-brand-bright);
+}
+
+.contact-dossier__avatar--quote {
+    border-color: color-mix(in oklab, #e2b45c 40%, var(--color-line));
+    background: color-mix(in oklab, #d4a017 18%, var(--color-ink));
+    color: #e2b45c;
 }
 
 .contact-dossier__eyebrow {
@@ -5961,6 +6150,16 @@ button.task-agenda__date:hover {
     background: color-mix(in oklab, #f97316 18%, transparent);
 }
 
+.contact-dossier__stat-icon--quote {
+    color: #e2b45c;
+    background: color-mix(in oklab, #d4a017 18%, transparent);
+}
+
+.contact-dossier__stat-icon--seal {
+    color: #7dcca5;
+    background: color-mix(in oklab, #3d9b6e 18%, transparent);
+}
+
 .contact-dossier__layout {
     display: grid;
     gap: 1.25rem;
@@ -6068,11 +6267,28 @@ button.task-agenda__date:hover {
     border-top: 2px solid #60a5fa;
 }
 
+.contact-conduct__panel--quote {
+    border-top: 2px solid #e2b45c;
+}
+
+.contact-conduct__panel--mediate {
+    border-top: 2px solid #b8a0e8;
+}
+
+.contact-conduct__panel--seal {
+    border-top: 2px solid #7dcca5;
+}
+
 .contact-conduct__panel-head {
     display: flex;
     align-items: flex-start;
     gap: 0.75rem;
     margin-bottom: 0.9rem;
+}
+
+.contact-conduct__panel-head > div:nth-child(2) {
+    flex: 1;
+    min-width: 0;
 }
 
 .contact-conduct__panel-head h3 {
@@ -6106,6 +6322,21 @@ button.task-agenda__date:hover {
 .contact-conduct__badge--activity {
     color: #93c5fd;
     background: color-mix(in oklab, #3b82f6 18%, transparent);
+}
+
+.contact-conduct__badge--quote {
+    color: #e2b45c;
+    background: color-mix(in oklab, #d4a017 18%, transparent);
+}
+
+.contact-conduct__badge--mediate {
+    color: #b8a0e8;
+    background: color-mix(in oklab, #7c5cbf 18%, transparent);
+}
+
+.contact-conduct__badge--seal {
+    color: #7dcca5;
+    background: color-mix(in oklab, #3d9b6e 18%, transparent);
 }
 
 .contact-conduct__project-list,
@@ -6192,6 +6423,10 @@ button.task-agenda__date:hover {
     text-align: center;
     color: var(--color-mist);
     font-size: 0.8125rem;
+}
+
+.testimonial-dossier .contact-conduct__panel {
+    min-height: 0;
 }
 
 .contact-conduct__attach {

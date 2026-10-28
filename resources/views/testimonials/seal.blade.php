@@ -1,47 +1,51 @@
-@extends('layouts.app')
+@extends('layouts.testimonial')
 
 @section('title', 'Selo de depoimento — '.$product['name'])
 
-@push('head')
-    <meta name="robots" content="noindex, nofollow">
-@endpush
+@section('card')
+<p class="testimonial-page__eyebrow">
+    <x-ui.icon name="diagnose" class="h-3.5 w-3.5" />
+    Autenticidade
+</p>
+<h1 class="testimonial-page__title">Verificar selo</h1>
+<p class="testimonial-page__lead">Confirme se um depoimento aprovado ainda corresponde ao original selado pelo cliente. Não é uma galeria pública.</p>
 
-@section('body')
-<div class="login-shell" data-login-page>
-    <div class="login-atmosphere" aria-hidden="true"></div>
-    <div class="login-frame">
-        <section class="login-panel mx-auto max-w-lg">
-            <div class="login-panel-inner">
-                <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-bright">Autenticidade</p>
-                <h1 class="mt-2 font-display text-2xl font-bold text-snow">Verificar selo</h1>
-                <p class="mt-2 text-sm text-mist">Confirma se um depoimento aprovado ainda corresponde ao original selado pelo cliente. Não é uma galeria pública.</p>
+<form method="GET" action="{{ route('testimonials.seal') }}" class="mt-6 flex gap-2">
+    <input type="text" name="code" value="{{ $code }}" placeholder="BURI-XXXX-XXXX" class="login-input mt-0 min-w-0 flex-1 font-mono uppercase" autocomplete="off">
+    <button type="submit" class="login-submit w-auto shrink-0 px-4">Verificar</button>
+</form>
 
-                <form method="GET" action="{{ route('testimonials.seal') }}" class="mt-5 flex gap-2">
-                    <input type="text" name="code" value="{{ $code }}" placeholder="BURI-XXXX-XXXX" class="min-w-0 flex-1 rounded-sm border border-line bg-ink/40 px-3 py-2 font-mono text-sm uppercase text-snow">
-                    <button type="submit" class="rounded-full bg-brand px-4 text-sm font-semibold text-white">Verificar</button>
-                </form>
-
-                @if($code !== '')
-                    @if($testimonial && $authenticity && $authenticity['ok'])
-                        <div class="mt-6 space-y-2 text-sm">
-                            <p class="font-semibold text-emerald-300">Selo autêntico</p>
-                            <p>{{ $testimonial->displayName() }} · {{ $testimonial->stars() }} estrela{{ $testimonial->stars() === 1 ? '' : 's' }}</p>
-                            @if($testimonial->project)
-                                <p class="text-mist">Projeto: {{ $testimonial->project->name }}</p>
-                            @endif
-                            @if($testimonial->wasMediated())
-                                <p class="text-amber-200">A versão mostrada foi mediada. O original do cliente permanece selado e íntegro.</p>
-                            @else
-                                <p class="text-mist">O texto publicado coincide com o original do cliente.</p>
-                            @endif
-                            <p class="font-mono text-[11px] text-mist">origem {{ $testimonial->sourceFingerprint() }} · resultado {{ $testimonial->resultFingerprint() }}</p>
-                        </div>
-                    @else
-                        <p class="mt-6 text-sm text-red-300">Não há um depoimento aprovado com este código, ou o selo não confere.</p>
-                    @endif
-                @endif
-            </div>
-        </section>
-    </div>
-</div>
+@if($code !== '')
+    @if($testimonial && $authenticity && $authenticity['ok'])
+        <div class="testimonial-seal-result">
+            <p class="testimonial-seal-result__ok">
+                <x-ui.icon name="qualified" class="h-4 w-4" />
+                Selo autêntico
+            </p>
+            <p class="testimonial-stars" aria-label="{{ $testimonial->stars() }} estrelas">
+                @for($i = 1; $i <= 5; $i++)
+                    <span @class(['is-on' => $i <= (int) $testimonial->stars()])>★</span>
+                @endfor
+            </p>
+            <p class="text-sm text-snow">{{ $testimonial->displayName() }}</p>
+            @if($testimonial->project)
+                <p class="testimonial-page__chip">
+                    <x-ui.icon name="project" class="h-3.5 w-3.5" />
+                    {{ $testimonial->project->name }}
+                </p>
+            @endif
+            @if($testimonial->wasMediated())
+                <p class="mt-3 text-sm text-amber-200">A versão exibida foi mediada. O original do cliente permanece selado e íntegro.</p>
+            @else
+                <p class="mt-3 text-sm text-mist">O texto publicado é igual ao original do cliente.</p>
+            @endif
+            <p class="mt-3 font-mono text-[11px] text-mist">origem {{ $testimonial->sourceFingerprint() }} · resultado {{ $testimonial->resultFingerprint() }}</p>
+        </div>
+    @else
+        <p class="mt-6 inline-flex items-start gap-2 text-sm text-red-300">
+            <x-ui.icon name="lost" class="mt-0.5 h-4 w-4 shrink-0" />
+            Não há um depoimento aprovado com este código, ou o selo não confere.
+        </p>
+    @endif
+@endif
 @endsection

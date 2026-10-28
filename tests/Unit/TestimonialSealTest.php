@@ -59,4 +59,17 @@ class TestimonialSealTest extends TestCase
 
         $this->assertTrue($testimonial->fresh()->authenticity()['ok']);
     }
+
+    public function test_inspect_detects_tampered_mac(): void
+    {
+        $testimonial = Testimonial::factory()->submitted()->create([
+            'contact_id' => Contact::factory(),
+        ]);
+
+        $testimonial->forceFill(['seal' => str_repeat('0', 64)])->save();
+
+        $check = TestimonialSeal::inspect($testimonial->fresh());
+        $this->assertFalse($check['ok']);
+        $this->assertFalse($check['seal']);
+    }
 }

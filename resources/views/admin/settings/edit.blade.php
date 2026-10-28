@@ -1,9 +1,15 @@
 @extends('layouts.admin')
 
 @section('content')
-    <div class="mb-8">
-        <h1 class="font-display text-2xl font-bold sm:text-3xl">Configurações</h1>
-        <p class="mt-1 text-mist">Contatos públicos e integração Google Agenda / Meet</p>
+    <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div>
+            <h1 class="font-display text-2xl font-bold sm:text-3xl">Configurações</h1>
+            <p class="mt-1 text-mist">Contatos públicos e integração Google Agenda / Meet. SMTP fica no submódulo E-mail.</p>
+        </div>
+        <a href="{{ route('admin.settings.mail') }}" class="pm-btn pm-btn--ghost">
+            <x-ui.icon name="mail" class="h-4 w-4" />
+            E-mail (SMTP e teste)
+        </a>
     </div>
 
     <form method="POST" action="{{ route('admin.settings.update') }}" class="space-y-6">

@@ -68,7 +68,7 @@ class TestimonialService
     public function submit(Testimonial $testimonial, array $input, Request $request): Testimonial
     {
         if (! $testimonial->isOpenInvite()) {
-            throw new RuntimeException('Este convite já não aceita depoimento.');
+            throw new RuntimeException('Este convite não aceita mais depoimento.');
         }
 
         $body = self::normalizeBody((string) ($input['body'] ?? ''));
@@ -124,8 +124,12 @@ class TestimonialService
             throw new RuntimeException('Não há texto selado para mediar.');
         }
 
+        if ($testimonial->status === TestimonialStatus::Archived) {
+            throw new RuntimeException('Este depoimento está arquivado. A mediação está encerrada.');
+        }
+
         if (! in_array($status, [TestimonialStatus::Approved, TestimonialStatus::Rejected, TestimonialStatus::Archived], true)) {
-            throw new RuntimeException('Estado de mediação inválido.');
+            throw new RuntimeException('Status de mediação inválido.');
         }
 
         $useOriginal = ($input['use_original'] ?? false) === true;
@@ -186,7 +190,7 @@ class TestimonialService
     public function resealInvite(Testimonial $testimonial): array
     {
         if ($testimonial->status !== TestimonialStatus::Invited) {
-            throw new RuntimeException('Só é possível reenviar convite em aberto.');
+            throw new RuntimeException('Só é possível reenviar um convite ainda aberto.');
         }
 
         $token = TestimonialSeal::newInviteToken();

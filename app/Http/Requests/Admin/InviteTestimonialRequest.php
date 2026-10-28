@@ -25,7 +25,7 @@ class InviteTestimonialRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'contact_id.required' => 'Escolha o contacto que vai escrever o depoimento.',
+            'contact_id.required' => 'Escolha o contato que vai escrever o depoimento.',
         ];
     }
 }

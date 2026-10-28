@@ -2501,9 +2501,11 @@ html.dark .roadmap-filters__btn[aria-pressed='true'] {
     --qa-site: #0891b2;
     --qa-comercial: #e11d48;
     --qa-entrega: #0d9488;
+    --qa-depoimentos: #be185d;
     --qa-jirau: #d97706;
     --qa-sistema: #6366f1;
     --qa-telegram: #0284c7;
+    --qa-email: #0f766e;
     --qa-tone: var(--admin-blue);
     display: flex;
     flex-direction: column;
@@ -2515,9 +2517,11 @@ html.dark .roadmap-filters__btn[aria-pressed='true'] {
 .qa-lab [data-tone="site"] { --qa-tone: var(--qa-site); }
 .qa-lab [data-tone="comercial"] { --qa-tone: var(--qa-comercial); }
 .qa-lab [data-tone="entrega"] { --qa-tone: var(--qa-entrega); }
+.qa-lab [data-tone="depoimentos"] { --qa-tone: var(--qa-depoimentos); }
 .qa-lab [data-tone="jirau"] { --qa-tone: var(--qa-jirau); }
 .qa-lab [data-tone="sistema"] { --qa-tone: var(--qa-sistema); }
 .qa-lab [data-tone="telegram"] { --qa-tone: var(--qa-telegram); }
+.qa-lab [data-tone="email"] { --qa-tone: var(--qa-email); }
 
 .qa-toolbar {
     display: flex;
@@ -2876,21 +2880,23 @@ html.dark .qa-kpi[data-kpi-polarity="up-bad"].is-up .qa-kpi__spark { color: #fca
 @media (min-width: 1100px) {
     .admin-content:has(> .qa-lab:not(.qa-lab--report)) .qa-lab {
         flex: 1 1 auto;
-        min-height: 0;
+        min-height: min(42rem, calc(100dvh - 7.5rem));
     }
 
     .qa-workspace {
         flex: 1 1 auto;
-        min-height: 0;
+        min-height: min(36rem, calc(100dvh - 14rem));
         grid-template-columns: 18rem minmax(0, 1.35fr) minmax(17.5rem, 0.9fr);
-        grid-template-rows: minmax(0, 1fr);
+        grid-template-rows: minmax(min(36rem, calc(100dvh - 14rem)), 1fr);
         align-items: stretch;
     }
 
     .qa-workspace > #qa-reports {
-        align-self: start;
+        align-self: stretch;
+        min-height: 0;
         max-height: 100%;
         overflow: auto;
+        overscroll-behavior: contain;
     }
 }
 
@@ -2979,7 +2985,9 @@ html.dark .qa-kpi[data-kpi-polarity="up-bad"].is-up .qa-kpi__spark { color: #fca
 
 .qa-console {
     display: grid;
+    grid-auto-rows: max-content;
     align-content: start;
+    align-items: start;
     gap: 0.55rem;
     min-width: 0;
 }
@@ -3148,7 +3156,21 @@ details.qa-panel {
 }
 
 .qa-pane {
-    min-height: 0;
+    min-height: auto;
+    height: auto;
+    overflow: hidden;
+}
+
+details.qa-pane.qa-panel[open] {
+    min-height: min-content;
+    max-height: none;
+    overflow: visible;
+}
+
+details.qa-pane.qa-panel[open] .qa-panel__body {
+    flex: 0 0 auto;
+    min-height: auto;
+    overflow: visible;
 }
 
 .qa-pane > summary {
@@ -3645,23 +3667,88 @@ html.light .qa-terminal__body { background: #111827; }
 .testimonial-quote {
     margin: 0.75rem 0 0;
     padding-left: 0.85rem;
-    border-left: 2px solid var(--admin-blue);
+    border-left: 2px solid #e2b45c;
     white-space: pre-wrap;
     font-size: 0.95rem;
+    color: var(--admin-text, inherit);
 }
 
 .testimonial-invite {
-    margin-bottom: 1rem;
-    padding: 0.9rem 1rem;
-    border: 1px dashed var(--admin-glass-border);
-    border-radius: 1rem;
-    background: var(--admin-glass);
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    margin-bottom: 1.25rem;
+    padding: 0.95rem 1rem;
+    border: 1px solid color-mix(in oklab, #2f7ec4 35%, var(--admin-glass-border));
+    border-radius: var(--admin-radius, 2px);
+    background: color-mix(in oklab, #2f7ec4 10%, var(--admin-glass, transparent));
 }
 
 .testimonial-invite p {
     margin: 0 0 0.55rem;
     font-size: 0.85rem;
     color: var(--admin-muted);
+}
+
+.testimonial-invite p strong {
+    color: var(--admin-text, #e8eef6);
+    font-weight: 700;
+}
+
+.testimonial-invite__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 0.55rem;
+}
+
+.testimonial-invite__row input {
+    flex: 1 1 14rem;
+    min-width: 0;
+}
+
+.testimonial-mediate {
+    padding: 0.85rem 0.9rem 0.2rem;
+    border: 1px solid color-mix(in oklab, #7c5cbf 28%, var(--admin-glass-border, var(--color-line)));
+    border-radius: var(--admin-radius, 2px);
+    background: color-mix(in oklab, #7c5cbf 8%, transparent);
+}
+
+.testimonial-mediate--approved {
+    border-color: color-mix(in oklab, #3d9b6e 32%, var(--color-line));
+    background: color-mix(in oklab, #3d9b6e 8%, transparent);
+}
+
+.testimonial-mediate--rejected,
+.testimonial-mediate--archived {
+    border-color: color-mix(in oklab, #94a3b8 28%, var(--color-line));
+    background: color-mix(in oklab, #94a3b8 8%, transparent);
+}
+
+.testimonial-mediate.is-locked {
+    opacity: 0.96;
+}
+
+.testimonial-mediate__banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    margin: 0 0 0.85rem;
+    padding: 0.7rem 0.8rem;
+    border-radius: 2px;
+    background: color-mix(in oklab, #94a3b8 16%, transparent);
+    color: #cbd5e1;
+    font-size: 0.85rem;
+}
+
+.testimonial-mediate__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.testimonial-mediate__actions .pm-btn.is-current {
+    cursor: default;
 }
 
 .testimonial-seal {
@@ -3679,4 +3766,25 @@ html.light .qa-terminal__body { background: #111827; }
 
 .testimonial-seal dd {
     margin: 0.15rem 0 0;
+}
+
+.testimonial-seal__checks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.testimonial-seal__flag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 2px;
+    color: #a8b0bc;
+    background: color-mix(in oklab, #6b7280 18%, transparent);
+}
+
+.testimonial-seal__flag.is-ok {
+    color: #7dcca5;
+    background: color-mix(in oklab, #3d9b6e 18%, transparent);
 }

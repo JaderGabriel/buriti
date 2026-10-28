@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\JirauCard;
 use App\Models\Opportunity;
 use App\Observers\OpportunityObserver;
+use App\Services\MailSettingsService;
 use App\Services\SettingService;
 use App\Support\RuntimeVersions;
 use App\Support\SubdirectoryRouteCacheGuard;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Throwable;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -43,6 +45,12 @@ class AppServiceProvider extends ServiceProvider
         View::composer(['layouts.admin', 'layouts.jirau'], AdminLayoutComposer::class);
 
         Opportunity::observe(OpportunityObserver::class);
+
+        try {
+            $this->app->make(MailSettingsService::class)->apply();
+        } catch (Throwable) {
+            // Base pode ainda não existir (migrate / primeiro boot).
+        }
 
         Route::bind('item', function (string $value, $route) {
             $card = $route->parameter('card');

@@ -55,10 +55,10 @@
                 this.section = 'qa-kpis';
             },
             openPane(id) {
-                const pane = document.getElementById('qa-area-' + id);
-                if (pane instanceof HTMLDetailsElement) {
-                    pane.open = true;
-                }
+                const targetId = 'qa-area-' + id;
+                this.$root.querySelectorAll('.qa-console details.qa-pane').forEach((el) => {
+                    el.open = el.id === targetId;
+                });
             },
             expandAll() {
                 this.$root.querySelectorAll('.qa-console details.qa-pane').forEach((el) => { el.open = true; });
