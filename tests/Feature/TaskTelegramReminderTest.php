@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\TaskStatus;
+use App\Models\Contact;
 use App\Models\Task;
 use App\Models\User;
 use App\Services\TaskTelegramReminderService;
@@ -36,7 +37,7 @@ class TaskTelegramReminderTest extends TestCase
             'telegram_chat_id' => '424242',
         ])->save();
 
-        $contact = \App\Models\Contact::factory()->create([
+        $contact = Contact::factory()->create([
             'name' => 'Ana Cliente',
             'phone' => '+55 11 98888-7777',
         ]);
@@ -66,7 +67,8 @@ class TaskTelegramReminderTest extends TestCase
                 && str_contains($text, 'Lembrete de agenda')
                 && str_contains($text, 'Reunião com cliente')
                 && str_contains($text, 'Ana Cliente')
-                && str_contains($text, 'Ligar')
+                && str_contains($text, 'https://wa.me/5511988887777')
+                && str_contains($text, '+55 (11) 98888-7777')
                 && str_contains($text, 'WhatsApp')
                 && str_contains($text, 'Convite para encaminhar')
                 && str_contains($text, 'meet.google.com/abc-defg-hij')

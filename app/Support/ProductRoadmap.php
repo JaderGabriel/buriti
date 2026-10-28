@@ -334,12 +334,12 @@ final class ProductRoadmap
         return [
             'short' => RuntimeVersions::short(),
             'release' => RuntimeVersions::release(),
-            'headline' => 'Tempo no Jirau, pessoas no cartão e inbox no sino.',
+            'headline' => 'Código no iPhone, telefone com DDI e barras que ficam no sítio.',
             'items' => [
-                'Sino de notificações ao lado do perfil, com caixa persistida (Jirau, mensagens do site e agenda) e card que fecha de verdade.',
-                'Fazer/Encerrar no cartão, histórico de horas para o admin e extrato na analítica (projeto, pessoa, empresa).',
-                'Vários responsáveis e atores no mesmo cartão (excepto o demandante).',
-                'Faixa no quadro geral por etapa; um Jirau por empresa/contrato; inativos sem acção; apagar quadro vazio.',
+                'Login admin por senha confirma com TOTP nas Senhas do iPhone quando vinculado; Telegram continua como fallback e o desafio web no bot segue sem widget.',
+                'Perfil na topbar, barra lateral e superior fixas enquanto só o conteúdo rola, e atalhos Meet / Teams / Jitsi ao lado da agenda.',
+                'Telefones em E.164 (DDI + DDD + número) no CRM, no bot e nos links tel: / wa.me — inclusive DDD 11 sem colidir com DDI estrangeiro.',
+                'Política de privacidade descreve CRM, Telegram, Google Calendar/Drive e 2FA, não só o formulário do site.',
             ],
         ];
     }

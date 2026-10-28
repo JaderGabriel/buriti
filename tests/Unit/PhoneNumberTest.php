@@ -35,6 +35,17 @@ class PhoneNumberTest extends TestCase
         $this->assertSame('+351 912345678', PhoneNumber::format('+351 912345678'));
     }
 
+    public function test_parse_keeps_sao_paulo_ddd_11_out_of_us_country_code(): void
+    {
+        $parsed = PhoneNumber::parse('11988887777', 'BR');
+
+        $this->assertSame('BR', $parsed['iso']);
+        $this->assertSame('55', $parsed['dial']);
+        $this->assertSame('11988887777', $parsed['national']);
+        $this->assertSame('+55 (11) 98888-7777', PhoneNumber::format('11988887777'));
+        $this->assertSame('5511988887777', PhoneNumber::e164Digits('11988887777'));
+    }
+
     public function test_parse_does_not_treat_ddd_55_as_country_code(): void
     {
         $parsed = PhoneNumber::parse('55998887777', 'BR');
@@ -65,6 +76,20 @@ class PhoneNumberTest extends TestCase
 
         $this->assertSame('55998887777', $normalized['phone_number']);
         $this->assertSame('+55 (55) 99888-7777', $normalized['phone']);
+    }
+
+    public function test_e164_digits_always_include_country_code(): void
+    {
+        $this->assertSame('5538991758416', PhoneNumber::e164Digits('+55 (38) 99175-8416'));
+        $this->assertSame('5538991758416', PhoneNumber::e164Digits('38991758416'));
+        $this->assertSame('5555998887777', PhoneNumber::e164Digits('55 99888-7777'));
+        $this->assertSame('351912345678', PhoneNumber::e164Digits('+351 912345678'));
+        $this->assertSame('tel:+5538991758416', PhoneNumber::telHref('38 99175-8416'));
+        $this->assertSame('https://wa.me/5538991758416', PhoneNumber::whatsappHref('(38) 99175-8416'));
+        $this->assertSame(
+            '<a href="https://wa.me/5538991758416">+55 (38) 99175-8416</a>',
+            PhoneNumber::telegramHtml('38991758416')
+        );
     }
 
     public function test_normalize_input_empty_number_clears_phone(): void

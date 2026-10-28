@@ -174,7 +174,11 @@
 
                                     <div class="phonebook__phone">
                                         @if($phoneLabel)
-                                            <span class="phonebook__number">{{ $phoneLabel }}</span>
+                                            @if($tel)
+                                                <a href="{{ $tel }}" class="phonebook__number">{{ $phoneLabel }}</a>
+                                            @else
+                                                <span class="phonebook__number">{{ $phoneLabel }}</span>
+                                            @endif
                                             <div class="phonebook__actions">
                                                 @if($tel)
                                                     <a href="{{ $tel }}" class="phonebook__action" title="Ligar" aria-label="Ligar para {{ $contact->name }}">

@@ -16,6 +16,10 @@ class LegalPagesTest extends TestCase
             ->assertOk()
             ->assertSee('Política de Privacidade', false)
             ->assertSee('LGPD', false)
+            ->assertSee('Telegram', false)
+            ->assertSee('Google', false)
+            ->assertSee('TOTP', false)
+            ->assertSee('CRM', false)
             ->assertSee('©', false);
 
         $this->get(route('cookies'))
@@ -54,7 +58,7 @@ class LegalPagesTest extends TestCase
             ->assertSee('Política de Privacidade', false)
             ->assertSee('Política de Cookies', false)
             ->assertSee('Cookies e privacidade', false)
-            ->assertSee('Concordo e Aceito', false)
+            ->assertSee('Aceitar', false)
             ->assertSee('cookie-banner', false);
     }
 }

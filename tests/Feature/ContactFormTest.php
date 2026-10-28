@@ -34,7 +34,7 @@ class ContactFormTest extends TestCase
 
         $this->assertDatabaseHas('contact_messages', [
             'email' => 'cliente@empresa.com',
-            'phone' => '+55 38 99175-8416',
+            'phone' => '+55 (38) 99175-8416',
             'preferred_channel' => 'whatsapp',
             'subject' => 'Proposta de TI',
             'name' => 'Cliente Teste',
@@ -104,7 +104,7 @@ class ContactFormTest extends TestCase
         $this->assertDatabaseHas('contacts', [
             'id' => $contact->id,
             'name' => 'Nome Novo',
-            'phone' => '+55 38 99175-8416',
+            'phone' => '+55 (38) 99175-8416',
             'company' => 'Empresa Nova',
         ]);
 

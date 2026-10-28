@@ -26,8 +26,10 @@
                 <div>
                     <h2 class="font-display text-lg font-semibold text-snow">2. Quais dados coletamos</h2>
                     <ul class="mt-3 list-disc space-y-2 pl-5">
-                        <li><strong class="text-snow">Formulário de contato:</strong> nome, e-mail, telefone/WhatsApp, empresa (opcional), assunto, mensagem e canal preferido.</li>
-                        <li><strong class="text-snow">Dados técnicos mínimos:</strong> endereço IP e registros de segurança em tentativas de login no painel admin.</li>
+                        <li><strong class="text-snow">Formulário de contato:</strong> nome, e-mail, telefone/WhatsApp, empresa (opcional), assunto, mensagem, canal preferido e o consentimento marcado no envio.</li>
+                        <li><strong class="text-snow">CRM interno:</strong> os mesmos dados do formulário (e atualizações posteriores) na ficha de contato, empresa, oportunidade, projeto, tarefa, atividade e anexos — para conduzir o atendimento comercial.</li>
+                        <li><strong class="text-snow">Painel (admin e Jirau):</strong> identificação da conta, senha (hash), foto de perfil, identificador de chat Telegram quando vinculado, segredo TOTP das Senhas do iPhone (cifrado) quando ativado, e tokens OAuth Google (Calendar/Drive) se a conta for ligada.</li>
+                        <li><strong class="text-snow">Segurança:</strong> tentativas de login (identificador, IP, user-agent), sessões e registros de auditoria de acções no painel.</li>
                         <li><strong class="text-snow">Cookies e armazenamento local:</strong> ver a <a href="{{ route('cookies') }}" class="text-brand-bright hover:underline">Política de Cookies</a>.</li>
                     </ul>
                 </div>
@@ -36,8 +38,10 @@
                     <h2 class="font-display text-lg font-semibold text-snow">3. Para que usamos os dados</h2>
                     <ul class="mt-3 list-disc space-y-2 pl-5">
                         <li>Responder pedidos comerciais e de suporte enviados pelo site.</li>
-                        <li>Gerenciar o relacionamento comercial (CRM interno), quando aplicável.</li>
-                        <li>Garantir segurança, autenticação e funcionamento do painel administrativo.</li>
+                        <li>Gerenciar o relacionamento no CRM (mensagem → contacto → oportunidade → projeto) e no quadro Jirau, quando houver entrega.</li>
+                        <li>Autenticar o painel: senha, código 2FA (Senhas do iPhone ou Telegram) e desafio temporário no bot.</li>
+                        <li>Sincronizar agenda e arquivos com Google Calendar / Drive, só se um administrador ligar a conta.</li>
+                        <li>Avisar operadores no Telegram (novo lead, lembrete de tarefa, follow-up, eventos do Jirau), quando o bot estiver configurado.</li>
                         <li>Cumprir obrigações legais e defender direitos em processos eventualmente necessários.</li>
                     </ul>
                     <p class="mt-3">Não vendemos dados pessoais. Não utilizamos os dados do formulário para spam.</p>
@@ -47,8 +51,9 @@
                     <h2 class="font-display text-lg font-semibold text-snow">4. Base legal (LGPD)</h2>
                     <p class="mt-3">
                         Tratamos dados com base no <strong class="text-snow">consentimento</strong> (quando marcado no formulário),
-                        na <strong class="text-snow">execução de procedimentos preliminares</strong> a contrato a pedido do titular
-                        e no <strong class="text-snow">legítimo interesse</strong> para segurança do site e do painel,
+                        na <strong class="text-snow">execução de procedimentos preliminares</strong> a contrato a pedido do titular,
+                        no <strong class="text-snow">legítimo interesse</strong> para segurança do site e do painel,
+                        e no <strong class="text-snow">cumprimento de obrigação legal</strong> quando aplicável,
                         sempre com proporcionalidade e minimização.
                     </p>
                 </div>
@@ -56,16 +61,25 @@
                 <div>
                     <h2 class="font-display text-lg font-semibold text-snow">5. Compartilhamento</h2>
                     <p class="mt-3">
-                        Podemos utilizar prestadores de infraestrutura (hospedagem, e-mail e ferramentas de operação) como operadores,
-                        apenas para as finalidades descritas. Dados não são partilhados com terceiros para marketing sem consentimento.
+                        Usamos operadores apenas para as finalidades descritas, sem ceder dados para marketing de terceiros:
+                    </p>
+                    <ul class="mt-3 list-disc space-y-2 pl-5">
+                        <li><strong class="text-snow">Hospedagem e e-mail</strong> da infraestrutura onde o site e o painel correm.</li>
+                        <li><strong class="text-snow">Telegram</strong> (Bot API), quando um administrador vincula o chat: códigos 2FA, desafios de login e avisos operacionais que podem incluir nome, telefone, e-mail ou assunto de um lead/tarefa.</li>
+                        <li><strong class="text-snow">Google</strong> (Calendar e Drive), só se um administrador ligar a conta OAuth no painel.</li>
+                    </ul>
+                    <p class="mt-3">
+                        Códigos 2FA e desafios de login são de curta duração. O Telegram e o Google tratam dados segundo as respectivas políticas, em servidores que podem ficar fora do Brasil.
                     </p>
                 </div>
 
                 <div>
                     <h2 class="font-display text-lg font-semibold text-snow">6. Conservação</h2>
                     <p class="mt-3">
-                        Mantemos os dados pelo tempo necessário ao atendimento do pedido, à gestão comercial e a obrigações legais.
-                        Pedidos de exclusão ou anonimização podem ser feitos pelo e-mail de privacidade, observados limites legais.
+                        Mantemos os dados do CRM pelo tempo da relação comercial e das obrigações legais.
+                        Códigos 2FA e desafios de login expiram em minutos.
+                        Tentativas de login e logs de auditoria ficam para investigação de segurança; não há apagamento automático publicado.
+                        Pedidos de exclusão ou anonimização podem ser feitos pelo e-mail de privacidade, observados limites legais (ex.: obrigações fiscais ou defesa em processo).
                     </p>
                 </div>
 
@@ -90,7 +104,7 @@
                 <div>
                     <h2 class="font-display text-lg font-semibold text-snow">8. Segurança</h2>
                     <p class="mt-3">
-                        Adotamos medidas técnicas e organizacionais razoáveis (HTTPS, controlo de acesso ao painel, proteção de senhas).
+                        Adotamos medidas técnicas e organizacionais razoáveis (HTTPS, controlo de acesso ao painel, hash de senhas, 2FA no login admin, TOTP encriptado).
                         Nenhum sistema é 100% isento de risco; em caso de incidente relevante, adotaremos as medidas previstas na legislação.
                     </p>
                 </div>

@@ -57,7 +57,9 @@ class ProductRoadmapTest extends TestCase
             ->assertSee('Accelo', false)
             ->assertSee(RuntimeVersions::short(), false)
             ->assertSee('Nesta versão', false)
-            ->assertSee('Inbox in-app', false);
+            ->assertSee('Inbox in-app', false)
+            ->assertSee('Senhas do iPhone', false)
+            ->assertSee('E.164', false);
     }
 
     public function test_search_finds_roadmap_entry(): void

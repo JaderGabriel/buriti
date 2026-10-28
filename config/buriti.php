@@ -5,12 +5,12 @@ return [
     | Identidade visual do produto. RuntimeVersions / product_*() / <x-product.release>
     | lêem daqui — mudar versão ou codinome actualiza rodapé, sidebar, títulos e roadmap.
     |
-    | Igarapé é o curso d'água que segue a vereda do Cerrado: o palmeiral do
-    | buriti (Mauritia flexuosa) encontra o rio.
+    | Nascente é a origem da água que alimenta o igarapé: o acesso confirma-se
+    | na fonte (Senhas do iPhone / Telegram) e o telefone chega com DDI certo.
     */
     'name' => 'BURI-TI',
-    'version' => '1.7',
-    'codename' => 'Igarapé',
+    'version' => '1.8',
+    'codename' => 'Nascente',
     'tagline' => 'Tecnologia para Pessoas',
 
     'contact' => [

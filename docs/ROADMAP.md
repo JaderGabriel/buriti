@@ -1,10 +1,17 @@
 # Roadmap de produto BURI-TI
 
-Ideias de **módulos**, **submódulos** e **recursos** inspirados em concorrentes, com impacto medido sobre o sistema actual (site + CRM + Jirau). A versão visível no admin vem de `config/buriti.php` (`RuntimeVersions`); este ficheiro acompanha o lançamento **1.7 Igarapé**.
+Ideias de **módulos**, **submódulos** e **recursos** inspirados em concorrentes, com impacto medido sobre o sistema actual (site + CRM + Jirau). A versão visível no admin vem de `config/buriti.php` (`RuntimeVersions`); este ficheiro acompanha o lançamento **1.8 Nascente**.
 
 Este ficheiro é o artefacto no Git. A leitura operacional está em **Sistema → Roadmap** (`/admin/sistema/roadmap`). Complementa a consolidação do CRM em [`CRM-CONSOLIDACAO.md`](CRM-CONSOLIDACAO.md).
 
 Não é um compromisso de entrega. É um mapa para não copiar HubSpot inteiro nem ignorar o que Pipedrive, Accelo e o mercado BR já resolveram.
+
+## Entregue no 1.8 Nascente
+
+- 2FA admin: TOTP nas Senhas do iPhone quando vinculado; Telegram como fallback; desafio web no bot continua sem widget.
+- Chrome admin: perfil na topbar, barra lateral e superior fixas, atalhos Meet / Teams / Jitsi.
+- Telefones em E.164 (DDI + DDD + número) no CRM, no bot e nos links `tel:` / `wa.me`.
+- Política de privacidade alinhada ao tratamento real (CRM, Telegram, Google, 2FA).
 
 ## Entregue no 1.7 Igarapé
 

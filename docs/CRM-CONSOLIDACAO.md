@@ -243,3 +243,7 @@ A geração assistida de contratos (prompt + revisão humana, secção 3.1) cont
 Este documento deve ser actualizado quando cada fatia do roadmap for concluída (data + commit/tag).
 
 O mapa de módulos novos, concorrentes e impacto está em [`ROADMAP.md`](ROADMAP.md) e na área admin **Sistema → Roadmap**. Os contratos assistidos (secção 3.1) entram lá na onda Próximo; não reabrir P0–P2 daqui.
+
+### Actualização 28/10/2026 (1.8 Nascente)
+
+Fatia de produto, não de consolidação P0–P2: 2FA TOTP nas Senhas do iPhone; telefones E.164 no CRM e no Telegram; política de privacidade a descrever CRM, Telegram e Google. As regras da secção 4 mantêm-se. Pendente de produto (não desta fatia): papéis além de admin, contratos assistidos, SLA de follow-up.

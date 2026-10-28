@@ -71,7 +71,17 @@
                     </div>
                     <div>
                         <dt class="text-mist">Telefone</dt>
-                        <dd class="mt-1">{{ \App\Support\PhoneNumber::format($company->phone) ?? '—' }}</dd>
+                        <dd class="mt-1">
+                            @php
+                                $companyPhone = \App\Support\PhoneNumber::format($company->phone);
+                                $companyTel = $company->telUrl();
+                            @endphp
+                            @if($companyPhone && $companyTel)
+                                <a href="{{ $companyTel }}" class="text-brand-bright hover:underline">{{ $companyPhone }}</a>
+                            @else
+                                {{ $companyPhone ?? '—' }}
+                            @endif
+                        </dd>
                     </div>
                     <div>
                         <dt class="text-mist">Site</dt>

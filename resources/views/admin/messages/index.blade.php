@@ -3,7 +3,8 @@
 @section('content')
     @php
         $isOpen = $selected !== null;
-        $phoneDigits = $selected?->phone ? preg_replace('/\D+/', '', $selected->phone) : null;
+        $telHref = $selected?->telUrl();
+        $waHref = $selected?->whatsappUrl();
     @endphp
 
     <div class="messenger-shell">
@@ -79,11 +80,13 @@
                             <a href="mailto:{{ $selected->email }}?subject={{ rawurlencode('Re: '.$selected->subject) }}" class="messenger-icon-btn" title="E-mail">
                                 <x-ui.icon name="mail" class="h-4 w-4" />
                             </a>
-                            @if($phoneDigits)
-                                <a href="https://wa.me/{{ $phoneDigits }}" target="_blank" rel="noopener" class="messenger-icon-btn" title="WhatsApp">
+                            @if($waHref)
+                                <a href="{{ $waHref }}" target="_blank" rel="noopener" class="messenger-icon-btn" title="WhatsApp">
                                     <x-ui.icon name="whatsapp" class="h-4 w-4" />
                                 </a>
-                                <a href="tel:{{ preg_replace('/\s+/', '', $selected->phone) }}" class="messenger-icon-btn" title="Ligar">
+                            @endif
+                            @if($telHref)
+                                <a href="{{ $telHref }}" class="messenger-icon-btn" title="Ligar">
                                     <x-ui.icon name="phone" class="h-4 w-4" />
                                 </a>
                             @endif
@@ -112,7 +115,12 @@
                                     @endif
                                     @if($selected->phone)
                                         @if($selected->preferred_channel) · @endif
-                        Tel: {{ \App\Support\PhoneNumber::format($selected->phone) }}
+                                        Tel:
+                                        @if($telHref)
+                                            <a href="{{ $telHref }}">{{ \App\Support\PhoneNumber::format($selected->phone) }}</a>
+                                        @else
+                                            {{ \App\Support\PhoneNumber::format($selected->phone) }}
+                                        @endif
                                     @endif
                                 </p>
                             @endif
@@ -134,8 +142,8 @@
                             <a href="mailto:{{ $selected->email }}?subject={{ rawurlencode('Re: '.$selected->subject) }}" class="messenger-composer__primary">
                                 Responder por e-mail
                             </a>
-                            @if($phoneDigits)
-                                <a href="https://wa.me/{{ $phoneDigits }}" target="_blank" rel="noopener" class="messenger-composer__secondary">
+                            @if($waHref)
+                                <a href="{{ $waHref }}" target="_blank" rel="noopener" class="messenger-composer__secondary">
                                     WhatsApp
                                 </a>
                             @endif

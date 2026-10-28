@@ -45,10 +45,13 @@ class PhoneNumber
             ];
         }
 
+        $explicitPlus = str_starts_with($raw, '+');
         $digits = preg_replace('/\D+/', '', $raw) ?: '';
         $countries = self::countries()
             ->sortByDesc(fn (array $country) => strlen($country['dial']))
             ->values();
+        $fallbackIsBr = strtoupper($fallback['iso']) === 'BR';
+        $looksBrNational = self::looksLikeFullNational($digits, 'BR');
 
         foreach ($countries as $country) {
             $dial = (string) $country['dial'];
@@ -57,14 +60,28 @@ class PhoneNumber
             }
 
             $national = substr($digits, strlen($dial));
-            if (self::looksLikeFullNational($national, (string) $country['iso'])) {
-                return [
-                    'iso' => $country['iso'],
-                    'dial' => $dial,
-                    'national' => $national,
-                    'flag' => $country['flag'],
-                ];
+            if (! self::looksLikeFullNational($national, (string) $country['iso'])) {
+                continue;
             }
+
+            // Sem "+", 10–11 dígitos no Brasil são DDD+número (ex.: 11 São Paulo),
+            // não o DDI 1 dos EUA.
+            if (
+                $fallbackIsBr
+                && $looksBrNational
+                && strlen($digits) <= 11
+                && ! $explicitPlus
+                && strtoupper((string) $country['iso']) !== 'BR'
+            ) {
+                continue;
+            }
+
+            return [
+                'iso' => $country['iso'],
+                'dial' => $dial,
+                'national' => $national,
+                'flag' => $country['flag'],
+            ];
         }
 
         return [
@@ -112,6 +129,64 @@ class PhoneNumber
         $digits = preg_replace('/\D+/', '', (string) $phone) ?: '';
 
         return $digits !== '' ? $digits : null;
+    }
+
+    /**
+     * Dígitos internacionais (DDI + nacional), prontos para tel: e wa.me.
+     */
+    public static function e164Digits(?string $phone, string $fallbackIso = 'BR'): ?string
+    {
+        $raw = trim((string) $phone);
+        if ($raw === '') {
+            return null;
+        }
+
+        $parsed = self::parse($raw, $fallbackIso);
+        if ($parsed['national'] !== '' && self::looksLikeFullNational($parsed['national'], $parsed['iso'])) {
+            return $parsed['dial'].$parsed['national'];
+        }
+
+        $digits = self::digits($raw);
+
+        return $digits !== null && strlen($digits) >= 8 ? $digits : null;
+    }
+
+    public static function telHref(?string $phone, string $fallbackIso = 'BR'): ?string
+    {
+        $e164 = self::e164Digits($phone, $fallbackIso);
+
+        return $e164 ? 'tel:+'.$e164 : null;
+    }
+
+    public static function whatsappHref(?string $phone, ?string $prefill = null, string $fallbackIso = 'BR'): ?string
+    {
+        $e164 = self::e164Digits($phone, $fallbackIso);
+        if ($e164 === null) {
+            return null;
+        }
+
+        $url = 'https://wa.me/'.$e164;
+        if (filled($prefill)) {
+            $url .= '?text='.rawurlencode($prefill);
+        }
+
+        return $url;
+    }
+
+    /**
+     * Link HTTPS (wa.me) com DDI+DDD+número visíveis — o Telegram não aceita tel: no HTML.
+     */
+    public static function telegramHtml(?string $phone, string $fallbackIso = 'BR'): ?string
+    {
+        $label = self::format($phone);
+        $href = self::whatsappHref($phone, null, $fallbackIso);
+        if ($label === null || $href === null) {
+            return null;
+        }
+
+        return '<a href="'.htmlspecialchars($href, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8').'">'
+            .htmlspecialchars($label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+            .'</a>';
     }
 
     public static function formatNational(string $national, string $iso = 'BR'): string

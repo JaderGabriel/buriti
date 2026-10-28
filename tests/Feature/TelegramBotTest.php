@@ -150,6 +150,7 @@ class TelegramBotTest extends TestCase
         $this->assertNotNull($contact);
         $this->assertSame(ContactSource::Telegram, $contact->source);
         $this->assertSame('Ana Silva', $contact->name);
+        $this->assertSame('+55 (11) 99999-0000', $contact->phone);
 
         $this->postWebhook([
             'message' => [
@@ -247,9 +248,42 @@ class TelegramBotTest extends TestCase
 
             $data = $request->data();
 
+            $text = (string) ($data['text'] ?? '');
+            $button = $data['reply_markup']['inline_keyboard'][0][0]['url'] ?? '';
+
             return ($data['chat_id'] ?? null) == '999001'
-                && str_contains((string) ($data['text'] ?? ''), 'Nova mensagem do site')
-                && str_contains((string) ($data['text'] ?? ''), 'Lead Site');
+                && str_contains($text, 'Nova mensagem do site')
+                && str_contains($text, 'Lead Site')
+                && str_contains($text, 'https://wa.me/5511988887777')
+                && str_contains($text, '+55 (11) 98888-7777')
+                && $button === 'https://wa.me/5511988887777';
+        });
+    }
+
+    public function test_contato_show_links_phone_with_ddi_ddd_and_number(): void
+    {
+        $this->loginAdmin();
+
+        $contact = Contact::factory()->create([
+            'name' => 'Maria Lead',
+            'email' => 'maria.lead@buriti.test',
+            'phone' => '+55 (38) 99175-8416',
+        ]);
+
+        $this->postWebhook([
+            'message' => [
+                'chat' => ['id' => 999001],
+                'text' => '/contato '.$contact->id,
+            ],
+        ])->assertOk();
+
+        Http::assertSent(function ($request) {
+            $text = (string) ($request->data()['text'] ?? '');
+
+            return str_contains($request->url(), 'sendMessage')
+                && str_contains($text, 'https://wa.me/5538991758416')
+                && str_contains($text, '+55 (38) 99175-8416')
+                && str_contains($text, 'Maria Lead');
         });
     }
 

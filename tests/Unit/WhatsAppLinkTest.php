@@ -18,6 +18,8 @@ class WhatsAppLinkTest extends TestCase
     {
         $this->assertSame('https://wa.me/5538991758416', WhatsAppLink::href('+55 38 99175-8416'));
         $this->assertSame('https://wa.me/5538991758416', WhatsAppLink::href('+55 (38) 99175-8416'));
+        $this->assertSame('https://wa.me/5538991758416', WhatsAppLink::href('38991758416'));
+        $this->assertSame('https://wa.me/5538991758416', WhatsAppLink::href('38 99175-8416'));
     }
 
     public function test_normalize_keeps_username_and_formats_phone(): void

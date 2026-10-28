@@ -23,6 +23,7 @@ use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\CompanyResolver;
 use App\Services\SettingService;
+use App\Support\PhoneNumber;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
@@ -135,7 +136,7 @@ class TelegramBotService
             '',
             '<b>De:</b> '.$this->escape($message->name),
             '<b>E-mail:</b> '.$this->escape($message->email),
-            $message->phone ? '<b>Telefone:</b> '.$this->escape($message->phone) : null,
+            $this->phoneHtmlLine($message->phone),
             $message->company ? '<b>Empresa:</b> '.$this->escape($message->company) : null,
             '<b>Assunto:</b> '.$this->escape($message->subject),
             '',
@@ -144,8 +145,10 @@ class TelegramBotService
             '🔗 <a href="'.$this->escape($adminUrl).'">Abrir no admin</a>',
         ]));
 
+        $markup = $this->whatsappKeyboard($message->phone);
+
         foreach ($chatIds as $chatId) {
-            $this->api->sendMessage($chatId, $text);
+            $this->api->sendMessage($chatId, $text, $markup);
         }
     }
 
@@ -604,7 +607,7 @@ HTML;
             "👤 <b>Contato #{$contact->id}</b>",
             '<b>Nome:</b> '.$this->escape($contact->name),
             '<b>E-mail:</b> '.(filled($contact->email) ? $this->escape($contact->email) : '—'),
-            $contact->phone ? '<b>Telefone:</b> '.$this->escape($contact->phone) : null,
+            $this->phoneHtmlLine($contact->phone),
             $contact->companyLabel() ? '<b>Empresa:</b> '.$this->escape($contact->companyLabel()) : null,
             '<b>Status:</b> '.($contact->status?->value ?? '—'),
             '<b>Origem:</b> '.($contact->source?->value ?? '—'),
@@ -637,7 +640,7 @@ HTML;
             ['email' => $email],
             [
                 'name' => trim((string) $name),
-                'phone' => filled($phone) ? trim((string) $phone) : null,
+                'phone' => $this->normalizedPhone($phone),
                 'company' => $resolvedCompany?->name,
                 'company_id' => $resolvedCompany?->id,
                 'status' => $status,
@@ -647,7 +650,11 @@ HTML;
 
         $url = route('admin.contacts.show', $contact);
 
-        return "✅ Contato <b>#{$contact->id}</b> {$this->escape($contact->name)}\n🔗 <a href=\"{$this->escape($url)}\">Abrir no admin</a>";
+        return implode("\n", array_filter([
+            "✅ Contato <b>#{$contact->id}</b> {$this->escape($contact->name)}",
+            $this->phoneHtmlLine($contact->phone),
+            "🔗 <a href=\"{$this->escape($url)}\">Abrir no admin</a>",
+        ]));
     }
 
     private function updateContact(string $argument): string
@@ -675,7 +682,7 @@ HTML;
             $data['email'] = $normalized;
         }
         if (! $this->keep($phone)) {
-            $data['phone'] = filled($phone) ? trim((string) $phone) : null;
+            $data['phone'] = $this->normalizedPhone($phone);
         }
         if (! $this->keep($company)) {
             $resolvedCompany = $this->companies->findOrCreateByName(
@@ -1853,7 +1860,7 @@ HTML;
             "✉️ <b>Mensagem #{$item->id}</b> ".($item->isUnread() ? '(não lida)' : '(lida)'),
             '<b>De:</b> '.$this->escape($item->name),
             '<b>E-mail:</b> '.$this->escape($item->email),
-            $item->phone ? '<b>Telefone:</b> '.$this->escape($item->phone) : null,
+            $this->phoneHtmlLine($item->phone),
             '<b>Assunto:</b> '.$this->escape($item->subject),
             '',
             $body,
@@ -2040,6 +2047,45 @@ HTML;
         }
 
         return array_values($parts);
+    }
+
+    private function normalizedPhone(?string $phone): ?string
+    {
+        $raw = trim((string) $phone);
+        if ($raw === '') {
+            return null;
+        }
+
+        return PhoneNumber::normalizeInput(['phone' => $raw])['phone'];
+    }
+
+    private function phoneHtmlLine(?string $phone): ?string
+    {
+        $html = PhoneNumber::telegramHtml($phone);
+        if ($html !== null) {
+            return '<b>Telefone:</b> '.$html;
+        }
+
+        $raw = trim((string) $phone);
+
+        return $raw !== '' ? '<b>Telefone:</b> '.$this->escape($raw) : null;
+    }
+
+    /**
+     * @return array{inline_keyboard: list<list<array{text: string, url: string}>>}|null
+     */
+    private function whatsappKeyboard(?string $phone): ?array
+    {
+        $url = PhoneNumber::whatsappHref($phone);
+        if ($url === null || ! str_starts_with($url, 'https://')) {
+            return null;
+        }
+
+        return [
+            'inline_keyboard' => [[
+                ['text' => 'WhatsApp', 'url' => $url],
+            ]],
+        ];
     }
 
     private function escape(?string $value): string

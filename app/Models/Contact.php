@@ -7,6 +7,7 @@ use App\Enums\ContactStatus;
 use App\Models\Concerns\HasAttachments;
 use App\Support\PhoneNumber;
 use App\Support\WhatsAppLink;
+use Database\Factories\ContactFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -17,7 +18,7 @@ use Illuminate\Support\Str;
 
 class Contact extends Model
 {
-    /** @use HasFactory<\Database\Factories\ContactFactory> */
+    /** @use HasFactory<ContactFactory> */
     use HasAttachments, HasFactory;
 
     protected $fillable = [
@@ -119,9 +120,7 @@ class Contact extends Model
 
     public function telUrl(): ?string
     {
-        $digits = PhoneNumber::digits($this->phone);
-
-        return $digits ? 'tel:+'.$digits : null;
+        return PhoneNumber::telHref($this->phone);
     }
 
     public function mailtoUrl(): ?string

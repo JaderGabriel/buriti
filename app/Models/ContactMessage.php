@@ -2,15 +2,19 @@
 
 namespace App\Models;
 
+use App\Support\PhoneNumber;
+use Database\Factories\ContactMessageFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
 class ContactMessage extends Model
 {
-    /** @use HasFactory<\Database\Factories\ContactMessageFactory> */
+    /** @use HasFactory<ContactMessageFactory> */
     use HasFactory;
+
     protected $fillable = [
         'contact_id',
         'name',
@@ -52,6 +56,16 @@ class ContactMessage extends Model
         }
     }
 
+    public function telUrl(): ?string
+    {
+        return PhoneNumber::telHref($this->phone);
+    }
+
+    public function whatsappUrl(): ?string
+    {
+        return PhoneNumber::whatsappHref($this->phone);
+    }
+
     public function initials(): string
     {
         return collect(preg_split('/\s+/', trim($this->name)) ?: [])
@@ -65,7 +79,7 @@ class ContactMessage extends Model
     {
         $text = trim(preg_replace('/\s+/', ' ', $this->message) ?? '');
 
-        return \Illuminate\Support\Str::limit($text !== '' ? $text : $this->subject, $limit);
+        return Str::limit($text !== '' ? $text : $this->subject, $limit);
     }
 
     public function relativeDay(): string

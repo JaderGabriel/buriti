@@ -29,7 +29,7 @@
                 <div class="mb-8">
                     <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-bright">Acesso</p>
                     <h1 id="login-heading" class="mt-2 font-display text-2xl font-bold text-snow sm:text-3xl">Entrar no painel</h1>
-                    <p class="mt-2 text-sm text-mist">Admin: usuário/senha + código de 6 dígitos no Telegram, ou desafio no bot. Membro de um Jirau entra só com usuário e senha do projeto.</p>
+                    <p class="mt-2 text-sm text-mist">Admin: usuário/senha + código de 6 dígitos (Senhas do iPhone se vinculado, senão Telegram), ou desafio no bot. Membro de um Jirau entra só com usuário e senha do projeto.</p>
                 </div>
 
                 @if ($errors->has('telegram'))

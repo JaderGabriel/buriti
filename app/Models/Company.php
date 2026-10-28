@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\CompanyStatus;
+use App\Support\PhoneNumber;
+use App\Support\WhatsAppLink;
 use Database\Factories\CompanyFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -95,6 +97,16 @@ class Company extends Model
         }
 
         return Storage::disk('public')->url($path);
+    }
+
+    public function telUrl(): ?string
+    {
+        return PhoneNumber::telHref($this->phone);
+    }
+
+    public function whatsappUrl(): ?string
+    {
+        return WhatsAppLink::href($this->phone);
     }
 
     public function initials(): string

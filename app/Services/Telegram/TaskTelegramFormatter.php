@@ -288,17 +288,12 @@ class TaskTelegramFormatter
             '👤 <b>'.$this->escape($contact->name).'</b>',
         ];
 
-        $phoneLabel = PhoneNumber::format($contact->phone);
-        if ($phoneLabel) {
-            $lines[] = '📞 '.$this->escape($phoneLabel);
+        $phoneHtml = PhoneNumber::telegramHtml($contact->phone);
+        if ($phoneHtml) {
+            $lines[] = '📞 '.$phoneHtml;
         }
 
         $actions = [];
-        $tel = $contact->telUrl();
-        if ($tel) {
-            $actions[] = '<a href="'.$this->escape($tel).'">Ligar</a>';
-        }
-
         $whatsapp = $contact->whatsappUrl();
         if ($whatsapp) {
             $actions[] = '<a href="'.$this->escape($whatsapp).'">WhatsApp</a>';

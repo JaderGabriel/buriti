@@ -35,6 +35,11 @@ class WhatsAppLink
             return strtolower($raw);
         }
 
+        $e164 = PhoneNumber::e164Digits($raw);
+        if ($e164 !== null) {
+            return $e164;
+        }
+
         $digits = preg_replace('/\D+/', '', $raw) ?: '';
 
         return $digits !== '' ? $digits : null;

@@ -1,6 +1,6 @@
 # BURI-TI
 
-Site institucional e painel administrativo da **BURI-TI** — *Tecnologia para Pessoas*. Sistema **1.7 Igarapé** (site, CRM e Jirau). A versão visível no UI vem de `config/buriti.php` via `RuntimeVersions`.
+Site institucional e painel administrativo da **BURI-TI** — *Tecnologia para Pessoas*. Sistema **1.8 Nascente** (site, CRM e Jirau). A versão visível no UI vem de `config/buriti.php` via `RuntimeVersions`.
 
 Stack: **Laravel 13**, **Blade**, **Vite**, **Tailwind CSS 4**, **Alpine.js**, MySQL.
 
@@ -26,18 +26,18 @@ Jornada: **Mensagem → Contato → Oportunidade → Projeto → Tarefa**.
 
 | Área | O que faz |
 |---|---|
-| **Dashboard** | KPIs, mensagens, contactos, agenda, atividades recentes, ideias (post-its) |
+| **Dashboard** | KPIs com tendência, mensagens, contactos, agenda, atividades recentes, ideias (post-its); atalhos Meet / Teams / Jitsi |
 | **Mensagens** | Inbox do formulário público; vínculo a contacto / lead |
 | **Empresas** | Cadastro de clientes/organizações |
-| **Contatos** | Agenda telefónica + ficha (hero, timeline, pasta de arquivos, mini-calendário) |
+| **Contatos** | Agenda telefónica + ficha (hero, timeline, pasta de arquivos, mini-calendário); telefone em E.164 (`tel:` e WhatsApp) |
 | **Atividades** | Notas, chamadas, reuniões, e-mails; vínculo opcional a tarefa/oportunidade; conclusão de reunião **só se marcada** |
 | **Oportunidades** | Pipeline por estágio (board) e valor |
 | **Projetos** | Board com ordenação vertical, etapas, logo/contrato, anexos |
 | **Jirau** | Quadro ágil por projeto (Demandas → Feito), etiquetas, pontos, WIP, checklist, comentários; membros do projeto só veem o quadro e abrem demandas |
-| **Tarefas / agenda** | Calendário, agenda, quadro, lista; Meet; sync Google; cores; ICS |
+| **Tarefas / agenda** | Calendário, agenda, quadro, lista; Meet / Teams / Jitsi; sync Google; cores; ICS |
 | **Anexos** | Soft delete (lixeira), preview no browser (PDF/imagem/média/texto), download |
 | **Usuários** | CRUD, avatar, ativar/desativar, sessões com revogação |
-| **Perfil** | Dados próprios + sessões |
+| **Perfil** | Dados próprios, sessões e 2FA (vincular/desvincular Senhas do iPhone; Telegram já vinculado no bot) |
 | **Integrações** | Google, Telegram Bot, atalhos Trello/Notion |
 | **Configurações** | Contactos do site + hub Google (níveis 1–3) |
 
@@ -50,9 +50,12 @@ Jornada: **Mensagem → Contato → Oportunidade → Projeto → Tarefa**.
 - Histórico de tentativas de login e revogação de sessões (`SESSION_DRIVER=database`)
 - Senha mínima com letras e números (regra `Password::defaults`)
 - Honeypot no contacto público
-- Login admin também via Telegram (desafio temporário no bot — sem widget)
-- Login admin por usuário/senha exige 2FA: código de 6 dígitos enviado no Telegram vinculado à conta
+- Login admin por usuário/senha exige 2FA: TOTP nas **Senhas do iPhone** se o método estiver vinculado; senão, código de 6 dígitos no Telegram
+- Login admin também via desafio temporário no bot Telegram (sem widget de terceiros na página)
 - Membro de Jirau autentica só com usuário/senha (sem Telegram) e não acessa o CRM
+- Telefones normalizados em E.164 (DDI + DDD + número) em `tel:` e `wa.me` no CRM e no bot
+
+A política pública (CRM, Telegram, Google, 2FA) está em `/privacidade`. A página descreve o tratamento actual; não substitui um DPIA.
 
 ## Requisitos
 
@@ -246,7 +249,7 @@ Fluxo típico: **Request → FormRequest → Controller → Model/Service → Vi
 
 ## Testes
 
-Suite PHPUnit (SQLite em memória; ~128 testes):
+Suite PHPUnit (SQLite em memória; ~300 testes):
 
 ```bash
 composer test
@@ -254,7 +257,7 @@ composer test
 ./bin/test
 ```
 
-Cobertura inclui site público, auth, CRM (contactos, oportunidades, projetos/board, tarefas, atividades, anexos/preview), Telegram bot, Google/settings e segurança de sessões.
+Cobertura inclui site público, auth (2FA iOS + Telegram), CRM (contactos, oportunidades, projetos/board, tarefas, atividades, anexos/preview), Jirau, Telegram bot, Google/settings, roadmap e segurança de sessões.
 
 ## Scripts úteis
 

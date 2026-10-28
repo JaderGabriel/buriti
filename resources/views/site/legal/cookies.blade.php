@@ -44,6 +44,12 @@
                                     <td class="px-3 py-3">Sim</td>
                                 </tr>
                                 <tr>
+                                    <td class="px-3 py-3 text-snow">remember_web (opcional)</td>
+                                    <td class="px-3 py-3">Manter o login no painel se marcar “lembrar-me”</td>
+                                    <td class="px-3 py-3">Conforme configuração do servidor (dias)</td>
+                                    <td class="px-3 py-3">Funcional</td>
+                                </tr>
+                                <tr>
                                     <td class="px-3 py-3 text-snow">buriti-theme (localStorage)</td>
                                     <td class="px-3 py-3">Lembrar preferência de modo claro/escuro</td>
                                     <td class="px-3 py-3">Até limpar dados do navegador</td>
