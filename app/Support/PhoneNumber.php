@@ -174,8 +174,9 @@ class PhoneNumber
     }
 
     /**
-     * Número formatado (DDI + DDD + assinante) para o texto do Telegram — sem link.
-     * WhatsApp vai em botão; o cartão nativo (sendContact) guarda na agenda.
+     * Número para o texto do Telegram: E.164 contínuo (+DDI DDD assinante).
+     * Parênteses e hífen fazem o cliente linkar só os últimos dígitos — a
+     * ligação sai sem DDI/DDD. WhatsApp vai em botão; sendContact guarda na agenda.
      */
     public static function telegramHtml(?string $phone, string $fallbackIso = 'BR'): ?string
     {
@@ -184,7 +185,10 @@ class PhoneNumber
             return null;
         }
 
-        return htmlspecialchars(self::format($raw, $fallbackIso) ?? $raw, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $e164 = self::e164Digits($raw, $fallbackIso);
+        $display = $e164 !== null ? '+'.$e164 : (self::format($raw, $fallbackIso) ?? $raw);
+
+        return htmlspecialchars($display, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 
     /**

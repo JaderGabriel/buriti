@@ -8,8 +8,13 @@ use App\Models\User;
 use App\Services\Telegram\TelegramApiClient;
 use App\Services\Telegram\TelegramBotService;
 use App\Support\QaCatalog;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Process;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -19,6 +24,7 @@ class QaLabService
         private TelegramApiClient $telegramApi,
         private TelegramBotService $telegramBot,
         private AuditLogger $audit,
+        private GoogleCalendarService $google,
     ) {}
 
     public function start(User $user, string $command): QaRun
@@ -26,7 +32,7 @@ class QaLabService
         $item = QaCatalog::find($command);
         abort_unless($item !== null, 422, 'Comando de teste desconhecido.');
 
-        if ($command === 'suite.phpunit' && $this->suiteIsRunning()) {
+        if (($item['kind'] ?? '') === 'suite' && $this->suiteIsRunning()) {
             abort(409, 'Já há uma suíte a correr.');
         }
 
@@ -50,14 +56,21 @@ class QaLabService
     public function execute(QaRun $run): QaRun
     {
         try {
-            $result = match ($run->command) {
-                'suite.phpunit' => $this->runSuite(),
+            $item = QaCatalog::find($run->command);
+            $result = match ($item['runner'] ?? '') {
+                'phpunit' => $this->runSuite($item['payload']['args'] ?? []),
+                'http' => $this->httpProbe(
+                    $this->resolveProbeUrl($item['payload'] ?? []),
+                    (string) ($item['label'] ?? $run->command),
+                ),
+                'http.pack' => $this->httpProbePack($item['payload']['targets'] ?? QaCatalog::publicTargets()),
                 'telegram.ping' => $this->telegramPing(),
                 'telegram.resend_last' => $this->telegramResendLast(),
                 'telegram.webhook' => $this->telegramWebhook(),
-                'health.up' => $this->httpProbe(rtrim((string) config('app.url'), '/').'/up', 'Health /up'),
-                'health.home' => $this->httpProbe((string) url('/'), 'Página inicial'),
-                'health.login' => $this->httpProbe((string) route('login'), 'Tela de login'),
+                'module' => $this->moduleHealth((string) ($item['label'] ?? $run->command), $item['payload'] ?? []),
+                'ops' => $this->opsHealth(),
+                'migrations' => $this->migrationsStatus(),
+                'google' => $this->googleStatus(),
                 default => [
                     'ok' => false,
                     'summary' => 'Comando desconhecido.',
@@ -91,19 +104,18 @@ class QaLabService
     public function suiteIsRunning(): bool
     {
         return QaRun::query()
-            ->where('command', 'suite.phpunit')
+            ->where('kind', 'suite')
             ->where('status', QaRun::STATUS_RUNNING)
             ->exists();
     }
 
     /**
+     * @param  list<string>  $args
      * @return array{ok: bool, summary: string, output: string, meta: array<string, mixed>}
      */
-    private function runSuite(): array
+    private function runSuite(array $args = []): array
     {
         $phpunit = base_path('vendor/bin/phpunit');
-        $bin = base_path('bin/test');
-
         if (! is_file($phpunit)) {
             return [
                 'ok' => false,
@@ -114,32 +126,80 @@ class QaLabService
             ];
         }
 
+        $php = $this->cliPhpBinary();
+        if ($php === null) {
+            return [
+                'ok' => false,
+                'error' => true,
+                'summary' => 'PHP CLI indisponível para a suíte.',
+                'output' => 'Não há binário PHP de linha de comando (php-fpm não serve). Esperado /usr/bin/php ou /usr/bin/php8.4.',
+                'meta' => ['php' => false],
+            ];
+        }
+
+        $sqliteFlags = $this->sqliteIniFlags();
+        if (! extension_loaded('pdo_sqlite') && $sqliteFlags === []) {
+            return [
+                'ok' => false,
+                'error' => true,
+                'summary' => 'PDO SQLite indisponível neste servidor.',
+                'output' => 'A suíte usa SQLite em memória e não toca na base de produção. Instale php-sqlite ou coloque ext/pdo_sqlite.so (carregado pelo ./bin/php).',
+                'meta' => ['sqlite' => false],
+            ];
+        }
+
+        ignore_user_abort(true);
         set_time_limit(180);
+
+        $command = array_merge([$php], $sqliteFlags, [$phpunit, '--colors=never'], $args);
 
         $result = Process::path(base_path())
             ->timeout(180)
-            ->run([is_file($bin) ? $bin : $phpunit, '--colors=never']);
+            ->idleTimeout(120)
+            ->env($this->phpunitEnv())
+            ->run($command);
 
-        $output = trim($result->output()."\n".$result->errorOutput());
-        $parsed = $this->parsePhpunit($output);
-        $ok = $result->successful() && ($parsed['failures'] + $parsed['errors']) === 0;
+        $stdout = trim($result->output());
+        $stderr = trim($result->errorOutput());
+        $chunks = [
+            'Comando: '.implode(' ', $command),
+            'Exit: '.($result->exitCode() ?? 'n/d'),
+        ];
+        if ($stdout !== '') {
+            $chunks[] = "--- stdout ---\n".$stdout;
+        }
+        if ($stderr !== '') {
+            $chunks[] = "--- stderr ---\n".$stderr;
+        }
+        if ($stdout === '' && $stderr === '') {
+            $chunks[] = '(sem saída)';
+        }
+        $output = implode("\n", $chunks);
+        $parsed = $this->parsePhpunit($stdout."\n".$stderr);
+        $exit = $result->exitCode() ?? 1;
+        $ok = $result->successful() && $parsed['tests'] > 0 && ($parsed['failures'] + $parsed['errors']) === 0;
 
-        $summary = $ok
-            ? sprintf('Suíte OK — %d testes, %d asserções.', $parsed['tests'], $parsed['assertions'])
-            : sprintf(
+        if ($ok) {
+            $summary = sprintf('Suíte OK — %d testes, %d asserções.', $parsed['tests'], $parsed['assertions']);
+        } elseif ($parsed['tests'] === 0) {
+            $summary = sprintf('Suíte não rodou (exit %d). PHPUnit não executou testes — veja a saída.', $exit);
+        } else {
+            $summary = sprintf(
                 'Suíte falhou (exit %d) — %d testes, %d falhas, %d erros.',
-                $result->exitCode() ?? 1,
+                $exit,
                 $parsed['tests'],
                 $parsed['failures'],
                 $parsed['errors'],
             );
+        }
 
         return [
             'ok' => $ok,
             'summary' => $summary,
-            'output' => $output !== '' ? $output : '(sem saída)',
+            'output' => $output,
             'meta' => array_merge($parsed, [
-                'exit_code' => $result->exitCode(),
+                'exit_code' => $exit,
+                'php' => $php,
             ]),
         ];
     }
@@ -177,6 +237,68 @@ class QaLabService
             'assertions' => $assertions,
             'failures' => $failures,
             'errors' => $errors,
+        ];
+    }
+
+    private function cliPhpBinary(): ?string
+    {
+        foreach (['/usr/bin/php8.4', '/usr/bin/php', PHP_BINARY] as $bin) {
+            if ($bin !== '' && is_executable($bin) && ! str_contains(basename($bin), 'fpm')) {
+                return $bin;
+            }
+        }
+
+        return null;
+    }
+
+    /** @return list<string> */
+    private function sqliteIniFlags(): array
+    {
+        $flags = [];
+
+        foreach (['pdo_sqlite', 'sqlite3'] as $extension) {
+            $so = base_path('ext/'.$extension.'.so');
+            if (is_file($so)) {
+                $flags[] = '-d';
+                $flags[] = 'extension='.$so;
+            }
+        }
+
+        return $flags;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function phpunitEnv(): array
+    {
+        return [
+            'PATH' => '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
+            'HOME' => sys_get_temp_dir(),
+            'TMPDIR' => sys_get_temp_dir(),
+            'APP_ENV' => 'testing',
+            'APP_KEY' => (string) config('app.key'),
+            'APP_URL' => 'http://localhost',
+            'APP_MAINTENANCE_DRIVER' => 'file',
+            'BCRYPT_ROUNDS' => '4',
+            'BROADCAST_CONNECTION' => 'null',
+            'CACHE_STORE' => 'array',
+            'DB_CONNECTION' => 'sqlite',
+            'DB_DATABASE' => ':memory:',
+            'DB_URL' => '',
+            'DB_HOST' => '',
+            'DB_PORT' => '',
+            'DB_USERNAME' => '',
+            'DB_PASSWORD' => '',
+            'MAIL_MAILER' => 'array',
+            'QUEUE_CONNECTION' => 'sync',
+            'SESSION_DRIVER' => 'array',
+            'SESSION_ENCRYPT' => 'false',
+            'PULSE_ENABLED' => 'false',
+            'TELESCOPE_ENABLED' => 'false',
+            'NIGHTWATCH_ENABLED' => 'false',
+            'TELEGRAM_BOT_TOKEN' => '',
+            'TELEGRAM_WEBHOOK_SECRET' => '',
         ];
     }
 
@@ -334,6 +456,280 @@ class QaLabService
                 'bytes' => $bytes,
             ],
         ];
+    }
+
+    /**
+     * @param  list<array{label: string, route?: string, path?: string}>  $targets
+     * @return array{ok: bool, summary: string, output: string, meta: array<string, mixed>}
+     */
+    private function httpProbePack(array $targets): array
+    {
+        $checks = [];
+        $lines = [];
+        $okCount = 0;
+
+        foreach ($targets as $target) {
+            $label = (string) ($target['label'] ?? 'GET');
+            $probe = $this->httpProbe($this->resolveProbeUrl($target), $label);
+            $ok = (bool) ($probe['ok'] ?? false);
+            if ($ok) {
+                $okCount++;
+            }
+            $status = $probe['meta']['status'] ?? 0;
+            $url = $probe['meta']['url'] ?? '';
+            $checks[] = [
+                'name' => $label,
+                'ok' => $ok,
+                'detail' => 'HTTP '.$status,
+            ];
+            $lines[] = sprintf('%s %s → HTTP %s', $ok ? 'OK' : 'FALHOU', $label, $status);
+            $lines[] = '  '.$url;
+        }
+
+        $total = count($targets);
+        $ok = $total > 0 && $okCount === $total;
+
+        return [
+            'ok' => $ok,
+            'summary' => sprintf('Telas públicas: %d/%d OK.', $okCount, $total),
+            'output' => implode("\n", $lines),
+            'meta' => [
+                'ok_count' => $okCount,
+                'total' => $total,
+                'checks' => $checks,
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array{ok: bool, summary: string, output: string, meta: array<string, mixed>}
+     */
+    private function moduleHealth(string $label, array $payload): array
+    {
+        $checks = [];
+        $lines = [];
+
+        foreach ($payload['routes'] ?? [] as $name) {
+            $name = (string) $name;
+            $exists = Route::has($name);
+            $checks[] = ['name' => 'Rota '.$name, 'ok' => $exists, 'detail' => $exists ? 'registada' : 'em falta'];
+            $lines[] = ($exists ? 'OK' : 'FALHOU').' rota '.$name;
+        }
+
+        foreach ($payload['views'] ?? [] as $view) {
+            $view = (string) $view;
+            $exists = View::exists($view);
+            $checks[] = ['name' => 'View '.$view, 'ok' => $exists, 'detail' => $exists ? 'existe' : 'em falta'];
+            $lines[] = ($exists ? 'OK' : 'FALHOU').' view '.$view;
+        }
+
+        foreach ($payload['counts'] ?? [] as $caption => $class) {
+            $caption = (string) $caption;
+            try {
+                if (! is_string($class) || ! class_exists($class)) {
+                    throw new \RuntimeException('modelo desconhecido');
+                }
+                $count = $class::query()->count();
+                $checks[] = ['name' => $caption, 'ok' => true, 'detail' => (string) $count];
+                $lines[] = 'OK '.$caption.': '.$count;
+            } catch (Throwable $e) {
+                $checks[] = ['name' => $caption, 'ok' => false, 'detail' => $e->getMessage()];
+                $lines[] = 'FALHOU '.$caption.': '.$e->getMessage();
+            }
+        }
+
+        $failed = collect($checks)->where('ok', false)->count();
+        $ok = $checks !== [] && $failed === 0;
+
+        return [
+            'ok' => $ok,
+            'summary' => $ok
+                ? $label.': '.count($checks).' checagens OK.'
+                : $label.': '.$failed.' falha(s) em '.count($checks).' checagens.',
+            'output' => implode("\n", $lines),
+            'meta' => [
+                'failed' => $failed,
+                'total' => count($checks),
+                'checks' => $checks,
+            ],
+        ];
+    }
+
+    /**
+     * @return array{ok: bool, summary: string, output: string, meta: array<string, mixed>}
+     */
+    private function opsHealth(): array
+    {
+        $checks = [];
+        $lines = [];
+
+        try {
+            DB::connection()->getPdo();
+            DB::select('select 1 as ok');
+            $detail = (string) config('database.default');
+            $checks[] = ['name' => 'Base de dados', 'ok' => true, 'detail' => $detail];
+            $lines[] = 'OK base: '.$detail;
+        } catch (Throwable $e) {
+            $checks[] = ['name' => 'Base de dados', 'ok' => false, 'detail' => $e->getMessage()];
+            $lines[] = 'FALHOU base: '.$e->getMessage();
+        }
+
+        try {
+            $key = 'qa:ping:'.Str::random(8);
+            Cache::put($key, 'ok', 30);
+            $hit = Cache::get($key) === 'ok';
+            Cache::forget($key);
+            $detail = (string) config('cache.default');
+            $checks[] = ['name' => 'Cache', 'ok' => $hit, 'detail' => $detail];
+            $lines[] = ($hit ? 'OK' : 'FALHOU').' cache: '.$detail;
+        } catch (Throwable $e) {
+            $checks[] = ['name' => 'Cache', 'ok' => false, 'detail' => $e->getMessage()];
+            $lines[] = 'FALHOU cache: '.$e->getMessage();
+        }
+
+        try {
+            $path = 'qa/ping-'.Str::random(6).'.txt';
+            Storage::disk('local')->put($path, 'ok');
+            $hit = Storage::disk('local')->get($path) === 'ok';
+            Storage::disk('local')->delete($path);
+            $checks[] = ['name' => 'Storage local', 'ok' => $hit, 'detail' => 'local'];
+            $lines[] = ($hit ? 'OK' : 'FALHOU').' storage local';
+        } catch (Throwable $e) {
+            $checks[] = ['name' => 'Storage local', 'ok' => false, 'detail' => $e->getMessage()];
+            $lines[] = 'FALHOU storage: '.$e->getMessage();
+        }
+
+        $appKey = filled(config('app.key'));
+        $checks[] = ['name' => 'APP_KEY', 'ok' => $appKey, 'detail' => $appKey ? 'definida' : 'vazia'];
+        $lines[] = ($appKey ? 'OK' : 'FALHOU').' APP_KEY';
+
+        $queue = (string) config('queue.default');
+        $mail = (string) config('mail.default');
+        $session = (string) config('session.driver');
+        $checks[] = ['name' => 'Fila', 'ok' => true, 'detail' => $queue];
+        $checks[] = ['name' => 'Mail', 'ok' => true, 'detail' => $mail];
+        $checks[] = ['name' => 'Sessão', 'ok' => true, 'detail' => $session];
+        $lines[] = 'Fila: '.$queue;
+        $lines[] = 'Mail: '.$mail;
+        $lines[] = 'Sessão: '.$session;
+
+        $telegram = $this->telegramApi->configured();
+        $checks[] = ['name' => 'Telegram token', 'ok' => true, 'detail' => $telegram ? 'definido' : 'em falta'];
+        $lines[] = 'Telegram token: '.($telegram ? 'definido' : 'em falta');
+
+        $google = $this->google->integrationStatus();
+        $checks[] = ['name' => 'Google Agenda', 'ok' => true, 'detail' => (string) ($google['label'] ?? '')];
+        $lines[] = 'Google: '.($google['label'] ?? '');
+
+        $failed = collect($checks)->where('ok', false)->count();
+        $ok = $failed === 0;
+
+        return [
+            'ok' => $ok,
+            'summary' => $ok
+                ? 'Stack OK — DB, cache, disco e chave.'
+                : 'Stack com '.$failed.' falha(s).',
+            'output' => implode("\n", $lines),
+            'meta' => [
+                'failed' => $failed,
+                'total' => count($checks),
+                'checks' => $checks,
+            ],
+        ];
+    }
+
+    /**
+     * @return array{ok: bool, summary: string, output: string, meta: array<string, mixed>}
+     */
+    private function migrationsStatus(): array
+    {
+        $migrator = app('migrator');
+        $migrator->setConnection(config('database.default'));
+
+        if (! $migrator->repositoryExists()) {
+            return [
+                'ok' => false,
+                'summary' => 'Repositório de migrations em falta.',
+                'output' => 'A tabela de migrations não existe.',
+                'meta' => ['pending' => null],
+            ];
+        }
+
+        $files = $migrator->getMigrationFiles([database_path('migrations')]);
+        $ran = $migrator->getRepository()->getRan();
+        $pending = array_values(array_diff(array_keys($files), $ran));
+        $ok = $pending === [];
+
+        $lines = [
+            'Corridas: '.count($ran),
+            'Ficheiros: '.count($files),
+            'Pendentes: '.count($pending),
+        ];
+        foreach ($pending as $name) {
+            $lines[] = '  - '.$name;
+        }
+
+        return [
+            'ok' => $ok,
+            'summary' => $ok
+                ? sprintf('Migrations em dia (%d).', count($ran))
+                : sprintf('%d migration(s) pendente(s).', count($pending)),
+            'output' => implode("\n", $lines),
+            'meta' => [
+                'ran' => count($ran),
+                'files' => count($files),
+                'pending' => count($pending),
+            ],
+        ];
+    }
+
+    /**
+     * @return array{ok: bool, summary: string, output: string, meta: array<string, mixed>}
+     */
+    private function googleStatus(): array
+    {
+        $status = $this->google->integrationStatus();
+        $level = (int) ($status['level'] ?? 0);
+
+        $lines = [
+            'Nível: '.$level.' — '.($status['label'] ?? ''),
+            'OAuth app: '.(($status['oauth_app'] ?? false) ? 'sim' : 'não'),
+            'API ligada: '.(($status['api'] ?? false) ? 'sim' : 'não'),
+            'Embed: '.(($status['embed'] ?? false) ? 'sim' : 'não'),
+            'Atalho: '.(($status['deep_link'] ?? false) ? 'sim' : 'não'),
+            'Calendário: '.(($status['calendar_id'] ?? '') !== '' ? $status['calendar_id'] : '(vazio)'),
+            'Próximo: '.($status['next_step'] ?? ''),
+        ];
+
+        return [
+            'ok' => $level >= 1,
+            'summary' => 'Google Agenda: '.($status['label'] ?? 'desconhecido'),
+            'output' => implode("\n", $lines),
+            'meta' => [
+                'level' => $level,
+                'oauth_app' => (bool) ($status['oauth_app'] ?? false),
+                'api' => (bool) ($status['api'] ?? false),
+                'embed' => (bool) ($status['embed'] ?? false),
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function resolveProbeUrl(array $payload): string
+    {
+        if (filled($payload['route'] ?? null)) {
+            return (string) route((string) $payload['route']);
+        }
+
+        $path = (string) ($payload['path'] ?? '/');
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        return rtrim((string) config('app.url'), '/').'/'.ltrim($path, '/');
     }
 
     /**

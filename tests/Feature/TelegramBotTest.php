@@ -255,7 +255,7 @@ class TelegramBotTest extends TestCase
             return ($data['chat_id'] ?? null) == '999001'
                 && str_contains($text, 'Nova mensagem do site')
                 && str_contains($text, 'Lead Site')
-                && str_contains($text, '+55 (11) 98888-7777')
+                && str_contains($text, '+5511988887777')
                 && ! str_contains($text, 'wa.me')
                 && ! str_contains($text, 'ligar/')
                 && ! str_contains($text, 'tel:')
@@ -299,7 +299,7 @@ class TelegramBotTest extends TestCase
             $buttons = $data['reply_markup']['inline_keyboard'][0] ?? [];
 
             return str_contains($request->url(), 'sendMessage')
-                && str_contains($text, '+55 (38) 99175-8416')
+                && str_contains($text, '+5538991758416')
                 && str_contains($text, 'Maria Lead')
                 && ! str_contains($text, 'wa.me')
                 && ! str_contains($text, 'ligar/')
@@ -1042,7 +1042,7 @@ class TelegramBotTest extends TestCase
 
             return str_contains($request->url(), 'sendMessage')
                 && str_contains($text, 'Maria Lead')
-                && str_contains($text, '+55 (38) 99175-8416');
+                && str_contains($text, '+5538991758416');
         });
 
         Http::assertSent(fn ($request) => str_contains($request->url(), 'sendContact'));

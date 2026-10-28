@@ -48,9 +48,12 @@ class QaLabController extends Controller
             return back()->with('error', $e->getMessage() !== '' ? $e->getMessage() : 'Não foi possível iniciar o teste.');
         }
 
-        if ($command === 'suite.phpunit') {
+        if (QaCatalog::isSuite($command)) {
+            ignore_user_abort(true);
             $runId = $run->id;
             dispatch(function () use ($runId) {
+                ignore_user_abort(true);
+                set_time_limit(180);
                 $queued = QaRun::query()->find($runId);
                 if ($queued) {
                     app(QaLabService::class)->execute($queued);

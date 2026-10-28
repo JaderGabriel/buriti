@@ -308,7 +308,7 @@ final class AdminNavigation
             'admin.integrations.edit' => 'google telegram integracoes',
             'admin.settings.edit' => 'settings config configuracoes',
             'admin.roadmap.show' => 'roadmap produto ideias concorrentes pipedrive hubspot modulos',
-            'admin.qa.index' => 'testes phpunit suite telegram qa laboratorio probes relatorios',
+            'admin.qa.index' => 'testes phpunit suite telegram qa laboratorio probes relatorios comercial jirau site migrations google unitario',
         ][$key] ?? '';
     }
 }

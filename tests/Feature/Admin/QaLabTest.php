@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\Company;
+use App\Models\Contact;
 use App\Models\ContactMessage;
 use App\Models\QaRun;
 use App\Models\User;
@@ -37,6 +39,11 @@ class QaLabTest extends TestCase
             ->assertOk()
             ->assertSee('Testes', false)
             ->assertSee('Rodar suíte completa', false)
+            ->assertSee('Suíte Jirau', false)
+            ->assertSee('Saúde do comercial', false)
+            ->assertSee('Saúde do Jirau', false)
+            ->assertSee('Telas públicas (lote)', false)
+            ->assertSee('Stack (DB, cache, disco)', false)
             ->assertSee('Ping no bot', false)
             ->assertSee('Reenviar último contato CRM', false)
             ->assertSee('Página inicial', false)
@@ -92,6 +99,43 @@ class QaLabTest extends TestCase
             ->assertOk()
             ->assertSee('Suíte OK', false)
             ->assertSee('OK (343 tests', false);
+
+        Process::assertRan(function ($process) {
+            $command = $process->command;
+
+            if (! is_array($command)) {
+                return false;
+            }
+
+            $line = implode(' ', $command);
+
+            return str_contains($line, 'phpunit')
+                && ! str_contains($line, 'php-fpm')
+                && ($process->environment['DB_CONNECTION'] ?? null) === 'sqlite'
+                && ($process->environment['DB_DATABASE'] ?? null) === ':memory:'
+                && ($process->environment['APP_ENV'] ?? null) === 'testing'
+                && ($process->environment['DB_PASSWORD'] ?? null) === '';
+        });
+    }
+
+    public function test_suite_without_phpunit_output_is_reported_as_not_run(): void
+    {
+        Process::fake(fn () => Process::result(
+            output: "No tests executed!\n",
+            errorOutput: 'Could not read phpunit.xml',
+            exitCode: 1,
+        ));
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.qa.store'), ['command' => 'suite.phpunit'])
+            ->assertRedirect();
+
+        $run = QaRun::query()->first();
+        $this->assertNotNull($run);
+        $this->assertTrue($run->status === QaRun::STATUS_FAILED);
+        $this->assertStringContainsString('não rodou', (string) $run->summary);
+        $this->assertStringContainsString('Could not read phpunit.xml', (string) $run->output);
+        $this->assertSame(0, $run->meta['tests'] ?? null);
     }
 
     public function test_telegram_ping_sends_to_notify_chat(): void
@@ -221,5 +265,114 @@ class QaLabTest extends TestCase
             ->post(route('admin.qa.store'), ['command' => 'rm.rf'])
             ->assertRedirect(route('admin.qa.index'))
             ->assertSessionHasErrors('command');
+    }
+
+    public function test_admin_suite_slice_passes_phpunit_path(): void
+    {
+        Process::fake(fn () => Process::result(
+            output: "OK (40 tests, 200 assertions)\n",
+            exitCode: 0,
+        ));
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.qa.store'), ['command' => 'suite.admin'])
+            ->assertRedirect();
+
+        $run = QaRun::query()->first();
+        $this->assertNotNull($run);
+        $this->assertTrue($run->isPassed());
+        $this->assertSame('suite.admin', $run->command);
+
+        Process::assertRan(function ($process) {
+            $command = $process->command;
+
+            return is_array($command)
+                && in_array('tests/Feature/Admin', $command, true)
+                && ($process->environment['DB_CONNECTION'] ?? null) === 'sqlite';
+        });
+    }
+
+    public function test_module_health_counts_crm_records(): void
+    {
+        Company::factory()->create(['name' => 'Acme QA']);
+        Contact::factory()->create();
+        ContactMessage::factory()->create();
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.qa.store'), ['command' => 'crm.health'])
+            ->assertRedirect();
+
+        $run = QaRun::query()->first();
+        $this->assertNotNull($run);
+        $this->assertTrue($run->isPassed());
+        $this->assertStringContainsString('Empresas: 1', (string) $run->output);
+        $this->assertStringContainsString('rota admin.contacts.index', (string) $run->output);
+        $this->actingAs($this->admin)
+            ->get(route('admin.qa.show', $run))
+            ->assertOk()
+            ->assertSee('Checagens', false)
+            ->assertSee('Rota admin.messages.index', false);
+    }
+
+    public function test_public_pack_and_ops_and_migrations_pass(): void
+    {
+        Http::fake([
+            '*' => Http::response('<html>ok</html>', 200),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.qa.store'), ['command' => 'site.pack'])
+            ->assertRedirect();
+
+        $pack = QaRun::query()->latest('id')->first();
+        $this->assertNotNull($pack);
+        $this->assertTrue($pack->isPassed());
+        $this->assertSame(5, $pack->meta['total'] ?? null);
+        $this->assertStringContainsString('Privacidade', (string) $pack->output);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.qa.store'), ['command' => 'ops.stack'])
+            ->assertRedirect();
+
+        $ops = QaRun::query()->latest('id')->first();
+        $this->assertNotNull($ops);
+        $this->assertTrue($ops->isPassed());
+        $this->assertStringContainsString('base', mb_strtolower((string) $ops->output));
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.qa.store'), ['command' => 'ops.migrations'])
+            ->assertRedirect();
+
+        $migrations = QaRun::query()->latest('id')->first();
+        $this->assertNotNull($migrations);
+        $this->assertTrue($migrations->isPassed());
+        $this->assertStringContainsString('em dia', (string) $migrations->summary);
+    }
+
+    public function test_google_status_reports_integration_level(): void
+    {
+        $this->actingAs($this->admin)
+            ->post(route('admin.qa.store'), ['command' => 'ops.google'])
+            ->assertRedirect();
+
+        $run = QaRun::query()->first();
+        $this->assertNotNull($run);
+        $this->assertIsInt($run->meta['level'] ?? null);
+        $this->assertGreaterThanOrEqual(0, (int) $run->meta['level']);
+        $this->assertArrayHasKey('oauth_app', $run->meta);
+        $this->assertStringContainsString('Google Agenda', (string) $run->summary);
+    }
+
+    public function test_jirau_health_lists_board_routes(): void
+    {
+        $this->actingAs($this->admin)
+            ->post(route('admin.qa.store'), ['command' => 'jirau.health'])
+            ->assertRedirect();
+
+        $run = QaRun::query()->first();
+        $this->assertNotNull($run);
+        $this->assertTrue($run->isPassed());
+        $this->assertStringContainsString('rota jirau.home', (string) $run->output);
+        $this->assertStringContainsString('Quadros: 0', (string) $run->output);
     }
 }

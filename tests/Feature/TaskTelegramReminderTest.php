@@ -68,7 +68,7 @@ class TaskTelegramReminderTest extends TestCase
                 && str_contains($text, 'Reunião com cliente')
                 && str_contains($text, 'Ana Cliente')
                 && str_contains($text, 'https://wa.me/5511988887777')
-                && str_contains($text, '+55 (11) 98888-7777')
+                && str_contains($text, '+5511988887777')
                 && str_contains($text, 'WhatsApp')
                 && str_contains($text, 'Convite para encaminhar')
                 && str_contains($text, 'meet.google.com/abc-defg-hij')

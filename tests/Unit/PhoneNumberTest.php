@@ -86,7 +86,10 @@ class PhoneNumberTest extends TestCase
         $this->assertSame('351912345678', PhoneNumber::e164Digits('+351 912345678'));
         $this->assertSame('tel:+5538991758416', PhoneNumber::telHref('38 99175-8416'));
         $this->assertSame('https://wa.me/5538991758416', PhoneNumber::whatsappHref('(38) 99175-8416'));
-        $this->assertSame('+55 (38) 99175-8416', PhoneNumber::telegramHtml('38991758416'));
+        $this->assertSame('+5538991758416', PhoneNumber::telegramHtml('38991758416'));
+        $this->assertSame('+5538991758416', PhoneNumber::telegramHtml('+55 (38) 99175-8416'));
+        $this->assertStringNotContainsString('(', (string) PhoneNumber::telegramHtml('38991758416'));
+        $this->assertStringNotContainsString('-', (string) PhoneNumber::telegramHtml('38991758416'));
         $this->assertStringNotContainsString('wa.me', (string) PhoneNumber::telegramHtml('38991758416'));
         $this->assertStringNotContainsString('<a ', (string) PhoneNumber::telegramHtml('38991758416'));
         $this->assertSame(

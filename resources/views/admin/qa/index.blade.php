@@ -6,7 +6,7 @@
             <p class="admin-hero__kicker">Sistema</p>
             <h1 class="admin-hero__title">Testes</h1>
             <p class="admin-hero__lead">
-                Comandos para a suíte PHPUnit, probes do bot Telegram e GET nas telas públicas. Cada execução gera um relatório.
+                Suíte PHPUnit por módulo, saúde do comercial/entrega/Jirau/sistema, telas públicas e probes do Telegram. Cada execução gera um relatório.
             </p>
         </div>
         <div class="admin-hero__date">
@@ -39,7 +39,7 @@
                                     >
                                         @csrf
                                         <input type="hidden" name="command" value="{{ $item['id'] }}">
-                                        @if($item['id'] === 'suite.phpunit' && $suiteRunning)
+                                        @if($item['kind'] === 'suite' && $suiteRunning)
                                             <x-ui.button type="submit" variant="secondary" disabled>
                                                 A correr…
                                             </x-ui.button>
