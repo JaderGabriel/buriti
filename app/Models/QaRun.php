@@ -51,6 +51,11 @@ class QaRun extends Model
         return $this->status === self::STATUS_PASSED;
     }
 
+    public function isFailed(): bool
+    {
+        return $this->status === self::STATUS_FAILED || $this->status === self::STATUS_ERROR;
+    }
+
     public function durationSeconds(): ?int
     {
         if ($this->started_at === null || $this->finished_at === null) {
@@ -69,5 +74,19 @@ class QaRun extends Model
             self::STATUS_ERROR => 'Erro',
             default => $this->status,
         };
+    }
+
+    public function durationLabel(): string
+    {
+        $seconds = $this->durationSeconds();
+        if ($seconds === null) {
+            return '—';
+        }
+
+        if ($seconds < 60) {
+            return $seconds.' s';
+        }
+
+        return intdiv($seconds, 60).' min '.($seconds % 60).' s';
     }
 }

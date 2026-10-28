@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\RunQaCommandRequest;
 use App\Models\QaRun;
+use App\Services\QaDashboardService;
 use App\Services\QaLabService;
 use App\Support\QaCatalog;
 use Illuminate\Http\RedirectResponse;
@@ -13,7 +14,10 @@ use Throwable;
 
 class QaLabController extends Controller
 {
-    public function __construct(private QaLabService $lab) {}
+    public function __construct(
+        private QaLabService $lab,
+        private QaDashboardService $dashboard,
+    ) {}
 
     public function index(): View
     {
@@ -25,6 +29,7 @@ class QaLabController extends Controller
                 ->limit(40)
                 ->get(),
             'suiteRunning' => $this->lab->suiteIsRunning(),
+            'dashboard' => $this->dashboard->build(),
         ]);
     }
 

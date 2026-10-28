@@ -34,6 +34,7 @@ final class QaCatalog
             [
                 'id' => 'suite',
                 'label' => 'Suíte',
+                'icon' => 'diagnose',
                 'description' => 'PHPUnit isolado (SQLite em memória). Não mexe na base de produção.',
                 'commands' => [
                     self::command(
@@ -111,6 +112,7 @@ final class QaCatalog
             [
                 'id' => 'site',
                 'label' => 'Site',
+                'icon' => 'globe',
                 'description' => 'GET nas páginas públicas: saúde, home, legal e login.',
                 'commands' => [
                     self::command(
@@ -178,6 +180,7 @@ final class QaCatalog
             [
                 'id' => 'comercial',
                 'label' => 'Comercial',
+                'icon' => 'opportunity',
                 'description' => 'Rotas, views e inventário de mensagens, empresas, contatos e oportunidades.',
                 'commands' => [
                     self::command(
@@ -218,6 +221,7 @@ final class QaCatalog
             [
                 'id' => 'entrega',
                 'label' => 'Entrega',
+                'icon' => 'project',
                 'description' => 'Projetos, vitrine da home, agenda e anexos.',
                 'commands' => [
                     self::command(
@@ -252,6 +256,7 @@ final class QaCatalog
             [
                 'id' => 'jirau',
                 'label' => 'Jirau',
+                'icon' => 'jirau',
                 'description' => 'Quadros, visão geral, analítica, equipe e apontamento.',
                 'commands' => [
                     self::command(
@@ -287,6 +292,7 @@ final class QaCatalog
             [
                 'id' => 'sistema',
                 'label' => 'Sistema',
+                'icon' => 'settings',
                 'description' => 'Usuários, configurações, stack (DB/cache/disco) e migrations.',
                 'commands' => [
                     self::command(
@@ -353,6 +359,7 @@ final class QaCatalog
             [
                 'id' => 'telegram',
                 'label' => 'Telegram',
+                'icon' => 'telegram',
                 'description' => 'Probes reais no bot: ping, reenvio CRM e estado do webhook.',
                 'commands' => [
                     self::command(

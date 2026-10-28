@@ -38,6 +38,9 @@ class QaLabTest extends TestCase
             ->get(route('admin.qa.index'))
             ->assertOk()
             ->assertSee('Testes', false)
+            ->assertSee('Centro de testes', false)
+            ->assertSee('Taxa de sucesso', false)
+            ->assertSee('Saúde por área', false)
             ->assertSee('Rodar suíte completa', false)
             ->assertSee('Suíte Jirau', false)
             ->assertSee('Saúde do comercial', false)
@@ -58,6 +61,37 @@ class QaLabTest extends TestCase
                 'type' => 'página',
                 'subtitle' => 'Sistema',
             ]);
+    }
+
+    public function test_dashboard_kpis_reflect_recent_runs(): void
+    {
+        QaRun::query()->create([
+            'user_id' => $this->admin->id,
+            'kind' => 'probe',
+            'command' => 'crm.health',
+            'status' => QaRun::STATUS_PASSED,
+            'summary' => 'Comercial: 10 checagens OK.',
+            'started_at' => now()->subMinutes(3),
+            'finished_at' => now()->subMinutes(2),
+        ]);
+        QaRun::query()->create([
+            'user_id' => $this->admin->id,
+            'kind' => 'suite',
+            'command' => 'suite.phpunit',
+            'status' => QaRun::STATUS_FAILED,
+            'summary' => 'Suíte falhou',
+            'started_at' => now()->subMinutes(8),
+            'finished_at' => now()->subMinutes(7),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.qa.index'))
+            ->assertOk()
+            ->assertSee('50%', false)
+            ->assertSee('Execuções (7d)', false)
+            ->assertSee('Falhas (7d)', false)
+            ->assertSee('Atenção', false)
+            ->assertSee('Comercial', false);
     }
 
     public function test_guest_and_staff_cannot_open_qa_lab(): void
