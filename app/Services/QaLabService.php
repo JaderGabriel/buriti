@@ -132,7 +132,7 @@ class QaLabService
                 'ok' => false,
                 'error' => true,
                 'summary' => 'PHP CLI indisponível para a suíte.',
-                'output' => 'Não há binário PHP de linha de comando (php-fpm não serve). Esperado /usr/bin/php ou /usr/bin/php8.4.',
+                'output' => "O painel corre em php-fpm/CGI. PHPUnit precisa de um binário CLI (SAPI=cli), senão só imprime «Content-type: text/html» e sai com código 1.\nProcurei php8.4, php-cli, ea-php, alt-php e /usr/bin/php com PHP_SAPI=cli, sem GATEWAY_INTERFACE.",
                 'meta' => ['php' => false],
             ];
         }
@@ -177,10 +177,13 @@ class QaLabService
         $output = implode("\n", $chunks);
         $parsed = $this->parsePhpunit($stdout."\n".$stderr);
         $exit = $result->exitCode() ?? 1;
-        $ok = $result->successful() && $parsed['tests'] > 0 && ($parsed['failures'] + $parsed['errors']) === 0;
+        $cgi = $this->looksLikeCgiOutput($stdout."\n".$stderr);
+        $ok = ! $cgi && $result->successful() && $parsed['tests'] > 0 && ($parsed['failures'] + $parsed['errors']) === 0;
 
         if ($ok) {
             $summary = sprintf('Suíte OK — %d testes, %d asserções.', $parsed['tests'], $parsed['assertions']);
+        } elseif ($cgi) {
+            $summary = 'Suíte não rodou: PHP CGI em vez de CLI (Content-type).';
         } elseif ($parsed['tests'] === 0) {
             $summary = sprintf('Suíte não rodou (exit %d). PHPUnit não executou testes — veja a saída.', $exit);
         } else {
@@ -242,13 +245,89 @@ class QaLabService
 
     private function cliPhpBinary(): ?string
     {
-        foreach (['/usr/bin/php8.4', '/usr/bin/php', PHP_BINARY] as $bin) {
-            if ($bin !== '' && is_executable($bin) && ! str_contains(basename($bin), 'fpm')) {
+        foreach ($this->cliPhpCandidates() as $bin) {
+            if ($this->isCliPhp($bin)) {
                 return $bin;
             }
         }
 
         return null;
+    }
+
+    /** @return list<string> */
+    private function cliPhpCandidates(): array
+    {
+        $list = [
+            '/usr/bin/php8.4',
+            '/usr/bin/php8.4-cli',
+            '/usr/bin/php84',
+            '/usr/bin/php-cli',
+            '/usr/local/bin/php8.4',
+            '/usr/local/bin/php',
+            '/opt/cpanel/ea-php84/root/usr/bin/php',
+            '/opt/alt/php84/usr/bin/php',
+            '/usr/bin/php8.3',
+            '/opt/cpanel/ea-php83/root/usr/bin/php',
+            '/opt/alt/php83/usr/bin/php',
+            '/usr/bin/php',
+        ];
+
+        foreach ([
+            '/opt/cpanel/ea-php*/root/usr/bin/php',
+            '/opt/alt/php*/usr/bin/php',
+            '/usr/bin/php*[0-9]',
+            '/usr/bin/php*-cli',
+        ] as $pattern) {
+            foreach (glob($pattern) ?: [] as $path) {
+                $list[] = $path;
+            }
+        }
+
+        if (PHP_BINARY !== '') {
+            $list[] = PHP_BINARY;
+        }
+
+        $unique = [];
+        foreach ($list as $bin) {
+            if ($bin !== '' && ! isset($unique[$bin])) {
+                $unique[$bin] = $bin;
+            }
+        }
+
+        return array_values($unique);
+    }
+
+    private function isCliPhp(string $bin): bool
+    {
+        if (! is_file($bin) || ! is_executable($bin)) {
+            return false;
+        }
+
+        $base = strtolower(basename($bin));
+        if (str_contains($base, 'fpm') || str_contains($base, 'cgi') || str_contains($base, 'phpdbg') || str_contains($base, 'lsphp')) {
+            return false;
+        }
+
+        try {
+            $result = Process::timeout(8)
+                ->env($this->cliIsolatedEnv())
+                ->run([$bin, '-n', '-d', 'display_errors=0', '-r', 'echo PHP_SAPI;']);
+        } catch (Throwable) {
+            return false;
+        }
+
+        $lines = preg_split('/\R/', trim($result->output())) ?: [];
+        $sapi = strtolower((string) array_pop($lines));
+
+        return $sapi === 'cli';
+    }
+
+    private function looksLikeCgiOutput(string $output): bool
+    {
+        $start = ltrim($output);
+
+        return str_starts_with($start, 'Content-type:')
+            || str_starts_with($start, 'Content-Type:');
     }
 
     /** @return list<string> */
@@ -268,14 +347,11 @@ class QaLabService
     }
 
     /**
-     * @return array<string, string>
+     * @return array<string, string|false>
      */
     private function phpunitEnv(): array
     {
-        return [
-            'PATH' => '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
-            'HOME' => sys_get_temp_dir(),
-            'TMPDIR' => sys_get_temp_dir(),
+        return $this->cliIsolatedEnv() + [
             'APP_ENV' => 'testing',
             'APP_KEY' => (string) config('app.key'),
             'APP_URL' => 'http://localhost',
@@ -299,6 +375,41 @@ class QaLabService
             'NIGHTWATCH_ENABLED' => 'false',
             'TELEGRAM_BOT_TOKEN' => '',
             'TELEGRAM_WEBHOOK_SECRET' => '',
+        ];
+    }
+
+    /**
+     * CGI vars inherited from php-fpm make /usr/bin/php wrappers exec php-cgi.
+     *
+     * @return array<string, string|false>
+     */
+    private function cliIsolatedEnv(): array
+    {
+        return [
+            'PATH' => '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
+            'HOME' => sys_get_temp_dir(),
+            'TMPDIR' => sys_get_temp_dir(),
+            'GATEWAY_INTERFACE' => false,
+            'FCGI_ROLE' => false,
+            'REDIRECT_STATUS' => false,
+            'REDIRECT_URL' => false,
+            'SCRIPT_FILENAME' => false,
+            'SCRIPT_NAME' => false,
+            'SCRIPT_URI' => false,
+            'SCRIPT_URL' => false,
+            'DOCUMENT_ROOT' => false,
+            'CONTEXT_DOCUMENT_ROOT' => false,
+            'CONTEXT_PREFIX' => false,
+            'REQUEST_METHOD' => false,
+            'REQUEST_URI' => false,
+            'QUERY_STRING' => false,
+            'CONTENT_TYPE' => false,
+            'CONTENT_LENGTH' => false,
+            'PATH_INFO' => false,
+            'PATH_TRANSLATED' => false,
+            'SERVER_SOFTWARE' => false,
+            'SERVER_PROTOCOL' => false,
+            'PHP_SELF' => false,
         ];
     }
 

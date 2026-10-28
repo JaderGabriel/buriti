@@ -42,6 +42,8 @@ class QaLabTest extends TestCase
             ->assertSee('Taxa de sucesso', false)
             ->assertSee('Saúde por área', false)
             ->assertSee('Rodar suíte completa', false)
+            ->assertSee('qa-kpis', false)
+            ->assertSee('qa-flow', false)
             ->assertSee('Suíte Jirau', false)
             ->assertSee('Saúde do comercial', false)
             ->assertSee('Saúde do Jirau', false)
@@ -112,10 +114,7 @@ class QaLabTest extends TestCase
 
     public function test_admin_can_run_phpunit_suite_via_process_fake(): void
     {
-        Process::fake(fn () => Process::result(
-            output: "OK (343 tests, 2439 assertions)\n",
-            exitCode: 0,
-        ));
+        $this->fakeQaProcess("OK (343 tests, 2439 assertions)\n");
 
         $this->actingAs($this->admin)
             ->post(route('admin.qa.store'), ['command' => 'suite.phpunit'])
@@ -148,17 +147,14 @@ class QaLabTest extends TestCase
                 && ($process->environment['DB_CONNECTION'] ?? null) === 'sqlite'
                 && ($process->environment['DB_DATABASE'] ?? null) === ':memory:'
                 && ($process->environment['APP_ENV'] ?? null) === 'testing'
-                && ($process->environment['DB_PASSWORD'] ?? null) === '';
+                && ($process->environment['DB_PASSWORD'] ?? null) === ''
+                && ($process->environment['GATEWAY_INTERFACE'] ?? true) === false;
         });
     }
 
     public function test_suite_without_phpunit_output_is_reported_as_not_run(): void
     {
-        Process::fake(fn () => Process::result(
-            output: "No tests executed!\n",
-            errorOutput: 'Could not read phpunit.xml',
-            exitCode: 1,
-        ));
+        $this->fakeQaProcess("No tests executed!\n", 1, 'Could not read phpunit.xml');
 
         $this->actingAs($this->admin)
             ->post(route('admin.qa.store'), ['command' => 'suite.phpunit'])
@@ -301,12 +297,51 @@ class QaLabTest extends TestCase
             ->assertSessionHasErrors('command');
     }
 
+    public function test_cgi_php_is_not_used_for_the_suite(): void
+    {
+        Process::fake(function ($process) {
+            $command = $process->command;
+            $line = is_array($command) ? implode(' ', $command) : (string) $command;
+
+            if (str_contains($line, 'PHP_SAPI')) {
+                return Process::result(output: 'cgi-fcgi', exitCode: 0);
+            }
+
+            return Process::result(
+                output: "Content-type: text/html; charset=UTF-8\n",
+                exitCode: 1,
+            );
+        });
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.qa.store'), ['command' => 'suite.phpunit'])
+            ->assertRedirect();
+
+        $run = QaRun::query()->first();
+        $this->assertNotNull($run);
+        $this->assertFalse($run->isPassed());
+        $this->assertStringContainsString('CLI', (string) $run->summary);
+        $this->assertSame(false, $run->meta['php'] ?? null);
+    }
+
+    public function test_cgi_headers_in_phpunit_output_are_reported(): void
+    {
+        $this->fakeQaProcess("Content-type: text/html; charset=UTF-8\n", 1);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.qa.store'), ['command' => 'suite.phpunit'])
+            ->assertRedirect();
+
+        $run = QaRun::query()->first();
+        $this->assertNotNull($run);
+        $this->assertFalse($run->isPassed());
+        $this->assertStringContainsString('CGI', (string) $run->summary);
+        $this->assertStringContainsString('Content-type', (string) $run->output);
+    }
+
     public function test_admin_suite_slice_passes_phpunit_path(): void
     {
-        Process::fake(fn () => Process::result(
-            output: "OK (40 tests, 200 assertions)\n",
-            exitCode: 0,
-        ));
+        $this->fakeQaProcess("OK (40 tests, 200 assertions)\n");
 
         $this->actingAs($this->admin)
             ->post(route('admin.qa.store'), ['command' => 'suite.admin'])
@@ -408,5 +443,19 @@ class QaLabTest extends TestCase
         $this->assertTrue($run->isPassed());
         $this->assertStringContainsString('rota jirau.home', (string) $run->output);
         $this->assertStringContainsString('Quadros: 0', (string) $run->output);
+    }
+
+    private function fakeQaProcess(string $output, int $exitCode = 0, string $errorOutput = ''): void
+    {
+        Process::fake(function ($process) use ($output, $exitCode, $errorOutput) {
+            $command = $process->command;
+            $line = is_array($command) ? implode(' ', $command) : (string) $command;
+
+            if (str_contains($line, 'PHP_SAPI')) {
+                return Process::result(output: 'cli', exitCode: 0);
+            }
+
+            return Process::result(output: $output, errorOutput: $errorOutput, exitCode: $exitCode);
+        });
     }
 }

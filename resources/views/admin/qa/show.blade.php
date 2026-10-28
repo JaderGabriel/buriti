@@ -32,48 +32,65 @@
         $checks = is_array($run->meta['checks'] ?? null) ? $run->meta['checks'] : [];
         $checkOk = collect($checks)->where('ok', true)->count();
         $checkTotal = count($checks);
+        $healthTone = $run->isPassed() ? 'ok' : ($run->isRunning() ? 'run' : 'warn');
+        $healthIcon = match ($healthTone) {
+            'ok' => 'qualified',
+            'run' => 'play',
+            default => 'lost',
+        };
     @endphp
 
     <div class="qa-lab qa-lab--report">
-        <div class="admin-hero">
-            <div>
+        <header class="qa-toolbar">
+            <div class="qa-toolbar__copy">
                 <p class="admin-hero__kicker">Sistema · Testes</p>
-                <h1 class="admin-hero__title">{{ $command['label'] ?? $run->command }}</h1>
-                <p class="admin-hero__lead">{{ $run->summary }}</p>
+                <h1 class="qa-toolbar__title">{{ $command['label'] ?? $run->command }}</h1>
+                <p class="qa-toolbar__lead">{{ $run->summary }}</p>
             </div>
-            <div class="qa-lab__hero-side">
-                <div @class([
-                    'admin-hero__date qa-lab__health',
-                    'qa-lab__health--ok' => $run->isPassed(),
-                    'qa-lab__health--run' => $run->isRunning(),
-                    'qa-lab__health--warn' => $run->isFailed(),
-                ])>
-                    <strong>{{ $run->statusLabel() }}</strong>
-                    <span>{{ $run->durationLabel() }}</span>
-                </div>
-                <a href="{{ route('admin.qa.index') }}" class="qa-lab__back">← Comandos</a>
-            </div>
-        </div>
 
-        <div class="qa-report__meta">
+            <nav class="qa-flow" aria-label="Fluxo do laboratório">
+                <a class="qa-flow__step is-done" href="{{ route('admin.qa.index') }}#qa-kpis">
+                    <span>1</span> Saúde
+                </a>
+                <a class="qa-flow__step is-done" href="{{ route('admin.qa.index') }}#qa-console">
+                    <span>2</span> Executar
+                </a>
+                <span class="qa-flow__step is-current">
+                    <span>3</span> Relatório
+                </span>
+            </nav>
+
+            <div class="qa-toolbar__actions">
+                <div class="qa-health qa-health--{{ $healthTone }}">
+                    <span class="qa-health__icon" aria-hidden="true">
+                        <x-ui.icon :name="$healthIcon" class="h-4 w-4" />
+                    </span>
+                    <div>
+                        <strong>{{ $run->statusLabel() }}</strong>
+                        <span>{{ $run->durationLabel() }}</span>
+                    </div>
+                </div>
+                <a href="{{ route('admin.qa.index') }}" class="qa-lab__ghost">← Comandos</a>
+            </div>
+        </header>
+
+        <p class="qa-report__meta">
             <span>{{ $run->user?->name ?? '—' }}</span>
             <span>{{ $run->started_at?->timezone(config('app.timezone'))->format('d/m/Y H:i:s') }}</span>
             @if($run->isRunning())
                 <span class="qa-report__live">A actualizar…</span>
             @endif
-        </div>
+        </p>
 
         @if($metrics !== [])
-            <div class="dash-stats qa-report__kpis" aria-label="Métricas da execução">
+            <ul class="qa-metrics" aria-label="Métricas da execução">
                 @foreach ($metrics as $metric)
-                    <article class="dash-stat dash-stat--projects">
-                        <span class="dash-stat__label">{{ $metric['label'] }}</span>
-                        <span class="dash-stat__value-row">
-                            <span class="dash-stat__value">{{ $metric['value'] }}</span>
-                        </span>
-                    </article>
+                    <li>
+                        <span>{{ $metric['label'] }}</span>
+                        <strong>{{ $metric['value'] }}</strong>
+                    </li>
                 @endforeach
-            </div>
+            </ul>
         @endif
 
         @if($checks !== [])

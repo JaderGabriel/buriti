@@ -6,22 +6,50 @@
         $trendMax = max(1, collect($dashboard['trend'])->max('total') ?: 0);
         $lastByCommand = $dashboard['last_by_command'];
         $firstGroup = $groups[0]['id'] ?? 'suite';
+        $lastSuite = $dashboard['last_suite'] ?? null;
+        $healthIcon = match ($health['tone']) {
+            'ok' => 'qualified',
+            'warn' => 'lost',
+            'run' => 'play',
+            default => 'diagnose',
+        };
     @endphp
 
-    <div class="qa-lab" data-qa-lab>
-        <div class="admin-hero">
-            <div>
+    <div class="qa-lab" data-qa-lab x-data="{ tab: '{{ $firstGroup }}' }">
+        <header class="qa-toolbar">
+            <div class="qa-toolbar__copy">
                 <p class="admin-hero__kicker">Sistema · Qualidade</p>
-                <h1 class="admin-hero__title">Centro de testes</h1>
-                <p class="admin-hero__lead">
-                    KPIs das últimas execuções, saúde por módulo e comandos da suíte, do site e das operações.
-                </p>
+                <h1 class="qa-toolbar__title">Centro de testes</h1>
             </div>
-            <div class="qa-lab__hero-side">
-                <div class="admin-hero__date qa-lab__health qa-lab__health--{{ $health['tone'] }}" title="{{ $health['hint'] }}">
-                    <strong>{{ $health['label'] }}</strong>
-                    <span>Estado 7 dias</span>
+
+            <nav class="qa-flow" aria-label="Fluxo do laboratório">
+                <a class="qa-flow__step is-done" href="#qa-kpis">
+                    <span>1</span> Saúde
+                </a>
+                <a class="qa-flow__step is-current" href="#qa-console">
+                    <span>2</span> Executar
+                </a>
+                <a class="qa-flow__step" href="#qa-reports">
+                    <span>3</span> Relatórios
+                </a>
+            </nav>
+
+            <div class="qa-toolbar__actions">
+                <div class="qa-health qa-health--{{ $health['tone'] }}" title="{{ $health['hint'] }}">
+                    <span class="qa-health__icon" aria-hidden="true">
+                        <x-ui.icon :name="$healthIcon" class="h-4 w-4" />
+                    </span>
+                    <div>
+                        <strong>{{ $health['label'] }}</strong>
+                        <span>7 dias</span>
+                    </div>
                 </div>
+                @if($lastSuite)
+                    <a href="{{ route('admin.qa.show', $lastSuite) }}" class="qa-lab__ghost">
+                        <x-ui.icon name="proposal" class="h-4 w-4" />
+                        Última suíte
+                    </a>
+                @endif
                 <form method="POST" action="{{ route('admin.qa.store') }}" data-confirm="Correr a suíte PHPUnit agora? Pode levar até 30 segundos.">
                     @csrf
                     <input type="hidden" name="command" value="suite.phpunit">
@@ -31,34 +59,33 @@
                     </button>
                 </form>
             </div>
-        </div>
+        </header>
 
-        <div class="dash-stats" aria-label="Indicadores de qualidade">
+        <div id="qa-kpis" class="qa-kpis" aria-label="Indicadores de qualidade">
             @foreach ($dashboard['kpis'] as $card)
                 <article
-                    class="dash-stat dash-stat--{{ $card['tone'] }} is-{{ $card['direction'] }}"
+                    class="qa-kpi qa-kpi--{{ $card['tone'] }} is-{{ $card['direction'] }}"
                     data-kpi-polarity="{{ $card['polarity'] }}"
-                    data-kpi-dir="{{ $card['direction'] }}"
                     title="{{ $card['aria'] }}"
                 >
-                    <span class="dash-stat__icon" aria-hidden="true">
-                        <x-ui.icon :name="$card['icon']" class="h-4 w-4" />
-                    </span>
-                    <span class="dash-stat__label">{{ $card['label'] }}</span>
-                    <span class="dash-stat__value-row">
-                        <span class="dash-stat__value">{{ $card['value'] }}</span>
-                        <span class="dash-stat__delta">{{ $card['delta_label'] }}</span>
-                    </span>
-                    <svg class="dash-stat__spark" viewBox="0 0 72 28" aria-hidden="true">
-                        <path class="dash-stat__spark-area" d="{{ $card['area'] }}" />
-                        <path class="dash-stat__spark-line" d="{{ $card['path'] }}" />
+                    <div class="qa-kpi__head">
+                        <span class="qa-kpi__icon" aria-hidden="true">
+                            <x-ui.icon :name="$card['icon']" class="h-4 w-4" />
+                        </span>
+                        <span class="qa-kpi__label">{{ $card['label'] }}</span>
+                    </div>
+                    <p class="qa-kpi__value">{{ $card['value'] }}</p>
+                    <p class="qa-kpi__delta">{{ $card['delta_label'] }}</p>
+                    <svg class="qa-kpi__spark" viewBox="0 0 72 28" aria-hidden="true">
+                        <path class="qa-kpi__spark-area" d="{{ $card['area'] }}" />
+                        <path class="qa-kpi__spark-line" d="{{ $card['path'] }}" />
                     </svg>
                 </article>
             @endforeach
         </div>
 
         <div class="qa-lab__grid">
-            <section class="dash-panel qa-lab__console" x-data="{ tab: '{{ $firstGroup }}' }">
+            <section id="qa-console" class="dash-panel qa-lab__console" x-ref="console">
                 <header class="dash-panel__head">
                     <div class="dash-panel__title-wrap">
                         <span class="dash-panel__icon" aria-hidden="true"><x-ui.icon name="diagnose" class="h-5 w-5" /></span>
@@ -74,6 +101,7 @@
                         <button
                             type="button"
                             class="qa-lab__tab"
+                            data-tone="{{ $group['id'] }}"
                             role="tab"
                             :class="tab === '{{ $group['id'] }}' && 'is-active'"
                             :aria-selected="tab === '{{ $group['id'] }}'"
@@ -89,6 +117,7 @@
                     <div
                         class="qa-lab__pane"
                         role="tabpanel"
+                        data-tone="{{ $group['id'] }}"
                         x-show="tab === '{{ $group['id'] }}'"
                     >
                         <p class="qa-lab__pane-lead">{{ $group['description'] }}</p>
@@ -116,7 +145,7 @@
                                         <p class="qa-command__hint">{{ $item['hint'] }}</p>
                                         @if($last)
                                             <p class="qa-command__meta">
-                                                Última: {{ $last->created_at?->timezone(config('app.timezone'))->format('d/m H:i') }}
+                                                {{ $last->created_at?->timezone(config('app.timezone'))->format('d/m H:i') }}
                                                 · {{ $last->durationLabel() }}
                                                 @if($last->user)
                                                     · {{ $last->user->name }}
@@ -146,7 +175,7 @@
             </section>
 
             <aside class="qa-lab__side">
-                <section class="dash-panel">
+                <section class="dash-panel qa-lab__modules">
                     <header class="dash-panel__head">
                         <div class="dash-panel__title-wrap">
                             <span class="dash-panel__icon" aria-hidden="true"><x-ui.icon name="bi" class="h-5 w-5" /></span>
@@ -158,25 +187,33 @@
                     </header>
                     <ul class="qa-modules">
                         @foreach ($dashboard['modules'] as $module)
-                            <li class="qa-module qa-module--{{ $module['status'] }}">
-                                <span class="qa-module__icon" aria-hidden="true">
-                                    <x-ui.icon :name="$module['icon']" class="h-4 w-4" />
-                                </span>
-                                <div>
-                                    <p class="qa-module__label">{{ $module['label'] }}</p>
-                                    <p class="qa-module__meta">
-                                        {{ $module['status_label'] }}
-                                        @if($module['run'])
-                                            · {{ $module['run']->created_at?->timezone(config('app.timezone'))->diffForHumans() }}
-                                        @endif
-                                    </p>
-                                </div>
+                            <li>
+                                <button
+                                    type="button"
+                                    class="qa-module qa-module--{{ $module['status'] }}"
+                                    data-tone="{{ $module['tone'] }}"
+                                    :class="tab === '{{ $module['id'] }}' && 'is-active'"
+                                    @click="tab = '{{ $module['id'] }}'; $refs.console.scrollIntoView({ block: 'nearest' })"
+                                >
+                                    <span class="qa-module__icon" aria-hidden="true">
+                                        <x-ui.icon :name="$module['icon']" class="h-4 w-4" />
+                                    </span>
+                                    <span class="qa-module__copy">
+                                        <span class="qa-module__label">{{ $module['label'] }}</span>
+                                        <span class="qa-module__meta">
+                                            {{ $module['status_label'] }}
+                                            @if($module['run'])
+                                                · {{ $module['run']->created_at?->timezone(config('app.timezone'))->diffForHumans() }}
+                                            @endif
+                                        </span>
+                                    </span>
+                                </button>
                             </li>
                         @endforeach
                     </ul>
                 </section>
 
-                <section class="dash-panel">
+                <section class="dash-panel qa-lab__chart">
                     <header class="dash-panel__head">
                         <div class="dash-panel__title-wrap">
                             <span class="dash-panel__icon" aria-hidden="true"><x-ui.icon name="flow" class="h-5 w-5" /></span>
@@ -189,11 +226,20 @@
                     <div class="qa-trend" role="img" aria-label="Volume de execuções nos últimos 14 dias">
                         @foreach ($dashboard['trend'] as $day)
                             @php
-                                $height = (int) round(($day['total'] / $trendMax) * 100);
+                                $okH = (int) round(($day['passed'] / $trendMax) * 100);
+                                $badH = (int) round(($day['failed'] / $trendMax) * 100);
                             @endphp
-                            <div class="qa-trend__col" title="{{ $day['label'] }}: {{ $day['total'] }} ({{ $day['passed'] }} OK / {{ $day['failed'] }} falhas)">
+                            <div class="qa-trend__col" title="{{ $day['day'] }}: {{ $day['total'] }} ({{ $day['passed'] }} OK / {{ $day['failed'] }} falhas)">
                                 <span class="qa-trend__bar">
-                                    <span class="qa-trend__fill qa-trend__fill--ok" style="height: {{ $day['total'] === 0 ? 8 : max(12, $height) }}%"></span>
+                                    @if($day['failed'] > 0)
+                                        <span class="qa-trend__fill qa-trend__fill--bad" style="height: {{ max(10, $badH) }}%"></span>
+                                    @endif
+                                    @if($day['passed'] > 0)
+                                        <span class="qa-trend__fill qa-trend__fill--ok" style="height: {{ max(10, $okH) }}%"></span>
+                                    @endif
+                                    @if($day['total'] === 0)
+                                        <span class="qa-trend__fill qa-trend__fill--idle" style="height: 12%"></span>
+                                    @endif
                                 </span>
                                 <span class="qa-trend__label">{{ $day['label'] }}</span>
                             </div>
@@ -203,7 +249,7 @@
             </aside>
         </div>
 
-        <section class="dash-panel qa-lab__history" aria-labelledby="qa-reports-title">
+        <section id="qa-reports" class="dash-panel qa-lab__history" aria-labelledby="qa-reports-title">
             <header class="dash-panel__head">
                 <div class="dash-panel__title-wrap">
                     <span class="dash-panel__icon" aria-hidden="true"><x-ui.icon name="proposal" class="h-5 w-5" /></span>
@@ -245,7 +291,7 @@
                                         <a href="{{ route('admin.qa.show', $run) }}" class="qa-lab__link">{{ \App\Support\QaCatalog::label($run->command) }}</a>
                                     </td>
                                     <td class="qa-lab__ellipsis" title="{{ $run->summary }}">{{ $run->summary }}</td>
-                                    <td>{{ $run->user?->name ?? '—' }}</td>
+                                    <td class="qa-lab__who">{{ $run->user?->name ?? '—' }}</td>
                                     <td>{{ $run->durationLabel() }}</td>
                                     <td>{{ $run->created_at?->timezone(config('app.timezone'))->format('d/m H:i') }}</td>
                                 </tr>

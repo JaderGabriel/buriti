@@ -102,8 +102,8 @@ class QaDashboardService
             ),
             $this->kpi(
                 'Duração média',
-                $avgDuration === null ? '—' : $avgDuration.' s',
-                '7 dias',
+                $avgDuration === null ? '—' : $avgDuration.'s',
+                'média 7d',
                 $dailyTotals,
                 'projects',
                 'calendar',
@@ -114,7 +114,7 @@ class QaDashboardService
             $this->kpi(
                 'Última suíte',
                 $lastSuite?->statusLabel() ?? '—',
-                $lastSuite?->created_at?->timezone(config('app.timezone'))->format('d/m H:i') ?? 'Sem corrida',
+                $lastSuite?->created_at?->timezone(config('app.timezone'))->format('d/m H:i') ?? 'sem corrida',
                 $dailyPassed,
                 'contacts',
                 'diagnose',
@@ -125,7 +125,7 @@ class QaDashboardService
             $this->kpi(
                 'A correr',
                 (string) $running,
-                $running > 0 ? 'Em execução' : 'Fila livre',
+                $running > 0 ? 'ativo' : 'fila livre',
                 $dailyTotals,
                 'inbox',
                 'operate',
@@ -180,7 +180,7 @@ class QaDashboardService
             $key = $day->toDateString();
             $days[$key] = [
                 'day' => $key,
-                'label' => $day->format('d/m'),
+                'label' => $day->format('j'),
                 'passed' => 0,
                 'failed' => 0,
                 'total' => 0,
@@ -228,6 +228,7 @@ class QaDashboardService
                 'id' => $group['id'],
                 'label' => $group['label'],
                 'icon' => $group['icon'] ?? 'diagnose',
+                'tone' => $group['id'],
                 'run' => $last,
                 'status' => $last?->status ?? 'idle',
                 'status_label' => $last?->statusLabel() ?? 'Sem dados',
@@ -309,31 +310,27 @@ class QaDashboardService
     {
         $diff = $current - $previous;
         if ($diff === 0) {
-            return 'igual aos 7 d anteriores';
+            return '0';
         }
 
-        $sign = $diff > 0 ? '+' : '';
-
-        return $sign.$diff.' vs. 7 d anteriores';
+        return ($diff > 0 ? '+' : '').$diff;
     }
 
     private function ppDelta(?int $current, ?int $previous): string
     {
         if ($current === null) {
-            return 'Sem histórico';
+            return '—';
         }
         if ($previous === null) {
-            return 'primeiro período';
+            return 'novo';
         }
 
         $diff = $current - $previous;
         if ($diff === 0) {
-            return 'estável';
+            return '0 pp';
         }
 
-        $sign = $diff > 0 ? '+' : '';
-
-        return $sign.$diff.' pp';
+        return ($diff > 0 ? '+' : '').$diff.' pp';
     }
 
     private function directionFromDelta(string $deltaLabel): string
