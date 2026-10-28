@@ -8,6 +8,7 @@ use App\Models\ContactMessage;
 use App\Models\QaRun;
 use App\Models\User;
 use App\Services\SettingService;
+use App\Support\QaCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Process;
@@ -41,8 +42,16 @@ class QaLabTest extends TestCase
             ->assertSee('Centro de testes', false)
             ->assertSee('Taxa de sucesso', false)
             ->assertSee('Saúde por área', false)
+            ->assertSee('href="#qa-kpis"', false)
+            ->assertSee('id="qa-kpis"', false)
+            ->assertSee('href="#qa-console"', false)
+            ->assertSee('id="qa-console"', false)
+            ->assertSee('href="#qa-reports"', false)
+            ->assertSee('id="qa-reports"', false)
+            ->assertSee('id="qa-modules"', false)
             ->assertSee('href="#qa-area-comercial"', false)
             ->assertSee('id="qa-area-comercial"', false)
+            ->assertDontSee('x-show="tab === \'comercial\'"', false)
             ->assertSee('Rodar suíte completa', false)
             ->assertSee('qa-kpis', false)
             ->assertSee('qa-flow', false)
@@ -65,6 +74,37 @@ class QaLabTest extends TestCase
                 'type' => 'página',
                 'subtitle' => 'Sistema',
             ]);
+    }
+
+    public function test_lab_hashes_match_every_catalog_area_and_report_links_back(): void
+    {
+        $html = $this->actingAs($this->admin)
+            ->get(route('admin.qa.index'))
+            ->assertOk()
+            ->getContent();
+
+        foreach (QaCatalog::groups() as $group) {
+            $this->assertStringContainsString('href="#qa-area-'.$group['id'].'"', $html);
+            $this->assertStringContainsString('id="qa-area-'.$group['id'].'"', $html);
+        }
+
+        $run = QaRun::query()->create([
+            'user_id' => $this->admin->id,
+            'kind' => 'probe',
+            'command' => 'crm.health',
+            'status' => QaRun::STATUS_PASSED,
+            'summary' => 'Comercial OK',
+            'started_at' => now()->subMinute(),
+            'finished_at' => now(),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.qa.show', $run))
+            ->assertOk()
+            ->assertSee(route('admin.qa.index').'#qa-kpis', false)
+            ->assertSee(route('admin.qa.index').'#qa-area-comercial', false)
+            ->assertSee('href="#qa-output"', false)
+            ->assertSee('id="qa-output"', false);
     }
 
     public function test_dashboard_kpis_reflect_recent_runs(): void

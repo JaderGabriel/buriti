@@ -6,6 +6,7 @@
         $trendMax = max(1, collect($dashboard['trend'])->max('total') ?: 0);
         $lastByCommand = $dashboard['last_by_command'];
         $firstGroup = $groups[0]['id'] ?? 'suite';
+        $areaIds = collect($groups)->pluck('id')->values()->all();
         $lastSuite = $dashboard['last_suite'] ?? null;
         $healthIcon = match ($health['tone']) {
             'ok' => 'qualified',
@@ -19,13 +20,79 @@
         class="qa-lab"
         data-qa-lab
         x-data="{
+            areas: {{ \Illuminate\Support\Js::from($areaIds) }},
+            sections: ['qa-kpis', 'qa-modules', 'qa-console', 'qa-reports'],
             tab: '{{ $firstGroup }}',
+            section: 'qa-kpis',
+            hashName() {
+                return (window.location.hash || '').replace(/^#/, '');
+            },
+            targetId() {
+                const name = this.hashName();
+                if (this.sections.includes(name)) {
+                    return name;
+                }
+                const match = name.match(/^qa-area-([a-z0-9_-]+)$/i);
+                if (match && this.areas.includes(match[1])) {
+                    return 'qa-area-' + match[1];
+                }
+                return null;
+            },
+            applyHash() {
+                const name = this.hashName();
+                const area = name.match(/^qa-area-([a-z0-9_-]+)$/i);
+                if (area && this.areas.includes(area[1])) {
+                    this.tab = area[1];
+                    this.section = 'qa-console';
+                    return;
+                }
+                if (name === 'qa-reports') {
+                    this.section = 'qa-reports';
+                    return;
+                }
+                if (name === 'qa-console' || name === 'qa-modules') {
+                    this.section = 'qa-console';
+                    return;
+                }
+                this.section = 'qa-kpis';
+            },
+            scrollToId(id) {
+                const el = document.getElementById(id);
+                if (! el) {
+                    return;
+                }
+                const scroller = el.closest('.admin-content');
+                if (! scroller) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    return;
+                }
+                const top = el.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop - 10;
+                scroller.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+            },
+            go(hash) {
+                const name = String(hash || '').replace(/^#/, '');
+                const next = '#' + name;
+                if (window.location.hash !== next) {
+                    history.replaceState(null, '', next);
+                }
+                this.applyHash();
+                const id = this.targetId();
+                this.$nextTick(() => { if (id) this.scrollToId(id); });
+            },
             selectArea(id) {
-                this.tab = id;
-                this.$nextTick(() => {
-                    const el = document.getElementById('qa-area-' + id);
-                    (el || this.$refs.console)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                });
+                if (! this.areas.includes(id)) {
+                    return;
+                }
+                this.go('qa-area-' + id);
+            },
+            syncFromHash() {
+                this.applyHash();
+                const id = this.targetId();
+                this.$nextTick(() => { if (id) this.scrollToId(id); });
+            },
+            init() {
+                this.syncFromHash();
+                window.addEventListener('hashchange', () => this.syncFromHash());
             },
         }"
     >
@@ -36,9 +103,9 @@
             </div>
 
             <nav class="qa-flow" aria-label="Fluxo do laboratório">
-                <a class="qa-flow__step is-done" href="#qa-kpis"><span>1</span> Saúde</a>
-                <a class="qa-flow__step is-current" href="#qa-console"><span>2</span> Executar</a>
-                <a class="qa-flow__step" href="#qa-reports"><span>3</span> Relatórios</a>
+                <a class="qa-flow__step" href="#qa-kpis" :class="{ 'is-current': section === 'qa-kpis' }" @click.prevent="go('qa-kpis')"><span>1</span> Saúde</a>
+                <a class="qa-flow__step" href="#qa-console" :class="{ 'is-current': section === 'qa-console' }" @click.prevent="go('qa-console')"><span>2</span> Executar</a>
+                <a class="qa-flow__step" href="#qa-reports" :class="{ 'is-current': section === 'qa-reports' }" @click.prevent="go('qa-reports')"><span>3</span> Relatórios</a>
             </nav>
 
             <div class="qa-toolbar__actions">
@@ -88,7 +155,7 @@
         </div>
 
         <div class="qa-workspace">
-            <aside class="qa-panel" aria-labelledby="qa-areas-title">
+            <aside id="qa-modules" class="qa-panel" aria-labelledby="qa-areas-title">
                 <header class="qa-panel__head">
                     <div>
                         <p class="qa-panel__eyebrow">Módulos</p>
@@ -102,11 +169,11 @@
                             @class([
                                 'qa-navitem',
                                 'qa-navitem--'.$module['status'],
-                                'is-active' => $module['id'] === $firstGroup,
                             ])
                             data-tone="{{ $module['tone'] }}"
                             :class="{ 'is-active': tab === '{{ $module['id'] }}' }"
                             @click.prevent="selectArea('{{ $module['id'] }}')"
+                            :aria-current="tab === '{{ $module['id'] }}' ? 'true' : 'false'"
                         >
                             <span class="qa-navitem__icon" aria-hidden="true">
                                 <x-ui.icon :name="$module['icon']" class="h-4 w-4" />
@@ -126,14 +193,13 @@
                 </nav>
             </aside>
 
-            <section id="qa-console" class="qa-panel qa-panel--console" x-ref="console">
+            <section id="qa-console" class="qa-console" x-ref="console">
                 @foreach ($groups as $group)
-                    <div
+                    <article
                         id="qa-area-{{ $group['id'] }}"
-                        class="qa-pane"
+                        class="qa-panel qa-pane"
                         data-tone="{{ $group['id'] }}"
-                        x-show="tab === '{{ $group['id'] }}'"
-                        @unless($group['id'] === $firstGroup) x-cloak @endunless
+                        :class="{ 'is-current': tab === '{{ $group['id'] }}' }"
                     >
                         <header class="qa-panel__head">
                             <div class="qa-panel__title-wrap">
@@ -196,7 +262,7 @@
                                 @endforeach
                             </ul>
                         </div>
-                    </div>
+                    </article>
                 @endforeach
             </section>
 

@@ -427,6 +427,19 @@ final class QaCatalog
         return (self::find($id)['kind'] ?? '') === 'suite';
     }
 
+    public static function groupId(string $commandId): ?string
+    {
+        foreach (self::groups() as $group) {
+            foreach ($group['commands'] as $command) {
+                if ($command['id'] === $commandId) {
+                    return $group['id'];
+                }
+            }
+        }
+
+        return null;
+    }
+
     /**
      * @return list<array{label: string, route?: string, path?: string}>
      */

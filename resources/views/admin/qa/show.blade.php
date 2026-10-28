@@ -41,6 +41,8 @@
         $canRepeat = ! empty($command['id'] ?? $run->command);
         $confirm = $command['confirm'] ?? null;
         $repeatBlocked = ($command['kind'] ?? '') === 'suite' && $run->isRunning();
+        $groupId = \App\Support\QaCatalog::groupId((string) $run->command);
+        $consoleHash = $groupId ? '#qa-area-'.$groupId : '#qa-console';
     @endphp
 
     <div class="qa-lab qa-lab--report">
@@ -53,8 +55,8 @@
 
             <nav class="qa-flow" aria-label="Fluxo do laboratório">
                 <a class="qa-flow__step is-done" href="{{ route('admin.qa.index') }}#qa-kpis"><span>1</span> Saúde</a>
-                <a class="qa-flow__step is-done" href="{{ route('admin.qa.index') }}#qa-console"><span>2</span> Executar</a>
-                <span class="qa-flow__step is-current"><span>3</span> Relatório</span>
+                <a class="qa-flow__step is-done" href="{{ route('admin.qa.index') }}{{ $consoleHash }}"><span>2</span> Executar</a>
+                <a class="qa-flow__step is-current" href="#qa-output"><span>3</span> Relatório</a>
             </nav>
 
             <div class="qa-toolbar__actions">
@@ -75,7 +77,7 @@
                         </button>
                     </form>
                 @endif
-                <a href="{{ route('admin.qa.index') }}" class="qa-lab__ghost">← Comandos</a>
+                <a href="{{ route('admin.qa.index') }}{{ $consoleHash }}" class="qa-lab__ghost">← Comandos</a>
             </div>
         </header>
 
@@ -90,7 +92,7 @@
         <div class="qa-report">
             <div class="qa-report__facts">
                 @if($metrics !== [])
-                    <ul class="qa-metrics" aria-label="Métricas da execução">
+                    <ul id="qa-metrics" class="qa-metrics" aria-label="Métricas da execução">
                         @foreach ($metrics as $metric)
                             <li>
                                 <span>{{ $metric['label'] }}</span>
@@ -101,7 +103,7 @@
                 @endif
 
                 @if($checks !== [])
-                    <section class="qa-panel">
+                    <section id="qa-checks" class="qa-panel">
                         <header class="qa-panel__head">
                             <div>
                                 <p class="qa-panel__eyebrow">Verificação</p>
@@ -123,7 +125,7 @@
                 @endif
             </div>
 
-            <section class="qa-panel qa-terminal">
+            <section id="qa-output" class="qa-panel qa-terminal">
                 <header class="qa-panel__head">
                     <div>
                         <p class="qa-panel__eyebrow">Console</p>

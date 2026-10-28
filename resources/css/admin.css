@@ -2480,10 +2480,14 @@ html.dark .roadmap-filters__btn[aria-pressed='true'] {
 }
 
 #qa-kpis,
+#qa-modules,
 #qa-console,
 #qa-reports,
+#qa-metrics,
+#qa-checks,
+#qa-output,
 [id^="qa-area-"] {
-    scroll-margin-top: 1rem;
+    scroll-margin-top: 1.25rem;
 }
 
 .qa-lab {
@@ -2941,6 +2945,19 @@ html.dark .qa-kpi[data-kpi-polarity="up-bad"].is-up .qa-kpi__spark { color: #fca
     align-self: start;
 }
 
+@media (min-width: 1100px) {
+    .qa-workspace > aside {
+        position: sticky;
+        top: 0.35rem;
+    }
+}
+
+.qa-console {
+    display: grid;
+    gap: 0.55rem;
+    min-width: 0;
+}
+
 .qa-workspace > #qa-reports .qa-panel__body {
     max-height: 28rem;
     overflow: auto;
@@ -3027,6 +3044,12 @@ html.dark .qa-kpi[data-kpi-polarity="up-bad"].is-up .qa-kpi__spark { color: #fca
     display: flex;
     flex-direction: column;
     min-height: 0;
+}
+
+.qa-pane.is-current,
+.qa-pane:target {
+    border-color: color-mix(in oklab, var(--qa-tone) 55%, var(--admin-glass-border));
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--qa-tone) 28%, transparent), var(--admin-shadow-soft);
 }
 
 .qa-pane__lead {
