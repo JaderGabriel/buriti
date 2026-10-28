@@ -38,6 +38,9 @@
             'run' => 'play',
             default => 'lost',
         };
+        $canRepeat = ! empty($command['id'] ?? $run->command);
+        $confirm = $command['confirm'] ?? null;
+        $repeatBlocked = ($command['kind'] ?? '') === 'suite' && $run->isRunning();
     @endphp
 
     <div class="qa-lab qa-lab--report">
@@ -49,15 +52,9 @@
             </div>
 
             <nav class="qa-flow" aria-label="Fluxo do laboratório">
-                <a class="qa-flow__step is-done" href="{{ route('admin.qa.index') }}#qa-kpis">
-                    <span>1</span> Saúde
-                </a>
-                <a class="qa-flow__step is-done" href="{{ route('admin.qa.index') }}#qa-console">
-                    <span>2</span> Executar
-                </a>
-                <span class="qa-flow__step is-current">
-                    <span>3</span> Relatório
-                </span>
+                <a class="qa-flow__step is-done" href="{{ route('admin.qa.index') }}#qa-kpis"><span>1</span> Saúde</a>
+                <a class="qa-flow__step is-done" href="{{ route('admin.qa.index') }}#qa-console"><span>2</span> Executar</a>
+                <span class="qa-flow__step is-current"><span>3</span> Relatório</span>
             </nav>
 
             <div class="qa-toolbar__actions">
@@ -65,11 +62,19 @@
                     <span class="qa-health__icon" aria-hidden="true">
                         <x-ui.icon :name="$healthIcon" class="h-4 w-4" />
                     </span>
-                    <div>
-                        <strong>{{ $run->statusLabel() }}</strong>
-                        <span>{{ $run->durationLabel() }}</span>
-                    </div>
+                    <strong>{{ $run->statusLabel() }}</strong>
+                    <span>{{ $run->durationLabel() }}</span>
                 </div>
+                @if($canRepeat)
+                    <form method="POST" action="{{ route('admin.qa.store') }}" @if($confirm) data-confirm="{{ $confirm }}" @endif>
+                        @csrf
+                        <input type="hidden" name="command" value="{{ $command['id'] ?? $run->command }}">
+                        <button type="submit" class="qa-lab__run" @disabled($repeatBlocked)>
+                            <x-ui.icon name="play" class="h-4 w-4" />
+                            {{ $repeatBlocked ? 'A correr…' : 'Repetir' }}
+                        </button>
+                    </form>
+                @endif
                 <a href="{{ route('admin.qa.index') }}" class="qa-lab__ghost">← Comandos</a>
             </div>
         </header>
@@ -82,54 +87,52 @@
             @endif
         </p>
 
-        @if($metrics !== [])
-            <ul class="qa-metrics" aria-label="Métricas da execução">
-                @foreach ($metrics as $metric)
-                    <li>
-                        <span>{{ $metric['label'] }}</span>
-                        <strong>{{ $metric['value'] }}</strong>
-                    </li>
-                @endforeach
-            </ul>
-        @endif
+        <div class="qa-report">
+            <div class="qa-report__facts">
+                @if($metrics !== [])
+                    <ul class="qa-metrics" aria-label="Métricas da execução">
+                        @foreach ($metrics as $metric)
+                            <li>
+                                <span>{{ $metric['label'] }}</span>
+                                <strong>{{ $metric['value'] }}</strong>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
 
-        @if($checks !== [])
-            <section class="dash-panel">
-                <header class="dash-panel__head">
-                    <div class="dash-panel__title-wrap">
-                        <span class="dash-panel__icon" aria-hidden="true"><x-ui.icon name="qualified" class="h-5 w-5" /></span>
-                        <div>
-                            <p class="dash-panel__eyebrow">Verificação</p>
-                            <h2 class="dash-panel__title">Checagens</h2>
-                        </div>
-                    </div>
-                    <p class="dash-panel__meta">{{ $checkOk }}/{{ $checkTotal }} OK</p>
-                </header>
-                <ul class="qa-checks">
-                    @foreach ($checks as $check)
-                        @php $ok = (bool) ($check['ok'] ?? false); @endphp
-                        <li class="qa-check {{ $ok ? 'is-ok' : 'is-bad' }}">
-                            <span class="qa-check__dot" aria-hidden="true"></span>
-                            <span class="qa-check__name">{{ $check['name'] ?? '—' }}</span>
-                            <span class="qa-check__detail">{{ $ok ? 'OK' : 'Falhou' }}@if(! empty($check['detail'])) · {{ $check['detail'] }}@endif</span>
-                        </li>
-                    @endforeach
-                </ul>
-            </section>
-        @endif
+                @if($checks !== [])
+                    <section class="qa-panel">
+                        <header class="qa-panel__head">
+                            <div>
+                                <p class="qa-panel__eyebrow">Verificação</p>
+                                <h2 class="qa-panel__title">Checagens</h2>
+                            </div>
+                            <span class="qa-panel__meta">{{ $checkOk }}/{{ $checkTotal }} OK</span>
+                        </header>
+                        <ul class="qa-checks">
+                            @foreach ($checks as $check)
+                                @php $ok = (bool) ($check['ok'] ?? false); @endphp
+                                <li class="qa-check {{ $ok ? 'is-ok' : 'is-bad' }}">
+                                    <span class="qa-check__dot" aria-hidden="true"></span>
+                                    <span class="qa-check__name">{{ $check['name'] ?? '—' }}</span>
+                                    <span class="qa-check__detail">{{ $ok ? 'OK' : 'Falhou' }}@if(! empty($check['detail'])) · {{ $check['detail'] }}@endif</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </section>
+                @endif
+            </div>
 
-        <section class="dash-panel qa-terminal">
-            <header class="dash-panel__head">
-                <div class="dash-panel__title-wrap">
-                    <span class="dash-panel__icon" aria-hidden="true"><x-ui.icon name="code" class="h-5 w-5" /></span>
+            <section class="qa-panel qa-terminal">
+                <header class="qa-panel__head">
                     <div>
-                        <p class="dash-panel__eyebrow">Console</p>
-                        <h2 class="dash-panel__title">Saída</h2>
+                        <p class="qa-panel__eyebrow">Console</p>
+                        <h2 class="qa-panel__title">Saída</h2>
                     </div>
-                </div>
-            </header>
-            <pre class="qa-terminal__body">{{ $run->output ?: 'Ainda sem saída.' }}</pre>
-        </section>
+                </header>
+                <pre class="qa-terminal__body">{{ $run->output ?: 'Ainda sem saída.' }}</pre>
+            </section>
+        </div>
     </div>
 
     @if($run->isRunning())
