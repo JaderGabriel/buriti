@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AuditLog;
 use App\Models\LoginActivity;
 use App\Models\User;
 use App\Support\ClientContext;
@@ -165,6 +166,19 @@ class AuthSecurityService
             ->where('is_admin', true)
             ->where('is_active', true)
             ->count();
+    }
+
+    /**
+     * @return array{login_activities: int, audit_logs: int}
+     */
+    public function pruneOlderThanDays(int $days = 90): array
+    {
+        $cutoff = now()->subDays(max(1, $days));
+
+        return [
+            'login_activities' => LoginActivity::query()->where('created_at', '<', $cutoff)->delete(),
+            'audit_logs' => AuditLog::query()->where('created_at', '<', $cutoff)->delete(),
+        ];
     }
 
     public function recordLogout(User $user, Request $request): void

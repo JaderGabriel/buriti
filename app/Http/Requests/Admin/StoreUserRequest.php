@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\JirauStaffRole;
+use App\Services\AvatarService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -24,7 +25,7 @@ class StoreUserRequest extends FormRequest
             'password' => ['required', 'confirmed', Password::defaults()],
             'is_admin' => ['sometimes', 'boolean'],
             'jirau_role' => ['nullable', Rule::enum(JirauStaffRole::class)],
-            'avatar' => ['nullable', 'image', 'max:2048'],
+            'avatar' => AvatarService::RULES,
         ];
     }
 

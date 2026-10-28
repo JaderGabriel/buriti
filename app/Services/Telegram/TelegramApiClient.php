@@ -2,6 +2,7 @@
 
 namespace App\Services\Telegram;
 
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -46,6 +47,56 @@ class TelegramApiClient
             return true;
         } catch (\Throwable $e) {
             Log::warning('Telegram sendMessage exception', ['message' => $e->getMessage()]);
+
+            return false;
+        }
+    }
+
+    /**
+     * Contacto nativo do Telegram: ligar e guardar na agenda (DDI + DDD + número).
+     */
+    public function sendContact(
+        string|int $chatId,
+        string $phoneNumber,
+        string $firstName,
+        ?string $lastName = null,
+        ?string $vcard = null,
+    ): bool {
+        if (! $this->configured() || trim($phoneNumber) === '' || trim($firstName) === '') {
+            return false;
+        }
+
+        $payload = [
+            'chat_id' => $chatId,
+            'phone_number' => $phoneNumber,
+            'first_name' => $firstName,
+        ];
+
+        if (filled($lastName)) {
+            $payload['last_name'] = $lastName;
+        }
+
+        if (filled($vcard)) {
+            $payload['vcard'] = $vcard;
+        }
+
+        try {
+            $response = Http::timeout(12)
+                ->asJson()
+                ->post($this->endpoint('sendContact'), $payload);
+
+            if (! $response->successful() || ! ($response->json('ok') ?? false)) {
+                Log::warning('Telegram sendContact failed', [
+                    'status' => $response->status(),
+                    'body' => $response->json(),
+                ]);
+
+                return false;
+            }
+
+            return true;
+        } catch (\Throwable $e) {
+            Log::warning('Telegram sendContact exception', ['message' => $e->getMessage()]);
 
             return false;
         }
@@ -270,7 +321,7 @@ class TelegramApiClient
     }
 
     /** @return array{ok: bool, description?: string, result?: mixed} */
-    private function normalize(\Illuminate\Http\Client\Response $response): array
+    private function normalize(Response $response): array
     {
         return [
             'ok' => (bool) ($response->json('ok') ?? false),

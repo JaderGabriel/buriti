@@ -87,8 +87,13 @@ class PhoneNumberTest extends TestCase
         $this->assertSame('tel:+5538991758416', PhoneNumber::telHref('38 99175-8416'));
         $this->assertSame('https://wa.me/5538991758416', PhoneNumber::whatsappHref('(38) 99175-8416'));
         $this->assertSame(
-            '<a href="https://wa.me/5538991758416">+55 (38) 99175-8416</a>',
+            '<code>+55 (38) 99175-8416</code>',
             PhoneNumber::telegramHtml('38991758416')
+        );
+        $this->assertStringNotContainsString('wa.me', (string) PhoneNumber::telegramHtml('38991758416'));
+        $this->assertSame(
+            "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Maria Lead\r\nTEL;TYPE=CELL:+5538991758416\r\nEMAIL:maria@buriti.test\r\nORG:Acme\r\nEND:VCARD",
+            PhoneNumber::vcard('Maria Lead', '38991758416', 'maria@buriti.test', 'Acme')
         );
     }
 

@@ -93,7 +93,7 @@ Route::prefix('conta')->name('account.')->middleware(['auth'])->group(function (
         ->name('notifications.read');
 });
 
-Route::prefix('jirau')->name('jirau.')->middleware(['auth', 'jirau'])->group(function () {
+Route::prefix('jirau')->name('jirau.')->middleware(['auth', 'jirau'])->scopeBindings()->group(function () {
     Route::get('/', [JirauBoardController::class, 'home'])->name('home');
     Route::post('/quadros', [JirauBoardController::class, 'store'])
         ->middleware('throttle:20,1')
@@ -105,7 +105,9 @@ Route::prefix('jirau')->name('jirau.')->middleware(['auth', 'jirau'])->group(fun
     Route::get('/analitica', [JirauAnalyticsController::class, 'index'])->name('analytics');
     Route::get('/geral', JirauOverviewController::class)->name('overview');
     Route::get('/equipe', [JirauStaffController::class, 'index'])->name('staff');
-    Route::post('/equipe', [JirauStaffController::class, 'store'])->name('staff.store');
+    Route::post('/equipe', [JirauStaffController::class, 'store'])
+        ->middleware('throttle:5,1')
+        ->name('staff.store');
     Route::get('/{jirau}/analitica', [JirauAnalyticsController::class, 'show'])->name('analytics.show');
     Route::post('/{jirau}/estado', [JirauStatusController::class, 'update'])->name('status');
     Route::put('/{jirau}', [JirauBoardController::class, 'update'])->name('update');

@@ -51,7 +51,8 @@ class AuthTwoFactorTest extends TestCase
             return str_contains($request->url(), 'sendMessage')
                 && str_contains($text, '<code>')
                 && str_contains($text, 'is your BURI-TI verification code.')
-                && str_contains($buttonUrl, '/admin/login/2fa?code=');
+                && str_contains($buttonUrl, '/admin/login/2fa')
+                && ! str_contains($buttonUrl, 'code=');
         });
     }
 
@@ -71,6 +72,21 @@ class AuthTwoFactorTest extends TestCase
             ->assertSee('autocomplete="one-time-code"', false)
             ->assertSee('id="one-time-code"', false)
             ->assertSee('enterkeyhint="done"', false);
+    }
+
+    public function test_two_factor_page_ignores_code_in_query_string(): void
+    {
+        $this->post(route('login'), [
+            'login' => $this->admin->email,
+            'password' => 'secret123',
+        ]);
+
+        $code = $this->lastTelegramTwoFactorCode();
+
+        $this->get(route('login.two-factor', ['code' => $code]))
+            ->assertOk()
+            ->assertDontSee('value="'.$code.'"', false)
+            ->assertDontSee('data-otp-prefill="'.$code.'"', false);
     }
 
     public function test_valid_telegram_code_completes_password_login(): void
@@ -206,26 +222,12 @@ class AuthTwoFactorTest extends TestCase
             ->assertRedirect(route('login'));
     }
 
-    public function test_two_factor_page_prefills_code_from_telegram_link(): void
-    {
-        $this->post(route('login'), [
-            'login' => $this->admin->email,
-            'password' => 'secret123',
-        ]);
-
-        $code = $this->lastTelegramTwoFactorCode();
-
-        $this->get(route('login.two-factor', ['code' => $code]))
-            ->assertOk()
-            ->assertSee('value="'.$code.'"', false)
-            ->assertSee('data-otp-prefill="'.$code.'"', false);
-    }
-
-    public function test_telegram_link_without_challenge_asks_to_return_to_safari(): void
+    public function test_two_factor_query_without_challenge_redirects_to_login(): void
     {
         $this->followingRedirects()
             ->get(route('login.two-factor', ['code' => '123456']))
-            ->assertSee('mesmo Safari', false);
+            ->assertSee('A verificação expirou', false)
+            ->assertDontSee('mesmo Safari', false);
     }
 
     public function test_ios_two_factor_logs_in_without_telegram(): void

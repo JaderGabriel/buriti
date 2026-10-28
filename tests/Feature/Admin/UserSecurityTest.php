@@ -181,6 +181,21 @@ class UserSecurityTest extends TestCase
             ->assertSessionHasErrors('avatar');
     }
 
+    public function test_svg_avatar_is_rejected(): void
+    {
+        Storage::fake('public');
+
+        $this->actingAs($this->admin)
+            ->from(route('admin.profile.edit'))
+            ->put(route('admin.profile.avatar'), [
+                'avatar' => UploadedFile::fake()->create('xss.svg', 40, 'image/svg+xml'),
+            ])
+            ->assertRedirect(route('admin.profile.edit'))
+            ->assertSessionHasErrors('avatar');
+
+        $this->assertNull($this->admin->fresh()->avatar_path);
+    }
+
     public function test_non_admin_cannot_manage_users(): void
     {
         $user = User::factory()->withoutAdminAccess()->create();
@@ -381,7 +396,9 @@ class UserSecurityTest extends TestCase
     {
         $this->actingAs($this->admin)
             ->from(route('admin.profile.edit'))
-            ->post(route('admin.profile.ios-2fa.start'))
+            ->post(route('admin.profile.ios-2fa.start'), [
+                'current_password' => 'password',
+            ])
             ->assertRedirect(route('admin.profile.edit'));
 
         $secret = session(TotpService::SETUP_SESSION_KEY);
@@ -396,11 +413,23 @@ class UserSecurityTest extends TestCase
         $this->actingAs($this->admin)
             ->from(route('admin.profile.edit'))
             ->post(route('admin.profile.ios-2fa.confirm'), [
+                'current_password' => 'password',
                 'code' => app(TotpService::class)->at($secret, time()),
             ])
             ->assertRedirect(route('admin.profile.edit'));
 
         $this->assertTrue($this->admin->fresh()->hasIosTwoFactor());
+        $this->assertFalse(session()->has(TotpService::SETUP_SESSION_KEY));
+    }
+
+    public function test_cannot_start_ios_two_factor_without_current_password(): void
+    {
+        $this->actingAs($this->admin)
+            ->from(route('admin.profile.edit'))
+            ->post(route('admin.profile.ios-2fa.start'))
+            ->assertRedirect(route('admin.profile.edit'))
+            ->assertSessionHasErrors('current_password');
+
         $this->assertFalse(session()->has(TotpService::SETUP_SESSION_KEY));
     }
 

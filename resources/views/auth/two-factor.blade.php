@@ -44,7 +44,7 @@
                     action="{{ route('login.two-factor.confirm') }}"
                     class="otp-form{{ $errors->has('code') ? ' is-error' : '' }}"
                     data-otp-form
-                    data-otp-prefill="{{ old('code', $prefillCode ?? '') }}"
+                    data-otp-prefill="{{ old('code') }}"
                     autocomplete="on"
                     novalidate
                 >
@@ -65,7 +65,7 @@
                             enterkeyhint="done"
                             aria-label="Código de 6 dígitos"
                             data-otp-value
-                            value="{{ old('code', $prefillCode ?? '') }}"
+                            value="{{ old('code') }}"
                         >
                         @for ($i = 0; $i < 6; $i++)
                             @if ($i === 3)

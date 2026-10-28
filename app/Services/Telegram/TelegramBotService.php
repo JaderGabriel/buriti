@@ -37,7 +37,15 @@ class TelegramBotService
 
     private const LOGIN_MAX_ATTEMPTS = 5;
 
+    private const LOGIN_GLOBAL_MAX_ATTEMPTS = 30;
+
     private const LOGIN_LOCK_SECONDS = 900;
+
+    /** @var array{inline_keyboard: list<list<array{text: string, url: string}>>}|null */
+    private ?array $pendingReplyMarkup = null;
+
+    /** @var array{phone_number: string, first_name: string, last_name: ?string, vcard: ?string}|null */
+    private ?array $pendingNativeContact = null;
 
     public function __construct(
         private TelegramApiClient $api,
@@ -84,6 +92,9 @@ class TelegramBotService
             return;
         }
 
+        $this->pendingReplyMarkup = null;
+        $this->pendingNativeContact = null;
+
         if (! $this->chatPassesAllowlist($chatId)) {
             $this->api->sendMessage(
                 $chatId,
@@ -113,7 +124,11 @@ class TelegramBotService
         }
 
         if ($reply !== null) {
-            $this->api->sendMessage($chatId, $reply);
+            $this->api->sendMessage($chatId, $reply, $this->pendingReplyMarkup);
+        }
+
+        if ($this->pendingNativeContact !== null) {
+            $this->sendQueuedNativeContact($chatId);
         }
     }
 
@@ -149,6 +164,13 @@ class TelegramBotService
 
         foreach ($chatIds as $chatId) {
             $this->api->sendMessage($chatId, $text, $markup);
+            $this->deliverNativeContact(
+                $chatId,
+                $message->phone,
+                $message->name,
+                $message->email,
+                $message->company,
+            );
         }
     }
 
@@ -305,7 +327,7 @@ class TelegramBotService
             return '❌ Pedido de login web inválido. Volte ao site e tente de novo.';
         }
 
-        $status = $this->webAuth->status($token);
+        $status = $this->webAuth->peekStatus($token);
         if (($status['status'] ?? '') === 'expired') {
             return '⏳ Este pedido de login expirou. Volte ao site e clique em <b>Continuar com Telegram</b> outra vez.';
         }
@@ -322,16 +344,13 @@ class TelegramBotService
             return '❌ Não foi possível confirmar o login web (pedido já usado ou expirado).';
         }
 
-        $completeUrl = route('login.telegram.complete', ['token' => $token]);
-
         $this->audit->record('auth.telegram.web.approved', $admin, [
             'summary' => $admin->email,
             'chat_id' => $chatId,
         ], null, $admin->id);
 
         return "✅ Login web confirmado, <b>{$this->escape($admin->name)}</b>.\n\n".
-            "Volte ao navegador — o painel deve abrir sozinho.\n".
-            'Se não abrir: <a href="'.$this->escape($completeUrl).'">concluir acesso</a>';
+            'Volte ao mesmo navegador em que clicou Continuar com Telegram — o painel abre sozinho.';
     }
 
     private function helpText(?User $admin): string
@@ -439,25 +458,11 @@ HTML;
             })
             ->first();
 
-        if (! $user || ! Hash::check($password, $user->password)) {
+        if (! $user || ! Hash::check($password, $user->password) || ! $user->is_active || ! $user->is_admin) {
             $this->hitLoginFailure($chatId);
             $this->recordTelegramLoginAttempt($user, $login, false);
 
-            return '❌ Credenciais inválidas. A mensagem com a senha foi removida do chat.';
-        }
-
-        if (! $user->is_active) {
-            $this->hitLoginFailure($chatId);
-            $this->recordTelegramLoginAttempt($user, $login, false);
-
-            return '⛔ Conta inativa. A mensagem com a senha foi removida do chat.';
-        }
-
-        if (! $user->is_admin) {
-            $this->hitLoginFailure($chatId);
-            $this->recordTelegramLoginAttempt($user, $login, false);
-
-            return '⛔ Apenas administradores podem usar o bot. A mensagem com a senha foi removida do chat.';
+            return '❌ Não foi possível entrar. A mensagem com a senha foi removida do chat.';
         }
 
         $user->linkTelegramChat($chatId);
@@ -508,14 +513,17 @@ HTML;
 
     private function isLoginLocked(string $chatId): bool
     {
-        return (int) Cache::get($this->loginFailKey($chatId), 0) >= self::LOGIN_MAX_ATTEMPTS;
+        return (int) Cache::get($this->loginFailKey($chatId), 0) >= self::LOGIN_MAX_ATTEMPTS
+            || (int) Cache::get($this->loginFailKey('global'), 0) >= self::LOGIN_GLOBAL_MAX_ATTEMPTS;
     }
 
     private function hitLoginFailure(string $chatId): void
     {
         $key = $this->loginFailKey($chatId);
-        $hits = (int) Cache::get($key, 0) + 1;
-        Cache::put($key, $hits, self::LOGIN_LOCK_SECONDS);
+        Cache::put($key, (int) Cache::get($key, 0) + 1, self::LOGIN_LOCK_SECONDS);
+
+        $global = $this->loginFailKey('global');
+        Cache::put($global, (int) Cache::get($global, 0) + 1, self::LOGIN_LOCK_SECONDS);
     }
 
     private function clearLoginFailures(string $chatId): void
@@ -602,6 +610,12 @@ HTML;
         }
 
         $url = route('admin.contacts.show', $contact);
+        $this->queuePhoneActions(
+            $contact->phone,
+            $contact->name,
+            $contact->email,
+            $contact->companyLabel(),
+        );
 
         return implode("\n", array_filter([
             "👤 <b>Contato #{$contact->id}</b>",
@@ -649,6 +663,12 @@ HTML;
         );
 
         $url = route('admin.contacts.show', $contact);
+        $this->queuePhoneActions(
+            $contact->phone,
+            $contact->name,
+            $contact->email,
+            $contact->companyLabel(),
+        );
 
         return implode("\n", array_filter([
             "✅ Contato <b>#{$contact->id}</b> {$this->escape($contact->name)}",
@@ -1855,6 +1875,12 @@ HTML;
 
         $url = route('admin.messages.show', $item);
         $body = $this->escape(Str::limit($item->message, 1200));
+        $this->queuePhoneActions(
+            $item->phone,
+            $item->name,
+            $item->email,
+            $item->company,
+        );
 
         return implode("\n", array_filter([
             "✉️ <b>Mensagem #{$item->id}</b> ".($item->isUnread() ? '(não lida)' : '(lida)'),
@@ -2069,6 +2095,80 @@ HTML;
         $raw = trim((string) $phone);
 
         return $raw !== '' ? '<b>Telefone:</b> '.$this->escape($raw) : null;
+    }
+
+    private function queuePhoneActions(
+        ?string $phone,
+        ?string $name,
+        ?string $email = null,
+        ?string $company = null,
+    ): void {
+        $this->pendingReplyMarkup = $this->whatsappKeyboard($phone);
+        $this->pendingNativeContact = $this->nativeContactPayload($phone, $name, $email, $company);
+    }
+
+    private function sendQueuedNativeContact(string $chatId): void
+    {
+        if ($this->pendingNativeContact === null) {
+            return;
+        }
+
+        $this->api->sendContact(
+            $chatId,
+            $this->pendingNativeContact['phone_number'],
+            $this->pendingNativeContact['first_name'],
+            $this->pendingNativeContact['last_name'],
+            $this->pendingNativeContact['vcard'],
+        );
+    }
+
+    private function deliverNativeContact(
+        string $chatId,
+        ?string $phone,
+        ?string $name,
+        ?string $email = null,
+        ?string $company = null,
+    ): void {
+        $payload = $this->nativeContactPayload($phone, $name, $email, $company);
+        if ($payload === null) {
+            return;
+        }
+
+        $this->api->sendContact(
+            $chatId,
+            $payload['phone_number'],
+            $payload['first_name'],
+            $payload['last_name'],
+            $payload['vcard'],
+        );
+    }
+
+    /**
+     * @return array{phone_number: string, first_name: string, last_name: ?string, vcard: ?string}|null
+     */
+    private function nativeContactPayload(
+        ?string $phone,
+        ?string $name,
+        ?string $email = null,
+        ?string $company = null,
+    ): ?array {
+        $e164 = PhoneNumber::e164Digits($phone);
+        if ($e164 === null) {
+            return null;
+        }
+
+        $fullName = trim((string) $name);
+        $display = $fullName !== '' ? $fullName : 'Contato';
+        $parts = preg_split('/\s+/', $display, 2) ?: [$display];
+        $first = Str::limit((string) ($parts[0] ?: 'Contato'), 64, '');
+        $last = isset($parts[1]) ? Str::limit((string) $parts[1], 64, '') : null;
+
+        return [
+            'phone_number' => '+'.$e164,
+            'first_name' => $first !== '' ? $first : 'Contato',
+            'last_name' => filled($last) ? $last : null,
+            'vcard' => PhoneNumber::vcard($display, $phone, $email, $company),
+        ];
     }
 
     /**

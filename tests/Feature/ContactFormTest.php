@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ContactStatus;
 use App\Models\Contact;
 use App\Models\ContactMessage;
 use App\Models\CrmActivity;
@@ -80,12 +81,13 @@ class ContactFormTest extends TestCase
         ]);
     }
 
-    public function test_contact_form_updates_existing_contact_by_email(): void
+    public function test_contact_form_does_not_overwrite_existing_contact_by_email(): void
     {
         $contact = Contact::factory()->create([
             'email' => 'cliente@empresa.com',
             'name' => 'Nome Antigo',
             'phone' => '+55 11000000000',
+            'status' => ContactStatus::Active,
         ]);
 
         $this->from(route('home'))->post(route('contact.store'), [
@@ -101,15 +103,16 @@ class ContactFormTest extends TestCase
         ])->assertSessionHas('contact_success');
 
         $this->assertSame(1, Contact::query()->where('email', 'cliente@empresa.com')->count());
-        $this->assertDatabaseHas('contacts', [
-            'id' => $contact->id,
-            'name' => 'Nome Novo',
-            'phone' => '+55 (38) 99175-8416',
-            'company' => 'Empresa Nova',
-        ]);
+        $fresh = $contact->fresh();
+        $this->assertSame('Nome Antigo', $fresh->name);
+        $this->assertSame('+55 11000000000', $fresh->phone);
+        $this->assertSame(ContactStatus::Active, $fresh->status);
 
-        $this->assertDatabaseHas('companies', ['name' => 'Empresa Nova']);
-        $this->assertNotNull($contact->fresh()->company_id);
+        $this->assertDatabaseHas('contact_messages', [
+            'contact_id' => $contact->id,
+            'name' => 'Nome Novo',
+            'subject' => 'Atualização',
+        ]);
 
         $this->assertSame(1, Opportunity::query()->where('contact_id', $contact->id)->open()->count());
 

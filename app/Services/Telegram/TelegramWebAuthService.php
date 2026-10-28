@@ -3,11 +3,14 @@
 namespace App\Services\Telegram;
 
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 class TelegramWebAuthService
 {
+    public const SESSION_KEY = 'telegram_web_login_token';
+
     private const TTL_SECONDS = 300;
 
     private const CACHE_PREFIX = 'telegram:web-login:';
@@ -51,7 +54,7 @@ class TelegramWebAuthService
     }
 
     /** @return array{token: string, deep_link: string, expires_in: int, complete_url: string, status_url: string} */
-    public function createChallenge(): array
+    public function createChallenge(Request $request): array
     {
         $token = Str::random(40);
 
@@ -60,6 +63,8 @@ class TelegramWebAuthService
             'user_id' => null,
             'created_at' => now()->timestamp,
         ], self::TTL_SECONDS);
+
+        $request->session()->put(self::SESSION_KEY, $token);
 
         return [
             'token' => $token,
@@ -77,8 +82,25 @@ class TelegramWebAuthService
         return 'https://t.me/'.$username.'?start=weblogin_'.$token;
     }
 
-    /** @return array{status: string, complete_url?: string} */
-    public function status(string $token): array
+    public function owns(Request $request, string $token): bool
+    {
+        $expected = (string) $request->session()->get(self::SESSION_KEY, '');
+
+        return $expected !== '' && hash_equals($expected, $token);
+    }
+
+    /** @return array{status: string} */
+    public function status(Request $request, string $token): array
+    {
+        if (! $this->owns($request, $token)) {
+            return ['status' => 'expired'];
+        }
+
+        return $this->peekStatus($token);
+    }
+
+    /** @return array{status: string} */
+    public function peekStatus(string $token): array
     {
         $payload = Cache::get($this->cacheKey($token));
 
@@ -86,16 +108,7 @@ class TelegramWebAuthService
             return ['status' => 'expired'];
         }
 
-        $status = (string) ($payload['status'] ?? 'pending');
-
-        if ($status === 'ready') {
-            return [
-                'status' => 'ready',
-                'complete_url' => route('login.telegram.complete', ['token' => $token]),
-            ];
-        }
-
-        return ['status' => $status];
+        return ['status' => (string) ($payload['status'] ?? 'pending')];
     }
 
     public function approve(string $token, User $user): bool
@@ -132,8 +145,12 @@ class TelegramWebAuthService
         ], self::TTL_SECONDS);
     }
 
-    public function consume(string $token): ?User
+    public function consume(Request $request, string $token): ?User
     {
+        if (! $this->owns($request, $token)) {
+            return null;
+        }
+
         $key = $this->cacheKey($token);
         $payload = Cache::get($key);
 
@@ -143,6 +160,7 @@ class TelegramWebAuthService
 
         $userId = (int) ($payload['user_id'] ?? 0);
         Cache::forget($key);
+        $request->session()->forget(self::SESSION_KEY);
 
         if ($userId <= 0) {
             return null;

@@ -18,6 +18,8 @@ use Illuminate\View\View;
 
 class LoginController extends Controller
 {
+    private const LOGIN_FAILED = 'Não foi possível entrar. Verifique os dados e tente de novo.';
+
     public function __construct(
         private AuthSecurityService $security,
         private TelegramWebAuthService $telegramWebAuth,
@@ -42,7 +44,7 @@ class LoginController extends Controller
 
             return back()
                 ->withInput($request->only('login', 'remember'))
-                ->withErrors(['login' => 'Credenciais inválidas.']);
+                ->withErrors(['login' => self::LOGIN_FAILED]);
         }
 
         if ($user->is_active === false) {
@@ -50,7 +52,7 @@ class LoginController extends Controller
 
             return back()
                 ->withInput($request->only('login', 'remember'))
-                ->withErrors(['login' => 'Esta conta está desativada.']);
+                ->withErrors(['login' => self::LOGIN_FAILED]);
         }
 
         if ($user->is_admin === false) {
@@ -59,7 +61,7 @@ class LoginController extends Controller
 
                 return back()
                     ->withInput($request->only('login', 'remember'))
-                    ->withErrors(['login' => 'Esta conta não tem acesso ao painel nem a um Jirau.']);
+                    ->withErrors(['login' => self::LOGIN_FAILED]);
             }
 
             Auth::login($user, $request->boolean('remember'));
@@ -85,13 +87,9 @@ class LoginController extends Controller
     public function twoFactor(Request $request): View|RedirectResponse
     {
         if (! $this->twoFactor->hasChallenge($request)) {
-            $hint = $this->prefillCode($request) !== ''
-                ? 'Abra esta tela no mesmo Safari em que pediu o código e cole os 6 dígitos, ou entre de novo.'
-                : 'A verificação expirou. Entre com usuário e senha de novo.';
-
             return redirect()
                 ->route('login')
-                ->withErrors(['login' => $hint]);
+                ->withErrors(['login' => 'A verificação expirou. Entre com usuário e senha de novo.']);
         }
 
         $payload = $this->twoFactor->payload($request) ?? [];
@@ -99,7 +97,6 @@ class LoginController extends Controller
 
         return view('auth.two-factor', [
             'resendWait' => $this->twoFactor->resendWait($payload),
-            'prefillCode' => $this->prefillCode($request),
             'preferIos' => $this->twoFactor->prefersIos($payload),
             'telegramAvailable' => $telegramAvailable,
             'telegramSent' => $this->twoFactor->telegramSent($payload),
@@ -181,7 +178,7 @@ class LoginController extends Controller
             ]);
         }
 
-        $challenge = $this->telegramWebAuth->createChallenge();
+        $challenge = $this->telegramWebAuth->createChallenge($request);
 
         if ($request->expectsJson() || $request->wantsJson()) {
             return response()->json([
@@ -193,14 +190,14 @@ class LoginController extends Controller
         return redirect()->away($challenge['deep_link']);
     }
 
-    public function telegramStatus(string $token): JsonResponse
+    public function telegramStatus(Request $request, string $token): JsonResponse
     {
-        return response()->json($this->telegramWebAuth->status($token));
+        return response()->json($this->telegramWebAuth->status($request, $token));
     }
 
     public function completeTelegram(Request $request, string $token): RedirectResponse
     {
-        $user = $this->telegramWebAuth->consume($token);
+        $user = $this->telegramWebAuth->consume($request, $token);
 
         if (! $user) {
             return redirect()
@@ -208,23 +205,20 @@ class LoginController extends Controller
                 ->withErrors(['telegram' => 'Link de login Telegram inválido ou expirado. Tente de novo.']);
         }
 
-        Auth::login($user, true);
-        $request->session()->regenerate();
-        $this->security->markSuccessfulLogin($user, $request);
-
-        return redirect()->intended(AuthHome::url($user));
+        return $this->finishTelegramLogin($request, $user);
     }
 
     public function telegramWidget(Request $request): RedirectResponse
     {
+        $token = (string) $request->session()->get(TelegramWebAuthService::SESSION_KEY, '');
         $verified = $this->telegramWebAuth->verifyWidgetAuth($request->query());
 
-        if (! $verified) {
+        if ($token === '' || ! $verified) {
             $this->security->recordLoginAttempt($request, null, false);
 
             return redirect()
                 ->route('login')
-                ->withErrors(['telegram' => 'Autorização Telegram inválida ou expirada.']);
+                ->withErrors(['telegram' => 'Inicie o login nesta página com Continuar com Telegram.']);
         }
 
         $user = $this->telegramWebAuth->findLinkedAdmin($verified['id']);
@@ -239,18 +233,44 @@ class LoginController extends Controller
                 ]);
         }
 
-        Auth::login($user, true);
+        if (! $this->telegramWebAuth->approve($token, $user)) {
+            $this->security->recordLoginAttempt($request, $user, false);
+
+            return redirect()
+                ->route('login')
+                ->withErrors(['telegram' => 'Link de login Telegram inválido ou expirado. Tente de novo.']);
+        }
+
+        $consumed = $this->telegramWebAuth->consume($request, $token);
+        if (! $consumed) {
+            return redirect()
+                ->route('login')
+                ->withErrors(['telegram' => 'Link de login Telegram inválido ou expirado. Tente de novo.']);
+        }
+
+        return $this->finishTelegramLogin($request, $consumed);
+    }
+
+    private function finishTelegramLogin(Request $request, User $user): RedirectResponse
+    {
+        if ($user->hasIosTwoFactor()) {
+            $started = $this->twoFactor->start($user, false, $request);
+            if (! ($started['ok'] ?? false)) {
+                $this->security->recordLoginAttempt($request, $user, false);
+
+                return redirect()
+                    ->route('login')
+                    ->withErrors(['telegram' => $started['message'] ?? 'Não foi possível iniciar a verificação.']);
+            }
+
+            return redirect()->route('login.two-factor');
+        }
+
+        Auth::login($user, false);
         $request->session()->regenerate();
         $this->security->markSuccessfulLogin($user, $request);
 
         return redirect()->intended(AuthHome::url($user));
-    }
-
-    private function prefillCode(Request $request): string
-    {
-        $code = preg_replace('/\D+/', '', (string) $request->query('code')) ?? '';
-
-        return strlen($code) === 6 ? $code : '';
     }
 
     public function destroy(Request $request): RedirectResponse

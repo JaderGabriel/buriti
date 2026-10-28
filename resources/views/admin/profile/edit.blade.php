@@ -101,6 +101,7 @@
                         <p class="break-all font-mono text-sm tracking-widest text-snow">{{ $totpSecret }}</p>
                         <form method="POST" action="{{ route('admin.profile.ios-2fa.confirm') }}" class="space-y-3">
                             @csrf
+                            <x-ui.input type="password" name="current_password" label="Senha atual" autocomplete="current-password" />
                             <x-ui.input
                                 name="code"
                                 label="Código do app Senhas"
@@ -113,8 +114,9 @@
                             <x-ui.button type="submit">Confirmar vínculo</x-ui.button>
                         </form>
                     @else
-                        <form method="POST" action="{{ route('admin.profile.ios-2fa.start') }}">
+                        <form method="POST" action="{{ route('admin.profile.ios-2fa.start') }}" class="space-y-3">
                             @csrf
+                            <x-ui.input type="password" name="current_password" label="Senha atual" autocomplete="current-password" />
                             <x-ui.button type="submit">Vincular iPhone</x-ui.button>
                         </form>
                     @endif

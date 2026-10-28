@@ -165,6 +165,11 @@ class JirauCard extends Model
         return $this->hasMany(JirauChecklistItem::class, 'card_id')->orderBy('sort_order')->orderBy('id');
     }
 
+    public function items(): HasMany
+    {
+        return $this->checklistItems();
+    }
+
     public function comments(): HasMany
     {
         return $this->hasMany(JirauComment::class, 'card_id')->orderBy('created_at');

@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\Company;
+use App\Support\SafeOutboundUrl;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -19,12 +21,16 @@ class CompanyFaviconService
             return false;
         }
 
-        $normalized = $this->normalizeUrl($website);
+        if (! preg_match('#^https?://#i', $website)) {
+            $website = 'https://'.$website;
+        }
+
+        $normalized = SafeOutboundUrl::validate($website);
         if ($normalized === null) {
             return false;
         }
 
-        $previous = $previousWebsiteUrl ? $this->normalizeUrl($previousWebsiteUrl) : null;
+        $previous = $previousWebsiteUrl ? SafeOutboundUrl::validate($previousWebsiteUrl) : null;
         if (
             $previous !== null
             && $this->origin($previous) === $this->origin($normalized)
@@ -72,12 +78,9 @@ class CompanyFaviconService
         $candidates = [];
 
         try {
-            $response = Http::timeout(8)
-                ->withHeaders($this->browserHeaders())
-                ->withOptions(['allow_redirects' => true])
-                ->get($websiteUrl);
+            $response = $this->getPublic($websiteUrl);
 
-            if ($response->successful()) {
+            if ($response !== null && $response->successful()) {
                 $html = $response->body();
                 $finalUrl = $websiteUrl;
                 $finalOrigin = $origin;
@@ -112,7 +115,7 @@ class CompanyFaviconService
         }
 
         $previous = libxml_use_internal_errors(true);
-        $document = new \DOMDocument();
+        $document = new \DOMDocument;
         $loaded = $document->loadHTML($html, LIBXML_NOWARNING | LIBXML_NOERROR);
         libxml_clear_errors();
         libxml_use_internal_errors($previous);
@@ -145,7 +148,7 @@ class CompanyFaviconService
                 continue;
             }
 
-            $absolute = $this->absolutize($href, $baseUrl);
+            $absolute = SafeOutboundUrl::validate($href, $baseUrl);
             if ($absolute !== null) {
                 $icons[] = $absolute;
             }
@@ -157,13 +160,15 @@ class CompanyFaviconService
     /** @return array{body: string, extension: string}|null */
     private function fetchIcon(string $url): ?array
     {
-        try {
-            $response = Http::timeout(8)
-                ->withHeaders($this->browserHeaders())
-                ->withOptions(['allow_redirects' => true])
-                ->get($url);
+        $url = SafeOutboundUrl::validate($url);
+        if ($url === null) {
+            return null;
+        }
 
-            if (! $response->successful()) {
+        try {
+            $response = $this->getPublic($url);
+
+            if ($response === null || ! $response->successful()) {
                 return null;
             }
 
@@ -198,7 +203,6 @@ class CompanyFaviconService
             'image/jpg' => 'jpg',
             'image/gif' => 'gif',
             'image/webp' => 'webp',
-            'image/svg+xml' => 'svg',
             'image/x-icon' => 'ico',
             'image/vnd.microsoft.icon' => 'ico',
             'image/ico' => 'ico',
@@ -220,8 +224,8 @@ class CompanyFaviconService
         if (str_starts_with($body, 'RIFF') && str_contains(substr($body, 0, 16), 'WEBP')) {
             return 'webp';
         }
-        if (str_starts_with(ltrim($body), '<svg') || str_contains(substr($body, 0, 200), '<svg')) {
-            return 'svg';
+        if (str_starts_with(ltrim($body), '<svg') || str_contains(strtolower(substr($body, 0, 200)), '<svg')) {
+            return null;
         }
         // ICO begins with reserved 0 + type 1
         if (strlen($body) >= 4 && $body[0] === "\x00" && $body[1] === "\x00" && ($body[2] === "\x01" || $body[2] === "\x02")) {
@@ -229,29 +233,32 @@ class CompanyFaviconService
         }
 
         $pathExt = Str::lower(pathinfo(parse_url($url, PHP_URL_PATH) ?: '', PATHINFO_EXTENSION));
-        if (in_array($pathExt, ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico'], true)) {
+        if (in_array($pathExt, ['png', 'jpg', 'jpeg', 'gif', 'webp', 'ico'], true)) {
             return $pathExt === 'jpeg' ? 'jpg' : $pathExt;
         }
 
         return null;
     }
 
-    private function normalizeUrl(string $url): ?string
+    private function getPublic(string $url): ?Response
     {
-        $url = trim($url);
-        if ($url === '') {
-            return null;
+        $current = SafeOutboundUrl::validate($url);
+        for ($hop = 0; $hop < 3 && $current !== null; $hop++) {
+            $response = Http::timeout(8)
+                ->withHeaders($this->browserHeaders())
+                ->withOptions(['allow_redirects' => false])
+                ->get($current);
+
+            if ($response->redirect()) {
+                $current = SafeOutboundUrl::validate((string) $response->header('Location'), $current);
+
+                continue;
+            }
+
+            return $response;
         }
 
-        if (! preg_match('#^https?://#i', $url)) {
-            $url = 'https://'.$url;
-        }
-
-        if (! filter_var($url, FILTER_VALIDATE_URL)) {
-            return null;
-        }
-
-        return $url;
+        return null;
     }
 
     private function origin(string $url): ?string
@@ -267,38 +274,6 @@ class CompanyFaviconService
         }
 
         return $origin;
-    }
-
-    private function absolutize(string $href, string $baseUrl): ?string
-    {
-        $href = trim($href);
-        if ($href === '') {
-            return null;
-        }
-
-        if (preg_match('#^https?://#i', $href)) {
-            return $href;
-        }
-
-        if (str_starts_with($href, '//')) {
-            $scheme = parse_url($baseUrl, PHP_URL_SCHEME) ?: 'https';
-
-            return $scheme.':'.$href;
-        }
-
-        $origin = $this->origin($baseUrl);
-        if ($origin === null) {
-            return null;
-        }
-
-        if (str_starts_with($href, '/')) {
-            return rtrim($origin, '/').$href;
-        }
-
-        $basePath = parse_url($baseUrl, PHP_URL_PATH) ?: '/';
-        $dir = str_contains($basePath, '/') ? preg_replace('#/[^/]*$#', '/', $basePath) : '/';
-
-        return rtrim($origin, '/').$dir.ltrim($href, '/');
     }
 
     /** @return array<string, string> */

@@ -351,7 +351,7 @@ class PasswordTwoFactorService
     {
         $safeName = htmlspecialchars($name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         $safeCode = htmlspecialchars($code, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $verifyUrl = route('login.two-factor', ['code' => $code], true);
+        $verifyUrl = route('login.two-factor', absolute: true);
 
         $text = implode("\n", [
             '🔐 <b>Código de verificação BURI-TI</b>',

@@ -22,3 +22,8 @@ Schedule::command('opportunities:follow-up')
     ->weeklyOn(1, '09:00')
     ->withoutOverlapping(30)
     ->appendOutputTo(storage_path('logs/opportunity-follow-ups.log'));
+
+Schedule::command('security:prune-logs')
+    ->dailyAt('03:15')
+    ->withoutOverlapping(60)
+    ->appendOutputTo(storage_path('logs/security-prune.log'));

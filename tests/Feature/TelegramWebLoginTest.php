@@ -72,47 +72,75 @@ class TelegramWebLoginTest extends TestCase
             ->assertJsonStructure(['token', 'deep_link', 'status_url', 'complete_url']);
 
         $this->assertStringContainsString('weblogin_', $response->json('deep_link'));
+        $this->assertTrue(session()->has(TelegramWebAuthService::SESSION_KEY));
     }
 
     public function test_bot_start_weblogin_approves_linked_admin(): void
     {
-        $challenge = app(TelegramWebAuthService::class)->createChallenge();
+        $token = $this->postJson(route('login.telegram.start'))->json('token');
 
         $this->postWebhook([
             'message' => [
                 'chat' => ['id' => 999001],
-                'text' => '/start weblogin_'.$challenge['token'],
+                'text' => '/start weblogin_'.$token,
             ],
         ])->assertOk();
 
-        $this->assertSame('ready', app(TelegramWebAuthService::class)->status($challenge['token'])['status']);
+        $status = $this->getJson(route('login.telegram.status', ['token' => $token]))
+            ->assertOk()
+            ->json();
+        $this->assertSame('ready', $status['status'] ?? null);
+        $this->assertArrayNotHasKey('complete_url', $status);
 
-        $this->get(route('login.telegram.complete', ['token' => $challenge['token']]))
+        $this->get(route('login.telegram.complete', ['token' => $token]))
             ->assertRedirect(route('admin.dashboard'));
 
         $this->assertAuthenticatedAs($this->admin);
     }
 
-    public function test_unlinked_chat_cannot_approve_web_login(): void
+    public function test_stolen_complete_url_does_not_login_another_browser(): void
     {
-        $challenge = app(TelegramWebAuthService::class)->createChallenge();
+        $token = $this->postJson(route('login.telegram.start'))->json('token');
 
         $this->postWebhook([
             'message' => [
-                'chat' => ['id' => 555],
-                'text' => '/start weblogin_'.$challenge['token'],
+                'chat' => ['id' => 999001],
+                'text' => '/start weblogin_'.$token,
             ],
         ])->assertOk();
 
-        $this->assertSame('unlinked', app(TelegramWebAuthService::class)->status($challenge['token'])['status']);
+        $this->flushSession();
 
-        $this->get(route('login.telegram.complete', ['token' => $challenge['token']]))
+        $this->get(route('login.telegram.complete', ['token' => $token]))
             ->assertRedirect(route('login'));
 
         $this->assertGuest();
     }
 
-    public function test_widget_callback_still_works_for_legacy_links_but_is_not_advertised(): void
+    public function test_unlinked_chat_cannot_approve_web_login(): void
+    {
+        $token = $this->postJson(route('login.telegram.start'))->json('token');
+
+        $this->postWebhook([
+            'message' => [
+                'chat' => ['id' => 555],
+                'text' => '/start weblogin_'.$token,
+            ],
+        ])->assertOk();
+
+        $status = $this->getJson(route('login.telegram.status', ['token' => $token]))
+            ->assertOk()
+            ->json();
+        $this->assertSame('unlinked', $status['status'] ?? null);
+        $this->assertArrayNotHasKey('complete_url', $status);
+
+        $this->get(route('login.telegram.complete', ['token' => $token]))
+            ->assertRedirect(route('login'));
+
+        $this->assertGuest();
+    }
+
+    public function test_widget_callback_requires_a_challenge_started_in_this_session(): void
     {
         $authDate = now()->timestamp;
         $payload = [
@@ -132,6 +160,13 @@ class TelegramWebLoginTest extends TestCase
             $check,
             hash('sha256', '123456:TESTTOKEN', true)
         );
+
+        $this->get(route('login.telegram.callback', [...$payload, 'hash' => $hash]))
+            ->assertRedirect(route('login'));
+
+        $this->assertGuest();
+
+        $this->postJson(route('login.telegram.start'))->assertOk();
 
         $this->get(route('login.telegram.callback', [...$payload, 'hash' => $hash]))
             ->assertRedirect(route('admin.dashboard'));

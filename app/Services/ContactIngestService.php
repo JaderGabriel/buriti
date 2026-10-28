@@ -7,6 +7,7 @@ use App\Enums\ContactStatus;
 use App\Enums\CrmActivityType;
 use App\Enums\NotificationType;
 use App\Enums\OpportunityStage;
+use App\Models\Company;
 use App\Models\Contact;
 use App\Models\ContactMessage;
 use App\Models\CrmActivity;
@@ -33,17 +34,13 @@ class ContactIngestService
             $email = strtolower(trim($payload['email']));
             $company = $this->companies->findOrCreateByName($payload['company'] ?? null);
 
-            $contact = Contact::query()->updateOrCreate(
-                ['email' => $email],
-                [
-                    'name' => $payload['name'],
-                    'phone' => $payload['phone'] ?? null,
-                    'company' => $company?->name,
-                    'company_id' => $company?->id,
-                    'preferred_channel' => $payload['preferred_channel'] ?? null,
-                    'status' => ContactStatus::Lead,
-                    'source' => ContactSource::Website,
-                ]
+            $contact = $this->matchOrCreateContact(
+                $email,
+                $payload['name'],
+                $payload['phone'] ?? null,
+                $payload['preferred_channel'] ?? null,
+                $company,
+                $payload['company'] ?? null,
             );
 
             $message = ContactMessage::query()->create([
@@ -107,17 +104,13 @@ class ContactIngestService
             $email = strtolower(trim($message->email));
             $company = $this->companies->findOrCreateByName($message->company);
 
-            $contact = Contact::query()->updateOrCreate(
-                ['email' => $email],
-                [
-                    'name' => $message->name,
-                    'phone' => $message->phone,
-                    'company' => $company?->name ?? $message->company,
-                    'company_id' => $company?->id,
-                    'preferred_channel' => $message->preferred_channel,
-                    'status' => ContactStatus::Lead,
-                    'source' => ContactSource::Website,
-                ]
+            $contact = $this->matchOrCreateContact(
+                $email,
+                $message->name,
+                $message->phone,
+                $message->preferred_channel,
+                $company,
+                $message->company,
             );
 
             $message->update(['contact_id' => $contact->id]);
@@ -130,6 +123,47 @@ class ContactIngestService
 
             return $contact;
         });
+    }
+
+    private function matchOrCreateContact(
+        string $email,
+        string $name,
+        ?string $phone,
+        ?string $preferredChannel,
+        ?Company $company,
+        ?string $companyName,
+    ): Contact {
+        $contact = Contact::query()->where('email', $email)->first();
+
+        if ($contact) {
+            $updates = [];
+            if (blank($contact->phone) && filled($phone)) {
+                $updates['phone'] = $phone;
+            }
+            if (blank($contact->preferred_channel) && filled($preferredChannel)) {
+                $updates['preferred_channel'] = $preferredChannel;
+            }
+            if ($contact->company_id === null && $company) {
+                $updates['company_id'] = $company->id;
+                $updates['company'] = $company->name;
+            }
+            if ($updates !== []) {
+                $contact->update($updates);
+            }
+
+            return $contact->fresh() ?? $contact;
+        }
+
+        return Contact::query()->create([
+            'name' => $name,
+            'email' => $email,
+            'phone' => $phone,
+            'company' => $company?->name ?? $companyName,
+            'company_id' => $company?->id,
+            'preferred_channel' => $preferredChannel,
+            'status' => ContactStatus::Lead,
+            'source' => ContactSource::Website,
+        ]);
     }
 
     /**

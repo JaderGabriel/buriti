@@ -109,14 +109,14 @@ class PhoneNumber
         return '+'.$dial.' '.self::formatNational($local, $country['iso']);
     }
 
-    public static function format(?string $phone): ?string
+    public static function format(?string $phone, string $fallbackIso = 'BR'): ?string
     {
         $raw = trim((string) $phone);
         if ($raw === '') {
             return null;
         }
 
-        $parsed = self::parse($raw);
+        $parsed = self::parse($raw, $fallbackIso);
         if ($parsed['national'] === '') {
             return $raw;
         }
@@ -174,19 +174,66 @@ class PhoneNumber
     }
 
     /**
-     * Link HTTPS (wa.me) com DDI+DDD+número visíveis — o Telegram não aceita tel: no HTML.
+     * Número formatado (DDI + DDD + assinante) para HTML do Telegram.
+     * O parse_mode HTML só aceita http(s) em &lt;a&gt; — tel: é recusado, então
+     * o valor vai em &lt;code&gt; (cópia) e o contacto nativo (sendContact) liga/guarda.
      */
     public static function telegramHtml(?string $phone, string $fallbackIso = 'BR'): ?string
     {
-        $label = self::format($phone);
-        $href = self::whatsappHref($phone, null, $fallbackIso);
-        if ($label === null || $href === null) {
+        $raw = trim((string) $phone);
+        if ($raw === '') {
             return null;
         }
 
-        return '<a href="'.htmlspecialchars($href, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8').'">'
-            .htmlspecialchars($label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
-            .'</a>';
+        $label = self::format($raw, $fallbackIso) ?? $raw;
+
+        return '<code>'.htmlspecialchars($label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8').'</code>';
+    }
+
+    /**
+     * vCard 3.0 para sendContact: guardar na agenda com DDI+DDD+número.
+     */
+    public static function vcard(
+        string $fullName,
+        ?string $phone,
+        ?string $email = null,
+        ?string $organization = null,
+        string $fallbackIso = 'BR',
+    ): ?string {
+        $e164 = self::e164Digits($phone, $fallbackIso);
+        if ($e164 === null) {
+            return null;
+        }
+
+        $escape = static function (string $value): string {
+            return str_replace(
+                ['\\', ';', ',', "\n", "\r"],
+                ['\\\\', '\\;', '\\,', '\\n', ''],
+                $value,
+            );
+        };
+
+        $name = trim($fullName) !== '' ? trim($fullName) : 'Contato';
+        $lines = [
+            'BEGIN:VCARD',
+            'VERSION:3.0',
+            'FN:'.$escape($name),
+            'TEL;TYPE=CELL:+'.$e164,
+        ];
+
+        $email = trim((string) $email);
+        if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $lines[] = 'EMAIL:'.$escape($email);
+        }
+
+        $organization = trim((string) $organization);
+        if ($organization !== '') {
+            $lines[] = 'ORG:'.$escape($organization);
+        }
+
+        $lines[] = 'END:VCARD';
+
+        return implode("\r\n", $lines);
     }
 
     public static function formatNational(string $national, string $iso = 'BR'): string

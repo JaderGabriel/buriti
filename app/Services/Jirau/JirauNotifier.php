@@ -189,7 +189,9 @@ class JirauNotifier
         string $cta = 'Abrir no Jirau',
         ?User $actor = null,
     ): void {
-        $this->deliver($this->cardMessage($title, $jirau, $card, $lines, $cta), $priorityUsers, $afterResponse);
+        $audience = $this->boardAudience($jirau, $priorityUsers);
+
+        $this->deliver($this->cardMessage($title, $jirau, $card, $lines, $cta), $priorityUsers, $afterResponse, $audience);
 
         $plain = collect($lines)
             ->filter(fn ($line) => is_string($line) && $line !== '')
@@ -198,7 +200,7 @@ class JirauNotifier
             ->all();
 
         $this->inbox->notify(
-            $this->inboxRecipients($priorityUsers, $actor),
+            $audience->reject(fn (User $user) => $actor && (int) $user->id === (int) $actor->id)->values(),
             NotificationType::Jirau,
             $title,
             implode(' · ', array_filter([
@@ -209,18 +211,23 @@ class JirauNotifier
         );
     }
 
-    /** @return Collection<int, User> */
-    private function inboxRecipients(iterable $priorityUsers, ?User $actor = null): Collection
+    /**
+     * @param  iterable<int, User>|Collection<int, User>  $priorityUsers
+     * @return Collection<int, User>
+     */
+    private function boardAudience(Jirau $jirau, iterable $priorityUsers = []): Collection
     {
-        return $this->mergeUsers(User::assignableOnJirau()->get(), $priorityUsers)
-            ->reject(fn (User $user) => $actor && (int) $user->id === (int) $actor->id)
-            ->values();
+        $jirau->loadMissing('members');
+        $admins = User::query()->where('is_admin', true)->where('is_active', true)->get();
+
+        return $this->mergeUsers($this->mergeUsers($jirau->members, $admins), $priorityUsers);
     }
 
     /**
      * @param  iterable<int, User>|Collection<int, User>  $priorityUsers
+     * @param  Collection<int, User>|null  $audience
      */
-    public function deliver(string $text, iterable $priorityUsers = [], bool $afterResponse = true): void
+    public function deliver(string $text, iterable $priorityUsers = [], bool $afterResponse = true, ?Collection $audience = null): void
     {
         $priorityIds = collect($priorityUsers)
             ->filter()
@@ -230,7 +237,9 @@ class JirauNotifier
             ->unique()
             ->values();
 
-        $teamIds = collect($this->chatIds());
+        $teamIds = $audience === null
+            ? collect($this->chatIds())
+            : $this->chatIdsFor($audience);
         $priorityBody = '<b>⚡ Prioritário</b>'."\n".$text;
 
         $send = function () use ($text, $priorityBody, $priorityIds, $teamIds) {
@@ -322,8 +331,18 @@ class JirauNotifier
     /** @return list<string> */
     private function chatIds(): array
     {
-        $ids = User::assignableOnJirau()
-            ->whereNotNull('telegram_chat_id')
+        return $this->chatIdsFor(
+            User::assignableOnJirau()->whereNotNull('telegram_chat_id')->get()
+        );
+    }
+
+    /**
+     * @param  Collection<int, User>  $users
+     * @return list<string>
+     */
+    private function chatIdsFor(Collection $users): array
+    {
+        $ids = $users
             ->pluck('telegram_chat_id')
             ->map(fn ($id) => trim((string) $id))
             ->filter()

@@ -104,4 +104,50 @@ class CompanyFaviconTest extends TestCase
         $this->assertSame('companies/logos/keep.png', $company->logo_path);
         Http::assertNothingSent();
     }
+
+    public function test_private_website_is_not_fetched(): void
+    {
+        Http::fake();
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.companies.store'), [
+                'name' => 'Empresa Interna',
+                'status' => 'active',
+                'website_url' => 'http://127.0.0.1',
+            ])
+            ->assertRedirect();
+
+        $company = Company::query()->where('name', 'Empresa Interna')->first();
+        $this->assertNotNull($company);
+        $this->assertNull($company->logo_path);
+        Http::assertNothingSent();
+    }
+
+    public function test_svg_favicon_is_rejected(): void
+    {
+        Http::fake([
+            'https://exemplo.com' => Http::response(
+                '<html><head><link rel="icon" href="/icon.svg"></head></html>',
+                200,
+                ['Content-Type' => 'text/html']
+            ),
+            'https://exemplo.com/icon.svg' => Http::response(
+                '<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"></svg>',
+                200,
+                ['Content-Type' => 'image/svg+xml']
+            ),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.companies.store'), [
+                'name' => 'Empresa SVG',
+                'status' => 'active',
+                'website_url' => 'https://exemplo.com',
+            ])
+            ->assertRedirect();
+
+        $company = Company::query()->where('name', 'Empresa SVG')->first();
+        $this->assertNotNull($company);
+        $this->assertNull($company->logo_path);
+    }
 }

@@ -254,13 +254,24 @@ class TelegramBotTest extends TestCase
             return ($data['chat_id'] ?? null) == '999001'
                 && str_contains($text, 'Nova mensagem do site')
                 && str_contains($text, 'Lead Site')
-                && str_contains($text, 'https://wa.me/5511988887777')
-                && str_contains($text, '+55 (11) 98888-7777')
+                && str_contains($text, '<code>+55 (11) 98888-7777</code>')
+                && ! str_contains($text, 'wa.me')
                 && $button === 'https://wa.me/5511988887777';
+        });
+
+        Http::assertSent(function ($request) {
+            $data = $request->data();
+
+            return str_contains($request->url(), 'sendContact')
+                && ($data['chat_id'] ?? null) == '999001'
+                && ($data['phone_number'] ?? null) === '+5511988887777'
+                && ($data['first_name'] ?? null) === 'Lead'
+                && ($data['last_name'] ?? null) === 'Site'
+                && str_contains((string) ($data['vcard'] ?? ''), 'TEL;TYPE=CELL:+5511988887777');
         });
     }
 
-    public function test_contato_show_links_phone_with_ddi_ddd_and_number(): void
+    public function test_contato_show_formats_phone_and_sends_native_contact(): void
     {
         $this->loginAdmin();
 
@@ -278,12 +289,25 @@ class TelegramBotTest extends TestCase
         ])->assertOk();
 
         Http::assertSent(function ($request) {
-            $text = (string) ($request->data()['text'] ?? '');
+            $data = $request->data();
+            $text = (string) ($data['text'] ?? '');
+            $button = $data['reply_markup']['inline_keyboard'][0][0]['url'] ?? '';
 
             return str_contains($request->url(), 'sendMessage')
-                && str_contains($text, 'https://wa.me/5538991758416')
-                && str_contains($text, '+55 (38) 99175-8416')
-                && str_contains($text, 'Maria Lead');
+                && str_contains($text, '<code>+55 (38) 99175-8416</code>')
+                && str_contains($text, 'Maria Lead')
+                && ! str_contains($text, 'wa.me')
+                && $button === 'https://wa.me/5538991758416';
+        });
+
+        Http::assertSent(function ($request) {
+            $data = $request->data();
+
+            return str_contains($request->url(), 'sendContact')
+                && ($data['phone_number'] ?? null) === '+5538991758416'
+                && ($data['first_name'] ?? null) === 'Maria'
+                && ($data['last_name'] ?? null) === 'Lead'
+                && str_contains((string) ($data['vcard'] ?? ''), 'EMAIL:maria.lead@buriti.test');
         });
     }
 

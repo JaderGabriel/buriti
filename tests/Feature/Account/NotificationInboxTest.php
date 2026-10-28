@@ -184,9 +184,11 @@ class NotificationInboxTest extends TestCase
 
         $admin = User::factory()->telegramLinked('555001')->create();
         $staff = User::factory()->staff()->telegramLinked('888002')->create(['name' => 'Rafa Dev']);
+        $outsider = User::factory()->staff()->telegramLinked('777003')->create(['name' => 'Fora do quadro']);
         $jirau = Jirau::factory()->create(['created_by' => $admin->id]);
         $inbox = $jirau->columns()->where('slug', 'inbox')->first();
         $backlog = $jirau->columns()->where('slug', 'backlog')->first();
+        $backlog->watchers()->sync([$staff->id]);
 
         $card = JirauCard::factory()->demand()->create([
             'jirau_id' => $jirau->id,
@@ -207,6 +209,10 @@ class NotificationInboxTest extends TestCase
         ]);
         $this->assertDatabaseMissing('user_notifications', [
             'user_id' => $admin->id,
+            'title' => 'Demanda catalogada no Jirau',
+        ]);
+        $this->assertDatabaseMissing('user_notifications', [
+            'user_id' => $outsider->id,
             'title' => 'Demanda catalogada no Jirau',
         ]);
     }

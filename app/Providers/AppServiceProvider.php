@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\JirauCard;
 use App\Models\Opportunity;
 use App\Observers\OpportunityObserver;
 use App\Services\SettingService;
@@ -12,6 +13,7 @@ use App\View\Composers\SiteLayoutComposer;
 use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -41,6 +43,15 @@ class AppServiceProvider extends ServiceProvider
         View::composer(['layouts.admin', 'layouts.jirau'], AdminLayoutComposer::class);
 
         Opportunity::observe(OpportunityObserver::class);
+
+        Route::bind('item', function (string $value, $route) {
+            $card = $route->parameter('card');
+            if ($card instanceof JirauCard) {
+                return $card->checklistItems()->whereKey($value)->firstOrFail();
+            }
+
+            abort(404);
+        });
 
         if ($this->app->runningInConsole()) {
             Event::listen(CommandFinished::class, function (CommandFinished $event): void {

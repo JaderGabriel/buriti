@@ -12,6 +12,7 @@ use App\Services\AvatarService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ProfileController extends Controller
@@ -115,6 +116,8 @@ class ProfileController extends Controller
             return back()->withErrors(['totp' => 'O iPhone já está vinculado. Remova o método atual para gerar outro.']);
         }
 
+        $this->assertCurrentPassword($request, 'Informe a senha atual para vincular o iPhone.');
+
         $request->session()->put(TotpService::SETUP_SESSION_KEY, $this->totp->generateSecret());
 
         return back()->with('success', 'Adicione o código no app Senhas do iPhone e confirme os 6 dígitos.');
@@ -122,6 +125,8 @@ class ProfileController extends Controller
 
     public function confirmIosTwoFactor(Request $request): RedirectResponse
     {
+        $this->assertCurrentPassword($request, 'Informe a senha atual para confirmar o iPhone.');
+
         $code = preg_replace('/\D+/', '', (string) $request->input('code')) ?? '';
         $request->merge(['code' => $code]);
         $request->validate([
@@ -158,15 +163,7 @@ class ProfileController extends Controller
             return back()->withErrors(['totp' => 'Mantenha o iPhone ou vincule o Telegram antes de remover este método.']);
         }
 
-        $request->validate([
-            'current_password' => ['required', 'string'],
-        ], [
-            'current_password.required' => 'Informe a senha atual para remover o iPhone.',
-        ]);
-
-        if (! Hash::check((string) $request->input('current_password'), (string) $user->password)) {
-            return back()->withErrors(['current_password' => 'Senha atual inválida.']);
-        }
+        $this->assertCurrentPassword($request, 'Informe a senha atual para remover o iPhone.');
 
         $user->unlinkIosTwoFactor();
         $request->session()->forget(TotpService::SETUP_SESSION_KEY);
@@ -179,5 +176,20 @@ class ProfileController extends Controller
         $secret = $request->session()->get(TotpService::SETUP_SESSION_KEY);
 
         return is_string($secret) && $secret !== '' ? $secret : null;
+    }
+
+    private function assertCurrentPassword(Request $request, string $requiredMessage): void
+    {
+        $request->validate([
+            'current_password' => ['required', 'string'],
+        ], [
+            'current_password.required' => $requiredMessage,
+        ]);
+
+        if (! Hash::check((string) $request->input('current_password'), (string) $request->user()->password)) {
+            throw ValidationException::withMessages([
+                'current_password' => 'Senha atual inválida.',
+            ]);
+        }
     }
 }
