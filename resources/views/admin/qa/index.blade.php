@@ -15,7 +15,20 @@
         };
     @endphp
 
-    <div class="qa-lab" data-qa-lab x-data="{ tab: '{{ $firstGroup }}' }">
+    <div
+        class="qa-lab"
+        data-qa-lab
+        x-data="{
+            tab: '{{ $firstGroup }}',
+            selectArea(id) {
+                this.tab = id;
+                this.$nextTick(() => {
+                    const el = document.getElementById('qa-area-' + id);
+                    (el || this.$refs.console)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            },
+        }"
+    >
         <header class="qa-toolbar">
             <div class="qa-toolbar__copy">
                 <p class="admin-hero__kicker">Sistema · Qualidade</p>
@@ -82,14 +95,18 @@
                         <h2 id="qa-areas-title" class="qa-panel__title">Saúde por área</h2>
                     </div>
                 </header>
-                <div class="qa-panel__body qa-nav">
+                <nav class="qa-panel__body qa-nav" aria-label="Áreas de teste">
                     @foreach ($dashboard['modules'] as $module)
-                        <button
-                            type="button"
-                            class="qa-navitem qa-navitem--{{ $module['status'] }}"
+                        <a
+                            href="#qa-area-{{ $module['id'] }}"
+                            @class([
+                                'qa-navitem',
+                                'qa-navitem--'.$module['status'],
+                                'is-active' => $module['id'] === $firstGroup,
+                            ])
                             data-tone="{{ $module['tone'] }}"
-                            :class="tab === '{{ $module['id'] }}' && 'is-active'"
-                            @click="tab = '{{ $module['id'] }}'"
+                            :class="{ 'is-active': tab === '{{ $module['id'] }}' }"
+                            @click.prevent="selectArea('{{ $module['id'] }}')"
                         >
                             <span class="qa-navitem__icon" aria-hidden="true">
                                 <x-ui.icon :name="$module['icon']" class="h-4 w-4" />
@@ -104,14 +121,20 @@
                                 </span>
                             </span>
                             <span class="qa-navitem__pip" aria-hidden="true"></span>
-                        </button>
+                        </a>
                     @endforeach
-                </div>
+                </nav>
             </aside>
 
             <section id="qa-console" class="qa-panel qa-panel--console" x-ref="console">
                 @foreach ($groups as $group)
-                    <div class="qa-pane" data-tone="{{ $group['id'] }}" x-show="tab === '{{ $group['id'] }}'">
+                    <div
+                        id="qa-area-{{ $group['id'] }}"
+                        class="qa-pane"
+                        data-tone="{{ $group['id'] }}"
+                        x-show="tab === '{{ $group['id'] }}'"
+                        @unless($group['id'] === $firstGroup) x-cloak @endunless
+                    >
                         <header class="qa-panel__head">
                             <div class="qa-panel__title-wrap">
                                 <span class="qa-panel__icon" aria-hidden="true">

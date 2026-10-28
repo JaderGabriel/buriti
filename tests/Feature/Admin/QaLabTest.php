@@ -41,6 +41,8 @@ class QaLabTest extends TestCase
             ->assertSee('Centro de testes', false)
             ->assertSee('Taxa de sucesso', false)
             ->assertSee('Saúde por área', false)
+            ->assertSee('href="#qa-area-comercial"', false)
+            ->assertSee('id="qa-area-comercial"', false)
             ->assertSee('Rodar suíte completa', false)
             ->assertSee('qa-kpis', false)
             ->assertSee('qa-flow', false)
