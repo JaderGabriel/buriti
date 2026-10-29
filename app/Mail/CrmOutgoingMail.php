@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Support\MailBranding;
+use App\Support\MailHtml;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
@@ -11,6 +12,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Queue\SerializesModels;
+use Symfony\Component\Mime\Email;
 
 class CrmOutgoingMail extends Mailable
 {
@@ -18,6 +20,7 @@ class CrmOutgoingMail extends Mailable
 
     /**
      * @param  list<array{path: string, name: string, mime: string}>  $files
+     * @param  list<array{path: string, name: string, mime: string, cid: string}>  $inline
      */
     public function __construct(
         public string $subjectLine,
@@ -25,7 +28,24 @@ class CrmOutgoingMail extends Mailable
         public string $signature = '',
         public ?string $inReplyTo = null,
         public array $files = [],
-    ) {}
+        public array $inline = [],
+    ) {
+        $this->withSymfonyMessage(function (Email $message): void {
+            if (filled($this->signature)) {
+                foreach (MailBranding::inlineImages() as $cid => $path) {
+                    if (is_file($path)) {
+                        $message->embedFromPath($path, $cid, 'image/png');
+                    }
+                }
+            }
+            foreach ($this->inline as $file) {
+                if (! is_file($file['path'] ?? '') || ($file['cid'] ?? '') === '') {
+                    continue;
+                }
+                $message->embedFromPath($file['path'], $file['cid'], $file['mime'] ?: null);
+            }
+        });
+    }
 
     /**
      * @return list<Attachment>
@@ -70,9 +90,13 @@ class CrmOutgoingMail extends Mailable
             text: 'mail.crm-text',
             with: [
                 'body' => $this->body,
+                'bodyHtml' => MailHtml::prepare($this->body),
+                'bodyText' => MailHtml::toText($this->body),
                 'signature' => $this->signature,
                 'signatureBlock' => filled($this->signature)
-                    ? MailBranding::block($this->signature, (string) config('mail.from.name'))
+                    ? MailBranding::withInlineCid(
+                        MailBranding::block($this->signature, (string) config('mail.from.name'))
+                    )
                     : null,
                 'fromName' => (string) config('mail.from.name'),
                 'fromAddress' => (string) config('mail.from.address'),

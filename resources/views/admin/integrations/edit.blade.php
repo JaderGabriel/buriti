@@ -53,14 +53,16 @@
                         <x-ui.input name="trello_board_id" label="Board ID" :value="$settings['trello_board_id'] ?? ''" placeholder="ex.: 64f1a2b3c4d5e6f7" />
                         <x-ui.input type="url" name="trello_board_url" label="URL do board" :value="$settings['trello_board_url'] ?? ''" placeholder="https://trello.com/b/..." />
                         <x-ui.input name="trello_list_todo_id" label="List ID (To do / entrada)" :value="$settings['trello_list_todo_id'] ?? ''" placeholder="Opcional — lista padrão de entrada" class="sm:col-span-2" />
+                        <x-ui.input type="password" name="trello_api_key" label="API Key" value="" placeholder="{{ $trello['api_token_set'] ? '•••••••• (deixe em branco para manter)' : 'Trello API Key' }}" autocomplete="off" />
+                        <x-ui.input type="password" name="trello_token" label="Token" value="" placeholder="{{ $trello['api_token_set'] ? '•••••••• (deixe em branco para manter)' : 'Trello Token' }}" autocomplete="off" />
                     </div>
 
                     <div class="mt-4 rounded-sm border border-line bg-ink/30 px-4 py-3 text-xs text-mist">
-                        <p class="font-semibold text-snow">Credenciais (.env)</p>
+                        <p class="font-semibold text-snow">Credenciais (base de dados, cifradas)</p>
                         <p class="mt-1">
                             API pronta:
                             <span class="{{ $trello['api_token_set'] ? 'text-brand-bright' : 'text-mist' }}">
-                                {{ $trello['api_token_set'] ? 'sim' : 'não — defina TRELLO_API_KEY e TRELLO_TOKEN' }}
+                                {{ $trello['api_token_set'] ? 'sim' : 'não — grave a API Key e o Token abaixo' }}
                             </span>
                         </p>
                     </div>
@@ -71,8 +73,8 @@
                         <li>Abra o board no Trello e copie a URL (<code>https://trello.com/b/...</code>).</li>
                         <li>O <strong>Board ID</strong> está na URL ou em “Mais → Imprimir e exportar → Exportar JSON”.</li>
                         <li>Opcional: abra a lista “A fazer”, copie o ID da lista (via URL ou API) para <strong>List ID</strong>.</li>
-                        <li>Em <a href="https://trello.com/power-ups/admin" target="_blank" rel="noopener">Power-Ups / API Key</a>, gere <code>TRELLO_API_KEY</code> e <code>TRELLO_TOKEN</code> no <code>.env</code>.</li>
-                        <li>Salve aqui e rode <code>php artisan config:clear</code> se alterou o <code>.env</code>.</li>
+                        <li>Em <a href="https://trello.com/power-ups/admin" target="_blank" rel="noopener">Power-Ups / API Key</a>, gere a API Key e o Token e grave-os neste formulário (ficam cifrados na base).</li>
+                        <li>Salve. Não é necessário pôr estes valores no repositório nem no <code>.env</code>.</li>
                     </ol>
                 </x-admin.inline-docs>
             </div>
@@ -97,14 +99,15 @@
                         <div class="sm:col-span-2">
                             <x-ui.input type="url" name="notion_default_page_url" label="Página padrão (roadmap / playbook)" :value="$settings['notion_default_page_url'] ?? ''" placeholder="https://www.notion.so/..." />
                         </div>
+                        <x-ui.input type="password" name="notion_token" label="Internal Integration Token" value="" placeholder="{{ $notion['token_set'] ? '•••••••• (deixe em branco para manter)' : 'secret_…' }}" autocomplete="off" class="sm:col-span-2" />
                     </div>
 
                     <div class="mt-4 rounded-sm border border-line bg-ink/30 px-4 py-3 text-xs text-mist">
-                        <p class="font-semibold text-snow">Credenciais (.env)</p>
+                        <p class="font-semibold text-snow">Credenciais (base de dados, cifradas)</p>
                         <p class="mt-1">
                             Token pronto:
                             <span class="{{ $notion['token_set'] ? 'text-brand-bright' : 'text-mist' }}">
-                                {{ $notion['token_set'] ? 'sim' : 'não — defina NOTION_TOKEN' }}
+                                {{ $notion['token_set'] ? 'sim' : 'não — grave o token neste formulário' }}
                             </span>
                         </p>
                     </div>
@@ -113,7 +116,7 @@
                 <x-admin.inline-docs title="Como ligar o Notion">
                     <ol>
                         <li>Crie uma integração em <a href="https://www.notion.so/my-integrations" target="_blank" rel="noopener">Notion → My integrations</a>.</li>
-                        <li>Copie o <strong>Internal Integration Token</strong> para <code>NOTION_TOKEN</code> no <code>.env</code>.</li>
+                        <li>Copie o <strong>Internal Integration Token</strong> e grave-o neste formulário (cifra na base; não vai para o Git).</li>
                         <li>Na base desejada: ··· → Connections → ligue a integração.</li>
                         <li>O <strong>Database ID</strong> é o UUID na URL da base (32 caracteres).</li>
                         <li>Preencha workspace/página padrão para atalhos no painel e salve.</li>
@@ -137,11 +140,32 @@
 
                     <div class="mt-4 grid gap-4 sm:grid-cols-2">
                         <x-ui.input
+                            name="telegram_bot_username"
+                            label="Username do bot (sem @)"
+                            :value="$settings['telegram_bot_username'] ?? ''"
+                            placeholder="ex.: buri_tibot"
+                        />
+                        <x-ui.input
+                            type="password"
+                            name="telegram_bot_token"
+                            label="Token do bot"
+                            value=""
+                            placeholder="{{ $telegram['token_set'] ? '•••••••• (deixe em branco para manter)' : '123456:ABC…' }}"
+                            autocomplete="off"
+                        />
+                        <x-ui.input
+                            type="password"
+                            name="telegram_webhook_secret"
+                            label="Segredo do webhook"
+                            value=""
+                            placeholder="{{ $telegram['webhook_secret_set'] ? '•••••••• (deixe em branco para manter)' : 'cadeia aleatória' }}"
+                            autocomplete="off"
+                        />
+                        <x-ui.input
                             name="telegram_notify_chat_id"
                             label="Chat extra para notificações do site (opcional)"
                             :value="$settings['telegram_notify_chat_id'] ?? ''"
                             placeholder="Chat ID — além dos admins logados no bot"
-                            class="sm:col-span-2"
                         />
                     </div>
 
@@ -181,7 +205,7 @@
                         <summary>Setup do bot</summary>
                         <ol>
                             <li>Crie o bot no @BotFather e copie o token.</li>
-                            <li>No <code>.env</code>: <code>TELEGRAM_BOT_TOKEN</code>, <code>TELEGRAM_BOT_USERNAME</code> (ex. <code>buri_tibot</code>), <code>TELEGRAM_WEBHOOK_SECRET</code>.</li>
+                            <li>Grave aqui o token, o username e o segredo do webhook (ficam cifrados na base; não versionar no Git).</li>
                             <li>Com <code>APP_URL</code> HTTPS (ex. com <code>/public</code>): <code>php artisan telegram:configure</code>. Se o nome der rate limit: <code>--skip-name --drop-pending</code>.</li>
                             <li>No bot: <code>/login email_ou_usuario | senha</code> — só contas admin. A mensagem com senha é apagada.</li>
                             <li>No site, use só “Continuar com Telegram” (desafio temporário no bot). <code>/logout</code> encerra a sessão do bot.</li>

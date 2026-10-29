@@ -18,7 +18,7 @@ final class MailContacts
             ->with('clientCompany:id,name')
             ->whereNotNull('email')
             ->where('email', '!=', '')
-            ->when(mb_strlen($query) >= 2, function ($builder) use ($query) {
+            ->when(mb_strlen($query) >= 1, function ($builder) use ($query) {
                 $term = '%'.$query.'%';
                 $builder->where(function ($inner) use ($term) {
                     $inner->where('name', 'like', $term)

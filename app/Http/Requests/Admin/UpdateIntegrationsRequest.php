@@ -23,6 +23,12 @@ class UpdateIntegrationsRequest extends FormRequest
             'notion_default_page_url' => ['nullable', 'url', 'max:255'],
             'telegram_allowed_chat_ids' => ['nullable', 'string', 'max:255'],
             'telegram_notify_chat_id' => ['nullable', 'string', 'max:80'],
+            'telegram_bot_username' => ['nullable', 'string', 'max:64'],
+            'telegram_bot_token' => ['nullable', 'string', 'max:255'],
+            'telegram_webhook_secret' => ['nullable', 'string', 'max:120'],
+            'trello_api_key' => ['nullable', 'string', 'max:255'],
+            'trello_token' => ['nullable', 'string', 'max:255'],
+            'notion_token' => ['nullable', 'string', 'max:255'],
         ];
     }
 }

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\Setting;
 use App\Models\User;
 use App\Services\SettingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -51,5 +52,28 @@ class IntegrationsTest extends TestCase
         $this->assertSame('db789', $settings['notion_database_id']);
         $this->assertSame('https://www.notion.so/playbook', $settings['notion_default_page_url']);
         $this->assertSame('1001', $settings['telegram_notify_chat_id']);
+    }
+
+    public function test_admin_stores_service_credentials_encrypted_in_the_database(): void
+    {
+        $this->actingAs($this->admin)->put(route('admin.integrations.update'), [
+            'telegram_bot_token' => '123456:SECRETTOKEN',
+            'telegram_webhook_secret' => 'hook-secret',
+            'telegram_bot_username' => '@buri_tibot',
+            'trello_api_key' => 'trello-key',
+            'trello_token' => 'trello-token',
+            'notion_token' => 'notion-secret',
+        ])->assertRedirect(route('admin.integrations.edit'));
+
+        $settings = app(SettingService::class);
+
+        $this->assertSame('123456:SECRETTOKEN', $settings->getSecret('telegram_bot_token'));
+        $this->assertSame('hook-secret', $settings->getSecret('telegram_webhook_secret'));
+        $this->assertSame('trello-key', $settings->getSecret('trello_api_key'));
+        $this->assertSame('buri_tibot', $settings->get('telegram_bot_username'));
+        $this->assertSame('123456:SECRETTOKEN', config('services.telegram.bot_token'));
+        $this->assertSame('hook-secret', config('services.telegram.webhook_secret'));
+        $this->assertNotSame('123456:SECRETTOKEN', Setting::query()->where('key', 'telegram_bot_token')->value('value'));
+        $this->assertNotSame('notion-secret', Setting::query()->where('key', 'notion_token')->value('value'));
     }
 }

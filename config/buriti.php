@@ -14,13 +14,13 @@ return [
     'tagline' => 'Tecnologia para Pessoas',
 
     'contact' => [
-        'email' => 'jadergabriel8@gmail.com',
-        'phone' => '+55 38 99175-8416',
-        'whatsapp' => 'jadergabriel',
-        'linkedin_url' => 'https://www.linkedin.com/in/jadergabriel/',
-        'github_url' => 'https://github.com/JaderGabriel',
-        'telegram_url' => 'https://t.me/JaderGabriel',
-        'telegram_handle' => '@JaderGabriel',
+        'email' => null,
+        'phone' => null,
+        'whatsapp' => null,
+        'linkedin_url' => null,
+        'github_url' => null,
+        'telegram_url' => null,
+        'telegram_handle' => null,
     ],
 
     'google_calendar_url' => 'https://calendar.google.com/calendar/u/0/r',

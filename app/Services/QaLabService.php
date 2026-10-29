@@ -987,7 +987,7 @@ class QaLabService
         return [
             'ok' => false,
             'summary' => 'Bot Telegram sem token.',
-            'output' => 'Defina TELEGRAM_BOT_TOKEN no .env.',
+            'output' => 'Defina o token do bot em Admin → Integrações (ou TELEGRAM_BOT_TOKEN).',
             'meta' => ['configured' => false],
         ];
     }
@@ -997,6 +997,12 @@ class QaLabService
         foreach ([
             (string) config('services.telegram.bot_token'),
             (string) config('services.telegram.webhook_secret'),
+            (string) config('services.google.client_secret'),
+            (string) config('services.google.refresh_token'),
+            (string) config('services.trello.api_key'),
+            (string) config('services.trello.token'),
+            (string) config('services.notion.token'),
+            (string) app(SettingService::class)->getSecret('mail_password'),
         ] as $secret) {
             if ($secret !== '') {
                 $text = str_replace($secret, '***', $text);

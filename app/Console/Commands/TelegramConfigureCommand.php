@@ -21,7 +21,7 @@ class TelegramConfigureCommand extends Command
     public function handle(TelegramApiClient $api): int
     {
         if (! $api->configured()) {
-            $this->error('Defina TELEGRAM_BOT_TOKEN no .env');
+            $this->error('Defina o token do bot em Admin → Integrações (ou TELEGRAM_BOT_TOKEN no .env de bootstrap).');
 
             return self::FAILURE;
         }
@@ -39,7 +39,7 @@ class TelegramConfigureCommand extends Command
         if (is_string($username) && $username !== '' && $username !== '?') {
             Cache::put('telegram:bot-username', $username, 86400);
             if (blank(config('services.telegram.bot_username'))) {
-                $this->warn("Defina TELEGRAM_BOT_USERNAME={$username} no .env (evita chamadas extra à API no login).");
+                $this->warn("Grave o username @{$username} em Admin → Integrações (evita chamadas extra à API no login).");
             }
         }
 

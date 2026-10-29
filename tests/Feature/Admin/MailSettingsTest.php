@@ -189,7 +189,7 @@ class MailSettingsTest extends TestCase
                 'mail_host' => '127.0.0.1',
                 'mail_port' => '25',
                 'mail_encryption' => 'none',
-                'mail_from_address' => 'jadergabriel8@gmail.com',
+                'mail_from_address' => 'qa@gmail.com',
                 'mail_from_name' => 'BURI-TI',
             ])
             ->assertRedirect(route('admin.settings.mail'))
@@ -201,8 +201,8 @@ class MailSettingsTest extends TestCase
                 'mail_host' => 'smtp.gmail.com',
                 'mail_port' => '587',
                 'mail_encryption' => 'tls',
-                'mail_username' => 'jadergabriel8@gmail.com',
-                'mail_from_address' => 'jadergabriel8@gmail.com',
+                'mail_username' => 'qa@gmail.com',
+                'mail_from_address' => 'qa@gmail.com',
                 'mail_from_name' => 'BURI-TI',
             ])
             ->assertRedirect(route('admin.settings.mail'))
@@ -216,7 +216,7 @@ class MailSettingsTest extends TestCase
                 'mail_port' => '587',
                 'mail_encryption' => 'tls',
                 'mail_username' => 'contato@exemplo.com',
-                'mail_from_address' => 'jadergabriel8@gmail.com',
+                'mail_from_address' => 'qa@gmail.com',
                 'mail_from_name' => 'BURI-TI',
             ])
             ->assertRedirect(route('admin.settings.mail'))
@@ -231,7 +231,7 @@ class MailSettingsTest extends TestCase
     {
         app(SettingService::class)->putMany([
             'mail_mailer' => 'sendmail',
-            'mail_from_address' => 'jadergabriel8@gmail.com',
+            'mail_from_address' => 'qa@gmail.com',
         ]);
 
         Mail::fake();

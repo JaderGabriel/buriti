@@ -28,7 +28,7 @@ Jornada: **Mensagem → Contato → Oportunidade → Projeto → Tarefa**.
 |---|---|
 | **Dashboard** | KPIs com tendência, mensagens, contactos, agenda, atividades recentes, ideias (post-its); atalhos Meet / Teams / Jitsi |
 | **Mensagens** | Inbox do formulário público; vínculo a contacto / lead |
-| **Correio** | Cliente IMAP da conta SMTP (só admin): pastas, envio, respostas ao site, assinatura e aviso LGPD; cópia em Enviados |
+| **Correio** | Cliente IMAP da conta SMTP (só admin): pastas, etiquetas, marcadores, ligações CRM; compositor HTML (formatação, imagens inline CID, galeria de anexos com exclusão e indicador de carregamento); autocomplete de contactos; assinatura e aviso LGPD; cópia em Enviados |
 | **Empresas** | Cadastro de clientes/organizações |
 | **Contatos** | Agenda telefónica + ficha (hero, timeline, pasta de arquivos, mini-calendário); telefone em E.164 (`tel:` e WhatsApp) |
 | **Atividades** | Notas, chamadas, reuniões, e-mails; vínculo opcional a tarefa/oportunidade; conclusão de reunião **só se marcada** |
@@ -39,8 +39,8 @@ Jornada: **Mensagem → Contato → Oportunidade → Projeto → Tarefa**.
 | **Anexos** | Soft delete (lixeira), preview no browser (PDF/imagem/média/texto), download |
 | **Usuários** | CRUD, avatar, ativar/desativar, sessões com revogação |
 | **Perfil** | Dados próprios, sessões e 2FA (vincular/desvincular Senhas do iPhone; Telegram já vinculado no bot) |
-| **Integrações** | Google, Telegram Bot, atalhos Trello/Notion |
-| **Configurações** | Contactos do site, e-mail SMTP/IMAP e hub Google (níveis 1–3) |
+| **Integrações** | Google, Telegram Bot, Trello e Notion — **credenciais cifradas na base**, não no Git |
+| **Configurações** | Contactos do site, e-mail SMTP/IMAP (senha cifrada) e hub Google (níveis 1–3) |
 
 ## Segurança
 
@@ -55,6 +55,7 @@ Jornada: **Mensagem → Contato → Oportunidade → Projeto → Tarefa**.
 - Login admin também via desafio temporário no bot Telegram (sem widget de terceiros na página)
 - Membro de Jirau autentica só com usuário/senha (sem Telegram) e não acessa o CRM
 - Telefones normalizados em E.164 (DDI + DDD + número) em `tel:` e `wa.me` no CRM e no bot
+- **Segredos operacionais** (SMTP/IMAP, Google, Telegram, Trello, Notion) ficam na tabela `settings`, cifrados com `APP_KEY`. O `.env` só serve de bootstrap opcional e **não deve ser commitado**. Contactos públicos editam-se em Admin → Configurações, não em ficheiros do repositório.
 
 A política pública (CRM, Telegram, Google, 2FA) está em `/privacidade`. A página descreve o tratamento actual; não substitui um DPIA.
 
@@ -115,8 +116,8 @@ Abra: [http://127.0.0.1:8000](http://127.0.0.1:8000)
 | Campo | Valor |
 |---|---|
 | URL | `/admin/login` |
-| E-mail | `ADMIN_EMAIL` no `.env` (padrão: `jadergabriel8@gmail.com`) |
-| Senha | `ADMIN_PASSWORD` no `.env` (padrão de desenvolvimento: `buriti2026`) |
+| E-mail | `ADMIN_EMAIL` no `.env` (padrão de seed: `admin@buriti.dev.br`) |
+| Senha | `ADMIN_PASSWORD` no `.env` (obrigatório em produção; em local, se vazio: `buriti-local-only`) |
 
 ```bash
 # só o admin master
@@ -143,13 +144,11 @@ Quadro ágil de exemplo com um usuário que só vê aquele projeto:
 ./bin/php artisan db:seed --class=JirauDemoSeeder
 ```
 
-## Contactos padrão
+## Contactos e serviços
 
-Definidos em `config/buriti.php` e editáveis em **Admin → Configurações**:
+E-mail, telefone, WhatsApp, Telegram, LinkedIn e GitHub do **site** editam-se em **Admin → Configurações**. Não ficam em código nem no Git.
 
-- E-mail: `jadergabriel8@gmail.com`
-- WhatsApp: `+55 38991758416`
-- Telegram: `@JaderGabriel` → https://t.me/JaderGabriel
+Credenciais de **Telegram, Trello, Notion e Google** (tokens, secrets, webhook) editam-se em **Admin → Integrações** / **Configurações**. São gravadas cifradas na base. Depois de gravar no painel, pode retirar as mesmas chaves do `.env`.
 
 ## Integração Google Agenda / Meet
 
@@ -165,17 +164,11 @@ Documentação completa no painel: **Admin → Configurações → Integração 
 <summary>Referência rápida — nível 3</summary>
 
 1. Registe no Cloud Console a URI: `${APP_URL}/admin/google/callback`
-2. Cole Client ID/Secret em **Configurações** (ou no `.env`) e salve
+2. Cole Client ID/Secret em **Configurações** e salve (secret cifrado na base)
 3. Clique em **Ligar conta Google** (refresh token fica no CRM)
 4. Calendar ID + auto-sync
 
-```env
-GOOGLE_CLIENT_ID=xxxxx.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=GOCSPX-xxxxx
-GOOGLE_REDIRECT_URI="${APP_URL}/admin/google/callback"
-```
-
-Fuso: `APP_TIMEZONE=America/Sao_Paulo`. Depois: `php artisan config:clear`.
+A URI de callback continua a derivar de `APP_URL`. Fuso: `APP_TIMEZONE=America/Sao_Paulo`.
 </details>
 
 ## Telegram Bot (CRM + Jirau)
@@ -220,7 +213,7 @@ Com sessão admin ativa:
 /card Acme Educacional
 ```
 
-Webhook: `POST {APP_URL}/webhooks/telegram/{TELEGRAM_WEBHOOK_SECRET}`
+Webhook: `POST {APP_URL}/webhooks/telegram/{segredo}` — o segredo grava-se em **Admin → Integrações** (cifrado). O URL completo aparece nesse ecrã.
 
 ```bash
 php artisan telegram:configure
@@ -254,7 +247,7 @@ Fluxo típico: **Request → FormRequest → Controller → Model/Service → Vi
 
 ## Testes
 
-Suite PHPUnit (SQLite em memória; ~447 testes):
+Suite PHPUnit (SQLite em memória):
 
 ```bash
 composer test
@@ -262,7 +255,7 @@ composer test
 ./bin/test
 ```
 
-Cobertura inclui site público, auth (2FA iOS + Telegram), CRM (contactos, oportunidades, projetos/board, tarefas, atividades, anexos/preview), Correio IMAP, Jirau, Telegram bot, Google/settings, roadmap e segurança de sessões.
+Cobertura inclui site público, auth (2FA iOS + Telegram), CRM (contactos, oportunidades, projetos/board, tarefas, atividades, anexos/preview), Correio IMAP (compositor HTML, anexos, imagens CID), Jirau, Telegram bot, Google/settings, integrações com segredos na BD, roadmap e segurança de sessões.
 
 ## Scripts úteis
 
@@ -287,6 +280,7 @@ Cobertura inclui site público, auth (2FA iOS + Telegram), CRM (contactos, oport
 7. Cron: `* * * * * cd /caminho && php artisan schedule:run`
 8. Web root apontando para a pasta `public/` (ideal: URL sem `/public`; se a app ficar em `https://dominio/public`, o guard remove `route:cache` automaticamente)
 9. Trocar senha do admin e proteger `/admin`
+10. Gravar SMTP/IMAP, Telegram, Google, Trello e Notion no painel (não deixar tokens no `.env` da máquina de deploy se já estiverem na base)
 
 **Nota sobre `route:cache`:** com `APP_URL` em subpath (ex. `https://dominio/public`), o cache de rotas quebra a home (`GET /` → 405, só `HEAD`). A app **remove esse cache ao arrancar** e após `optimize`/`route:cache`. Prefira document root = `public/` e `APP_URL` sem path; aí `route:cache` é seguro. Logout volta para a home do site.
 

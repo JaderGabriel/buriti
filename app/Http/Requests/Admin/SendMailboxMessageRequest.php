@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Services\MailAnnotationService;
+use App\Support\MailHtml;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Validator;
@@ -29,7 +30,10 @@ class SendMailboxMessageRequest extends FormRequest
             'cc' => ['nullable', 'string', 'max:500'],
             'bcc' => ['nullable', 'string', 'max:500'],
             'subject' => ['required', 'string', 'max:180'],
-            'body' => ['required', 'string', 'max:20000'],
+            'body' => ['required', 'string', 'max:100000'],
+            'quote' => ['nullable', 'string', 'max:100000'],
+            'inline' => ['nullable', 'array', 'max:5'],
+            'inline.*' => ['file', 'max:10240'],
             'signature' => ['sometimes', 'boolean'],
             'in_reply_to' => ['nullable', 'string', 'max:250'],
             'reply_folder' => ['nullable', 'string', 'max:200'],
@@ -44,11 +48,7 @@ class SendMailboxMessageRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
-            $files = $this->file('attachments', []);
-            if (! is_array($files)) {
-                $files = $files ? [$files] : [];
-            }
-
+            $files = [...$this->uploadedAttachments(), ...array_column($this->uploadedInline(), 'file')];
             $total = 0;
             foreach ($files as $index => $file) {
                 if (! $file instanceof UploadedFile) {
@@ -67,8 +67,16 @@ class SendMailboxMessageRequest extends FormRequest
                 }
             }
 
+            if (count($files) > 5) {
+                $validator->errors()->add('attachments', 'No máximo 5 anexos, incluindo imagens no texto.');
+            }
+
             if ($total > MailAnnotationService::MAX_ATTACHMENT_BYTES) {
                 $validator->errors()->add('attachments', 'Os anexos não podem ultrapassar 10 MB no total.');
+            }
+
+            if (MailHtml::isBlank((string) $this->input('body', '')) && MailHtml::isBlank((string) $this->input('quote', ''))) {
+                $validator->errors()->add('body', 'A mensagem está vazia.');
             }
         });
     }
@@ -85,6 +93,31 @@ class SendMailboxMessageRequest extends FormRequest
             $files,
             fn ($file) => $file instanceof UploadedFile && $file->isValid()
         ));
+    }
+
+    /**
+     * @return list<array{cid: string, file: UploadedFile}>
+     */
+    public function uploadedInline(): array
+    {
+        $files = $this->file('inline', []);
+        if (! is_array($files)) {
+            $files = $files ? [$files] : [];
+        }
+
+        $inline = [];
+        foreach ($files as $cid => $file) {
+            if (! $file instanceof UploadedFile || ! $file->isValid()) {
+                continue;
+            }
+            $key = is_string($cid) ? $cid : 'img-'.$cid;
+            if (preg_match('/^[a-zA-Z0-9._-]{3,80}$/', $key) !== 1) {
+                continue;
+            }
+            $inline[] = ['cid' => $key, 'file' => $file];
+        }
+
+        return $inline;
     }
 
     /** @return array<string, string> */

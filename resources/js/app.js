@@ -1170,6 +1170,41 @@ function initAdminSearch() {
     });
 }
 
+function initMailBulk() {
+    document.querySelectorAll('[data-mail-auto-submit]').forEach((select) => {
+        if (! (select instanceof HTMLSelectElement) || select.dataset.mailAutoBound === '1') {
+            return;
+        }
+        select.dataset.mailAutoBound = '1';
+        select.addEventListener('change', () => {
+            const form = select.form;
+            if (! form) {
+                return;
+            }
+            const acao = select.getAttribute('data-mail-acao') || '';
+            if (select.value === '' && select.getAttribute('data-allow-empty') !== '1') {
+                return;
+            }
+            if (acao !== '') {
+                let field = form.querySelector('input[name="acao"][data-mail-auto-acao]');
+                if (! (field instanceof HTMLInputElement)) {
+                    field = document.createElement('input');
+                    field.type = 'hidden';
+                    field.name = 'acao';
+                    field.setAttribute('data-mail-auto-acao', '1');
+                    form.appendChild(field);
+                }
+                field.value = acao;
+            }
+            if (typeof form.requestSubmit === 'function') {
+                form.requestSubmit();
+            } else {
+                form.submit();
+            }
+        });
+    });
+}
+
 function initMailSearch() {
     document.querySelectorAll('[data-mail-search]').forEach((form) => {
         const input = form.querySelector('[data-mail-search-input]');
@@ -3377,69 +3412,454 @@ function initPhonebookSelection() {
     sync();
 }
 
-function mailCompose(options = {}) {
+function parseMailAddresses(raw) {
+    return String(raw || '')
+        .split(/[,;]/)
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .map((part) => {
+            const angled = part.match(/<([^>]+)>/);
+            const email = (angled ? angled[1] : part).trim().toLowerCase();
+            const name = angled ? part.slice(0, part.indexOf('<')).trim().replace(/^["']|["']$/g, '') : '';
+
+            return { email, name };
+        })
+        .filter((chip) => chip.email !== '');
+}
+
+function looksLikeEmail(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function mailCompose() {
+    const MAIL_ATTACH_MAX = 5;
+    const MAIL_ATTACH_BYTES = 10 * 1024 * 1024;
+
     return {
-        showCc: Boolean(options.cc),
-        showBcc: Boolean(options.bcc),
-        files: [],
-        contactsUrl: options.contactsUrl || '',
+        showCc: false,
+        showBcc: false,
+        items: [],
+        attachError: '',
+        editorEmpty: true,
+        sending: false,
+        contactsUrl: '',
+        query: { to: '', cc: '', bcc: '' },
+        chips: { to: [], cc: [], bcc: [] },
         hits: { to: [], cc: [], bcc: [] },
         open: { to: false, cc: false, bcc: false },
-        fieldEl(field) {
-            return this.$refs[field + 'Field'];
+        active: { to: -1, cc: -1, bcc: -1 },
+        timers: { to: 0, cc: 0, bcc: 0 },
+        abort: { to: null, cc: null, bcc: null },
+        hideTimer: 0,
+        get sizeLabel() {
+            return this.formatSize(this.items.reduce((sum, item) => sum + item.size, 0));
         },
-        token(field) {
-            const el = this.fieldEl(field);
-            const value = el instanceof HTMLInputElement ? el.value : '';
-            const parts = value.split(',');
+        get loadingCount() {
+            return this.items.filter((item) => item.loading).length;
+        },
+        init() {
+            const el = this.$el;
+            this.contactsUrl = el.getAttribute('data-contacts-url') || '';
+            this.showCc = el.getAttribute('data-show-cc') === '1';
+            this.showBcc = el.getAttribute('data-show-bcc') === '1';
+            this.seed('to', el.getAttribute('data-to') || '');
+            this.seed('cc', el.getAttribute('data-cc') || '');
+            this.seed('bcc', el.getAttribute('data-bcc') || '');
+            if (this.chips.cc.length > 0) {
+                this.showCc = true;
+            }
+            if (this.chips.bcc.length > 0) {
+                this.showBcc = true;
+            }
+            this.$nextTick(() => this.bootEditor());
+        },
+        bootEditor() {
+            const seed = this.$refs.bodyField?.value?.trim() || '';
+            if (this.$refs.editor) {
+                this.$refs.editor.innerHTML = seed !== '' ? seed : '<p><br></p>';
+            }
+            this.syncEditor();
+        },
+        syncEditor() {
+            const html = this.$refs.editor?.innerHTML || '';
+            if (this.$refs.bodyField) {
+                this.$refs.bodyField.value = html;
+            }
+            const text = (this.$refs.editor?.innerText || '').replace(/\u00a0/g, ' ').trim();
+            this.editorEmpty = text === '';
+        },
+        format(command, value) {
+            this.$refs.editor?.focus();
+            try {
+                document.execCommand(command, false, value || null);
+            } catch {
+                // alguns comandos falham em browsers antigos
+            }
+            this.syncEditor();
+        },
+        insertLink() {
+            const raw = window.prompt('Endereço da ligação', 'https://');
+            if (! raw) {
+                return;
+            }
+            const url = raw.trim();
+            if (! /^(https?:\/\/|mailto:)/i.test(url)) {
+                return;
+            }
+            this.format('createLink', url);
+        },
+        onPaste(event) {
+            const pasted = Array.from(event.clipboardData?.items || [])
+                .filter((item) => item.kind === 'file' && item.type.startsWith('image/'))
+                .map((item) => item.getAsFile())
+                .filter(Boolean);
+            if (pasted.length === 0) {
+                return;
+            }
+            event.preventDefault();
+            this.addFiles(pasted, true);
+        },
+        onDrop(event) {
+            const files = Array.from(event.dataTransfer?.files || []);
+            if (files.length === 0) {
+                return;
+            }
+            const images = files.filter((file) => file.type.startsWith('image/'));
+            const others = files.filter((file) => ! file.type.startsWith('image/'));
+            if (images.length > 0) {
+                this.addFiles(images, true);
+            }
+            if (others.length > 0) {
+                this.addFiles(others, false);
+            }
+        },
+        addFiles(fileList, inline) {
+            this.attachError = '';
+            const incoming = Array.from(fileList || []);
+            for (const file of incoming) {
+                if (this.items.length >= MAIL_ATTACH_MAX) {
+                    this.attachError = 'No máximo 5 anexos, incluindo imagens no texto.';
+                    break;
+                }
+                const total = this.items.reduce((sum, item) => sum + item.size, 0) + file.size;
+                if (total > MAIL_ATTACH_BYTES) {
+                    this.attachError = 'Os anexos não podem ultrapassar 10 MB no total.';
+                    break;
+                }
+                const isImage = String(file.type || '').startsWith('image/');
+                const cid = 'img-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+                const item = {
+                    id: cid,
+                    cid,
+                    name: file.name || cid,
+                    size: file.size || 0,
+                    file,
+                    inline: Boolean(inline && isImage),
+                    preview: '',
+                    loading: true,
+                };
+                this.items.push(item);
+                const stored = this.items[this.items.length - 1];
+                this.loadPreview(stored.cid);
+                if (stored.inline) {
+                    this.insertInlineImage(stored);
+                }
+            }
+            this.syncFileInputs();
+        },
+        loadPreview(cid) {
+            const item = this.items.find((entry) => entry.cid === cid);
+            if (! item) {
+                return;
+            }
+            item.loading = true;
+            if (! String(item.file?.type || '').startsWith('image/')) {
+                window.setTimeout(() => {
+                    const current = this.items.find((entry) => entry.cid === cid);
+                    if (current) {
+                        current.loading = false;
+                    }
+                }, 160);
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => {
+                const current = this.items.find((entry) => entry.cid === cid);
+                if (! current) {
+                    return;
+                }
+                current.preview = String(reader.result || '');
+                current.loading = false;
+                const img = this.$refs.editor?.querySelector(`img[data-cid="${cid}"]`);
+                if (img && current.preview) {
+                    img.setAttribute('src', current.preview);
+                }
+            };
+            reader.onerror = () => {
+                const current = this.items.find((entry) => entry.cid === cid);
+                if (current) {
+                    current.loading = false;
+                }
+            };
+            reader.readAsDataURL(item.file);
+        },
+        insertInlineImage(item) {
+            this.$refs.editor?.focus();
+            const img = document.createElement('img');
+            img.setAttribute('data-cid', item.cid);
+            img.alt = item.name;
+            img.src = item.preview || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+            img.className = 'mail-editor__img';
+            const selection = window.getSelection();
+            const editor = this.$refs.editor;
+            if (! editor) {
+                return;
+            }
+            if (selection && selection.rangeCount > 0 && editor.contains(selection.anchorNode)) {
+                const range = selection.getRangeAt(0);
+                range.deleteContents();
+                range.insertNode(img);
+                range.setStartAfter(img);
+                range.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            } else {
+                editor.appendChild(img);
+            }
+            this.syncEditor();
+        },
+        removeItem(id) {
+            const index = this.items.findIndex((item) => item.id === id);
+            if (index < 0) {
+                return;
+            }
+            const item = this.items[index];
+            if (item.inline) {
+                this.$refs.editor?.querySelectorAll(`img[data-cid="${item.cid}"]`).forEach((el) => el.remove());
+                this.syncEditor();
+            }
+            this.items.splice(index, 1);
+            this.syncFileInputs();
+        },
+        syncFileInputs() {
+            if (this.$refs.attachInput && typeof DataTransfer !== 'undefined') {
+                const attach = new DataTransfer();
+                this.items.filter((item) => ! item.inline).forEach((item) => attach.items.add(item.file));
+                this.$refs.attachInput.files = attach.files;
+            }
+            if (! this.$refs.inlineMount) {
+                return;
+            }
+            this.$refs.inlineMount.replaceChildren();
+            if (typeof DataTransfer === 'undefined') {
+                return;
+            }
+            this.items.filter((item) => item.inline).forEach((item) => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.name = `inline[${item.cid}]`;
+                input.className = 'sr-only';
+                const transfer = new DataTransfer();
+                transfer.items.add(item.file);
+                input.files = transfer.files;
+                this.$refs.inlineMount.appendChild(input);
+            });
+        },
+        commitInlineSrc() {
+            this.$refs.editor?.querySelectorAll('img[data-cid]').forEach((img) => {
+                const cid = img.getAttribute('data-cid');
+                if (cid) {
+                    img.setAttribute('src', 'cid:' + cid);
+                }
+            });
+            this.syncEditor();
+        },
+        formatSize(bytes) {
+            const size = Number(bytes) || 0;
+            if (size < 1024) {
+                return size + ' B';
+            }
+            if (size < 1024 * 1024) {
+                return (size / 1024).toFixed(1) + ' KB';
+            }
 
-            return (parts[parts.length - 1] || '').trim();
+            return (size / (1024 * 1024)).toFixed(1) + ' MB';
         },
-        async lookup(field) {
+        seed(field, raw) {
+            this.chips[field] = parseMailAddresses(raw);
+        },
+        joined(field) {
+            const emails = this.chips[field].map((chip) => chip.email);
+            const extra = this.query[field].trim();
+            if (looksLikeEmail(extra) && ! emails.includes(extra.toLowerCase())) {
+                emails.push(extra.toLowerCase());
+            }
+
+            return emails.join(', ');
+        },
+        selectedEmails(field) {
+            return this.chips[field].map((chip) => chip.email);
+        },
+        queryEl(field) {
+            return this.$refs[field + 'Query'];
+        },
+        keepOpen() {
+            window.clearTimeout(this.hideTimer);
+        },
+        lookup(field) {
+            this.keepOpen();
+            this.open[field] = true;
+            window.clearTimeout(this.timers[field]);
+            const q = this.query[field].trim();
+            this.timers[field] = window.setTimeout(() => this.fetchHits(field, q), 120);
+        },
+        async fetchHits(field, q) {
             if (! this.contactsUrl) {
                 return;
             }
-            const q = this.token(field);
+            this.abort[field]?.abort();
+            const controller = new AbortController();
+            this.abort[field] = controller;
             try {
-                const url = new URL(this.contactsUrl, window.location.origin);
+                const url = new URL(this.contactsUrl, window.location.href);
+                url.search = '';
                 if (q !== '') {
                     url.searchParams.set('q', q);
                 }
                 const response = await fetch(url.toString(), {
                     headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin',
+                    signal: controller.signal,
                 });
                 if (! response.ok) {
                     return;
                 }
                 const data = await response.json();
-                this.hits[field] = Array.isArray(data.contacts) ? data.contacts : [];
-                this.open[field] = this.hits[field].length > 0;
-            } catch {
+                const taken = new Set(this.selectedEmails(field));
+                this.hits[field] = (Array.isArray(data.contacts) ? data.contacts : [])
+                    .filter((hit) => hit?.email && ! taken.has(String(hit.email).toLowerCase()));
+                this.active[field] = this.hits[field].length > 0 ? 0 : -1;
+                this.open[field] = true;
+            } catch (error) {
+                if (error?.name === 'AbortError') {
+                    return;
+                }
                 this.hits[field] = [];
-                this.open[field] = false;
+                this.active[field] = -1;
             }
         },
-        pick(field, email) {
-            const el = this.fieldEl(field);
-            if (! (el instanceof HTMLInputElement) || ! email) {
+        addChip(field, chip) {
+            const email = String(chip.email || '').trim().toLowerCase();
+            if (email === '' || this.selectedEmails(field).includes(email)) {
                 return;
             }
-            const parts = el.value.split(',').map((part) => part.trim()).filter(Boolean);
-            if (this.token(field) !== '') {
-                parts.pop();
-            }
-            if (! parts.includes(email)) {
-                parts.push(email);
-            }
-            el.value = parts.join(', ');
+            this.chips[field].push({
+                email,
+                name: String(chip.name || '').trim(),
+            });
+            this.query[field] = '';
             this.open[field] = false;
-            el.dispatchEvent(new Event('input', { bubbles: true }));
-            el.focus();
+            this.active[field] = -1;
+            this.$nextTick(() => this.queryEl(field)?.focus());
         },
-        hide(field) {
-            window.setTimeout(() => {
+        pick(field, hit) {
+            this.addChip(field, hit || {});
+        },
+        removeChip(field, index) {
+            this.chips[field].splice(index, 1);
+            this.queryEl(field)?.focus();
+            this.lookup(field);
+        },
+        commitTyped(field) {
+            const typed = this.query[field].trim().replace(/[,;]+$/, '');
+            if (typed === '') {
+                return false;
+            }
+            const match = this.hits[field].find((hit) => {
+                const blob = `${hit.name} ${hit.email} ${hit.company || ''}`.toLowerCase();
+
+                return hit.email === typed.toLowerCase() || blob.includes(typed.toLowerCase());
+            });
+            if (match) {
+                this.addChip(field, match);
+
+                return true;
+            }
+            if (looksLikeEmail(typed)) {
+                this.addChip(field, { email: typed, name: '' });
+
+                return true;
+            }
+
+            return false;
+        },
+        onKey(field, event) {
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                if (this.hits[field].length === 0) {
+                    return;
+                }
+                this.open[field] = true;
+                this.active[field] = (this.active[field] + 1) % this.hits[field].length;
+                return;
+            }
+            if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                if (this.hits[field].length === 0) {
+                    return;
+                }
+                this.open[field] = true;
+                this.active[field] = (this.active[field] - 1 + this.hits[field].length) % this.hits[field].length;
+                return;
+            }
+            if (event.key === 'Enter' || event.key === 'Tab' || event.key === ',' || event.key === ';') {
+                if (event.key !== 'Tab' || this.open[field]) {
+                    if (this.active[field] >= 0 && this.hits[field][this.active[field]]) {
+                        event.preventDefault();
+                        this.pick(field, this.hits[field][this.active[field]]);
+                        return;
+                    }
+                    if (this.commitTyped(field)) {
+                        event.preventDefault();
+                    }
+                }
+                return;
+            }
+            if (event.key === 'Escape') {
+                event.preventDefault();
                 this.open[field] = false;
-            }, 160);
+                return;
+            }
+            if (event.key === 'Backspace' && this.query[field] === '' && this.chips[field].length > 0) {
+                this.chips[field].pop();
+            }
+        },
+        onBlur(field) {
+            this.hideTimer = window.setTimeout(() => {
+                this.commitTyped(field);
+                this.open[field] = false;
+            }, 180);
+        },
+        beforeSubmit(event) {
+            this.commitTyped('to');
+            this.commitTyped('cc');
+            this.commitTyped('bcc');
+            if (this.chips.to.length === 0) {
+                event.preventDefault();
+                this.$refs.toQuery?.focus();
+                this.lookup('to');
+                return;
+            }
+            this.commitInlineSrc();
+            this.syncEditor();
+            this.syncFileInputs();
+            const quoted = (this.$refs.quoteField?.value || '').trim();
+            if (this.editorEmpty && quoted === '') {
+                event.preventDefault();
+                this.$refs.editor?.focus();
+                return;
+            }
+            this.sending = true;
         },
     };
 }
@@ -4739,6 +5159,7 @@ initInstantMeetingLinks();
 initAdminNotifications();
 initAdminSearch();
 initMailSearch();
+initMailBulk();
 initRoadmapFilters();
 initAvatarPreviews();
 initPasswordFields();

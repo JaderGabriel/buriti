@@ -31,7 +31,7 @@
             <li>Em <strong>URIs de redirecionamento autorizados</strong>, adicione exatamente:
                 <code class="break-all">{{ $googleRedirectUri ?? (rtrim(config('app.url'), '/').'/admin/google/callback') }}</code>
             </li>
-            <li>Copie Client ID e Secret para os campos à esquerda (ou para o <code>.env</code>) e <strong>Salve</strong>.</li>
+            <li>Copie Client ID e Secret para os campos à esquerda e <strong>Salve</strong> (ficam na base, o secret cifrado; não versionar no Git).</li>
             <li>Clique em <strong>Conectar conta Google</strong>, autorize Calendar e Drive. O CRM só pede <code>consent</code> de novo se faltar refresh token ou se usar “Reautorizar”.</li>
             <li>Escolha a <strong>agenda correta</strong> (Calendar ID = mesma do embed) e uma <strong>cor Google</strong> (1–11) na tarefa — o sync envia o <code>colorId</code> oficial.</li>
             <li>Preencha <strong>Calendar ID</strong> (<code>primary</code> ou o ID da agenda), marque <strong>Sincronizar automaticamente</strong> e salve.</li>

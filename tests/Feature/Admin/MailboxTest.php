@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Services\ImapMailboxStore;
 use App\Services\SettingService;
 use App\Support\AdminNavigation;
+use App\Support\MailHtml;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
@@ -32,6 +33,13 @@ class MailboxTest extends TestCase
     {
         parent::setUp();
         $this->admin = User::factory()->create();
+        app(SettingService::class)->putMany([
+            'contact_email' => 'contato@buriti.dev.br',
+            'contact_phone' => '+55 11 99999-0000',
+            'contact_whatsapp' => 'buriti_demo',
+            'telegram_url' => 'https://t.me/buriti_demo',
+            'telegram_handle' => '@buriti_demo',
+        ]);
     }
 
     public function test_guest_and_staff_cannot_open_mailbox(): void
@@ -194,18 +202,18 @@ class MailboxTest extends TestCase
                 && $mail->hasFrom('contato@exemplo.com')
                 && str_contains($html, 'Segue o texto.')
                 && str_contains($html, 'Lei nº 13.709/2018')
-                && str_contains($html, 'logo-buriti.png')
+                && str_contains($html, 'cid:logo-buriti')
                 && str_contains($html, 'Jader Gabriel')
                 && str_contains($html, 'font-style:italic')
                 && str_contains($html, 'BURI-TI - Consultoria &amp; Software')
-                && str_contains($html, 'images/mail/phone.png')
-                && str_contains($html, 'images/mail/whatsapp.png')
-                && str_contains($html, 'images/mail/telegram.png')
-                && str_contains($html, 'tel:+5538991758416')
-                && str_contains($html, 'wa.me/jadergabriel')
-                && str_contains($html, 't.me/JaderGabriel')
+                && str_contains($html, 'cid:mail-phone')
+                && str_contains($html, 'cid:mail-whatsapp')
+                && str_contains($html, 'cid:mail-telegram')
+                && str_contains($html, '/ligar')
+                && str_contains($html, 'wa.me/5511999990000')
+                && str_contains($html, 't.me/buriti_demo')
                 && str_contains($html, 'alt="Telefone"')
-                && ! str_contains($html, '+55 38 99175-8416')
+                && ! str_contains($html, '99999-0000')
                 && ! str_contains($html, 'background:#0a1628');
         });
     }
@@ -216,7 +224,7 @@ class MailboxTest extends TestCase
         $settings->putMany([
             'mail_mailer' => 'smtp',
             'mail_host' => 'smtp.gmail.com',
-            'mail_username' => 'jadergabriel8@gmail.com',
+            'mail_username' => 'qa@gmail.com',
             'mail_from_name' => 'BURI-TI',
         ]);
         $settings->putSecret('mail_password', 'app-pass');
@@ -272,13 +280,24 @@ class MailboxTest extends TestCase
             ->assertSee('Anexos', false)
             ->assertSee('10 MB', false)
             ->assertSee('name="attachments[]"', false)
+            ->assertSee('mail-editor', false)
+            ->assertSee('mail-gallery', false)
+            ->assertSee('aria-label="Formatação"', false)
+            ->assertSee('Imagem no texto', false)
+            ->assertSee('Remover anexo', false)
             ->assertSee('enctype="multipart/form-data"', false)
             ->assertSee('mailCompose', false)
-            ->assertSee('admin\\/correio\\/contatos', false)
+            ->assertSee('data-contacts-url="', false)
+            ->assertSee('correio/contatos', false)
+            ->assertSee('data-to="ana@exemplo.com"', false)
+            ->assertSee('mail-chips', false)
             ->assertSee('mail-compose-pane', false)
             ->assertSee('mail-compose__scroll', false)
             ->assertSee('mail-compose__heading', false)
-            ->assertSee('Nome ou e-mail', false)
+            ->assertSee('Nome, empresa ou e-mail', false)
+            ->assertSee('data-mail-acao="marker"', false)
+            ->assertSee('data-mail-acao="label"', false)
+            ->assertDontSee('mail-bulk__go">OK', false)
             ->assertDontSee('<details class="mail-signature" open>', false);
     }
 
@@ -301,6 +320,11 @@ class MailboxTest extends TestCase
             ->assertJsonPath('contacts.0.email', 'zelia@empresa.com')
             ->assertJsonPath('contacts.0.name', 'Zelia Costa')
             ->assertJsonPath('contacts.0.company', 'Costa & Filhos');
+
+        $this->actingAs($this->admin)
+            ->getJson(route('admin.mailbox.contacts', ['q' => 'Z']))
+            ->assertOk()
+            ->assertJsonPath('contacts.0.email', 'zelia@empresa.com');
     }
 
     public function test_mailbox_folder_search_also_matches_contact_email(): void
@@ -347,7 +371,47 @@ class MailboxTest extends TestCase
             ->assertSee('Resposta ao site', false)
             ->assertSee('carla@empresa.com', false)
             ->assertSee('Re: Orçamento institucional', false)
-            ->assertSee('Preciso de um site novo.', false);
+            ->assertSee('Preciso de um site novo.', false)
+            ->assertSee('mail-quote-pane', false)
+            ->assertSee('Mensagem original', false)
+            ->assertSee('name="quote"', false);
+    }
+
+    public function test_send_appends_original_as_muted_quote(): void
+    {
+        $this->configureMailbox();
+        $this->scriptImap([
+            '* LIST (\\HasNoChildren \\Sent) "/" Sent',
+            'A1 OK LIST completed',
+            '+',
+            'A2 OK APPEND completed',
+            '* BYE',
+            'A3 OK LOGOUT completed',
+        ]);
+        Mail::fake();
+
+        $quote = MailHtml::quoteBlock('Em 01/01/2026, Carla escreveu:', 'Preciso de um site novo.');
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.mailbox.send'), [
+                'to' => 'carla@empresa.com',
+                'subject' => 'Re: Orçamento institucional',
+                'body' => '<p>Segue a proposta.</p>',
+                'quote' => $quote,
+                'signature' => '1',
+            ])
+            ->assertRedirect(route('admin.mailbox.index', ['pasta' => 'Sent']))
+            ->assertSessionHas('success');
+
+        Mail::assertSent(CrmOutgoingMail::class, function (CrmOutgoingMail $mail) {
+            $html = $mail->render();
+
+            return $mail->hasTo('carla@empresa.com')
+                && str_contains($html, 'Segue a proposta.')
+                && str_contains($html, 'Preciso de um site novo.')
+                && str_contains($html, 'mail-quote')
+                && strpos($html, 'Segue a proposta.') < strpos($html, 'Preciso de um site novo.');
+        });
     }
 
     public function test_admin_can_send_with_bcc_and_mark_contact_message_read(): void
@@ -432,6 +496,56 @@ class MailboxTest extends TestCase
                 'attachments' => [UploadedFile::fake()->create('pesado.pdf', 11000, 'application/pdf')],
             ])
             ->assertSessionHasErrors('attachments.0');
+    }
+
+    public function test_send_rejects_blank_html_body(): void
+    {
+        $this->actingAs($this->admin)
+            ->post(route('admin.mailbox.send'), [
+                'to' => 'qa@exemplo.com',
+                'subject' => 'Vazio',
+                'body' => '<p><br></p>',
+                'signature' => '1',
+            ])
+            ->assertSessionHasErrors('body');
+    }
+
+    public function test_admin_can_send_html_body_with_inline_image(): void
+    {
+        $this->configureMailbox();
+        $this->scriptImap([
+            '* LIST (\\HasNoChildren \\Sent) "/" Sent',
+            'A1 OK LIST completed',
+            '+',
+            'A2 OK APPEND completed',
+            '* BYE',
+            'A3 OK LOGOUT completed',
+        ]);
+        Mail::fake();
+
+        $image = UploadedFile::fake()->image('foto.png', 32, 32);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.mailbox.send'), [
+                'to' => 'qa@exemplo.com',
+                'subject' => 'Proposta com imagem',
+                'body' => '<p>Olá <strong>Carla</strong></p><p><img src="cid:img-foto1" alt="foto"></p><script>alert(1)</script>',
+                'signature' => '1',
+                'inline' => ['img-foto1' => $image],
+            ])
+            ->assertRedirect(route('admin.mailbox.index', ['pasta' => 'Sent']))
+            ->assertSessionHas('success');
+
+        Mail::assertSent(CrmOutgoingMail::class, function (CrmOutgoingMail $mail) {
+            $html = $mail->render();
+
+            return $mail->hasTo('qa@exemplo.com')
+                && str_contains($html, '<strong>Carla</strong>')
+                && str_contains($html, 'cid:img-foto1')
+                && ! str_contains(strtolower($html), '<script')
+                && count($mail->inline) === 1
+                && $mail->inline[0]['cid'] === 'img-foto1';
+        });
     }
 
     public function test_admin_can_star_selected_messages(): void

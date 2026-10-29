@@ -4,6 +4,25 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $subjectLine ?? 'BURI-TI' }}</title>
+    <style>
+        .mail-quote, .mail-quote p {
+            font-family: Arial, Helvetica, sans-serif !important;
+            font-size: 13px !important;
+            line-height: 1.5 !important;
+            color: #6a7787 !important;
+            font-weight: 400 !important;
+            font-style: normal !important;
+        }
+        .mail-quote {
+            margin: 18px 0 0 !important;
+            padding: 4px 0 2px 14px !important;
+            border-left: 2px solid #c5d0dc !important;
+        }
+        .mail-quote__meta {
+            font-size: 12px !important;
+            color: #8a96a3 !important;
+        }
+    </style>
 </head>
 <body style="margin:0;padding:0;background:#eef2f6;color:#1b2430;font-family:Georgia,'Times New Roman',serif;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef2f6;padding:24px 12px;">
@@ -18,7 +37,7 @@
                     </tr>
                     <tr>
                         <td style="padding:28px;font-size:16px;line-height:1.7;color:#1b2430;">
-                            <div style="white-space:pre-wrap;">{!! nl2br(e($body)) !!}</div>
+                            <div style="font-size:16px;line-height:1.7;color:#1b2430;">{!! $bodyHtml !!}</div>
                         </td>
                     </tr>
                     @if(! empty($signatureBlock))

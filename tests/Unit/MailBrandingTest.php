@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Services\SettingService;
 use App\Support\MailBranding;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -20,6 +21,13 @@ class MailBrandingTest extends TestCase
 
     public function test_block_uses_logo_and_icon_channels_without_exposing_numbers(): void
     {
+        app(SettingService::class)->putMany([
+            'contact_phone' => '+55 11 99999-0000',
+            'contact_whatsapp' => 'buriti_demo',
+            'telegram_url' => 'https://t.me/buriti_demo',
+            'telegram_handle' => '@buriti_demo',
+        ]);
+
         $block = MailBranding::block("Jader Gabriel\nFundador", 'BURI-TI');
 
         $this->assertSame('Jader Gabriel', $block['name']);
@@ -31,13 +39,15 @@ class MailBrandingTest extends TestCase
         $this->assertSame(['phone', 'whatsapp', 'telegram'], $ids);
 
         $hrefs = array_column($block['channels'], 'href');
-        $this->assertContains('tel:+5538991758416', $hrefs);
-        $this->assertTrue(collect($hrefs)->contains(fn (string $href) => str_contains($href, 'wa.me/')));
+        $this->assertContains(route('contact.call'), $hrefs);
+        $this->assertContains('https://wa.me/5511999990000', $hrefs);
         $this->assertTrue(collect($hrefs)->contains(fn (string $href) => str_contains($href, 't.me/')));
+        $this->assertFalse(collect($hrefs)->contains(fn (string $href) => str_starts_with($href, 'tel:')));
+        $this->assertFalse(collect($hrefs)->contains(fn (string $href) => str_contains($href, 'wa.me/buriti_demo')));
 
         foreach ($block['channels'] as $channel) {
             $this->assertContains($channel['label'], ['Telefone', 'WhatsApp', 'Telegram']);
-            $this->assertStringNotContainsString('99175', $channel['label']);
+            $this->assertStringNotContainsString('99999', $channel['label']);
             $this->assertStringNotContainsString('@', $channel['label']);
             $this->assertStringContainsString('/images/mail/'.$channel['id'].'.png', $channel['icon']);
         }
@@ -45,8 +55,8 @@ class MailBrandingTest extends TestCase
 
     public function test_telegram_href_accepts_url_or_handle(): void
     {
-        $this->assertSame('https://t.me/JaderGabriel', MailBranding::telegramHref('https://t.me/JaderGabriel', null));
-        $this->assertSame('https://t.me/JaderGabriel', MailBranding::telegramHref(null, '@JaderGabriel'));
+        $this->assertSame('https://t.me/ExemploBot', MailBranding::telegramHref('https://t.me/ExemploBot', null));
+        $this->assertSame('https://t.me/ExemploBot', MailBranding::telegramHref(null, '@ExemploBot'));
         $this->assertNull(MailBranding::telegramHref('https://example.com', 'ab'));
     }
 
@@ -62,11 +72,11 @@ class MailBrandingTest extends TestCase
 
     public function test_legal_notice_uses_mailbox_not_null_mx_vanity(): void
     {
-        config(['mail.from.address' => 'jadergabriel8@gmail.com']);
+        config(['mail.from.address' => 'qa@gmail.com']);
 
         $notice = MailBranding::legalNotice();
 
-        $this->assertStringContainsString('jadergabriel8@gmail.com', $notice);
+        $this->assertStringContainsString('qa@gmail.com', $notice);
         $this->assertStringNotContainsString('contato@buriti.dev.br', $notice);
     }
 }

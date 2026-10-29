@@ -45,6 +45,9 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [SiteController::class, 'home'])->name('home');
 Route::get('/privacidade', [SiteController::class, 'privacy'])->name('privacy');
 Route::get('/cookies', [SiteController::class, 'cookies'])->name('cookies');
+Route::get('/ligar', [SiteController::class, 'call'])
+    ->middleware('throttle:30,1')
+    ->name('contact.call');
 
 Route::post('/contato', [ContactController::class, 'store'])
     ->middleware('throttle:5,1')

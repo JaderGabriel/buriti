@@ -4,7 +4,7 @@
 <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
     <tr>
         <td valign="top" style="padding:0 16px 0 0;">
-            <img src="{{ $block['logo'] }}" width="72" height="68" alt="BURI-TI" style="display:block;border:0;width:72px;height:68px;object-fit:contain;">
+            <img src="{{ $block['logo'] }}" width="72" height="68" alt="BURI-TI" style="display:block;border:0;outline:none;text-decoration:none;width:72px;height:68px;">
         </td>
         <td valign="top" style="padding:0;font-family:Arial,Helvetica,sans-serif;">
             <p style="margin:0;font-size:15px;line-height:1.35;font-style:italic;font-weight:400;color:#0f2744;">{{ $block['name'] }}</p>
@@ -17,8 +17,13 @@
                                 <td style="width:8px;font-size:0;line-height:0;">&nbsp;</td>
                             @endif
                             <td style="padding:0;">
-                                <a href="{{ $channel['href'] }}" target="_blank" rel="noopener" title="{{ $channel['label'] }}" style="display:block;text-decoration:none;border:0;">
-                                    <img src="{{ $channel['icon'] }}" width="28" height="28" alt="{{ $channel['label'] }}" style="display:block;border:0;width:28px;height:28px;">
+                                <a
+                                    href="{{ $channel['href'] }}"
+                                    @if(str_starts_with($channel['href'], 'http')) target="_blank" rel="noopener" @endif
+                                    title="{{ $channel['label'] }}"
+                                    style="display:block;text-decoration:none;border:0;"
+                                >
+                                    <img src="{{ $channel['icon'] }}" width="32" height="32" alt="{{ $channel['label'] }}" style="display:block;border:0;outline:none;text-decoration:none;width:32px;height:32px;">
                                 </a>
                             </td>
                         @endforeach

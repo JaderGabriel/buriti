@@ -57,4 +57,9 @@ return [
         'webhook_secret' => env('TELEGRAM_WEBHOOK_SECRET'),
     ],
 
+    /*
+    | Credenciais operacionais vivem na tabela settings (cifradas).
+    | As chaves env acima são só fallback de bootstrap até o admin gravar no painel.
+    */
+
 ];

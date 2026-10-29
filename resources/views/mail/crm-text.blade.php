@@ -1,4 +1,4 @@
-{{ $body }}
+{{ $bodyText ?? $body }}
 
 @if(filled($signature))
 --

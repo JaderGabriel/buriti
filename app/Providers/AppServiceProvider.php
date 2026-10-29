@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Throwable;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -51,6 +52,12 @@ class AppServiceProvider extends ServiceProvider
         Opportunity::observe(OpportunityObserver::class);
 
         Gate::define('manageMail', [MailboxPolicy::class, 'manage']);
+
+        try {
+            $this->app->make(SettingService::class)->applyServiceOverlay();
+        } catch (Throwable) {
+            // migrate ainda não correu
+        }
 
         Route::bind('item', function (string $value, $route) {
             $card = $route->parameter('card');

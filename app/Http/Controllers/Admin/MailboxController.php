@@ -16,6 +16,7 @@ use App\Services\CrmMailboxService;
 use App\Services\MailAnnotationService;
 use App\Services\MailSettingsService;
 use App\Support\MailContacts;
+use App\Support\MailHtml;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -72,6 +73,8 @@ class MailboxController extends Controller
         $subject = (string) $request->query('assunto', '');
         $modo = (string) $request->query('modo', 'new');
         $body = '';
+        $quote = '';
+        $quoteLabel = 'Mensagem original';
         $inReplyTo = null;
         $contactMessageId = $request->integer('mensagem') ?: null;
 
@@ -80,7 +83,8 @@ class MailboxController extends Controller
             if ($contactMessage) {
                 $to = $to !== '' ? $to : (string) $contactMessage->email;
                 $subject = $subject !== '' ? $subject : $this->replySubject((string) $contactMessage->subject);
-                $body = $this->quoteContactMessage($contactMessage);
+                $quoted = $this->quoteContactMessage($contactMessage);
+                $quote = MailHtml::quoteBlock($quoted['intro'], $quoted['text']);
                 $modo = 'contact-reply';
             } else {
                 $contactMessageId = null;
@@ -92,12 +96,15 @@ class MailboxController extends Controller
             $from = $this->extractEmail((string) $reply['from']);
             if ($modo === 'forward') {
                 $subject = $subject !== '' ? $subject : 'Enc: '.$reply['subject'];
-                $body = $this->quoteForward($reply);
+                $quoted = $this->quoteForward($reply);
+                $quote = MailHtml::quoteBlock($quoted['intro'], $quoted['text']);
+                $quoteLabel = 'Mensagem encaminhada';
             } else {
                 $own = strtolower((string) ($workspace['identity']['address'] ?? ''));
                 $to = $to !== '' ? $to : $from;
                 $subject = $subject !== '' ? $subject : $this->replySubject((string) $reply['subject']);
-                $body = $this->quoteReply($reply);
+                $quoted = $this->quoteReply($reply);
+                $quote = MailHtml::quoteBlock($quoted['intro'], $quoted['text']);
                 if ($modo === 'reply-all') {
                     $peers = $this->replyAllAddresses($reply, $own);
                     $to = implode(', ', $peers['to']);
@@ -115,6 +122,8 @@ class MailboxController extends Controller
                 'bcc' => '',
                 'subject' => $subject,
                 'body' => $body,
+                'quote' => $quote,
+                'quote_label' => $quoteLabel,
                 'in_reply_to' => $inReplyTo,
                 'reply_folder' => $replyFolder,
                 'reply_uid' => $replyUid > 0 ? $replyUid : null,
@@ -130,13 +139,17 @@ class MailboxController extends Controller
     {
         $to = $request->string('to')->toString();
         $subject = $request->string('subject')->toString();
-        $body = $request->string('body')->toString();
+        $body = MailHtml::withQuote(
+            $request->string('body')->toString(),
+            $request->string('quote')->toString(),
+        );
         $withSignature = $request->boolean('signature', true);
         $files = $request->uploadedAttachments();
+        $inline = $request->uploadedInline();
 
         try {
             if ($request->boolean('draft')) {
-                $folder = $this->mailbox->saveDraft($to, $subject, $body, $request->user(), $withSignature, $files);
+                $folder = $this->mailbox->saveDraft($to, $subject, $body, $request->user(), $withSignature, $files, $inline);
 
                 return redirect()
                     ->route('admin.mailbox.index', ['pasta' => $folder])
@@ -155,6 +168,7 @@ class MailboxController extends Controller
                 $request->integer('reply_uid') ?: null,
                 $request->input('bcc'),
                 $files,
+                $inline,
             );
 
             $contactMessageId = $request->integer('contact_message_id');
@@ -276,7 +290,7 @@ class MailboxController extends Controller
 
         return response()->json([
             'contacts' => MailContacts::search($request->string('q')->toString()),
-        ]);
+        ])->header('Cache-Control', 'private, no-store');
     }
 
     public function attachment(Request $request): Response
@@ -495,13 +509,18 @@ class MailboxController extends Controller
         ];
     }
 
-    private function quoteContactMessage(ContactMessage $message): string
+    /**
+     * @return array{intro: string, text: string}
+     */
+    private function quoteContactMessage(ContactMessage $message): array
     {
         $when = $message->created_at?->format('d/m/Y H:i') ?: '';
-        $quoted = trim((string) $message->message);
-        $quoted = $quoted !== '' ? preg_replace('/^/m', '> ', $quoted) : '> (sem conteúdo)';
+        $text = trim((string) $message->message);
 
-        return "\n\n\nEm ".$when.', '.$message->name.' <'.$message->email."> escreveu:\n".$quoted;
+        return [
+            'intro' => 'Em '.$when.', '.$message->name.' <'.$message->email.'> escreveu:',
+            'text' => $text !== '' ? $text : '(sem conteúdo)',
+        ];
     }
 
     private function replySubject(string $subject): string
@@ -513,26 +532,31 @@ class MailboxController extends Controller
 
     /**
      * @param  array<string, mixed>  $message
+     * @return array{intro: string, text: string}
      */
-    private function quoteReply(array $message): string
+    private function quoteReply(array $message): array
     {
-        $quoted = $this->plainBody($message);
-
-        return "\n\n\nEm ".$message['date'].', '.$message['from']." escreveu:\n"
-            .preg_replace('/^/m', '> ', $quoted);
+        return [
+            'intro' => 'Em '.$message['date'].', '.$message['from'].' escreveu:',
+            'text' => $this->plainBody($message),
+        ];
     }
 
     /**
      * @param  array<string, mixed>  $message
+     * @return array{intro: string, text: string}
      */
-    private function quoteForward(array $message): string
+    private function quoteForward(array $message): array
     {
-        return "\n\n---------- Mensagem encaminhada ----------\n"
-            .'De: '.$message['from']."\n"
+        $header = 'De: '.$message['from']."\n"
             .'Data: '.$message['date']."\n"
             .'Assunto: '.$message['subject']."\n"
-            .'Para: '.$message['to']."\n\n"
-            .$this->plainBody($message);
+            .'Para: '.$message['to'];
+
+        return [
+            'intro' => 'Mensagem encaminhada',
+            'text' => $header."\n\n".$this->plainBody($message),
+        ];
     }
 
     /**

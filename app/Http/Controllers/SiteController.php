@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Project;
 use App\Services\SettingService;
 use App\Services\TestimonialService;
+use App\Support\PhoneNumber;
 use Illuminate\View\View;
 
 class SiteController extends Controller
@@ -65,11 +66,20 @@ class SiteController extends Controller
         ]);
     }
 
+    public function call(): View
+    {
+        $telHref = PhoneNumber::telHref($this->settings->get('contact_phone'));
+        abort_unless(is_string($telHref) && $telHref !== '', 404);
+
+        return view('site.call', [
+            'telHref' => $telHref,
+        ]);
+    }
+
     private function privacyEmail(): string
     {
         return (string) ($this->settings->get('contact_email')
-            ?: config('buriti.contact.email')
             ?: config('mail.from.address')
-            ?: 'jadergabriel8@gmail.com');
+            ?: 'contato@buriti.dev.br');
     }
 }

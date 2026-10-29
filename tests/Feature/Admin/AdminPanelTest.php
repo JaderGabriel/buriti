@@ -412,13 +412,13 @@ class AdminPanelTest extends TestCase
     public function test_admin_can_update_settings(): void
     {
         $this->actingAs($this->admin)->put(route('admin.settings.update'), [
-            'contact_email' => 'jadergabriel8@gmail.com',
-            'contact_phone' => '+55 38 99175-8416',
-            'contact_whatsapp' => '+55 38991758416',
-            'linkedin_url' => 'https://www.linkedin.com/in/jadergabriel/',
-            'github_url' => 'https://github.com/JaderGabriel',
-            'telegram_url' => 'https://t.me/JaderGabriel',
-            'telegram_handle' => '@JaderGabriel',
+            'contact_email' => 'contato@empresa.exemplo',
+            'contact_phone' => '+55 11 99999-0000',
+            'contact_whatsapp' => 'acme_contato',
+            'linkedin_url' => 'https://www.linkedin.com/company/exemplo',
+            'github_url' => 'https://github.com/exemplo',
+            'telegram_url' => 'https://t.me/exemplo_bot',
+            'telegram_handle' => '@exemplo_bot',
             'google_calendar_url' => 'https://calendar.google.com/calendar/u/0/r',
             'google_calendar_embed' => 'https://calendar.google.com/calendar/embed?src=example%40group.calendar.google.com',
             'google_calendar_id' => 'primary',
@@ -427,9 +427,9 @@ class AdminPanelTest extends TestCase
 
         $settings = app(SettingService::class)->all();
 
-        $this->assertSame('jadergabriel8@gmail.com', $settings['contact_email']);
-        $this->assertSame('+55 (38) 99175-8416', $settings['contact_whatsapp']);
-        $this->assertSame('@JaderGabriel', $settings['telegram_handle']);
+        $this->assertSame('contato@empresa.exemplo', $settings['contact_email']);
+        $this->assertSame('acme_contato', $settings['contact_whatsapp']);
+        $this->assertSame('@exemplo_bot', $settings['telegram_handle']);
         // primary + embed específico → Calendar ID alinha ao src do embed
         $this->assertSame('example@group.calendar.google.com', $settings['google_calendar_id']);
         $this->assertSame('1', $settings['google_auto_sync']);

@@ -28,12 +28,12 @@ class AdminSeeder extends Seeder
         }
 
         $user = User::query()->firstOrNew([
-            'email' => env('ADMIN_EMAIL', 'jadergabriel8@gmail.com'),
+            'email' => env('ADMIN_EMAIL', 'admin@buriti.dev.br'),
         ]);
 
         $user->fill([
-            'name' => env('ADMIN_NAME', 'Jader Gabriel'),
-            'username' => env('ADMIN_USERNAME', 'jadergabriel'),
+            'name' => env('ADMIN_NAME', 'Admin BURI-TI'),
+            'username' => env('ADMIN_USERNAME', 'admin'),
             'password' => Hash::make($password),
         ]);
         $user->forceFill([

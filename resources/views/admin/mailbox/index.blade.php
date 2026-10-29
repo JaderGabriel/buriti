@@ -180,23 +180,31 @@
                             </button>
                             <label class="mail-bulk__select">
                                 <span class="sr-only">Marcador</span>
-                                <select name="marker" class="mail-input mail-input--compact">
+                                <select
+                                    name="marker"
+                                    class="mail-input mail-input--compact"
+                                    data-mail-auto-submit
+                                    data-mail-acao="marker"
+                                >
                                     <option value="">Marcador</option>
                                     @foreach($catalog['markers'] as $value => $label)
                                         <option value="{{ $value }}">{{ $label }}</option>
                                     @endforeach
                                 </select>
-                                <button type="submit" name="acao" value="marker" class="mail-bulk__go">OK</button>
                             </label>
                             <label class="mail-bulk__select">
                                 <span class="sr-only">Etiqueta</span>
-                                <select name="label_id" class="mail-input mail-input--compact">
+                                <select
+                                    name="label_id"
+                                    class="mail-input mail-input--compact"
+                                    data-mail-auto-submit
+                                    data-mail-acao="label"
+                                >
                                     <option value="">Etiqueta</option>
                                     @foreach($catalog['labels'] as $label)
                                         <option value="{{ $label->id }}">{{ $label->name }}</option>
                                     @endforeach
                                 </select>
-                                <button type="submit" name="acao" value="label" class="mail-bulk__go">OK</button>
                             </label>
                             @if(count($folders) > 1)
                                 <label class="mail-bulk__select">
@@ -309,11 +317,14 @@
                             action="{{ route('admin.mailbox.send') }}"
                             class="mail-compose"
                             enctype="multipart/form-data"
-                            x-data="mailCompose({
-                                cc: {{ $showCc ? 'true' : 'false' }},
-                                bcc: {{ $showBcc ? 'true' : 'false' }},
-                                contactsUrl: @js(route('admin.mailbox.contacts')),
-                            })"
+                            x-data="mailCompose"
+                            data-contacts-url="{{ route('admin.mailbox.contacts', absolute: false) }}"
+                            data-show-cc="{{ $showCc ? '1' : '0' }}"
+                            data-show-bcc="{{ $showBcc ? '1' : '0' }}"
+                            data-to="{{ old('to', $compose['to'] ?? '') }}"
+                            data-cc="{{ old('cc', $compose['cc'] ?? '') }}"
+                            data-bcc="{{ old('bcc', $compose['bcc'] ?? '') }}"
+                            @submit="beforeSubmit($event)"
                         >
                             @csrf
                             <input type="hidden" name="in_reply_to" value="{{ $compose['in_reply_to'] ?? '' }}">
@@ -329,98 +340,33 @@
                                             <button type="button" class="mail-compose__toggle" @click="showBcc = !showBcc" :class="{ 'is-on': showBcc }" :aria-pressed="showBcc">Cco</button>
                                         </div>
                                     </div>
-                                    <div class="mail-picker">
-                                        <input
-                                            id="mail-to"
-                                            type="text"
-                                            name="to"
-                                            value="{{ old('to', $compose['to'] ?? '') }}"
-                                            required
-                                            placeholder="Nome ou e-mail"
-                                            class="mail-input"
-                                            autocomplete="off"
-                                            autocorrect="off"
-                                            spellcheck="false"
-                                            x-ref="toField"
-                                            @focus="lookup('to')"
-                                            @input.debounce.200ms="lookup('to')"
-                                            @keydown.escape.prevent="open.to = false"
-                                            @blur="hide('to')"
-                                        >
-                                        @include('admin.mailbox.partials.contact-suggest', ['field' => 'to'])
-                                    </div>
+                                    @include('admin.mailbox.partials.recipient-field', [
+                                        'field' => 'to',
+                                        'id' => 'mail-to',
+                                        'placeholder' => 'Nome, empresa ou e-mail',
+                                    ])
                                 </div>
                                 <div class="mail-compose__row" x-show="showCc" x-cloak>
                                     <label for="mail-cc">Cc</label>
-                                    <div class="mail-picker">
-                                        <input
-                                            id="mail-cc"
-                                            type="text"
-                                            name="cc"
-                                            value="{{ old('cc', $compose['cc'] ?? '') }}"
-                                            placeholder="Nome ou e-mail"
-                                            class="mail-input"
-                                            autocomplete="off"
-                                            x-ref="ccField"
-                                            @focus="lookup('cc')"
-                                            @input.debounce.200ms="lookup('cc')"
-                                            @keydown.escape.prevent="open.cc = false"
-                                            @blur="hide('cc')"
-                                        >
-                                        @include('admin.mailbox.partials.contact-suggest', ['field' => 'cc'])
-                                    </div>
+                                    @include('admin.mailbox.partials.recipient-field', [
+                                        'field' => 'cc',
+                                        'id' => 'mail-cc',
+                                        'placeholder' => 'Nome, empresa ou e-mail',
+                                    ])
                                 </div>
                                 <div class="mail-compose__row" x-show="showBcc" x-cloak>
                                     <label for="mail-bcc">Cco</label>
-                                    <div class="mail-picker">
-                                        <input
-                                            id="mail-bcc"
-                                            type="text"
-                                            name="bcc"
-                                            value="{{ old('bcc', $compose['bcc'] ?? '') }}"
-                                            placeholder="Nome ou e-mail"
-                                            class="mail-input"
-                                            autocomplete="off"
-                                            x-ref="bccField"
-                                            @focus="lookup('bcc')"
-                                            @input.debounce.200ms="lookup('bcc')"
-                                            @keydown.escape.prevent="open.bcc = false"
-                                            @blur="hide('bcc')"
-                                        >
-                                        @include('admin.mailbox.partials.contact-suggest', ['field' => 'bcc'])
-                                    </div>
+                                    @include('admin.mailbox.partials.recipient-field', [
+                                        'field' => 'bcc',
+                                        'id' => 'mail-bcc',
+                                        'placeholder' => 'Nome, empresa ou e-mail',
+                                    ])
                                 </div>
                                 <div class="mail-compose__row">
                                     <label for="mail-subject">Assunto</label>
                                     <input id="mail-subject" type="text" name="subject" value="{{ old('subject', $compose['subject'] ?? '') }}" required class="mail-input" autocomplete="off">
                                 </div>
-                                <textarea name="body" required rows="8" class="mail-input mail-compose__body" placeholder="Escreve a mensagem…">{{ old('body', $compose['body'] ?? '') }}</textarea>
-                                <div class="mail-compose__attach">
-                                    <label class="mail-compose__attach-btn">
-                                        <x-ui.icon name="paperclip" class="h-4 w-4" />
-                                        Anexos
-                                        <input
-                                            type="file"
-                                            name="attachments[]"
-                                            multiple
-                                            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.jpg,.jpeg,.png,.webp,.gif,.odt,.ods"
-                                            class="sr-only"
-                                            @change="files = Array.from($event.target.files || [])"
-                                        >
-                                    </label>
-                                    <p class="mail-compose__attach-hint">Até 10 MB no total · PDF, Office, imagens ou zip.</p>
-                                    <ul class="mail-attach-list" x-show="files.length" x-cloak>
-                                        <template x-for="file in files" :key="file.name + file.size">
-                                            <li x-text="file.name + ' · ' + (file.size / 1024).toFixed(1) + ' KB'"></li>
-                                        </template>
-                                    </ul>
-                                    @error('attachments')
-                                        <p class="mail-compose__error">{{ $message }}</p>
-                                    @enderror
-                                    @error('attachments.0')
-                                        <p class="mail-compose__error">{{ $message }}</p>
-                                    @enderror
-                                </div>
+                                @include('admin.mailbox.partials.editor')
                             </div>
                             <div class="mail-compose__bar">
                                 <label class="mail-compose__sign">
@@ -429,8 +375,14 @@
                                     Assinatura
                                 </label>
                                 <div class="messenger-composer__actions">
-                                    <button type="submit" name="draft" value="1" class="messenger-composer__secondary">Rascunho</button>
-                                    <button type="submit" class="messenger-composer__primary">Enviar</button>
+                                    <button type="submit" name="draft" value="1" class="messenger-composer__secondary" :disabled="sending">
+                                        <span x-show="! sending">Rascunho</span>
+                                        <span x-show="sending" x-cloak>A guardar…</span>
+                                    </button>
+                                    <button type="submit" class="messenger-composer__primary" :disabled="sending">
+                                        <span x-show="! sending">Enviar</span>
+                                        <span x-show="sending" x-cloak>A enviar…</span>
+                                    </button>
                                 </div>
                             </div>
                         </form>
@@ -562,14 +514,18 @@
                                         @endforeach
                                         <label>
                                             Marcador
-                                            <select name="marker" class="mail-input mt-1">
+                                            <select
+                                                name="marker"
+                                                class="mail-input mt-1"
+                                                data-mail-auto-submit
+                                                data-allow-empty="1"
+                                            >
                                                 <option value="">—</option>
                                                 @foreach($catalog['markers'] as $value => $label)
                                                     <option value="{{ $value }}" @selected(($selected['marker'] ?? '') === $value)>{{ $label }}</option>
                                                 @endforeach
                                             </select>
                                         </label>
-                                        <button type="submit" class="messenger-composer__secondary">Guardar</button>
                                     </form>
                                     <form method="POST" action="{{ route('admin.mailbox.label') }}" class="mail-crm__form">
                                         @csrf
@@ -578,14 +534,13 @@
                                         @endforeach
                                         <label>
                                             Etiqueta
-                                            <select name="label_id" class="mail-input mt-1" required>
+                                            <select name="label_id" class="mail-input mt-1" data-mail-auto-submit>
                                                 <option value="">Escolher…</option>
                                                 @foreach($catalog['labels'] as $label)
                                                     <option value="{{ $label->id }}">{{ $label->name }}</option>
                                                 @endforeach
                                             </select>
                                         </label>
-                                        <button type="submit" class="messenger-composer__secondary">Aplicar</button>
                                     </form>
                                 </div>
                                 @if(! empty($selected['labels']))

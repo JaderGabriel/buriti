@@ -65,7 +65,7 @@ class ImapMailboxStoreTest extends TestCase
             'mail.mailers.smtp.host' => 'smtp.gmail.com',
         ]);
         app(SettingService::class)->putMany([
-            'mail_username' => 'jadergabriel8@gmail.com',
+            'mail_username' => 'qa@gmail.com',
             'mail_host' => 'smtp.gmail.com',
         ]);
         app(SettingService::class)->putSecret('mail_password', 'app-pass');

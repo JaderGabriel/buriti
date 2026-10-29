@@ -149,17 +149,17 @@ class MailSettingsServiceTest extends TestCase
     public function test_gmail_from_requires_gmail_smtp(): void
     {
         $this->assertNotNull(MailSettingsService::fromAlignmentIssue(
-            'jadergabriel8@gmail.com',
+            'qa@gmail.com',
             'sendmail',
             '',
         ));
         $this->assertNotNull(MailSettingsService::fromAlignmentIssue(
-            'jadergabriel8@gmail.com',
+            'qa@gmail.com',
             'smtp',
             'localhost',
         ));
         $this->assertNull(MailSettingsService::fromAlignmentIssue(
-            'jadergabriel8@gmail.com',
+            'qa@gmail.com',
             'smtp',
             'smtp.gmail.com',
         ));
@@ -169,7 +169,7 @@ class MailSettingsServiceTest extends TestCase
             'localhost',
         ));
         $this->assertNull(MailSettingsService::fromAlignmentIssue(
-            'jadergabriel8@gmail.com',
+            'qa@gmail.com',
             'log',
             '',
         ));
@@ -193,7 +193,7 @@ class MailSettingsServiceTest extends TestCase
         app(SettingService::class)->putMany([
             'mail_mailer' => 'smtp',
             'mail_host' => '127.0.0.1',
-            'mail_from_address' => 'jadergabriel8@gmail.com',
+            'mail_from_address' => 'qa@gmail.com',
         ]);
 
         $snap = app(MailSettingsService::class)->snapshot();
@@ -211,7 +211,7 @@ class MailSettingsServiceTest extends TestCase
         app(SettingService::class)->putMany([
             'mail_mailer' => 'smtp',
             'mail_host' => '127.0.0.1',
-            'mail_from_address' => 'jadergabriel8@gmail.com',
+            'mail_from_address' => 'qa@gmail.com',
         ]);
 
         $fail = app(MailSettingsService::class)->trySendTest(

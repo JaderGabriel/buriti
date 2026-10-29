@@ -34,6 +34,7 @@ class SettingService
         'notion_database_id',
         'notion_workspace_url',
         'notion_default_page_url',
+        'telegram_bot_username',
         'telegram_allowed_chat_ids',
         'telegram_notify_chat_id',
         'mail_mailer',
@@ -55,6 +56,11 @@ class SettingService
         'google_client_secret',
         'google_refresh_token',
         'mail_password',
+        'telegram_bot_token',
+        'telegram_webhook_secret',
+        'trello_api_key',
+        'trello_token',
+        'notion_token',
     ];
 
     /** @return array<string, string|null> */
@@ -97,6 +103,11 @@ class SettingService
             $values['google_client_id'] = $this->sanitizeGoogleClientId(
                 is_string($values['google_client_id'] ?? null) ? $values['google_client_id'] : null
             );
+        }
+
+        if (array_key_exists('telegram_bot_username', $values)) {
+            $username = trim((string) ($values['telegram_bot_username'] ?? ''));
+            $values['telegram_bot_username'] = $username !== '' ? ltrim($username, '@') : null;
         }
 
         $embedSrc = $values['google_calendar_embed'] ?? null;
@@ -193,6 +204,7 @@ class SettingService
             'notion_database_id' => null,
             'notion_workspace_url' => null,
             'notion_default_page_url' => null,
+            'telegram_bot_username' => null,
             'telegram_allowed_chat_ids' => null,
             'telegram_notify_chat_id' => null,
             'mail_mailer' => null,
@@ -302,5 +314,39 @@ class SettingService
         }
 
         return $value;
+    }
+
+    /**
+     * Overlay encrypted settings onto config('services.*').
+     * Values in the database win; empty keys keep the .env bootstrap fallback.
+     */
+    public function applyServiceOverlay(): void
+    {
+        $secrets = [
+            'telegram_bot_token' => 'services.telegram.bot_token',
+            'telegram_webhook_secret' => 'services.telegram.webhook_secret',
+            'google_client_secret' => 'services.google.client_secret',
+            'google_refresh_token' => 'services.google.refresh_token',
+            'trello_api_key' => 'services.trello.api_key',
+            'trello_token' => 'services.trello.token',
+            'notion_token' => 'services.notion.token',
+        ];
+
+        foreach ($secrets as $settingKey => $configKey) {
+            $value = $this->getSecret($settingKey);
+            if (filled($value)) {
+                config([$configKey => $value]);
+            }
+        }
+
+        $username = $this->get('telegram_bot_username');
+        if (filled($username)) {
+            config(['services.telegram.bot_username' => ltrim((string) $username, '@')]);
+        }
+
+        $clientId = $this->sanitizeGoogleClientId($this->get('google_client_id'));
+        if (filled($clientId)) {
+            config(['services.google.client_id' => $clientId]);
+        }
     }
 }

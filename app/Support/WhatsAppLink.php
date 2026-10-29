@@ -19,6 +19,24 @@ class WhatsAppLink
         return $url;
     }
 
+    /**
+     * Link que abre conversa. wa.me/utilizador ainda resolve como «utilizador
+     * não encontrado»; na assinatura usa-se o telefone quando existe.
+     */
+    public static function chatHref(?string $value, ?string $phoneFallback = null, ?string $prefill = null): ?string
+    {
+        if (self::kind($value) === 'phone') {
+            return self::href($value, $prefill);
+        }
+
+        $fromPhone = PhoneNumber::whatsappHref($phoneFallback, $prefill);
+        if ($fromPhone !== null) {
+            return $fromPhone;
+        }
+
+        return self::href($value, $prefill);
+    }
+
     public static function handle(?string $value): ?string
     {
         $raw = trim((string) $value);

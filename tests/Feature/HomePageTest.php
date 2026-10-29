@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Project;
+use App\Services\SettingService;
 use App\Support\RuntimeVersions;
 use Database\Seeders\PortfolioSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -165,16 +166,24 @@ class HomePageTest extends TestCase
 
     public function test_home_page_shows_configured_contact_channels(): void
     {
+        app(SettingService::class)->putMany([
+            'contact_email' => 'contato@buriti.dev.br',
+            'contact_phone' => '+55 11 99999-0000',
+            'contact_whatsapp' => 'buriti_demo',
+            'telegram_url' => 'https://t.me/buriti_demo',
+            'telegram_handle' => '@buriti_demo',
+        ]);
+
         $response = $this->get(route('home'));
 
         $response->assertOk();
-        $response->assertSee('mailto:jadergabriel8@gmail.com', false);
+        $response->assertSee('mailto:contato@buriti.dev.br', false);
         $response->assertSee('Enviar e-mail', false);
         $response->assertDontSee('aria-label="Ligar"', false);
         $response->assertSee('Abrir WhatsApp', false);
-        $response->assertSee('https://wa.me/jadergabriel', false);
-        $response->assertSee('@JaderGabriel', false);
-        $response->assertDontSee('+55 38 99175-8416', false);
+        $response->assertSee('https://wa.me/buriti_demo', false);
+        $response->assertSee('@buriti_demo', false);
+        $response->assertDontSee('99999-0000', false);
         $response->assertDontSee('WhatsApp direto', false);
     }
 
@@ -250,5 +259,23 @@ class HomePageTest extends TestCase
             ->assertOk()
             ->assertSee('images/projects/servlitcys.svg', false)
             ->assertSee('Servlitcys', false);
+    }
+
+    public function test_call_page_opens_tel_link(): void
+    {
+        app(SettingService::class)->putMany([
+            'contact_phone' => '+55 11 99999-0000',
+        ]);
+
+        $this->get(route('contact.call'))
+            ->assertOk()
+            ->assertSee('tel:+5511999990000', false)
+            ->assertSee('Ligar agora', false)
+            ->assertSee('noindex', false);
+    }
+
+    public function test_call_page_is_hidden_without_phone(): void
+    {
+        $this->get(route('contact.call'))->assertNotFound();
     }
 }

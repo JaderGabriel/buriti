@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Services\SettingService;
+use App\Models\User;
 
 class IntegrationToolkitService
 {
@@ -28,8 +28,8 @@ class IntegrationToolkitService
                 2 => 'Use o board para cartões de entrega ligados a projetos e CRM.',
                 1 => $token
                     ? 'Indique o Board ID ou URL do board nas integrações.'
-                    : 'Adicione TRELLO_API_KEY e TRELLO_TOKEN no .env.',
-                default => 'Configure a API no .env e o board abaixo.',
+                    : 'Adicione a API Key e o Token Trello neste ecrã.',
+                default => 'Configure a API e o board abaixo.',
             },
             'board_url' => $boardUrl,
             'api_token_set' => $token,
@@ -57,8 +57,8 @@ class IntegrationToolkitService
                 2 => 'Use a base para briefs, propostas e documentação de projetos.',
                 1 => $token
                     ? 'Indique o Database ID ou URL do workspace.'
-                    : 'Adicione NOTION_TOKEN no .env (integração interna).',
-                default => 'Configure o token no .env e a base/workspace abaixo.',
+                    : 'Adicione o token Notion neste ecrã (integração interna).',
+                default => 'Configure o token e a base/workspace abaixo.',
             },
             'workspace_url' => $workspaceUrl,
             'token_set' => $token,
@@ -83,7 +83,7 @@ class IntegrationToolkitService
     {
         $token = filled(config('services.telegram.bot_token'));
         $secret = filled(config('services.telegram.webhook_secret'));
-        $linkedAdmins = \App\Models\User::query()
+        $linkedAdmins = User::query()
             ->where('is_admin', true)
             ->where('is_active', true)
             ->whereNotNull('telegram_chat_id')
@@ -107,8 +107,8 @@ class IntegrationToolkitService
             },
             'next_step' => match (true) {
                 $level >= 3 => 'Admins: /login no bot. Alertas do site vão aos chats ligados (+ notify opcional).',
-                ! $token => 'Crie o bot no @BotFather e defina TELEGRAM_BOT_TOKEN no .env.',
-                ! $secret => 'Defina TELEGRAM_WEBHOOK_SECRET e rode php artisan telegram:configure.',
+                ! $token => 'Crie o bot no @BotFather e grave o token em Integrações.',
+                ! $secret => 'Grave o segredo do webhook em Integrações e rode php artisan telegram:configure.',
                 $linkedAdmins === 0 => 'No Telegram: /login email_ou_usuario | senha (apenas admin).',
                 default => 'Complete token, webhook e login de um admin no bot.',
             },

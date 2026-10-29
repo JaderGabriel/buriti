@@ -18,13 +18,13 @@ class TelegramSetWebhookCommand extends Command
         $secret = (string) config('services.telegram.webhook_secret');
 
         if (! $api->configured()) {
-            $this->error('Defina TELEGRAM_BOT_TOKEN no .env');
+            $this->error('Defina o token do bot em Admin → Integrações (ou TELEGRAM_BOT_TOKEN no .env de bootstrap).');
 
             return self::FAILURE;
         }
 
         if ($secret === '') {
-            $this->error('Defina TELEGRAM_WEBHOOK_SECRET no .env');
+            $this->error('Defina o segredo do webhook em Admin → Integrações (ou TELEGRAM_WEBHOOK_SECRET no .env de bootstrap).');
 
             return self::FAILURE;
         }

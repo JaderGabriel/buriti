@@ -22,7 +22,7 @@ class SiteLayoutComposer
             'linkedinUrl' => $all['linkedin_url'],
             'githubUrl' => $all['github_url'],
             'telegramUrl' => $all['telegram_url'],
-            'telegramHandle' => $all['telegram_handle'] ?? '@JaderGabriel',
+            'telegramHandle' => $all['telegram_handle'] ?? null,
         ]);
     }
 }

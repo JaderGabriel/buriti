@@ -9,6 +9,7 @@ use App\Mail\Rfc822Message;
 use App\Models\User;
 use App\Support\MailBranding;
 use App\Support\MailContacts;
+use App\Support\MailHtml;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Mail\SentMessage;
 use Illuminate\Support\Facades\Mail;
@@ -131,15 +132,16 @@ class CrmMailboxService
 
     /**
      * @param  list<UploadedFile>  $attachments
+     * @param  list<array{cid: string, file: UploadedFile}>  $inline
      */
-    public function send(string $to, string $subject, string $body, User $admin, bool $withSignature = true, ?string $cc = null, ?string $inReplyTo = null, ?string $replyFolder = null, ?int $replyUid = null, ?string $bcc = null, array $attachments = []): ?string
+    public function send(string $to, string $subject, string $body, User $admin, bool $withSignature = true, ?string $cc = null, ?string $inReplyTo = null, ?string $replyFolder = null, ?int $replyUid = null, ?string $bcc = null, array $attachments = [], array $inline = []): ?string
     {
         $this->assertAdmin($admin);
         $this->mail->apply();
         $this->mail->assertDeliverable();
 
         $signature = $withSignature ? $this->personalSignature() : '';
-        $mailable = new CrmOutgoingMail($subject, $body, $signature, $inReplyTo, $this->filePayloads($attachments));
+        $mailable = new CrmOutgoingMail($subject, $body, $signature, $inReplyTo, $this->filePayloads($attachments), $this->inlinePayloads($inline));
         $pending = Mail::to($this->splitAddresses($to));
         if (filled($cc)) {
             $pending->cc($this->splitAddresses($cc));
@@ -172,14 +174,15 @@ class CrmMailboxService
 
     /**
      * @param  list<UploadedFile>  $attachments
+     * @param  list<array{cid: string, file: UploadedFile}>  $inline
      */
-    public function saveDraft(string $to, string $subject, string $body, User $admin, bool $withSignature = true, array $attachments = []): string
+    public function saveDraft(string $to, string $subject, string $body, User $admin, bool $withSignature = true, array $attachments = [], array $inline = []): string
     {
         $this->assertAdmin($admin);
         $this->mail->apply();
         $identity = $this->identity();
         $signature = $withSignature ? $this->personalSignature() : '';
-        $raw = $this->draftRfc822($identity, $to, $subject, $body, $signature, $attachments);
+        $raw = $this->draftRfc822($identity, $to, $subject, $body, $signature, $attachments, $inline);
 
         return $this->imap->usingClient(function (ImapClient $client) use ($raw, $admin, $subject) {
             $folder = $this->roleFolder($client, 'drafts') ?? 'Drafts';
@@ -455,16 +458,18 @@ class CrmMailboxService
     /**
      * @param  array{address: string, name: string, signature: string}  $identity
      * @param  list<UploadedFile>  $attachments
+     * @param  list<array{cid: string, file: UploadedFile}>  $inline
      */
-    private function draftRfc822(array $identity, string $to, string $subject, string $body, string $signature, array $attachments = []): string
+    private function draftRfc822(array $identity, string $to, string $subject, string $body, string $signature, array $attachments = [], array $inline = []): string
     {
         $from = $identity['name'] !== ''
             ? sprintf('"%s" <%s>', addcslashes($identity['name'], '"'), $identity['address'])
             : $identity['address'];
-        $text = trim($body.($signature !== '' ? "\n\n-- \n".$signature : ''));
+        $html = MailHtml::prepare($body);
+        $text = trim(MailHtml::toText($body).($signature !== '' ? "\n\n-- \n".$signature : ''));
         $text .= "\n\n-- \n".MailBranding::legalNotice();
 
-        if ($attachments === []) {
+        if ($attachments === [] && $inline === [] && ! preg_match('/<[a-z][\s\S]*>/i', $html)) {
             $encoded = function_exists('mb_encode_mimeheader')
                 ? mb_encode_mimeheader($subject, 'UTF-8', 'Q')
                 : $subject;
@@ -486,11 +491,15 @@ class CrmMailboxService
             ->from(new MimeAddress($identity['address'], $identity['name'] ?: $identity['address']))
             ->to(...$this->splitAddresses($to))
             ->subject($subject)
+            ->html($html !== '' ? $html : nl2br(e($body), false))
             ->text($text)
             ->date(now());
 
         foreach ($this->filePayloads($attachments) as $file) {
             $email->attachFromPath($file['path'], $file['name'], $file['mime']);
+        }
+        foreach ($this->inlinePayloads($inline) as $file) {
+            $email->embedFromPath($file['path'], $file['cid'], $file['mime']);
         }
 
         return $email->toString();
@@ -511,6 +520,30 @@ class CrmMailboxService
                 'path' => $file->getRealPath() ?: $file->getPathname(),
                 'name' => $file->getClientOriginalName() ?: 'anexo',
                 'mime' => $file->getMimeType() ?: 'application/octet-stream',
+            ];
+        }
+
+        return $payloads;
+    }
+
+    /**
+     * @param  list<array{cid: string, file: UploadedFile}>  $files
+     * @return list<array{path: string, name: string, mime: string, cid: string}>
+     */
+    private function inlinePayloads(array $files): array
+    {
+        $payloads = [];
+        foreach ($files as $item) {
+            $file = $item['file'] ?? null;
+            $cid = (string) ($item['cid'] ?? '');
+            if (! $file instanceof UploadedFile || ! $file->isValid() || $cid === '') {
+                continue;
+            }
+            $payloads[] = [
+                'path' => $file->getRealPath() ?: $file->getPathname(),
+                'name' => $file->getClientOriginalName() ?: $cid,
+                'mime' => $file->getMimeType() ?: 'image/jpeg',
+                'cid' => $cid,
             ];
         }
 

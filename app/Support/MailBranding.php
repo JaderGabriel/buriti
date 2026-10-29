@@ -94,16 +94,15 @@ final class MailBranding
         );
 
         $channels = [];
-        $tel = PhoneNumber::telHref($phone);
-        if ($tel !== null) {
+        if (PhoneNumber::telHref($phone) !== null) {
             $channels[] = [
                 'id' => 'phone',
-                'href' => $tel,
+                'href' => self::callUrl(),
                 'icon' => self::imageUrl('images/mail/phone.png'),
                 'label' => 'Telefone',
             ];
         }
-        $wa = WhatsAppLink::href($whatsapp);
+        $wa = WhatsAppLink::chatHref($whatsapp, $phone);
         if ($wa !== null) {
             $channels[] = [
                 'id' => 'whatsapp',
@@ -144,13 +143,63 @@ final class MailBranding
         return asset($path);
     }
 
+    public static function callUrl(): string
+    {
+        return route('contact.call');
+    }
+
+    /**
+     * @return array<string, string> cid => caminho absoluto PNG
+     */
+    public static function inlineImages(): array
+    {
+        return [
+            'logo-buriti' => public_path('images/logo-buriti.png'),
+            'mail-phone' => public_path('images/mail/phone.png'),
+            'mail-whatsapp' => public_path('images/mail/whatsapp.png'),
+            'mail-telegram' => public_path('images/mail/telegram.png'),
+        ];
+    }
+
+    /**
+     * @param  array{
+     *     name: string,
+     *     role: string,
+     *     company: string,
+     *     logo: string,
+     *     site_url: string,
+     *     site_host: string,
+     *     channels: list<array{id: string, href: string, icon: string, label: string}>
+     * }  $block
+     * @return array{
+     *     name: string,
+     *     role: string,
+     *     company: string,
+     *     logo: string,
+     *     site_url: string,
+     *     site_host: string,
+     *     channels: list<array{id: string, href: string, icon: string, label: string}>
+     * }
+     */
+    public static function withInlineCid(array $block): array
+    {
+        $block['logo'] = 'cid:logo-buriti';
+        $block['channels'] = array_map(function (array $channel): array {
+            $channel['icon'] = 'cid:mail-'.$channel['id'];
+
+            return $channel;
+        }, $block['channels']);
+
+        return $block;
+    }
+
     public static function legalNotice(?string $privacyUrl = null, ?string $privacyEmail = null): string
     {
         $privacyUrl = $privacyUrl ?: self::privacyUrl();
         $privacyEmail = $privacyEmail
             ?: (string) config('mail.from.address')
-            ?: (string) config('buriti.contact.email')
-            ?: 'jadergabriel8@gmail.com';
+            ?: (string) app(SettingService::class)->get('contact_email')
+            ?: 'contato@buriti.dev.br';
 
         return 'Esta mensagem e quaisquer anexos são de propriedade da BURI-TI e destinam-se exclusivamente ao destinatário. '
             .'Podem conter informação confidencial ou privilegiada. Se a recebeu por engano, elimine-a e avise-nos; '

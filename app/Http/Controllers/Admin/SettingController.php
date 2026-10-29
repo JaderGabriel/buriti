@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\GoogleEventColor;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateSettingsRequest;
 use App\Services\GoogleCalendarService;
@@ -32,7 +33,7 @@ class SettingController extends Controller
             'googleClientIdValue' => $this->google->clientId(),
             'googleCalendars' => $this->google->listWritableCalendars(),
             'googleResolvedCalendarId' => $this->google->resolvedCalendarId(),
-            'googleEventColors' => \App\Enums\GoogleEventColor::palette(),
+            'googleEventColors' => GoogleEventColor::palette(),
         ]);
     }
 
@@ -53,6 +54,8 @@ class SettingController extends Controller
         if (is_string($secret) && trim($secret) !== '') {
             $this->settings->putSecret('google_client_secret', trim($secret));
         }
+
+        $this->settings->applyServiceOverlay();
 
         return redirect()
             ->route('admin.settings.edit')

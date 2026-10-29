@@ -39,7 +39,23 @@ class IntegrationController extends Controller
 
     public function update(UpdateIntegrationsRequest $request): RedirectResponse
     {
-        $this->settings->putMany($request->validated());
+        $data = $request->safe()->except([
+            'telegram_bot_token',
+            'telegram_webhook_secret',
+            'trello_api_key',
+            'trello_token',
+            'notion_token',
+        ]);
+        $this->settings->putMany($data);
+
+        foreach (['telegram_bot_token', 'telegram_webhook_secret', 'trello_api_key', 'trello_token', 'notion_token'] as $secret) {
+            $value = $request->input($secret);
+            if (is_string($value) && trim($value) !== '') {
+                $this->settings->putSecret($secret, trim($value));
+            }
+        }
+
+        $this->settings->applyServiceOverlay();
 
         return redirect()
             ->route('admin.integrations.edit')
