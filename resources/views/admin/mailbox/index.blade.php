@@ -98,18 +98,26 @@
                                 @endif
                             </a>
                         @endforeach
+                        <a href="{{ route('admin.settings.mail') }}" class="mail-folder mail-folders__settings-chip" title="Conta SMTP/IMAP">
+                            <span class="mail-folder__label">
+                                <x-ui.icon name="settings" class="h-3.5 w-3.5 shrink-0 opacity-80" />
+                                <span>Conta</span>
+                            </span>
+                        </a>
                     </nav>
-                    <form method="POST" action="{{ route('admin.mailbox.folders.store') }}" class="mail-folders__create">
-                        @csrf
-                        <input type="text" name="name" placeholder="Nova pasta" maxlength="80" required class="mail-input" autocomplete="off">
-                        <button type="submit" class="messenger-icon-btn" title="Criar pasta">
-                            <x-ui.icon name="plus" class="h-4 w-4" />
-                        </button>
-                    </form>
-                    <a href="{{ route('admin.settings.mail') }}" class="mail-folders__settings">
-                        <x-ui.icon name="settings" class="h-3.5 w-3.5" />
-                        Conta SMTP/IMAP
-                    </a>
+                    <div class="mail-folders__foot">
+                        <form method="POST" action="{{ route('admin.mailbox.folders.store') }}" class="mail-folders__create">
+                            @csrf
+                            <input type="text" name="name" placeholder="Nova pasta" maxlength="80" required class="mail-input" autocomplete="off">
+                            <button type="submit" class="messenger-icon-btn" title="Criar pasta">
+                                <x-ui.icon name="plus" class="h-4 w-4" />
+                            </button>
+                        </form>
+                        <a href="{{ route('admin.settings.mail') }}" class="mail-folders__settings">
+                            <x-ui.icon name="settings" class="h-3.5 w-3.5" />
+                            Conta SMTP/IMAP
+                        </a>
+                    </div>
                 </aside>
 
                 <aside class="messenger-list" aria-label="Mensagens" x-data="mailFolderList($el.dataset.uids)" data-uids='@json($mailUids)'>
@@ -625,12 +633,15 @@
                                         Nova etiqueta
                                         <input type="text" name="name" maxlength="40" class="mail-input mt-1" placeholder="Nome">
                                     </label>
-                                    <select name="color" class="mail-input">
-                                        @foreach(\App\Models\MailLabel::COLORS as $color)
-                                            <option value="{{ $color }}">{{ $color }}</option>
-                                        @endforeach
-                                    </select>
-                                    <button type="submit" class="messenger-composer__secondary">Criar</button>
+                                    <label>
+                                        Cor
+                                        <select name="color" class="mail-input mt-1">
+                                            @foreach(\App\Models\MailLabel::COLORS as $color)
+                                                <option value="{{ $color }}">{{ $color }}</option>
+                                            @endforeach
+                                        </select>
+                                    </label>
+                                    <button type="submit" class="mail-crm__submit">Criar</button>
                                 </form>
                                 <form method="POST" action="{{ route('admin.mailbox.link') }}" class="mail-crm__form mt-4" x-data="{ kind: 'project' }">
                                     @csrf
@@ -669,7 +680,7 @@
                                             @endforeach
                                         </select>
                                     </label>
-                                    <button type="submit" class="messenger-composer__secondary">Vincular</button>
+                                    <button type="submit" class="mail-crm__submit">Vincular</button>
                                 </form>
                                 @if(! empty($selected['links']))
                                     <ul class="mail-link-list">

@@ -66,4 +66,60 @@ class MailHtmlTest extends TestCase
         $this->assertTrue(strpos($html, 'Resposta nova.') < strpos($html, 'Texto antigo.'));
         $this->assertStringContainsString('class="mail-quote"', $html);
     }
+
+    public function test_split_preview_keeps_gmail_signature_apart_from_body(): void
+    {
+        $parts = MailHtml::splitPreview(
+            '<p>Segue o briefing do projeto.</p>'
+            .'<div class="gmail_signature"><p>Ada Lovelace</p><p>Cliente SA</p>'
+            .'<img src="cid:mail-phone" alt="Telefone"></div>'
+        );
+
+        $this->assertSame('Segue o briefing do projeto.', $parts['body']);
+        $this->assertStringContainsString('Ada Lovelace', $parts['signature']);
+        $this->assertStringContainsString('Cliente SA', $parts['signature']);
+        $this->assertStringNotContainsString('Telefone', $parts['signature']);
+        $this->assertStringNotContainsString('Ada Lovelace', $parts['body']);
+    }
+
+    public function test_split_preview_uses_rfc_delimiter_and_drops_quoted_history(): void
+    {
+        $parts = MailHtml::splitPreview(
+            "Olá, prazo ok.\n\n-- \nAda Lovelace\nCliente SA\n\n> texto antigo"
+        );
+
+        $this->assertSame('Olá, prazo ok.', $parts['body']);
+        $this->assertSame("Ada Lovelace\nCliente SA", $parts['signature']);
+    }
+
+    public function test_split_preview_drops_branded_footer_and_legal_notice(): void
+    {
+        $parts = MailHtml::splitPreview(
+            '<p>Aceitamos o prazo.</p>'
+            .'<p>Jader Gabriel</p><p>BURI-TI - Consultoria &amp; Software</p>'
+            .'<p><img alt="WhatsApp" src="cid:mail-whatsapp"><img alt="Telegram" src="cid:mail-telegram"></p>'
+            .'<p>Esta mensagem e quaisquer anexos são de propriedade da BURI-TI e destinam-se exclusivamente ao destinatário.</p>'
+            .'<p>Política de Privacidade</p>'
+        );
+
+        $this->assertSame('Aceitamos o prazo.', $parts['body']);
+        $this->assertStringContainsString('Jader Gabriel', $parts['signature']);
+        $this->assertStringContainsString('BURI-TI - Consultoria & Software', $parts['signature']);
+        $this->assertStringNotContainsString('Esta mensagem', $parts['body']);
+        $this->assertStringNotContainsString('Esta mensagem', $parts['signature']);
+        $this->assertStringNotContainsString('WhatsApp', $parts['signature']);
+    }
+
+    public function test_split_preview_drops_gmail_quoted_history(): void
+    {
+        $parts = MailHtml::splitPreview(
+            '<p>Resposta nova.</p>'
+            .'<div class="gmail_quote"><p>Em 01/01/2026, Ana escreveu:</p>'
+            .'<blockquote class="gmail_quote">Texto antigo com assinatura.</blockquote></div>'
+        );
+
+        $this->assertSame('Resposta nova.', $parts['body']);
+        $this->assertStringNotContainsString('Texto antigo', $parts['body']);
+        $this->assertSame('', $parts['signature']);
+    }
 }

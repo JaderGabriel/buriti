@@ -29,8 +29,12 @@
                 <div class="mb-8">
                     <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-bright">Acesso</p>
                     <h1 id="login-heading" class="mt-2 font-display text-2xl font-bold text-snow sm:text-3xl">Entrar no painel</h1>
-                    <p class="mt-2 text-sm text-mist">Usuário e senha. No admin, o código de 6 dígitos (Senhas do iPhone ou Telegram). A chave de acesso (Face ID) cadastra-se no perfil, depois de entrar. Membro de um Jirau entra só com usuário e senha do projeto.</p>
+                    <p class="mt-2 text-sm text-mist">No Safari deste iPhone, a chave de acesso entra com Face ID e não pede o código. Nos outros aparelhos: usuário e senha — e o código no admin. A chave cadastra-se no perfil. Membro de um Jirau entra só com usuário e senha do projeto.</p>
                 </div>
+
+                @php
+                    $passwordLoginOpen = $errors->has('login') || filled(old('login'));
+                @endphp
 
                 @if ($errors->has('telegram'))
                     <div class="mb-5 rounded-sm border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-sm text-red-300" role="alert">
@@ -46,7 +50,18 @@
                 @endif
 
                 @if (! empty($passkeyEnabled))
-                    <div hidden data-passkey-login data-passkey-options="{{ route('login.passkey.options') }}" data-passkey-login-url="{{ route('login.passkey') }}"></div>
+                    <div class="space-y-3" data-passkey-login data-passkey-options="{{ route('login.passkey.options') }}" data-passkey-login-url="{{ route('login.passkey') }}">
+                        <button type="button" class="login-submit inline-flex items-center justify-center gap-2" data-passkey-start>
+                            <x-ui.icon name="passkey" class="h-5 w-5" />
+                            <span data-passkey-label>Entrar com chave de acesso</span>
+                        </button>
+                        <p class="text-xs leading-relaxed text-mist">Neste iPhone o Safari pede Face ID. Não usa o código de 6 dígitos.</p>
+                        <p class="hidden text-xs text-red-400" data-passkey-error role="alert"></p>
+                    </div>
+
+                    <div class="login-divider" aria-hidden="true">
+                        <span>ou</span>
+                    </div>
                 @endif
 
                 @if ($telegramLoginEnabled)
@@ -77,10 +92,20 @@
                     </div>
 
                     <div class="login-divider" aria-hidden="true">
-                        <span>ou com senha</span>
+                        <span>ou</span>
                     </div>
                 @endif
 
+                <button
+                    type="button"
+                    class="mb-4 w-full text-sm font-semibold text-brand-bright transition hover:text-snow {{ $passwordLoginOpen || empty($passkeyEnabled) ? 'hidden' : '' }}"
+                    data-login-password-toggle
+                    @if ($passwordLoginOpen || empty($passkeyEnabled)) hidden @endif
+                >
+                    Entrar com usuário e senha
+                </button>
+
+                <div data-login-password @if (! empty($passkeyEnabled) && ! $passwordLoginOpen) hidden @endif>
                 <form method="POST" action="{{ route('login') }}" class="space-y-4">
                     @csrf
                     <label class="block text-sm">
@@ -90,7 +115,7 @@
                             name="login"
                             value="{{ old('login') }}"
                             required
-                            autofocus
+                            @if ($passwordLoginOpen || empty($passkeyEnabled)) autofocus @endif
                             autocomplete="username webauthn"
                             placeholder="usuario@exemplo.com"
                             class="login-input"
@@ -126,6 +151,14 @@
                     </label>
                     <button type="submit" class="login-submit">Entrar</button>
                 </form>
+                </div>
+
+                <noscript>
+                    <style>
+                        [data-login-password][hidden] { display: block !important; }
+                        [data-login-password-toggle] { display: none !important; }
+                    </style>
+                </noscript>
 
                 <p class="mt-8 text-center text-xs text-mist">
                     <a href="{{ route('home') }}" class="font-medium text-snow/80 transition hover:text-brand-bright">← Voltar ao site</a>

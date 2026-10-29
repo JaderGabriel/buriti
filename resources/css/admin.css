@@ -1885,6 +1885,16 @@ html.dark [data-admin-shell] .dash-stat[data-kpi-polarity="up-bad"].is-up .dash-
     overflow: hidden;
 }
 
+@media (max-width: 1023px) {
+    .admin-content:has(.mail-shell) {
+        padding: 0;
+    }
+
+    html:has(.mail-shell) .back-to-top {
+        display: none;
+    }
+}
+
 [data-admin-shell] .messenger-shell {
     flex: 1 1 auto;
     min-width: 0;

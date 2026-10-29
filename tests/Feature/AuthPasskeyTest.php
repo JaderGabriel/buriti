@@ -29,15 +29,32 @@ class AuthPasskeyTest extends TestCase
         ]);
     }
 
-    public function test_login_page_does_not_offer_passkey_setup_for_guests(): void
+    public function test_login_page_prefers_passkey_and_keeps_password_as_fallback(): void
     {
         $this->get(route('login'))
             ->assertOk()
-            ->assertDontSee('Entrar com chave de acesso', false)
-            ->assertDontSee('data-passkey-start', false)
+            ->assertSee('Entrar com chave de acesso', false)
+            ->assertSee('data-passkey-start', false)
+            ->assertSee('Entrar com usuário e senha', false)
+            ->assertSee('data-login-password-toggle', false)
             ->assertSee('cadastra-se no perfil', false)
             ->assertSee('data-passkey-login', false)
             ->assertSee('autocomplete="username webauthn"', false)
+            ->assertSee('name="password"', false)
+            ->assertDontSee('data-passkey-add', false);
+    }
+
+    public function test_failed_password_login_keeps_password_fields_visible(): void
+    {
+        $this->from(route('login'))
+            ->followingRedirects()
+            ->post(route('login'), [
+                'login' => 'nobody@buriti.test',
+                'password' => 'wrong-password',
+            ])
+            ->assertOk()
+            ->assertSee('Não foi possível entrar', false)
+            ->assertSee('name="login"', false)
             ->assertSee('name="password"', false);
     }
 

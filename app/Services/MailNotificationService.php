@@ -32,13 +32,12 @@ class MailNotificationService
         $lines = array_filter([
             $reply ? '↩️ <b>E-mail respondido</b>' : '📤 <b>E-mail enviado</b>',
             '',
-            '<b>Para:</b> '.$this->escape($to),
-            filled($cc) ? '<b>Cc:</b> '.$this->escape((string) $cc) : null,
-            '<b>Assunto:</b> '.$this->escape($subject !== '' ? $subject : '(sem assunto)'),
-            $summary !== '' ? '' : null,
-            $summary !== '' ? '<i>'.$this->escape($summary).'</i>' : null,
+            '<b>Para:</b> '.self::escape($to),
+            filled($cc) ? '<b>Cc:</b> '.self::escape((string) $cc) : null,
+            '<b>Assunto:</b> '.self::escape($subject !== '' ? $subject : '(sem assunto)'),
+            ...self::previewLines($body),
             '',
-            '🔗 <a href="'.$this->escape($url).'">Abrir no correio</a>',
+            '🔗 <a href="'.self::escape($url).'">Abrir no correio</a>',
         ], fn ($line) => $line !== null);
 
         $this->pushTelegram(implode("\n", $lines));
@@ -59,7 +58,8 @@ class MailNotificationService
     {
         $from = (string) ($message['from'] ?? '');
         $subject = (string) ($message['subject'] ?? '');
-        $summary = self::summarize((string) ($message['snippet'] ?? ''));
+        $snippet = (string) ($message['snippet'] ?? '');
+        $summary = self::summarize($snippet);
         $folder = (string) ($message['folder'] ?? 'INBOX');
         $uid = (int) ($message['uid'] ?? 0);
         $url = $this->mailboxUrl($folder, $uid > 0 ? $uid : null);
@@ -67,12 +67,11 @@ class MailNotificationService
         $lines = array_filter([
             '📥 <b>E-mail recebido</b>',
             '',
-            '<b>De:</b> '.$this->escape($from !== '' ? $from : '(remetente desconhecido)'),
-            '<b>Assunto:</b> '.$this->escape($subject !== '' ? $subject : '(sem assunto)'),
-            $summary !== '' ? '' : null,
-            $summary !== '' ? '<i>'.$this->escape($summary).'</i>' : null,
+            '<b>De:</b> '.self::escape($from !== '' ? $from : '(remetente desconhecido)'),
+            '<b>Assunto:</b> '.self::escape($subject !== '' ? $subject : '(sem assunto)'),
+            ...self::previewLines($snippet),
             '',
-            '🔗 <a href="'.$this->escape($url).'">Abrir no correio</a>',
+            '🔗 <a href="'.self::escape($url).'">Abrir no correio</a>',
         ], fn ($line) => $line !== null);
 
         $this->pushTelegram(implode("\n", $lines));
@@ -85,11 +84,48 @@ class MailNotificationService
 
     public static function summarize(string $htmlOrText, int $limit = 280): string
     {
-        $text = MailHtml::toText($htmlOrText);
+        $text = MailHtml::splitPreview($htmlOrText)['body'];
+        if ($text === '') {
+            $text = MailHtml::toText($htmlOrText);
+        }
         if ($text === '') {
             $text = trim(html_entity_decode(strip_tags($htmlOrText), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
         }
         $text = preg_replace('/\s+/', ' ', $text) ?? $text;
+        $text = trim($text);
+
+        return $text === '' ? '' : Str::limit($text, $limit, '…');
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function previewLines(string $htmlOrText): array
+    {
+        $parts = MailHtml::splitPreview($htmlOrText);
+        $body = self::clipPreview($parts['body'], 800);
+        $signature = self::clipPreview($parts['signature'], 200);
+        $lines = [];
+
+        if ($body !== '') {
+            $open = substr_count($body, "\n") >= 4 || mb_strlen($body) > 280
+                ? '<blockquote expandable>'
+                : '<blockquote>';
+            $lines[] = '';
+            $lines[] = $open.self::escape($body).'</blockquote>';
+        }
+
+        if ($signature !== '') {
+            $lines[] = '';
+            $lines[] = '—';
+            $lines[] = '<i>'.self::escape($signature).'</i>';
+        }
+
+        return $lines;
+    }
+
+    private static function clipPreview(string $text, int $limit): string
+    {
         $text = trim($text);
 
         return $text === '' ? '' : Str::limit($text, $limit, '…');
@@ -162,7 +198,7 @@ class MailNotificationService
         ]));
     }
 
-    private function escape(string $value): string
+    private static function escape(string $value): string
     {
         return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }

@@ -123,7 +123,9 @@ class MailboxTest extends TestCase
             ->assertSee('data-mail-search', false)
             ->assertSee('name="buscar"', false)
             ->assertSee('id="mail-folder-search"', false)
-            ->assertSee('Remetente, contato, destinatário ou assunto', false);
+            ->assertSee('Remetente, contato, destinatário ou assunto', false)
+            ->assertSee('mail-folders__settings-chip', false)
+            ->assertSee('mail-folders__foot', false);
     }
 
     public function test_mailbox_filter_lists_unread_and_empty_folder_actions(): void

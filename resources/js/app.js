@@ -1465,6 +1465,24 @@ function initOtpChallenge() {
     window.setTimeout(() => valueInput?.focus({ preventScroll: true }), 50);
 }
 
+const PASSKEY_PREF_KEY = 'buriti-passkey-preferred';
+
+function rememberPasskeyPreferred() {
+    try {
+        localStorage.setItem(PASSKEY_PREF_KEY, '1');
+    } catch {
+        // Safari privado pode recusar localStorage.
+    }
+}
+
+function prefersStoredPasskey() {
+    try {
+        return localStorage.getItem(PASSKEY_PREF_KEY) === '1';
+    } catch {
+        return false;
+    }
+}
+
 function passkeyCsrf() {
     return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
         || document.querySelector('input[name="_token"]')?.value
@@ -1537,17 +1555,59 @@ async function passkeyPostJson(url, body) {
 
 function initPasskeyLogin() {
     const root = document.querySelector('[data-passkey-login]');
-    if (! root || ! window.PublicKeyCredential) {
+    const passwordBox = document.querySelector('[data-login-password]');
+    const passwordToggle = document.querySelector('[data-login-password-toggle]');
+    const startBtn = root?.querySelector('[data-passkey-start]');
+    const errorBox = root?.querySelector('[data-passkey-error]');
+    const label = root?.querySelector('[data-passkey-label]');
+
+    const setPasswordVisible = (show, { focus = false } = {}) => {
+        if (passwordBox) {
+            passwordBox.hidden = ! show;
+        }
+        if (passwordToggle) {
+            passwordToggle.hidden = show;
+            passwordToggle.classList.toggle('hidden', show);
+        }
+        if (show && focus) {
+            window.setTimeout(() => passwordBox?.querySelector('[name="login"]')?.focus({ preventScroll: true }), 30);
+        }
+    };
+
+    if (! root || ! window.PublicKeyCredential || ! window.isSecureContext) {
+        setPasswordVisible(true);
+        root?.setAttribute('hidden', '');
         return;
     }
 
     const optionsUrl = root.getAttribute('data-passkey-options');
     const loginUrl = root.getAttribute('data-passkey-login-url');
     if (! optionsUrl || ! loginUrl) {
+        setPasswordVisible(true);
         return;
     }
 
     let abort = null;
+    let busy = false;
+    let conditionalStarted = false;
+
+    const showError = (message) => {
+        if (! errorBox) {
+            return;
+        }
+        errorBox.textContent = message || '';
+        errorBox.classList.toggle('hidden', ! message);
+    };
+
+    const abortCurrent = () => {
+        try {
+            abort?.abort();
+        } catch {
+            // Já cancelado.
+        }
+        abort = null;
+        conditionalStarted = false;
+    };
 
     const finishAssertion = async (credential) => {
         const response = credential.response;
@@ -1560,33 +1620,113 @@ function initPasskeyLogin() {
             signature: passkeyBufferToB64url(response.signature),
             userHandle: response.userHandle ? passkeyBufferToB64url(response.userHandle) : '',
         });
+        rememberPasskeyPreferred();
         window.location.href = data.redirect || '/admin';
     };
 
-    if (! window.PublicKeyCredential.isConditionalMediationAvailable) {
+    const requestAssertion = async (mediation) => {
+        const options = await passkeyPostJson(optionsUrl, {});
+        abortCurrent();
+        abort = new AbortController();
+        const credential = await navigator.credentials.get({
+            publicKey: passkeyPreparePublicKey(options.publicKey),
+            mediation,
+            signal: abort.signal,
+        });
+        if (credential) {
+            await finishAssertion(credential);
+        }
+    };
+
+    const startConditional = () => {
+        if (conditionalStarted || ! window.PublicKeyCredential.isConditionalMediationAvailable) {
+            return;
+        }
+        window.PublicKeyCredential.isConditionalMediationAvailable().then(async (available) => {
+            if (! available || ! passwordBox || passwordBox.hidden) {
+                return;
+            }
+            try {
+                conditionalStarted = true;
+                await requestAssertion('conditional');
+            } catch {
+                conditionalStarted = false;
+            }
+        }).catch(() => {});
+    };
+
+    const showPasswordForm = () => {
+        abortCurrent();
+        setPasswordVisible(true, { focus: true });
+        startConditional();
+    };
+
+    const startModal = async ({ fromUser } = { fromUser: false }) => {
+        if (busy) {
+            return;
+        }
+        busy = true;
+        showError('');
+        if (startBtn) {
+            startBtn.disabled = true;
+        }
+        if (label) {
+            label.textContent = 'Aguardando Face ID…';
+        }
+        try {
+            await requestAssertion('optional');
+        } catch (error) {
+            if (error?.name === 'AbortError') {
+                return;
+            }
+            if (error?.name === 'NotAllowedError') {
+                if (fromUser) {
+                    showError('A chave de acesso foi cancelada. Tente de novo, ou entre com usuário e senha.');
+                }
+                return;
+            }
+            showError(error?.message || 'Não foi possível entrar com a chave de acesso.');
+            showPasswordForm();
+        } finally {
+            busy = false;
+            if (startBtn) {
+                startBtn.disabled = false;
+            }
+            if (label) {
+                label.textContent = 'Entrar com chave de acesso';
+            }
+        }
+    };
+
+    startBtn?.addEventListener('click', () => {
+        startModal({ fromUser: true });
+    });
+
+    passwordToggle?.addEventListener('click', () => {
+        showPasswordForm();
+    });
+
+    if (passwordBox && ! passwordBox.hidden) {
+        startConditional();
         return;
     }
 
-    window.PublicKeyCredential.isConditionalMediationAvailable().then(async (available) => {
-        if (! available) {
-            return;
-        }
+    const autoStart = async () => {
+        let shouldStart = prefersStoredPasskey();
         try {
-            const options = await passkeyPostJson(optionsUrl, {});
-            abort?.abort();
-            abort = new AbortController();
-            const credential = await navigator.credentials.get({
-                publicKey: passkeyPreparePublicKey(options.publicKey),
-                mediation: 'conditional',
-                signal: abort.signal,
-            });
-            if (credential) {
-                await finishAssertion(credential);
+            if (window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
+                shouldStart = shouldStart
+                    || await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
             }
         } catch {
-            // Sem chave neste aparelho, o Safari não mostra nada — o login segue com senha.
+            // Sem autenticador de plataforma: o botão continua visível.
         }
-    }).catch(() => {});
+        if (shouldStart) {
+            await startModal({ fromUser: false });
+        }
+    };
+
+    autoStart();
 }
 
 function initPasskeyRegister() {
@@ -1665,6 +1805,7 @@ function initPasskeyRegister() {
                 clientDataJSON: passkeyBufferToB64url(response.clientDataJSON),
                 attestationObject: passkeyBufferToB64url(response.attestationObject),
             });
+            rememberPasskeyPreferred();
             window.location.reload();
         } catch (error) {
             if (error?.name === 'AbortError') {

@@ -190,6 +190,49 @@ class MailNotificationTest extends TestCase
         );
     }
 
+    public function test_summarize_omits_signature_from_inbox_line(): void
+    {
+        $this->assertSame(
+            'Olá.',
+            MailNotificationService::summarize(
+                '<p>Olá.</p><div class="gmail_signature">Ada Lovelace<br>Cliente SA</div>'
+            ),
+        );
+    }
+
+    public function test_incoming_telegram_separates_body_from_signature(): void
+    {
+        $html = '<p>Segue o briefing do projeto.</p>'
+            .'<div class="gmail_signature"><p>Ada Lovelace</p><p>Cliente SA</p>'
+            .'<img src="cid:mail-phone" alt="Telefone"><img src="cid:mail-whatsapp" alt="WhatsApp"></div>'
+            .'<p>Esta mensagem e quaisquer anexos são de propriedade da BURI-TI.</p>';
+
+        app(MailNotificationService::class)->notifyIncoming([
+            'from' => 'Ada <ada@cliente.com>',
+            'subject' => 'Preciso de proposta',
+            'snippet' => $html,
+            'folder' => 'INBOX',
+            'uid' => 9,
+        ]);
+
+        Http::assertSent(function ($request) {
+            $text = (string) ($request->data()['text'] ?? '');
+            $bodyStart = strpos($text, '<blockquote>');
+            $bodyEnd = strpos($text, '</blockquote>');
+            $this->assertNotFalse($bodyStart);
+            $this->assertNotFalse($bodyEnd);
+            $quoted = substr($text, $bodyStart, $bodyEnd - $bodyStart);
+
+            return str_contains($request->url(), 'sendMessage')
+                && str_contains($text, 'E-mail recebido')
+                && str_contains($quoted, 'briefing do projeto')
+                && ! str_contains($quoted, 'Ada Lovelace')
+                && ! str_contains($quoted, 'Esta mensagem e quaisquer anexos')
+                && str_contains($text, "—\n<i>Ada Lovelace\nCliente SA</i>")
+                && ! str_contains($text, 'Telefone');
+        });
+    }
+
     private function assertTelegramSaw(string $title, string $peer, string $subject, string $snippet): void
     {
         Http::assertSent(function ($request) use ($title, $peer, $subject, $snippet) {
