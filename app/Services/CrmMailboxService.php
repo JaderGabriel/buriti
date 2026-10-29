@@ -7,6 +7,8 @@ use App\Mail\ImapClient;
 use App\Mail\ImapConfig;
 use App\Mail\Rfc822Message;
 use App\Models\User;
+use App\Support\MailBranding;
+use Illuminate\Mail\SentMessage;
 use Illuminate\Support\Facades\Mail;
 use RuntimeException;
 use Throwable;
@@ -34,7 +36,7 @@ class CrmMailboxService
         return [
             'address' => (string) config('mail.from.address'),
             'name' => (string) config('mail.from.name'),
-            'signature' => (string) ($this->settings->get('mail_signature') ?: ''),
+            'signature' => $this->personalSignature(),
         ];
     }
 
@@ -107,13 +109,13 @@ class CrmMailboxService
         }
     }
 
-    public function send(string $to, string $subject, string $body, User $admin, bool $withSignature = true, ?string $cc = null, ?string $inReplyTo = null, ?string $replyFolder = null, ?int $replyUid = null, ?string $bcc = null): void
+    public function send(string $to, string $subject, string $body, User $admin, bool $withSignature = true, ?string $cc = null, ?string $inReplyTo = null, ?string $replyFolder = null, ?int $replyUid = null, ?string $bcc = null): ?string
     {
         $this->assertAdmin($admin);
         $this->mail->apply();
         $this->mail->assertDeliverable();
 
-        $signature = $withSignature ? (string) ($this->settings->get('mail_signature') ?: '') : '';
+        $signature = $withSignature ? $this->personalSignature() : '';
         $mailable = new CrmOutgoingMail($subject, $body, $signature, $inReplyTo);
         $pending = Mail::to($this->splitAddresses($to));
         if (filled($cc)) {
@@ -122,7 +124,7 @@ class CrmMailboxService
         if (filled($bcc)) {
             $pending->bcc($this->splitAddresses($bcc));
         }
-        $pending->send($mailable);
+        $sent = $pending->send($mailable);
 
         if ($replyFolder && $replyUid) {
             try {
@@ -138,6 +140,11 @@ class CrmMailboxService
             'to' => $to,
             'subject' => $subject,
         ], null, $admin->id);
+
+        $identity = $this->identity();
+        $raw = $this->capturedRfc822($sent, $identity, $to, $subject, $body, $signature);
+
+        return $this->archiveOutgoing($raw);
     }
 
     public function saveDraft(string $to, string $subject, string $body, User $admin, bool $withSignature = true): string
@@ -145,7 +152,7 @@ class CrmMailboxService
         $this->assertAdmin($admin);
         $this->mail->apply();
         $identity = $this->identity();
-        $signature = $withSignature ? $identity['signature'] : '';
+        $signature = $withSignature ? $this->personalSignature() : '';
         $raw = $this->draftRfc822($identity, $to, $subject, $body, $signature);
 
         return $this->imap->usingClient(function (ImapClient $client) use ($raw, $admin, $subject) {
@@ -384,6 +391,7 @@ class CrmMailboxService
             ? mb_encode_mimeheader($subject, 'UTF-8', 'Q')
             : $subject;
         $text = trim($body.($signature !== '' ? "\n\n-- \n".$signature : ''));
+        $text .= "\n\n-- \n".MailBranding::legalNotice();
 
         return implode("\r\n", [
             'From: '.$from,
@@ -396,6 +404,71 @@ class CrmMailboxService
             '',
             $text,
         ]);
+    }
+
+    public function lastSentArchive(): array
+    {
+        return $this->imap->lastArchiveStatus();
+    }
+
+    private function personalSignature(): string
+    {
+        $stored = trim((string) ($this->settings->get('mail_signature') ?: ''));
+        if ($stored !== '') {
+            return $stored;
+        }
+
+        return MailBranding::personal(
+            (string) config('mail.from.name'),
+            (string) config('mail.from.address'),
+            (string) ($this->settings->get('contact_phone') ?: ''),
+            MailBranding::siteUrl(),
+        );
+    }
+
+    private function capturedRfc822(mixed $sent, array $identity, string $to, string $subject, string $body, string $signature): string
+    {
+        try {
+            if ($sent instanceof SentMessage) {
+                return $sent->getSymfonySentMessage()->getOriginalMessage()->toString();
+            }
+        } catch (Throwable) {
+            // cai no rascunho RFC822
+        }
+
+        return $this->draftRfc822($identity, $to, $subject, $body, $signature);
+    }
+
+    private function archiveOutgoing(string $rfc822): ?string
+    {
+        if (! $this->imap->isConfigured()) {
+            return null;
+        }
+
+        $already = $this->imap->lastArchiveStatus();
+        if ($already['stored'] && is_string($already['folder']) && $already['folder'] !== '') {
+            return $already['folder'];
+        }
+
+        if ($this->imap->providerSavesSentAutomatically()) {
+            try {
+                return $this->imap->peekSentFolder();
+            } catch (Throwable) {
+                return null;
+            }
+        }
+
+        if (! $this->imap->shouldArchiveSent()) {
+            return null;
+        }
+
+        try {
+            return $this->imap->storeSent($rfc822);
+        } catch (Throwable $e) {
+            report($e);
+
+            return null;
+        }
     }
 
     private function assertAdmin(User $admin): void

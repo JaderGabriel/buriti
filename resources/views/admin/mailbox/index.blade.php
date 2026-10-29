@@ -33,6 +33,13 @@
         };
         $showCc = filled(old('cc', $compose['cc'] ?? ''));
         $showBcc = filled(old('bcc', $compose['bcc'] ?? ''));
+        $mailList = function (array $extra = []) use ($folder, $query): array {
+            return array_filter([
+                'pasta' => $folder,
+                'buscar' => $query !== '' ? $query : null,
+                ...$extra,
+            ], fn ($value) => $value !== null && $value !== '');
+        };
     @endphp
 
     <div class="messenger-shell mail-shell">
@@ -110,7 +117,7 @@
                             </h1>
                         </div>
                         <div class="flex shrink-0 items-center gap-1.5">
-                            <a href="{{ route('admin.mailbox.index', ['pasta' => $folder, 'q' => $query]) }}" class="messenger-icon-btn" title="Atualizar">
+                            <a href="{{ route('admin.mailbox.index', $mailList()) }}" class="messenger-icon-btn" title="Atualizar">
                                 <x-ui.icon name="restore" class="h-4 w-4" />
                             </a>
                             <a href="{{ route('admin.mailbox.compose') }}" class="pm-btn pm-btn--primary" title="Escrever">
@@ -119,10 +126,41 @@
                             </a>
                         </div>
                     </header>
-                    <form method="GET" action="{{ route('admin.mailbox.index') }}" class="mail-search">
+                    <form
+                        method="GET"
+                        action="{{ route('admin.mailbox.index') }}"
+                        class="mail-search"
+                        role="search"
+                        data-mail-search
+                        aria-label="Procurar nesta pasta"
+                    >
                         <input type="hidden" name="pasta" value="{{ $folder }}">
-                        <x-ui.icon name="search" class="mail-search__icon h-4 w-4" />
-                        <input type="search" name="q" value="{{ $query }}" placeholder="Procurar nesta pasta" class="mail-input mail-search__input" autocomplete="off">
+                        <label class="sr-only" for="mail-folder-search">Procurar nesta pasta</label>
+                        <span class="mail-search__icon" aria-hidden="true">
+                            <x-ui.icon name="search" class="h-4 w-4" />
+                        </span>
+                        <input
+                            id="mail-folder-search"
+                            type="text"
+                            name="buscar"
+                            value="{{ $query }}"
+                            placeholder="Remetente, destinatário ou assunto"
+                            class="mail-input mail-search__input"
+                            autocomplete="off"
+                            autocorrect="off"
+                            spellcheck="false"
+                            enterkeyhint="search"
+                            data-mail-search-input
+                        >
+                        <a
+                            href="{{ route('admin.mailbox.index', ['pasta' => $folder]) }}"
+                            @class(['mail-search__clear', 'is-idle' => $query === ''])
+                            title="Mostrar todas as mensagens"
+                            aria-label="Limpar busca desta pasta"
+                            data-mail-search-clear
+                        >
+                            <x-ui.icon name="lost" class="h-3.5 w-3.5" />
+                        </a>
                     </form>
                     <div class="messenger-list__scroll">
                         @forelse($messages as $item)
@@ -130,7 +168,7 @@
                                 $peer = $isSent ? ($item['to'] ?: $item['from']) : ($item['from'] ?: $item['to']);
                             @endphp
                             <a
-                                href="{{ route('admin.mailbox.index', ['pasta' => $folder, 'uid' => $item['uid'], 'page' => $listing['page'] ?? 1, 'q' => $query]) }}"
+                                href="{{ route('admin.mailbox.index', $mailList(['uid' => $item['uid'], 'page' => $listing['page'] ?? 1])) }}"
                                 @class([
                                     'messenger-item',
                                     'messenger-item--active' => ($selected['uid'] ?? null) === $item['uid'],
@@ -160,7 +198,8 @@
                         @empty
                             <div class="px-5 py-16 text-center text-sm text-mist">
                                 @if($query !== '')
-                                    Nada encontrado para “{{ $query }}”.
+                                    <p>Nada encontrado para “{{ $query }}”.</p>
+                                    <a href="{{ route('admin.mailbox.index', ['pasta' => $folder]) }}" class="mt-3 inline-block text-brand-bright hover:text-snow">Mostrar todas as mensagens</a>
                                 @else
                                     Nenhuma mensagem nesta pasta.
                                 @endif
@@ -169,9 +208,9 @@
                     </div>
                     @if(($listing['pages'] ?? 1) > 1)
                         <div class="messenger-list__footer flex items-center justify-between text-xs text-mist">
-                            <a href="{{ route('admin.mailbox.index', ['pasta' => $folder, 'page' => max(1, ($listing['page'] ?? 1) - 1), 'q' => $query]) }}" class="{{ ($listing['page'] ?? 1) <= 1 ? 'pointer-events-none opacity-40' : 'hover:text-snow' }}">← Anterior</a>
+                            <a href="{{ route('admin.mailbox.index', $mailList(['page' => max(1, ($listing['page'] ?? 1) - 1)])) }}" class="{{ ($listing['page'] ?? 1) <= 1 ? 'pointer-events-none opacity-40' : 'hover:text-snow' }}">← Anterior</a>
                             <span>{{ $listing['page'] }} / {{ $listing['pages'] }}</span>
-                            <a href="{{ route('admin.mailbox.index', ['pasta' => $folder, 'page' => min($listing['pages'], ($listing['page'] ?? 1) + 1), 'q' => $query]) }}" class="{{ ($listing['page'] ?? 1) >= ($listing['pages'] ?? 1) ? 'pointer-events-none opacity-40' : 'hover:text-snow' }}">Seguinte →</a>
+                            <a href="{{ route('admin.mailbox.index', $mailList(['page' => min($listing['pages'], ($listing['page'] ?? 1) + 1)])) }}" class="{{ ($listing['page'] ?? 1) >= ($listing['pages'] ?? 1) ? 'pointer-events-none opacity-40' : 'hover:text-snow' }}">Seguinte →</a>
                         </div>
                     @endif
                 </aside>
@@ -233,12 +272,13 @@
                                 </div>
                             </div>
                         </form>
-                        <details class="mail-signature">
+                        <details class="mail-signature" open>
                             <summary>Assinatura da conta</summary>
+                            <p class="mt-2 text-xs text-mist">Bloco moderno com nome e BURI-TI. O aviso de confidencialidade e LGPD entra sempre no rodapé, mesmo sem este texto.</p>
                             <form method="POST" action="{{ route('admin.mailbox.signature') }}" class="mt-3 grid gap-2">
                                 @csrf
                                 @method('PUT')
-                                <textarea name="mail_signature" rows="4" class="mail-input" placeholder="Nome&#10;BURI-TI&#10;{{ $identity['address'] }}">{{ old('mail_signature', $identity['signature']) }}</textarea>
+                                <textarea name="mail_signature" rows="5" class="mail-input" placeholder="Nome&#10;BURI-TI · consultoria e software&#10;{{ $identity['address'] }}">{{ old('mail_signature', $identity['signature']) }}</textarea>
                                 <button type="submit" class="messenger-composer__secondary justify-self-start">Guardar assinatura</button>
                             </form>
                         </details>

@@ -1,10 +1,18 @@
 # Roadmap de produto BURI-TI
 
-Ideias de **módulos**, **submódulos** e **recursos** inspirados em concorrentes, com impacto medido sobre o sistema actual (site + CRM + Jirau). A versão visível no admin vem de `config/buriti.php` (`RuntimeVersions`); este ficheiro acompanha o lançamento **1.8 Nascente**.
+Ideias de **módulos**, **submódulos** e **recursos** inspirados em concorrentes, com impacto medido sobre o sistema actual (site + CRM + Jirau). A versão visível no admin vem de `config/buriti.php` (`RuntimeVersions`); este ficheiro acompanha o lançamento **1.9 Corrente**.
 
 Este ficheiro é o artefacto no Git. A leitura operacional está em **Sistema → Roadmap** (`/admin/sistema/roadmap`). Complementa a consolidação do CRM em [`CRM-CONSOLIDACAO.md`](CRM-CONSOLIDACAO.md).
 
 Não é um compromisso de entrega. É um mapa para não copiar HubSpot inteiro nem ignorar o que Pipedrive, Accelo e o mercado BR já resolveram.
+
+## Entregue no 1.9 Corrente
+
+- Correio IMAP só para o admin: pastas, leitura, envio, respostas ao site e rascunhos, com a identidade do login SMTP.
+- Cópia em Enviados após o SMTP (APPEND exacto; Gmail/Outlook usam a pasta do provedor).
+- Assinatura pronta e rodapé de confidencialidade + LGPD (Lei nº 13.709/2018) em cada envio.
+- Busca da pasta isolada da busca do painel; apagar o critério restaura a listagem.
+- Bot: `/correio`, `/email` e `/mensagem responder` pela mesma conta.
 
 ## Entregue no 1.8 Nascente
 

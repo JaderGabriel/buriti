@@ -1440,23 +1440,69 @@ html.dark .postit-lilac {
     color: var(--color-brand-bright);
 }
 
+.mail .messenger-list {
+    min-width: 0;
+    overflow: hidden;
+}
+
+.mail .messenger-list__header {
+    align-items: center;
+    min-width: 0;
+}
+
 .mail-search {
-    position: relative;
-    padding: 0.55rem 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+    padding: 0.5rem 0.75rem 0.65rem;
     border-bottom: 1px solid var(--color-line);
+    position: relative;
+    z-index: 1;
+    isolation: isolate;
 }
 
 .mail-search__icon {
-    position: absolute;
-    left: 1.25rem;
-    top: 50%;
-    transform: translateY(-50%);
+    flex: 0 0 auto;
+    display: inline-flex;
     color: var(--color-mist);
     pointer-events: none;
 }
 
 .mail-search__input {
-    padding-left: 2rem;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.mail-search__input::-webkit-search-decoration,
+.mail-search__input::-webkit-search-cancel-button,
+.mail-search__input::-webkit-search-results-button,
+.mail-search__input::-webkit-search-results-decoration {
+    appearance: none;
+    display: none;
+}
+
+.mail-search__clear {
+    flex: 0 0 1.7rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.7rem;
+    height: 1.7rem;
+    border-radius: 999px;
+    color: var(--color-mist);
+    transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.mail-search__clear.is-idle {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.mail-search__clear:hover,
+.mail-search__clear:focus-visible {
+    background: color-mix(in oklab, var(--color-brand) 14%, transparent);
+    color: var(--color-snow);
 }
 
 .mail-input {

@@ -152,7 +152,10 @@ class MailSettingsTest extends TestCase
 
             return $mail->hasTo('qa@exemplo.com')
                 && $mail->envelope()->subject === 'BURI-TI — e-mail de teste'
-                && str_contains($html, 'Nenhum convite de depoimento');
+                && str_contains($html, 'Nenhum convite de depoimento')
+                && str_contains($html, 'Lei nº 13.709/2018')
+                && str_contains($html, '#eef2f6')
+                && ! str_contains($html, 'background:#0a1628');
         });
         $this->assertDatabaseHas('audit_logs', [
             'action' => 'mail.test',

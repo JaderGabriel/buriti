@@ -1,6 +1,6 @@
 # BURI-TI
 
-Site institucional e painel administrativo da **BURI-TI** — *Tecnologia para Pessoas*. Sistema **1.8 Nascente** (site, CRM e Jirau). A versão visível no UI vem de `config/buriti.php` via `RuntimeVersions`.
+Site institucional e painel administrativo da **BURI-TI** — *Tecnologia para Pessoas*. Sistema **1.9 Corrente** (site, CRM e Jirau). A versão visível no UI vem de `config/buriti.php` via `RuntimeVersions`.
 
 Stack: **Laravel 13**, **Blade**, **Vite**, **Tailwind CSS 4**, **Alpine.js**, MySQL.
 
@@ -28,6 +28,7 @@ Jornada: **Mensagem → Contato → Oportunidade → Projeto → Tarefa**.
 |---|---|
 | **Dashboard** | KPIs com tendência, mensagens, contactos, agenda, atividades recentes, ideias (post-its); atalhos Meet / Teams / Jitsi |
 | **Mensagens** | Inbox do formulário público; vínculo a contacto / lead |
+| **Correio** | Cliente IMAP da conta SMTP (só admin): pastas, envio, respostas ao site, assinatura e aviso LGPD; cópia em Enviados |
 | **Empresas** | Cadastro de clientes/organizações |
 | **Contatos** | Agenda telefónica + ficha (hero, timeline, pasta de arquivos, mini-calendário); telefone em E.164 (`tel:` e WhatsApp) |
 | **Atividades** | Notas, chamadas, reuniões, e-mails; vínculo opcional a tarefa/oportunidade; conclusão de reunião **só se marcada** |
@@ -39,7 +40,7 @@ Jornada: **Mensagem → Contato → Oportunidade → Projeto → Tarefa**.
 | **Usuários** | CRUD, avatar, ativar/desativar, sessões com revogação |
 | **Perfil** | Dados próprios, sessões e 2FA (vincular/desvincular Senhas do iPhone; Telegram já vinculado no bot) |
 | **Integrações** | Google, Telegram Bot, atalhos Trello/Notion |
-| **Configurações** | Contactos do site + hub Google (níveis 1–3) |
+| **Configurações** | Contactos do site, e-mail SMTP/IMAP e hub Google (níveis 1–3) |
 
 ## Segurança
 
@@ -194,6 +195,10 @@ Campos separados por `|`. Em `set`, use `.` para manter. Em `del`, confirme com 
 /tarefas  ·  /tarefa …        # agenda: abertas + concluídas recentes
 /atividades  ·  /atividade …  # último campo opcional: concluir
 /mensagens  ·  /mensagem …
+/mensagem responder ID | texto
+/correio                       # últimas da INBOX
+/email dest | assunto | texto  # envia pela conta SMTP
+/cancelar                      # aborta rascunho de e-mail
 /card  ·  /card NomeCliente
 /id  ·  /eu  ·  /status  ·  /logout
 ```
@@ -249,7 +254,7 @@ Fluxo típico: **Request → FormRequest → Controller → Model/Service → Vi
 
 ## Testes
 
-Suite PHPUnit (SQLite em memória; ~300 testes):
+Suite PHPUnit (SQLite em memória; ~447 testes):
 
 ```bash
 composer test
@@ -257,7 +262,7 @@ composer test
 ./bin/test
 ```
 
-Cobertura inclui site público, auth (2FA iOS + Telegram), CRM (contactos, oportunidades, projetos/board, tarefas, atividades, anexos/preview), Jirau, Telegram bot, Google/settings, roadmap e segurança de sessões.
+Cobertura inclui site público, auth (2FA iOS + Telegram), CRM (contactos, oportunidades, projetos/board, tarefas, atividades, anexos/preview), Correio IMAP, Jirau, Telegram bot, Google/settings, roadmap e segurança de sessões.
 
 ## Scripts úteis
 

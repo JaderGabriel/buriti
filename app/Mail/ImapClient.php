@@ -65,6 +65,11 @@ class ImapClient
 
     public function append(string $folder, string $rfc822, string $flags = '\\Seen'): void
     {
+        $rfc822 = str_replace("\n", "\r\n", str_replace("\r\n", "\n", $rfc822));
+        if (! str_ends_with($rfc822, "\r\n")) {
+            $rfc822 .= "\r\n";
+        }
+
         $this->tag++;
         $tag = 'A'.$this->tag;
         $size = strlen($rfc822);
@@ -76,7 +81,7 @@ class ImapClient
             throw new RuntimeException('IMAP APPEND recusado: '.self::sanitize($lines[array_key_last($lines)] ?? ''));
         }
 
-        $this->transport->write($rfc822."\r\n");
+        $this->transport->write($rfc822);
         $done = $this->readUntilTag($tag);
         $last = $done[array_key_last($done)] ?? '';
         if (! str_contains($last, ' OK ')) {
@@ -305,7 +310,10 @@ class ImapClient
 
         return match (true) {
             $base === 'inbox' || str_contains($attrs, '\\inbox') => 'inbox',
-            str_contains($attrs, '\\sent') || in_array($leaf, ['sent', 'sent items', 'enviados'], true) => 'sent',
+            str_contains($attrs, '\\sent')
+                || str_contains($base, '[gmail]/sent')
+                || str_contains($leaf, 'enviados')
+                || in_array($leaf, ['sent', 'sent items', 'sent mail', 'sent messages'], true) => 'sent',
             str_contains($attrs, '\\drafts') || in_array($leaf, ['drafts', 'rascunhos'], true) => 'drafts',
             str_contains($attrs, '\\trash') || in_array($leaf, ['trash', 'deleted', 'lixo', 'deleted items'], true) => 'trash',
             str_contains($attrs, '\\junk') || in_array($leaf, ['junk', 'spam'], true) => 'junk',
@@ -379,7 +387,18 @@ class ImapClient
             }
         }
 
-        $candidates = ['Sent', 'Sent Items', 'Sent Messages', 'INBOX.Sent', 'Enviados', 'INBOX.Enviados'];
+        $candidates = [
+            'Sent',
+            'Sent Items',
+            'Sent Messages',
+            'Sent Mail',
+            'INBOX.Sent',
+            'Enviados',
+            'INBOX.Enviados',
+            '[Gmail]/Sent Mail',
+            '[Gmail]/E-mails enviados',
+            '[Google Mail]/Sent Mail',
+        ];
         foreach ($candidates as $candidate) {
             foreach ($boxes as $box) {
                 if (strcasecmp($box['name'], $candidate) === 0) {

@@ -247,3 +247,7 @@ O mapa de módulos novos, concorrentes e impacto está em [`ROADMAP.md`](ROADMAP
 ### Actualização 28/10/2026 (1.8 Nascente)
 
 Fatia de produto, não de consolidação P0–P2: 2FA TOTP nas Senhas do iPhone; telefones E.164 no CRM e no Telegram; política de privacidade a descrever CRM, Telegram e Google. As regras da secção 4 mantêm-se. Pendente de produto (não desta fatia): papéis além de admin, contratos assistidos, SLA de follow-up.
+
+### Actualização 29/10/2026 (1.9 Corrente)
+
+Fatia de produto: Correio IMAP exclusivo do admin (pastas, envio, respostas ao site), cópia em Enviados, assinatura e aviso LGPD, busca da pasta isolada da busca do painel, e envio pelo bot (`/correio`, `/email`, `/mensagem responder`). As regras da secção 4 mantêm-se. Pendente de produto (não desta fatia): papéis além de admin, contratos assistidos, SLA de follow-up.

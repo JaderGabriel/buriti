@@ -84,7 +84,7 @@
     "src": "_syne-800-normal-EehdNYzx.woff2"
   },
   "resources/css/app.css": {
-    "file": "assets/app-BVjjEbI3.css",
+    "file": "assets/app-CqEehKkX.css",
     "name": "app",
     "names": [
       "app.css"
@@ -93,7 +93,7 @@
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-C3Db5bL7.js",
+    "file": "assets/app-BVaafIBA.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true

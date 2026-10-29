@@ -27,7 +27,7 @@ class MailboxController extends Controller
         $folder = (string) $request->query('pasta', 'INBOX');
         $uid = $request->integer('uid') ?: null;
         $page = max(1, $request->integer('page', 1));
-        $query = trim((string) $request->query('q', ''));
+        $query = trim((string) $request->query('buscar', ''));
 
         $workspace = $this->mailbox->workspace($folder, $page, $uid, $query !== '' ? $query : null);
 
@@ -127,7 +127,7 @@ class MailboxController extends Controller
                     ->with('success', 'Rascunho guardado em '.$folder.'.');
             }
 
-            $this->mailbox->send(
+            $sentFolder = $this->mailbox->send(
                 $to,
                 $subject,
                 $body,
@@ -145,9 +145,17 @@ class MailboxController extends Controller
                 ContactMessage::query()->find($contactMessageId)?->markAsRead();
             }
 
+            $flash = 'Mensagem enviada para '.$to.'.';
+            $archive = $this->mailbox->lastSentArchive();
+            if (is_string($sentFolder) && $sentFolder !== '') {
+                $flash .= ' Cópia em '.$sentFolder.'.';
+            } elseif (is_string($archive['error'] ?? null) && $archive['error'] !== '') {
+                $flash .= ' A cópia em Enviados falhou: '.$archive['error'];
+            }
+
             return redirect()
-                ->route('admin.mailbox.index', ['pasta' => 'INBOX'])
-                ->with('success', 'Mensagem enviada para '.$to.'.');
+                ->route('admin.mailbox.index', ['pasta' => $sentFolder ?: 'INBOX'])
+                ->with(is_string($sentFolder) && $sentFolder !== '' ? 'success' : 'warning', $flash);
         } catch (Throwable $e) {
             $this->rethrowAuthorization($e);
 

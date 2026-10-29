@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Mail\ImapClient;
+use Tests\Support\ScriptedImapTransport;
 use Tests\TestCase;
 
 class ImapClientTest extends TestCase
@@ -37,6 +38,29 @@ class ImapClientTest extends TestCase
         $this->assertSame('Sent', ImapClient::pickSentFolder([
             ['name' => 'INBOX', 'attrs' => ''],
         ], 'Sent'));
+
+        $this->assertSame('[Gmail]/Sent Mail', ImapClient::pickSentFolder([
+            ['name' => 'INBOX', 'attrs' => '\\HasNoChildren'],
+            ['name' => '[Gmail]/Sent Mail', 'attrs' => '\\HasNoChildren'],
+        ]));
+        $this->assertSame('sent', ImapClient::classifyFolder('[Gmail]/Sent Mail', ''));
+        $this->assertSame('sent', ImapClient::classifyFolder('[Gmail]/E-mails enviados', ''));
+    }
+
+    public function test_append_writes_exact_octet_literal(): void
+    {
+        $transport = new ScriptedImapTransport([
+            '+ Ready for literal',
+            'A1 OK [APPENDUID 1 2] APPEND completed',
+        ]);
+
+        (new ImapClient($transport))->append('Sent', "Subject: Hi\n\nOi");
+
+        $this->assertCount(2, $transport->writes);
+        $this->assertMatchesRegularExpression('/^A1 APPEND "Sent" \(\\\\Seen\) \{\d+\}\r\n$/', $transport->writes[0]);
+        preg_match('/\{(\d+)\}/', $transport->writes[0], $match);
+        $this->assertSame((int) $match[1], strlen($transport->writes[1]));
+        $this->assertSame("Subject: Hi\r\n\r\nOi\r\n", $transport->writes[1]);
     }
 
     public function test_parse_fetch_headers_reads_from_subject_date(): void
@@ -77,5 +101,34 @@ class ImapClientTest extends TestCase
         $this->assertSame('Hello', $messages[0]['subject']);
         $this->assertSame('inbox', ImapClient::classifyFolder('INBOX', ''));
         $this->assertSame('Enviados', ImapClient::folderLabel('Sent', 'sent'));
+    }
+
+    public function test_list_messages_blank_query_does_not_search(): void
+    {
+        $transport = new ScriptedImapTransport([
+            '* 0 EXISTS',
+            'A1 OK SELECT completed',
+        ]);
+
+        $listing = (new ImapClient($transport))->listMessages('INBOX', 1, 40, '   ');
+
+        $this->assertSame(0, $listing['exists']);
+        $this->assertFalse(str_contains(implode('', $transport->writes), 'SEARCH'));
+    }
+
+    public function test_list_messages_query_uses_uid_search(): void
+    {
+        $transport = new ScriptedImapTransport([
+            '* 4 EXISTS',
+            'A1 OK SELECT completed',
+            '* SEARCH',
+            'A2 OK SEARCH completed',
+        ]);
+
+        $listing = (new ImapClient($transport))->listMessages('INBOX', 1, 40, 'proposta');
+
+        $this->assertSame(0, $listing['exists']);
+        $this->assertTrue(str_contains(implode('', $transport->writes), 'UID SEARCH'));
+        $this->assertTrue(str_contains(implode('', $transport->writes), 'FROM "proposta"'));
     }
 }

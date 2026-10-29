@@ -1170,6 +1170,69 @@ function initAdminSearch() {
     });
 }
 
+function initMailSearch() {
+    document.querySelectorAll('[data-mail-search]').forEach((form) => {
+        const input = form.querySelector('[data-mail-search-input]');
+        const clear = form.querySelector('[data-mail-search-clear]');
+        if (! (input instanceof HTMLInputElement)) {
+            return;
+        }
+
+        let timer = 0;
+
+        const listingUrl = () => {
+            const url = new URL(form.getAttribute('action') || window.location.pathname, window.location.origin);
+            const pasta = form.querySelector('[name="pasta"]');
+            url.search = '';
+            if (pasta instanceof HTMLInputElement && pasta.value !== '') {
+                url.searchParams.set('pasta', pasta.value);
+            }
+
+            return url;
+        };
+
+        const hasFolderFilter = () => {
+            const current = new URL(window.location.href);
+
+            return current.searchParams.has('buscar') || current.searchParams.has('q');
+        };
+
+        const paintClear = () => {
+            if (! (clear instanceof HTMLElement)) {
+                return;
+            }
+            clear.classList.toggle('is-idle', input.value.trim() === '');
+        };
+
+        const showAll = () => {
+            if (! hasFolderFilter()) {
+                paintClear();
+                return;
+            }
+            window.location.assign(listingUrl().toString());
+        };
+
+        paintClear();
+
+        input.addEventListener('input', () => {
+            window.clearTimeout(timer);
+            paintClear();
+            if (input.value.trim() !== '') {
+                return;
+            }
+            timer = window.setTimeout(showAll, 120);
+        });
+
+        form.addEventListener('submit', (event) => {
+            if (input.value.trim() !== '') {
+                return;
+            }
+            event.preventDefault();
+            showAll();
+        });
+    });
+}
+
 function initAvatarPreviews() {
     document.querySelectorAll('[data-avatar-preview]').forEach((root) => {
         const input = root.querySelector('[data-avatar-preview-input]');
@@ -4606,6 +4669,7 @@ initCopyButtons();
 initInstantMeetingLinks();
 initAdminNotifications();
 initAdminSearch();
+initMailSearch();
 initRoadmapFilters();
 initAvatarPreviews();
 initPasswordFields();

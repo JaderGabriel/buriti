@@ -334,12 +334,13 @@ final class ProductRoadmap
         return [
             'short' => RuntimeVersions::short(),
             'release' => RuntimeVersions::release(),
-            'headline' => 'Código no iPhone, telefone com DDI e barras que ficam no sítio.',
+            'headline' => 'Correio da conta, cópia em Enviados e aviso LGPD em cada envio.',
             'items' => [
-                'Login admin por senha confirma com TOTP nas Senhas do iPhone quando vinculado; Telegram continua como fallback e o desafio web no bot segue sem widget.',
-                'Perfil na topbar, barra lateral e superior fixas enquanto só o conteúdo rola, e atalhos Meet / Teams / Jitsi ao lado da agenda.',
-                'Telefones em E.164 (DDI + DDD + número) no CRM, no bot e nos links tel: / wa.me — inclusive DDD 11 sem colidir com DDI estrangeiro.',
-                'Política de privacidade descreve CRM, Telegram, Google Calendar/Drive e 2FA, não só o formulário do site.',
+                'Cliente IMAP só para o admin: pastas, leitura, envio, respostas ao site e rascunhos, com a identidade do login SMTP.',
+                'O envio guarda cópia em Enviados (APPEND com tamanho exacto; Gmail/Outlook usam a pasta do provedor).',
+                'Modelo claro com assinatura pronta e rodapé de confidencialidade + Lei nº 13.709/2018 (LGPD).',
+                'Busca da pasta isolada da busca do painel; apagar o critério volta a mostrar todas as mensagens.',
+                'Bot: /correio, /email e /mensagem responder pela mesma conta.',
             ],
         ];
     }

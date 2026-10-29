@@ -2,12 +2,55 @@
 <html lang="pt-BR">
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $subjectLine ?? 'BURI-TI' }}</title>
 </head>
-<body style="margin:0;padding:24px;background:#0a1628;color:#e8eef6;font-family:Manrope,Segoe UI,sans-serif;line-height:1.55;">
-    <div style="white-space:pre-wrap;">{!! nl2br(e($body)) !!}</div>
-    @if(filled($signature))
-        <div style="margin-top:24px;padding-top:16px;border-top:1px solid #24344a;color:#b7c2d0;white-space:pre-wrap;font-size:13px;">{!! nl2br(e($signature)) !!}</div>
-    @endif
+<body style="margin:0;padding:0;background:#eef2f6;color:#1b2430;font-family:Georgia,'Times New Roman',serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef2f6;padding:24px 12px;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #d9e2ec;">
+                    <tr>
+                        <td style="padding:18px 28px;background:#0f2744;color:#ffffff;">
+                            <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#9ec4ea;">BURI-TI</p>
+                            <p style="margin:6px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:700;color:#ffffff;">{{ $fromName ?: 'BURI-TI' }}</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:28px;font-size:16px;line-height:1.7;color:#1b2430;">
+                            <div style="white-space:pre-wrap;">{!! nl2br(e($body)) !!}</div>
+                        </td>
+                    </tr>
+                    @if(filled($signature))
+                    <tr>
+                        <td style="padding:0 28px 24px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:2px solid #1a5f9e;">
+                                <tr>
+                                    <td style="padding-top:18px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.55;color:#1b2430;white-space:pre-wrap;">{!! nl2br(e($signature)) !!}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding-top:10px;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#5b6b7c;">
+                                        <a href="{{ $siteUrl }}" style="color:#1a5f9e;text-decoration:none;">{{ $siteHost }}</a>
+                                        @if(filled($fromAddress))
+                                            · <a href="mailto:{{ $fromAddress }}" style="color:#1a5f9e;text-decoration:none;">{{ $fromAddress }}</a>
+                                        @endif
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    @endif
+                    <tr>
+                        <td style="padding:18px 28px 24px;background:#f7f9fc;border-top:1px solid #e4ebf2;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.55;color:#6a7787;">
+                            {!! nl2br(e($legalNotice)) !!}
+                            <p style="margin:12px 0 0;">
+                                <a href="{{ $privacyUrl }}" style="color:#1a5f9e;text-decoration:underline;">Política de Privacidade</a>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>

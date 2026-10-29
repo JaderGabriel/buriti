@@ -79,7 +79,20 @@ class ImapMailboxStore implements MailboxStore
 
         try {
             $folder = $client->resolveSentFolder($config->sentFolder);
-            $client->append($folder, $rfc822);
+            try {
+                $client->append($folder, $rfc822);
+            } catch (Throwable $first) {
+                try {
+                    $client->createFolder($folder);
+                } catch (Throwable) {
+                    // a pasta pode já existir com outro nome
+                }
+                try {
+                    $client->append($folder, $rfc822);
+                } catch (Throwable) {
+                    throw $first;
+                }
+            }
             $this->lastStored = true;
             $this->lastFolder = $folder;
 
@@ -95,6 +108,13 @@ class ImapMailboxStore implements MailboxStore
     public function recentInbox(int $limit = 8): array
     {
         return $this->usingClient(fn (ImapClient $client) => $client->recentInbox($limit));
+    }
+
+    public function peekSentFolder(): ?string
+    {
+        return $this->usingClient(
+            fn (ImapClient $client) => ImapClient::pickSentFolder($client->listMailboxes())
+        );
     }
 
     public function isConfigured(): bool

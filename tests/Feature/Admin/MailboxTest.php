@@ -91,12 +91,74 @@ class MailboxTest extends TestCase
             ->assertSee('Caixa de entrada', false)
             ->assertSee('Escrever', false)
             ->assertSee('contato@exemplo.com', false)
-            ->assertSee('Nenhuma mensagem nesta pasta', false);
+            ->assertSee('Nenhuma mensagem nesta pasta', false)
+            ->assertSee('data-mail-search', false)
+            ->assertSee('name="buscar"', false)
+            ->assertSee('id="mail-folder-search"', false)
+            ->assertSee('Remetente, destinatário ou assunto', false);
+    }
+
+    public function test_mailbox_folder_search_ignores_admin_query_parameter(): void
+    {
+        $this->configureMailbox();
+        $this->scriptImap([
+            '* LIST (\\HasNoChildren) "/" INBOX',
+            'A1 OK LIST completed',
+            '* STATUS "INBOX" (MESSAGES 0 UNSEEN 0)',
+            'A2 OK STATUS completed',
+            '* 0 EXISTS',
+            'A3 OK SELECT completed',
+            '* BYE',
+            'A4 OK LOGOUT completed',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.mailbox.index', ['pasta' => 'INBOX', 'q' => 'proposta']))
+            ->assertOk()
+            ->assertSee('Nenhuma mensagem nesta pasta', false)
+            ->assertDontSee('Nada encontrado para', false)
+            ->assertDontSee('IMAP script esgotado', false);
+    }
+
+    public function test_mailbox_folder_search_filters_and_can_clear_to_full_listing(): void
+    {
+        $this->configureMailbox();
+        $this->scriptImap([
+            '* LIST (\\HasNoChildren) "/" INBOX',
+            'A1 OK LIST completed',
+            '* STATUS "INBOX" (MESSAGES 0 UNSEEN 0)',
+            'A2 OK STATUS completed',
+            '* 0 EXISTS',
+            'A3 OK SELECT completed',
+            '* SEARCH',
+            'A4 OK SEARCH completed',
+            '* BYE',
+            'A5 OK LOGOUT completed',
+        ]);
+
+        $clearUrl = route('admin.mailbox.index', ['pasta' => 'INBOX']);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.mailbox.index', ['pasta' => 'INBOX', 'buscar' => 'proposta']))
+            ->assertOk()
+            ->assertSee('Nada encontrado para “proposta”.', false)
+            ->assertSee('Mostrar todas as mensagens', false)
+            ->assertSee('Limpar busca desta pasta', false)
+            ->assertSee($clearUrl, false)
+            ->assertDontSee('Nenhuma mensagem nesta pasta', false);
     }
 
     public function test_admin_can_send_from_mailbox_identity(): void
     {
         $this->configureMailbox();
+        $this->scriptImap([
+            '* LIST (\\HasNoChildren \\Sent) "/" Sent',
+            'A1 OK LIST completed',
+            '+',
+            'A2 OK APPEND completed',
+            '* BYE',
+            'A3 OK LOGOUT completed',
+        ]);
         Mail::fake();
 
         $this->actingAs($this->admin)
@@ -106,13 +168,20 @@ class MailboxTest extends TestCase
                 'body' => 'Segue o texto.',
                 'signature' => '1',
             ])
-            ->assertRedirect(route('admin.mailbox.index', ['pasta' => 'INBOX']))
+            ->assertRedirect(route('admin.mailbox.index', ['pasta' => 'Sent']))
             ->assertSessionHas('success');
 
         Mail::assertSent(CrmOutgoingMail::class, function (CrmOutgoingMail $mail) {
+            $html = $mail->render();
+
             return $mail->hasTo('qa@exemplo.com')
                 && $mail->envelope()->subject === 'Proposta'
-                && $mail->hasFrom('contato@exemplo.com');
+                && $mail->hasFrom('contato@exemplo.com')
+                && str_contains($html, 'Segue o texto.')
+                && str_contains($html, 'Lei nº 13.709/2018')
+                && str_contains($html, 'BURI-TI · consultoria e software')
+                && str_contains($html, '#eef2f6')
+                && ! str_contains($html, 'background:#0a1628');
         });
     }
 
@@ -136,7 +205,9 @@ class MailboxTest extends TestCase
             ->assertSee('Nova mensagem', false)
             ->assertSee('ana@exemplo.com', false)
             ->assertSee('Assinatura', false)
-            ->assertSee('Cco', false);
+            ->assertSee('Cco', false)
+            ->assertSee('BURI-TI · consultoria e software', false)
+            ->assertSee('aviso de confidencialidade e LGPD', false);
     }
 
     public function test_compose_from_site_message_quotes_original(): void
@@ -160,6 +231,14 @@ class MailboxTest extends TestCase
     public function test_admin_can_send_with_bcc_and_mark_contact_message_read(): void
     {
         $this->configureMailbox();
+        $this->scriptImap([
+            '* LIST (\\HasNoChildren \\Sent) "/" Sent',
+            'A1 OK LIST completed',
+            '+',
+            'A2 OK APPEND completed',
+            '* BYE',
+            'A3 OK LOGOUT completed',
+        ]);
         Mail::fake();
 
         $message = ContactMessage::factory()->create([
@@ -177,7 +256,7 @@ class MailboxTest extends TestCase
                 'signature' => '1',
                 'contact_message_id' => $message->id,
             ])
-            ->assertRedirect(route('admin.mailbox.index', ['pasta' => 'INBOX']))
+            ->assertRedirect(route('admin.mailbox.index', ['pasta' => 'Sent']))
             ->assertSessionHas('success');
 
         Mail::assertSent(CrmOutgoingMail::class, function (CrmOutgoingMail $mail) {

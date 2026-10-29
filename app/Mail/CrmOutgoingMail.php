@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Support\MailBranding;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
@@ -44,10 +45,17 @@ class CrmOutgoingMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'mail.crm',
+            html: 'mail.crm',
+            text: 'mail.crm-text',
             with: [
                 'body' => $this->body,
                 'signature' => $this->signature,
+                'fromName' => (string) config('mail.from.name'),
+                'fromAddress' => (string) config('mail.from.address'),
+                'siteUrl' => MailBranding::siteUrl(),
+                'siteHost' => MailBranding::siteHost(),
+                'privacyUrl' => MailBranding::privacyUrl(),
+                'legalNotice' => MailBranding::legalNotice(),
             ],
         );
     }

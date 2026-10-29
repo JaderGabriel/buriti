@@ -92,12 +92,14 @@ class TelegramMailService
         }
 
         try {
-            $this->mailbox->send($to, $subject, $body, $admin);
+            $folder = $this->mailbox->send($to, $subject, $body, $admin);
         } catch (Throwable $e) {
             return '❌ Falha ao enviar: '.$this->escape($e->getMessage());
         }
 
-        return '✔️ Enviado para <b>'.$this->escape($to).'</b> — '.$this->escape($subject);
+        $note = is_string($folder) && $folder !== '' ? ' Cópia em '.$this->escape($folder).'.' : '';
+
+        return '✔️ Enviado para <b>'.$this->escape($to).'</b> — '.$this->escape($subject).$note;
     }
 
     public function replyToContact(User $admin, ContactMessage $message, string $body): string
@@ -114,14 +116,15 @@ class TelegramMailService
             : 'Re: '.$message->subject;
 
         try {
-            $this->mailbox->send((string) $message->email, $subject, $body, $admin);
+            $folder = $this->mailbox->send((string) $message->email, $subject, $body, $admin);
         } catch (Throwable $e) {
             return '❌ Falha ao responder: '.$this->escape($e->getMessage());
         }
 
         $message->markAsRead();
+        $note = is_string($folder) && $folder !== '' ? ' Cópia em '.$this->escape($folder).'.' : '';
 
-        return '✔️ Resposta enviada a <b>'.$this->escape($message->name).'</b> &lt;'.$this->escape((string) $message->email).'&gt;';
+        return '✔️ Resposta enviada a <b>'.$this->escape($message->name).'</b> &lt;'.$this->escape((string) $message->email).'&gt;'.$note;
     }
 
     /**

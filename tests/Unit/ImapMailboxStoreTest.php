@@ -53,6 +53,8 @@ class ImapMailboxStoreTest extends TestCase
         $this->assertTrue($store->lastArchiveStatus()['stored']);
         $this->assertTrue(str_contains(implode('', $transport->writes), 'APPEND "Sent"'));
         $this->assertTrue(str_contains(implode('', $transport->writes), $raw));
+        preg_match('/APPEND "Sent" \(\\\\Seen\) \{(\d+)\}/', implode('', $transport->writes), $match);
+        $this->assertSame((int) $match[1], strlen($transport->writes[2]));
     }
 
     public function test_should_archive_sent_skips_gmail_because_it_already_saves(): void

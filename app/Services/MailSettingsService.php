@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Mail\TestMail;
 use App\Models\User;
+use Illuminate\Mail\SentMessage;
 use Illuminate\Support\Facades\Mail;
 use RuntimeException;
 use Throwable;
@@ -206,7 +207,8 @@ class MailSettingsService
         $this->apply();
         $this->assertDeliverable();
 
-        Mail::to($to)->send(new TestMail);
+        $sent = Mail::to($to)->send(new TestMail);
+        $this->archiveTestCopy($sent);
 
         $this->audit->record('mail.test', null, [
             'to' => $to,
@@ -468,6 +470,22 @@ class MailSettingsService
         }
 
         return $message;
+    }
+
+    private function archiveTestCopy(mixed $sent): void
+    {
+        $store = app(MailboxStore::class);
+        if ($store->lastArchiveStatus()['stored'] || ! $store->shouldArchiveSent()) {
+            return;
+        }
+
+        try {
+            if ($sent instanceof SentMessage) {
+                $store->storeSent($sent->getSymfonySentMessage()->getOriginalMessage()->toString());
+            }
+        } catch (Throwable $e) {
+            report($e);
+        }
     }
 
     private function filled(string $key): ?string

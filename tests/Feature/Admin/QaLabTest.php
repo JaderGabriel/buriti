@@ -627,6 +627,7 @@ class QaLabTest extends TestCase
                 && in_array('tests/Unit/ImapClientTest.php', $command, true)
                 && in_array('tests/Unit/ImapMailboxStoreTest.php', $command, true)
                 && in_array('tests/Feature/Admin/MailboxTest.php', $command, true)
+                && in_array('tests/Unit/MailDateTest.php', $command, true)
                 && in_array('tests/Unit/Rfc822MessageTest.php', $command, true)
                 && ($process->environment['DB_CONNECTION'] ?? null) === 'sqlite';
         });
@@ -650,6 +651,7 @@ class QaLabTest extends TestCase
         $this->assertTrue($health->isPassed());
         $this->assertStringContainsString('rota admin.settings.mail', (string) $health->output);
         $this->assertStringContainsString('view mail.test', (string) $health->output);
+        $this->assertStringContainsString('view mail.crm', (string) $health->output);
 
         $this->actingAs($this->admin)
             ->post(route('admin.qa.store'), ['command' => 'mail.config'])

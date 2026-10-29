@@ -19,7 +19,7 @@
         id="{{ $id }}"
         type="search"
         name="q"
-        value="{{ request('q') }}"
+        value="{{ request()->routeIs('admin.search') ? request('q') : '' }}"
         placeholder="{{ $placeholder }}"
         class="admin-search__input"
         autocomplete="off"

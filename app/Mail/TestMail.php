@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Services\SettingService;
+use App\Support\MailBranding;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
@@ -31,6 +32,9 @@ class TestMail extends Mailable
     {
         return new Content(
             view: 'mail.test',
+            with: [
+                'legalNotice' => MailBranding::legalNotice(),
+            ],
         );
     }
 }
