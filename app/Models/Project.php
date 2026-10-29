@@ -89,6 +89,15 @@ class Project extends Model
         return $this->hasMany(Testimonial::class)->latest('id');
     }
 
+    public function approvedPublicTestimonials(): HasMany
+    {
+        return $this->hasMany(Testimonial::class)
+            ->approvedPublic()
+            ->orderByDesc('published_stars')
+            ->orderByDesc('submitted_at')
+            ->orderByDesc('id');
+    }
+
     /**
      * Progresso preferencialmente pelas etapas do projeto; se não houver, usa atividades da agenda.
      *

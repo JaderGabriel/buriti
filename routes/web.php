@@ -297,6 +297,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
 
     Route::get('/depoimentos', [AdminTestimonialController::class, 'index'])->name('testimonials.index');
     Route::get('/depoimentos/convidar', [AdminTestimonialController::class, 'create'])->name('testimonials.create');
+    Route::post('/depoimentos/amostras', [AdminTestimonialController::class, 'plantSamples'])
+        ->middleware('throttle:5,1')
+        ->name('testimonials.samples.store');
+    Route::delete('/depoimentos/amostras', [AdminTestimonialController::class, 'purgeSamples'])
+        ->middleware('throttle:5,1')
+        ->name('testimonials.samples.destroy');
     Route::post('/depoimentos', [AdminTestimonialController::class, 'store'])
         ->middleware('throttle:30,1')
         ->name('testimonials.store');

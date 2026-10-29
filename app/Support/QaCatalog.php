@@ -81,7 +81,7 @@ final class QaCatalog
                         'suite.testimonials',
                         'suite',
                         'Suíte Depoimentos',
-                        'Convite, mediação, selo HMAC e ausência no site público.',
+                        'Convite, mediação, selo HMAC, faixa pública e amostras visuais.',
                         'quote',
                         null,
                         'phpunit',
@@ -287,7 +287,7 @@ final class QaCatalog
                 'id' => 'depoimentos',
                 'label' => 'Depoimentos',
                 'icon' => 'quote',
-                'description' => 'Convites, mediação, selo HMAC e páginas não listadas. Sem galeria no site.',
+                'description' => 'Convites, mediação, selo HMAC, faixa pública na home e amostras visuais.',
                 'commands' => [
                     self::command(
                         'testimonials.health',
@@ -301,6 +301,8 @@ final class QaCatalog
                             'routes' => [
                                 'admin.testimonials.index',
                                 'admin.testimonials.create',
+                                'admin.testimonials.samples.store',
+                                'admin.testimonials.samples.destroy',
                                 'testimonials.seal',
                                 'testimonials.write',
                                 'testimonials.submit',
@@ -310,6 +312,10 @@ final class QaCatalog
                                 'admin.testimonials.index',
                                 'admin.testimonials.create',
                                 'admin.testimonials.show',
+                                'admin.testimonials.partials.sample-tools',
+                                'site.partials.quotes',
+                                'site.partials.quote-dialog',
+                                'components.site.quote-card',
                                 'testimonials.form',
                                 'testimonials.thanks',
                                 'testimonials.expired',

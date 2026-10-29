@@ -567,8 +567,10 @@ class QaLabTest extends TestCase
         $this->assertNotNull($health);
         $this->assertTrue($health->isPassed());
         $this->assertStringContainsString('rota admin.testimonials.index', (string) $health->output);
+        $this->assertStringContainsString('rota admin.testimonials.samples.store', (string) $health->output);
         $this->assertStringContainsString('rota testimonials.seal', (string) $health->output);
         $this->assertStringContainsString('view testimonials.form', (string) $health->output);
+        $this->assertStringContainsString('view site.partials.quotes', (string) $health->output);
         $this->assertStringContainsString('Depoimentos: 2', (string) $health->output);
 
         $this->actingAs($this->admin)

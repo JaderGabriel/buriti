@@ -32,7 +32,10 @@ class TestimonialTest extends TestCase
             ->assertOk()
             ->assertSee('Depoimentos', false)
             ->assertSee('Convidar cliente', false)
-            ->assertSee('Nada disso aparece no site público ainda', false);
+            ->assertSee('Aprovados com selo íntegro entram na faixa da home', false)
+            ->assertSee('Gerar 5 testes', false)
+            ->assertSee('Apagar testes', false)
+            ->assertSee('is_sample', false);
 
         $this->actingAs($this->admin)
             ->getJson(route('admin.search', ['q' => 'depoi']))
@@ -142,19 +145,216 @@ class TestimonialTest extends TestCase
         ])->assertNotFound();
     }
 
-    public function test_home_does_not_show_approved_testimonial(): void
+    public function test_home_hides_quote_strip_when_there_are_no_approved_quotes(): void
     {
-        $testimonial = Testimonial::factory()->approved()->create([
-            'contact_id' => Contact::factory()->create(['name' => 'Cliente Secreto']),
-            'published_body' => 'Frase única do depoimento que não pode aparecer na home.',
-            'published_display_name' => 'Cliente Secreto',
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertDontSee('id="depoimentos"', false)
+            ->assertDontSee('quote-strip', false)
+            ->assertDontSee('quote-flag', false);
+    }
+
+    public function test_home_shows_approved_quotes_on_project_and_strip(): void
+    {
+        $project = Project::factory()->public()->create([
+            'name' => 'Portal da Escola Publico',
+            'featured_on_home' => false,
         ]);
+        $quote = Testimonial::factory()->approved()->create([
+            'contact_id' => Contact::factory()->create(['name' => 'Ana Publica']),
+            'project_id' => $project->id,
+            'original_stars' => 5,
+            'published_stars' => 5,
+            'original_body' => 'Entrega no prazo com comunicação clara no portal da escola.',
+            'published_body' => 'Entrega no prazo com comunicação clara no portal da escola.',
+            'original_display_name' => 'Ana Publica',
+            'published_display_name' => 'Ana Publica',
+        ]);
+
+        $html = $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('id="depoimentos"', false)
+            ->assertSee('quote-strip', false)
+            ->assertSee('quote-flag', false)
+            ->assertSee('Ver depoimento', false)
+            ->assertSee('data-dialog-open="quote-project-'.$project->id.'"', false)
+            ->assertSee('id="quote-project-'.$project->id.'"', false)
+            ->assertSee('Entrega no prazo com comunicação clara no portal da escola.', false)
+            ->assertSee('Ana Publica', false)
+            ->assertSee($quote->verification_code, false)
+            ->getContent();
+
+        $this->assertTrue($quote->fresh()->authenticity()['ok']);
+        $this->assertStringContainsString('quote-dialog', $html);
+        $this->assertStringContainsString('data-dialog-close', $html);
+    }
+
+    public function test_home_prefers_featured_project_quotes_then_stars_and_date(): void
+    {
+        $featured = Project::factory()->public()->create([
+            'name' => 'Projeto Destaque Unico',
+            'featured_on_home' => true,
+        ]);
+        $other = Project::factory()->public()->create([
+            'name' => 'Projeto Catalogo Unico',
+            'featured_on_home' => false,
+        ]);
+
+        Testimonial::factory()->approved()->create([
+            'contact_id' => Contact::factory(),
+            'project_id' => $other->id,
+            'original_stars' => 5,
+            'published_stars' => 5,
+            'original_body' => 'Cinco estrelas no catalogo, frase unica.',
+            'published_body' => 'Cinco estrelas no catalogo, frase unica.',
+            'original_display_name' => 'Zelda Catalogo',
+            'published_display_name' => 'Zelda Catalogo',
+            'submitted_at' => now(),
+        ]);
+        Testimonial::factory()->approved()->create([
+            'contact_id' => Contact::factory(),
+            'project_id' => $featured->id,
+            'original_stars' => 4,
+            'published_stars' => 4,
+            'original_body' => 'Quatro estrelas no destaque, frase unica.',
+            'published_body' => 'Quatro estrelas no destaque, frase unica.',
+            'original_display_name' => 'Ana Destaque',
+            'published_display_name' => 'Ana Destaque',
+            'submitted_at' => now()->subDays(10),
+        ]);
+
+        $html = $this->get(route('home'))->assertOk()->getContent();
+        $featuredPos = strpos($html, 'Quatro estrelas no destaque, frase unica.');
+        $otherPos = strpos($html, 'Cinco estrelas no catalogo, frase unica.');
+
+        $this->assertNotFalse($featuredPos);
+        $this->assertNotFalse($otherPos);
+        $this->assertLessThan($otherPos, $featuredPos);
+        $this->assertStringContainsString('quote-project-'.$featured->id, $html);
+        $this->assertStringContainsString('quote-project-'.$other->id, $html);
+    }
+
+    public function test_rejected_and_unsealed_quotes_stay_off_the_home(): void
+    {
+        $project = Project::factory()->public()->create([
+            'name' => 'Projeto Sem Depoimento Publico',
+            'featured_on_home' => true,
+        ]);
+
+        $rejected = Testimonial::factory()->submitted()->create([
+            'contact_id' => Contact::factory(),
+            'project_id' => $project->id,
+            'original_body' => 'Texto rejeitado que nao pode aparecer na home.',
+            'original_display_name' => 'Cliente Rejeitado Unico',
+        ]);
+        $this->actingAs($this->admin)
+            ->post(route('admin.testimonials.moderate', $rejected), [
+                'decision' => 'rejected',
+                'moderation_notes' => 'Fora do âmbito.',
+            ])
+            ->assertRedirect();
+
+        $broken = Testimonial::factory()->approved()->create([
+            'contact_id' => Contact::factory(),
+            'project_id' => $project->id,
+            'original_body' => 'Texto selado depois adulterado na home.',
+            'published_body' => 'Texto selado depois adulterado na home.',
+            'original_display_name' => 'Cliente Adulterado',
+            'published_display_name' => 'Cliente Adulterado',
+        ]);
+        $broken->forceFill(['published_body' => 'Texto forjado que nao pode aparecer.'])->save();
 
         $this->get(route('home'))
             ->assertOk()
-            ->assertDontSee('Frase única do depoimento que não pode aparecer na home.', false)
-            ->assertDontSee($testimonial->verification_code, false)
-            ->assertDontSee('Cliente Secreto', false);
+            ->assertDontSee('id="depoimentos"', false)
+            ->assertDontSee('Texto rejeitado que nao pode aparecer na home.', false)
+            ->assertDontSee('Cliente Rejeitado Unico', false)
+            ->assertDontSee('Texto selado depois adulterado na home.', false)
+            ->assertDontSee('Texto forjado que nao pode aparecer.', false)
+            ->assertDontSee('quote-flag', false);
+    }
+
+    public function test_admin_can_plant_and_purge_sample_testimonials(): void
+    {
+        $featured = Project::factory()->public()->create([
+            'name' => 'Destaque Real Para Amostras',
+            'featured_on_home' => true,
+        ]);
+        $other = Project::factory()->public()->create([
+            'name' => 'Catalogo Real Para Amostras',
+            'featured_on_home' => false,
+        ]);
+        $real = Testimonial::factory()->approved()->create([
+            'contact_id' => Contact::factory()->create(['name' => 'Cliente Real Permanente']),
+            'project_id' => $featured->id,
+            'is_sample' => false,
+            'original_body' => 'Depoimento real que deve permanecer apos apagar testes.',
+            'published_body' => 'Depoimento real que deve permanecer apos apagar testes.',
+            'original_display_name' => 'Cliente Real Permanente',
+            'published_display_name' => 'Cliente Real Permanente',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.testimonials.samples.store'))
+            ->assertRedirect(route('admin.testimonials.index'))
+            ->assertSessionHas('success');
+
+        $this->assertSame(5, Testimonial::query()->where('is_sample', true)->count());
+        $this->assertSame(6, Testimonial::query()->count());
+        $this->assertTrue($real->fresh()->exists);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.testimonials.index'))
+            ->assertOk()
+            ->assertSee('5 amostras na base', false)
+            ->assertSee('Amostra', false)
+            ->assertSee('Rita Amostra', false);
+
+        $home = $this->get(route('home'))->assertOk();
+        $home->assertSee('Rita Amostra', false)
+            ->assertSee('Paulo Amostra', false)
+            ->assertSee('Helena Amostra', false)
+            ->assertSee('Carlos Amostra', false)
+            ->assertSee('Joana Amostra', false)
+            ->assertSee('Entrega no prazo, comunicação clara', false)
+            ->assertSee('quote-project-'.$featured->id, false)
+            ->assertSee('quote-project-'.$other->id, false)
+            ->assertSee('Ver depoimentos', false);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.testimonials.samples.store'))
+            ->assertRedirect(route('admin.testimonials.index'));
+        $this->assertSame(5, Testimonial::query()->where('is_sample', true)->count());
+
+        $this->actingAs($this->admin)
+            ->delete(route('admin.testimonials.samples.destroy'))
+            ->assertRedirect(route('admin.testimonials.index'))
+            ->assertSessionHas('success');
+
+        $this->assertSame(0, Testimonial::query()->where('is_sample', true)->count());
+        $this->assertDatabaseHas('testimonials', ['id' => $real->id, 'is_sample' => 0]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertDontSee('Rita Amostra', false)
+            ->assertSee('Depoimento real que deve permanecer apos apagar testes.', false);
+    }
+
+    public function test_guest_and_staff_cannot_plant_sample_testimonials(): void
+    {
+        $this->post(route('admin.testimonials.samples.store'))
+            ->assertRedirect(route('login'));
+
+        $staff = User::factory()->withoutAdminAccess()->create();
+
+        $this->actingAs($staff)
+            ->post(route('admin.testimonials.samples.store'))
+            ->assertRedirect(route('jirau.home'));
+        $this->actingAs($staff)
+            ->delete(route('admin.testimonials.samples.destroy'))
+            ->assertRedirect(route('jirau.home'));
+
+        $this->assertSame(0, Testimonial::query()->where('is_sample', true)->count());
     }
 
     public function test_public_seal_confirms_approved_testimonial_without_listing_others(): void

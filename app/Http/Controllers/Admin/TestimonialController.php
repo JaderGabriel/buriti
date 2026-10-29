@@ -45,6 +45,7 @@ class TestimonialController extends Controller
                 ->selectRaw('status, count(*) as total')
                 ->groupBy('status')
                 ->pluck('total', 'status'),
+            'sampleCount' => $this->testimonials->sampleCount(),
         ]);
     }
 
@@ -82,6 +83,7 @@ class TestimonialController extends Controller
             'authenticity' => $testimonial->authenticity(),
             'projects' => Project::query()->orderBy('name')->get(['id', 'name']),
             'inviteUrl' => session('invite_url'),
+            'sampleCount' => $this->testimonials->sampleCount(),
         ]);
     }
 
@@ -131,5 +133,25 @@ class TestimonialController extends Controller
             ->route('admin.testimonials.show', $testimonial)
             ->with('success', 'Novo link gerado. Copie e envie ao cliente — o anterior deixa de funcionar.')
             ->with('invite_url', $invite['url']);
+    }
+
+    public function plantSamples(): RedirectResponse
+    {
+        $created = $this->testimonials->plantSamples(request()->user());
+
+        return redirect()
+            ->route('admin.testimonials.index')
+            ->with('success', $created->count().' depoimentos de teste gerados. Aparecem no site público com a flag is_sample.');
+    }
+
+    public function purgeSamples(): RedirectResponse
+    {
+        $count = $this->testimonials->purgeSamples(request()->user());
+
+        return redirect()
+            ->route('admin.testimonials.index')
+            ->with('success', $count === 0
+                ? 'Não havia depoimentos de teste para apagar.'
+                : $count.' depoimento(s) de teste apagado(s).');
     }
 }

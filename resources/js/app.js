@@ -264,8 +264,17 @@ function initCookieBanner() {
     });
 }
 
+function isSiteDialog(dialog) {
+    return dialog instanceof HTMLElement
+        && (dialog.classList.contains('career-dialog') || dialog.classList.contains('quote-dialog'));
+}
+
+function anySiteDialogOpen() {
+    return Boolean(document.querySelector('.career-dialog.is-open, .quote-dialog.is-open'));
+}
+
 function openCareerDialog(dialog) {
-    if (! (dialog instanceof HTMLElement) || ! dialog.classList.contains('career-dialog')) {
+    if (! isSiteDialog(dialog)) {
         return;
     }
 
@@ -274,24 +283,36 @@ function openCareerDialog(dialog) {
     }
 
     dialog.hidden = false;
-    dialog.classList.add('is-open');
     dialog.setAttribute('aria-hidden', 'false');
+    void dialog.offsetWidth;
+    dialog.classList.add('is-open');
     document.documentElement.classList.add('overflow-hidden');
 
-    const closeBtn = dialog.querySelector('[data-dialog-close]:not(.career-dialog__backdrop)');
+    const closeBtn = dialog.querySelector('[data-dialog-close]:not(.career-dialog__backdrop):not(.quote-dialog__backdrop)');
     queueMicrotask(() => closeBtn?.focus?.());
 }
 
 function closeCareerDialog(dialog) {
-    if (! (dialog instanceof HTMLElement) || ! dialog.classList.contains('career-dialog')) {
+    if (! isSiteDialog(dialog)) {
         return;
     }
 
     dialog.classList.remove('is-open');
-    dialog.hidden = true;
     dialog.setAttribute('aria-hidden', 'true');
 
-    if (! document.querySelector('.career-dialog.is-open')) {
+    const hide = () => {
+        if (! dialog.classList.contains('is-open')) {
+            dialog.hidden = true;
+        }
+    };
+
+    if (dialog.classList.contains('quote-dialog')) {
+        window.setTimeout(hide, 280);
+    } else {
+        hide();
+    }
+
+    if (! anySiteDialogOpen()) {
         document.documentElement.classList.remove('overflow-hidden');
     }
 }
@@ -302,11 +323,13 @@ function initDialogs() {
     }
     document.documentElement.dataset.careerDialogsBound = '1';
 
-    document.querySelectorAll('.career-dialog').forEach((dialog) => {
+    document.querySelectorAll('.career-dialog, .quote-dialog').forEach((dialog) => {
         if (dialog.parentElement !== document.body) {
             document.body.appendChild(dialog);
         }
-        closeCareerDialog(dialog);
+        dialog.classList.remove('is-open');
+        dialog.hidden = true;
+        dialog.setAttribute('aria-hidden', 'true');
     });
 
     document.addEventListener('click', (event) => {
@@ -322,7 +345,7 @@ function initDialogs() {
 
         const closeBtn = event.target.closest?.('[data-dialog-close]');
         if (closeBtn) {
-            const dialog = closeBtn.closest('.career-dialog');
+            const dialog = closeBtn.closest('.career-dialog, .quote-dialog');
             if (! dialog) {
                 return;
             }
@@ -342,7 +365,7 @@ function initDialogs() {
             return;
         }
 
-        document.querySelectorAll('.career-dialog.is-open').forEach((dialog) => {
+        document.querySelectorAll('.career-dialog.is-open, .quote-dialog.is-open').forEach((dialog) => {
             closeCareerDialog(dialog);
         });
     });

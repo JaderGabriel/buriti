@@ -29,6 +29,7 @@ class TestimonialFactory extends Factory
             'status' => TestimonialStatus::Invited,
             'invite_token_hash' => TestimonialSeal::hashInviteToken(TestimonialSeal::newInviteToken()),
             'invite_expires_at' => now()->addDays(30),
+            'is_sample' => false,
         ];
     }
 
@@ -72,6 +73,11 @@ class TestimonialFactory extends Factory
             'published_display_name' => $attrs['original_display_name'] ?? 'Maria Cliente',
             'moderated_at' => now(),
         ]);
+    }
+
+    public function sample(): static
+    {
+        return $this->state(fn () => ['is_sample' => true]);
     }
 
     public function archived(): static

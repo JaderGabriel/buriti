@@ -6,7 +6,7 @@
         <div>
             <p class="crm-workspace__eyebrow">Entrega · Qualidade</p>
             <h1 class="crm-workspace__title">Depoimentos</h1>
-            <p class="crm-workspace__lead">O cliente escreve e sela o original. O admin medeia o texto publicado e pode vincular o projeto. Nada disso aparece no site público ainda.</p>
+            <p class="crm-workspace__lead">O cliente escreve e sela o original. O admin medeia o texto publicado e pode vincular o projeto. Aprovados com selo íntegro entram na faixa da home e no modal do projeto.</p>
         </div>
         <div class="crm-workspace__actions">
             <a href="{{ route('testimonials.seal') }}" class="pm-btn pm-btn--ghost" target="_blank" rel="noopener">
@@ -19,6 +19,8 @@
             </a>
         </div>
     </div>
+
+    @include('admin.testimonials.partials.sample-tools')
 
     <div class="crm-status-strip mb-5">
         @foreach(\App\Enums\TestimonialStatus::cases() as $status)
@@ -73,6 +75,9 @@
                                 @endif
                             </small>
                         </span>
+                        @if($item->is_sample)
+                            <span class="testimonial-sample-chip">Amostra</span>
+                        @endif
                         <x-admin.crm-badge :status="$item->status" compact />
                     </a>
                 </li>

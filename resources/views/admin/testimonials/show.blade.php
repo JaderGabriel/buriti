@@ -22,6 +22,9 @@
                 <h1 class="contact-dossier__title">{{ $testimonial->displayName() }}</h1>
                 <div class="contact-dossier__tags">
                     <x-admin.crm-badge :status="$testimonial->status" />
+                    @if($testimonial->is_sample)
+                        <span class="testimonial-sample-chip">Amostra de teste</span>
+                    @endif
                     <span class="contact-dossier__chip">
                         <x-ui.icon name="diagnose" class="h-3.5 w-3.5" />
                         Selo {{ $testimonial->verification_code ?: 'pendente' }}
@@ -271,6 +274,8 @@
         </div>
 
         <aside class="contact-dossier__aside space-y-4">
+            @include('admin.testimonials.partials.sample-tools')
+
             <article class="contact-conduct__panel contact-conduct__panel--projects">
                 <div class="contact-conduct__panel-head">
                     <span class="contact-conduct__badge contact-conduct__badge--project">

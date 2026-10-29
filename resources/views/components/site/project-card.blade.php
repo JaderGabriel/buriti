@@ -1,4 +1,9 @@
 @props(['project', 'featured' => false])
+@php
+    $quotes = $project->relationLoaded('approvedPublicTestimonials')
+        ? $project->approvedPublicTestimonials
+        : collect();
+@endphp
 
 <article {{ $attributes->merge(['class' => 'site-card group flex h-full flex-col gap-4 p-5 transition sm:p-6'.($featured ? ' home-featured__card' : '')]) }}>
     <div class="flex items-start gap-4">
@@ -14,6 +19,12 @@
                 @if($featured)
                     <span class="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-200">
                         ★ Destaque
+                    </span>
+                @endif
+                @if($quotes->isNotEmpty())
+                    <span class="quote-flag" title="Há depoimento aprovado neste projeto">
+                        <x-ui.icon name="quote" class="h-3 w-3" />
+                        {{ $quotes->count() }}
                     </span>
                 @endif
                 @if($project->category)
@@ -50,6 +61,16 @@
                 <span class="h-1.5 w-1.5 rounded-full bg-brand-bright"></span>
                 Código confidencial — sem link público
             </span>
+        @endif
+        @if($quotes->isNotEmpty())
+            <button
+                type="button"
+                class="quote-flag__btn"
+                data-dialog-open="quote-project-{{ $project->id }}"
+            >
+                <x-ui.icon name="quote" class="h-4 w-4" />
+                {{ $quotes->count() === 1 ? 'Ver depoimento' : 'Ver depoimentos' }}
+            </button>
         @endif
     </div>
 </article>

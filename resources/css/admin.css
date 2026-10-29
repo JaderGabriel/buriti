@@ -3788,3 +3788,65 @@ html.light .qa-terminal__body { background: #111827; }
     color: #7dcca5;
     background: color-mix(in oklab, #3d9b6e 18%, transparent);
 }
+
+.testimonial-sample-chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.15rem 0.55rem;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #fde68a;
+    background: color-mix(in oklab, #ca8a04 22%, transparent);
+    border: 1px solid color-mix(in oklab, #eab308 40%, transparent);
+}
+
+.testimonial-samples {
+    display: grid;
+    gap: 0.85rem;
+    margin-bottom: 1.25rem;
+    padding: 1rem 1.05rem;
+    border: 1px dashed color-mix(in oklab, #eab308 40%, var(--admin-glass-border, var(--color-line)));
+    border-radius: 0.9rem;
+    background: color-mix(in oklab, #ca8a04 8%, transparent);
+}
+
+.testimonial-samples__kicker {
+    margin: 0;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #fde68a;
+}
+
+.testimonial-samples h3 {
+    margin: 0.2rem 0 0.35rem;
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.testimonial-samples p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--admin-muted);
+}
+
+.testimonial-samples__count {
+    margin-top: 0.45rem !important;
+    font-weight: 700;
+    color: var(--admin-text, inherit);
+}
+
+.testimonial-samples__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.contact-dossier__aside .testimonial-samples {
+    margin-bottom: 0;
+}

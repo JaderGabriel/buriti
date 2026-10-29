@@ -60,6 +60,23 @@ class TestimonialSealTest extends TestCase
         $this->assertTrue($testimonial->fresh()->authenticity()['ok']);
     }
 
+    public function test_sample_flag_is_outside_the_seal_payload(): void
+    {
+        $testimonial = Testimonial::factory()->approved()->sample()->create([
+            'contact_id' => Contact::factory(),
+        ]);
+
+        $source = json_encode(TestimonialSeal::sourcePayload($testimonial));
+        $result = json_encode(TestimonialSeal::resultPayload($testimonial));
+
+        $this->assertTrue($testimonial->is_sample);
+        $this->assertTrue($testimonial->fresh()->authenticity()['ok']);
+        $this->assertStringNotContainsString('is_sample', (string) $source);
+        $this->assertStringNotContainsString('is_sample', (string) $result);
+        $this->assertStringNotContainsString('sample', strtolower((string) $source));
+        $this->assertStringNotContainsString('sample', strtolower((string) $result));
+    }
+
     public function test_inspect_detects_tampered_mac(): void
     {
         $testimonial = Testimonial::factory()->submitted()->create([

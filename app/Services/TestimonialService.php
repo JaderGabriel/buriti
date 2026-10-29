@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ContactStatus;
 use App\Enums\NotificationType;
 use App\Enums\TestimonialStatus;
 use App\Models\Contact;
@@ -10,6 +11,7 @@ use App\Models\Testimonial;
 use App\Models\User;
 use App\Support\TestimonialSeal;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -204,6 +206,154 @@ class TestimonialService
             'token' => $token,
             'url' => route('testimonials.write', $token),
         ];
+    }
+
+    /**
+     * @return Collection<int, Testimonial>
+     */
+    public function publicApproved(): Collection
+    {
+        return Testimonial::query()
+            ->approvedPublic()
+            ->with(['project:id,name,featured_on_home,is_public'])
+            ->leftJoin('projects', 'projects.id', '=', 'testimonials.project_id')
+            ->orderByRaw('CASE WHEN projects.featured_on_home = ? AND projects.is_public = ? THEN 0 ELSE 1 END', [true, true])
+            ->orderByDesc('testimonials.published_stars')
+            ->orderByDesc('testimonials.submitted_at')
+            ->orderByDesc('testimonials.id')
+            ->select('testimonials.*')
+            ->get()
+            ->filter(fn (Testimonial $testimonial) => $testimonial->authenticity()['ok'] === true)
+            ->values();
+    }
+
+    public function sampleCount(): int
+    {
+        return Testimonial::query()->samples()->count();
+    }
+
+    /**
+     * @return Collection<int, Testimonial>
+     */
+    public function plantSamples(User $admin): Collection
+    {
+        $this->purgeSamples();
+
+        $featured = Project::query()->public()->featuredOnHome()->orderBy('featured_sort')->orderBy('id')->first();
+        $other = Project::query()
+            ->public()
+            ->where('featured_on_home', false)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->first();
+
+        if ($featured === null) {
+            $featured = Project::factory()->public()->create([
+                'name' => 'Projeto em destaque (amostra)',
+                'featured_on_home' => true,
+                'information' => 'Projeto sintético só para testar depoimentos na vitrine.',
+            ]);
+        }
+
+        if ($other === null) {
+            $other = Project::factory()->public()->create([
+                'name' => 'Projeto de portfólio (amostra)',
+                'featured_on_home' => false,
+                'information' => 'Projeto sintético só para testar o indicador no card.',
+            ]);
+        }
+
+        $contact = Contact::query()->firstOrCreate(
+            ['email' => 'amostra.depoimentos@buriti.test'],
+            [
+                'name' => 'Cliente de amostra BURI-TI',
+                'status' => ContactStatus::Active,
+                'notes' => 'Contato sintético para testes visuais de depoimento. Pode apagar com as amostras.',
+            ],
+        );
+
+        $rows = [
+            [
+                'project' => $featured,
+                'stars' => 5,
+                'name' => 'Rita Amostra',
+                'body' => 'Entrega no prazo, comunicação clara e o painel ficou simples de usar no dia a dia da equipe.',
+                'submitted' => now()->subDays(2),
+            ],
+            [
+                'project' => $featured,
+                'stars' => 5,
+                'name' => 'Paulo Amostra',
+                'body' => 'O projeto saiu do papel com escopo visível. Cada etapa tinha responsável e o acompanhamento foi próximo.',
+                'submitted' => now()->subDays(8),
+            ],
+            [
+                'project' => $featured,
+                'stars' => 4,
+                'name' => 'Helena Amostra',
+                'body' => 'Integração estável e documentação objetiva. Ajustes pontuais depois da entrega, sempre com retorno rápido.',
+                'submitted' => now()->subDays(16),
+            ],
+            [
+                'project' => $other,
+                'stars' => 4,
+                'name' => 'Carlos Amostra',
+                'body' => 'Sistema sob contrato, com código privado, mas o resultado operacional ficou evidente para a gestão.',
+                'submitted' => now()->subDays(21),
+            ],
+            [
+                'project' => $other,
+                'stars' => 3,
+                'name' => 'Joana Amostra',
+                'body' => 'Bom trabalho técnico. Houve um atraso no início, depois o ritmo de entrega se estabilizou bem.',
+                'submitted' => now()->subDays(40),
+            ],
+        ];
+
+        $created = collect();
+
+        foreach ($rows as $row) {
+            $created->push(Testimonial::factory()->approved()->sample()->create([
+                'contact_id' => $contact->id,
+                'project_id' => $row['project']->id,
+                'company_id' => $row['project']->company_id,
+                'invited_by_user_id' => $admin->id,
+                'moderated_by_user_id' => $admin->id,
+                'original_stars' => $row['stars'],
+                'original_body' => $row['body'],
+                'original_display_name' => $row['name'],
+                'published_stars' => $row['stars'],
+                'published_body' => $row['body'],
+                'published_display_name' => $row['name'],
+                'submitted_at' => $row['submitted'],
+                'moderated_at' => $row['submitted']->copy()->addHour(),
+                'moderation_notes' => 'Amostra de teste visual (is_sample).',
+            ]));
+        }
+
+        $this->audit->record('testimonial.samples.planted', null, [
+            'count' => $created->count(),
+        ], null, $admin->id);
+
+        return $created;
+    }
+
+    public function purgeSamples(?User $admin = null): int
+    {
+        $ids = Testimonial::query()->samples()->pluck('id');
+        $count = $ids->count();
+
+        if ($count === 0) {
+            return 0;
+        }
+
+        Testimonial::query()->whereIn('id', $ids)->delete();
+
+        $this->audit->record('testimonial.samples.purged', null, [
+            'count' => $count,
+        ], null, $admin?->id);
+
+        return $count;
     }
 
     public function findByVerificationCode(string $code): ?Testimonial

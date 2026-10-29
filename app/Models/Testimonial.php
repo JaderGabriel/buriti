@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\TestimonialStatus;
 use App\Support\TestimonialSeal;
 use Database\Factories\TestimonialFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -39,6 +40,7 @@ class Testimonial extends Model
         'result_digest',
         'seal',
         'verification_code',
+        'is_sample',
     ];
 
     protected function casts(): array
@@ -50,6 +52,7 @@ class Testimonial extends Model
             'invite_expires_at' => 'datetime',
             'submitted_at' => 'datetime',
             'moderated_at' => 'datetime',
+            'is_sample' => 'boolean',
         ];
     }
 
@@ -76,6 +79,26 @@ class Testimonial extends Model
     public function moderatedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'moderated_by_user_id');
+    }
+
+    public function scopeApprovedPublic(Builder $query): Builder
+    {
+        $table = $query->getModel()->getTable();
+
+        return $query
+            ->where($table.'.status', TestimonialStatus::Approved)
+            ->whereNotNull($table.'.published_body')
+            ->whereNotNull($table.'.seal');
+    }
+
+    public function scopeSamples(Builder $query): Builder
+    {
+        return $query->where('is_sample', true);
+    }
+
+    public function publishedQuote(): string
+    {
+        return (string) ($this->published_body ?: $this->original_body ?: '');
     }
 
     public function isOpenInvite(): bool
