@@ -1538,24 +1538,16 @@ async function passkeyPostJson(url, body) {
 function initPasskeyLogin() {
     const root = document.querySelector('[data-passkey-login]');
     if (! root || ! window.PublicKeyCredential) {
-        root?.setAttribute('hidden', '');
         return;
     }
 
-    const startBtn = root.querySelector('[data-passkey-start]');
-    const label = root.querySelector('[data-passkey-label]');
-    const errorBox = root.querySelector('[data-passkey-error]');
     const optionsUrl = root.getAttribute('data-passkey-options');
     const loginUrl = root.getAttribute('data-passkey-login-url');
-    let abort = null;
+    if (! optionsUrl || ! loginUrl) {
+        return;
+    }
 
-    const showError = (message) => {
-        if (! errorBox) {
-            return;
-        }
-        errorBox.textContent = message;
-        errorBox.classList.toggle('hidden', ! message);
-    };
+    let abort = null;
 
     const finishAssertion = async (credential) => {
         const response = credential.response;
@@ -1571,47 +1563,30 @@ function initPasskeyLogin() {
         window.location.href = data.redirect || '/admin';
     };
 
-    const runGet = async (conditional) => {
-        const options = await passkeyPostJson(optionsUrl, {});
-        abort?.abort();
-        abort = new AbortController();
-        const credential = await navigator.credentials.get({
-            publicKey: passkeyPreparePublicKey(options.publicKey),
-            mediation: conditional ? 'conditional' : 'optional',
-            signal: abort.signal,
-        });
-        if (credential) {
-            await finishAssertion(credential);
-        }
-    };
+    if (! window.PublicKeyCredential.isConditionalMediationAvailable) {
+        return;
+    }
 
-    startBtn?.addEventListener('click', async () => {
-        showError('');
-        startBtn.disabled = true;
-        if (label) {
-            label.textContent = 'Aguardando o aparelho…';
+    window.PublicKeyCredential.isConditionalMediationAvailable().then(async (available) => {
+        if (! available) {
+            return;
         }
         try {
-            await runGet(false);
-        } catch (error) {
-            if (error?.name !== 'NotAllowedError' && error?.name !== 'AbortError') {
-                showError(error.message || 'Não foi possível usar a chave de acesso.');
+            const options = await passkeyPostJson(optionsUrl, {});
+            abort?.abort();
+            abort = new AbortController();
+            const credential = await navigator.credentials.get({
+                publicKey: passkeyPreparePublicKey(options.publicKey),
+                mediation: 'conditional',
+                signal: abort.signal,
+            });
+            if (credential) {
+                await finishAssertion(credential);
             }
-        } finally {
-            startBtn.disabled = false;
-            if (label) {
-                label.textContent = 'Entrar com chave de acesso';
-            }
+        } catch {
+            // Sem chave neste aparelho, o Safari não mostra nada — o login segue com senha.
         }
-    });
-
-    if (window.PublicKeyCredential.isConditionalMediationAvailable) {
-        window.PublicKeyCredential.isConditionalMediationAvailable().then((available) => {
-            if (available) {
-                runGet(true).catch(() => {});
-            }
-        }).catch(() => {});
-    }
+    }).catch(() => {});
 }
 
 function initPasskeyRegister() {
@@ -3645,6 +3620,25 @@ function mailCsrfToken() {
     return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 }
 
+function mailAppUrl(value) {
+    const raw = String(value || '').trim();
+    if (raw === '') {
+        return '';
+    }
+    try {
+        const current = new URL(window.location.href);
+        const resolved = new URL(raw, current);
+        const prefix = current.pathname.match(/^\/public(?=\/|$)/);
+        if (prefix && resolved.origin === current.origin && resolved.pathname.startsWith('/admin/')) {
+            resolved.pathname = `${prefix[0]}${resolved.pathname}`;
+        }
+
+        return resolved.toString();
+    } catch {
+        return raw;
+    }
+}
+
 function mailRecipientField() {
     return {
         field: 'to',
@@ -3778,7 +3772,7 @@ function mailRecipientField() {
             this.abort = controller;
             this.loading = true;
             try {
-                const url = new URL(this.contactsUrl, window.location.href);
+                const url = new URL(mailAppUrl(this.contactsUrl) || this.contactsUrl, window.location.href);
                 url.search = '';
                 if (q !== '') {
                     url.searchParams.set('q', q);

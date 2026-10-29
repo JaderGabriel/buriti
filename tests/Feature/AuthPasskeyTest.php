@@ -29,15 +29,16 @@ class AuthPasskeyTest extends TestCase
         ]);
     }
 
-    public function test_login_page_offers_passkey_without_replacing_password(): void
+    public function test_login_page_does_not_offer_passkey_setup_for_guests(): void
     {
         $this->get(route('login'))
             ->assertOk()
-            ->assertSee('Entrar com chave de acesso', false)
+            ->assertDontSee('Entrar com chave de acesso', false)
+            ->assertDontSee('data-passkey-start', false)
+            ->assertSee('cadastra-se no perfil', false)
             ->assertSee('data-passkey-login', false)
             ->assertSee('autocomplete="username webauthn"', false)
-            ->assertSee('name="password"', false)
-            ->assertSee('Nos outros aparelhos', false);
+            ->assertSee('name="password"', false);
     }
 
     public function test_passkey_options_return_a_challenge(): void
@@ -104,7 +105,21 @@ class AuthPasskeyTest extends TestCase
             ->assertOk()
             ->assertSee('Chave de acesso · iPhone / Safari', false)
             ->assertSee('Adicionar chave de acesso', false)
+            ->assertSee('só se cadastra aqui', false)
             ->assertSee('data-passkey-register', false);
+    }
+
+    public function test_logged_in_user_can_start_passkey_with_password(): void
+    {
+        $this->actingAs($this->admin)
+            ->postJson(route('admin.profile.passkey.options'), [
+                'current_password' => 'secret123',
+            ])
+            ->assertOk()
+            ->assertJsonPath('ok', true)
+            ->assertJsonStructure(['ok', 'publicKey' => ['challenge', 'rp', 'user']]);
+
+        $this->assertTrue(session()->has(PasskeyService::REGISTER_SESSION));
     }
 
     public function test_cannot_start_passkey_without_current_password(): void

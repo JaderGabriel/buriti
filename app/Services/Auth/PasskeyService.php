@@ -23,7 +23,7 @@ class PasskeyService
             throw new RuntimeException('Limite de 8 chaves de acesso por conta.');
         }
 
-        $webAuthn = $this->client();
+        $webAuthn = $this->client($request);
         $exclude = $user->webauthnCredentials()
             ->pluck('credential_id')
             ->map(fn (string $id) => $this->b64urlDecode($id))
@@ -36,19 +36,19 @@ class PasskeyService
             60,
             true,
             true,
-            null,
+            false,
             $exclude,
         );
 
         $request->session()->put(self::REGISTER_SESSION, $this->b64urlEncode($webAuthn->getChallenge()->getBinaryString()));
 
-        return json_decode(json_encode($args, JSON_THROW_ON_ERROR), true, 512, JSON_THROW_ON_ERROR);
+        return $this->encodeOptions($args);
     }
 
     public function register(User $user, Request $request, array $payload): WebauthnCredential
     {
         $challenge = $this->pullChallenge($request, self::REGISTER_SESSION);
-        $webAuthn = $this->client();
+        $webAuthn = $this->client($request);
 
         try {
             $data = $webAuthn->processCreate(
@@ -81,11 +81,11 @@ class PasskeyService
 
     public function assertionOptions(Request $request): array
     {
-        $webAuthn = $this->client();
+        $webAuthn = $this->client($request);
         $args = $webAuthn->getGetArgs([], 60, true, true, true, true, true, true);
         $request->session()->put(self::LOGIN_SESSION, $this->b64urlEncode($webAuthn->getChallenge()->getBinaryString()));
 
-        return json_decode(json_encode($args, JSON_THROW_ON_ERROR), true, 512, JSON_THROW_ON_ERROR);
+        return $this->encodeOptions($args);
     }
 
     public function assert(Request $request, array $payload): User
@@ -110,7 +110,7 @@ class PasskeyService
             throw new RuntimeException('Chave de acesso não reconhecida.');
         }
 
-        $webAuthn = $this->client();
+        $webAuthn = $this->client($request);
 
         try {
             $webAuthn->processGet(
@@ -138,30 +138,51 @@ class PasskeyService
 
     public function supportedOn(Request $request): bool
     {
-        $host = $this->rpId();
+        $host = $this->rpId($request);
 
         if ($host === 'localhost') {
             return true;
         }
 
-        return $request->secure() || $request->getScheme() === 'https';
+        return $request->secure()
+            || $request->getScheme() === 'https'
+            || $request->headers->get('X-Forwarded-Proto') === 'https';
     }
 
-    private function client(): WebAuthn
+    private function client(?Request $request = null): WebAuthn
     {
         return new WebAuthn(
             (string) config('buriti.name', 'BURI-TI'),
-            $this->rpId(),
+            $this->rpId($request),
             ['none', 'packed', 'apple', 'android-key', 'android-safetynet'],
             true,
         );
     }
 
-    private function rpId(): string
+    private function rpId(?Request $request = null): string
     {
-        $host = parse_url((string) config('app.url'), PHP_URL_HOST);
+        foreach ([$request?->getHost(), parse_url((string) config('app.url'), PHP_URL_HOST)] as $host) {
+            if (is_string($host) && $host !== '') {
+                return $host;
+            }
+        }
 
-        return is_string($host) && $host !== '' ? $host : 'localhost';
+        return 'localhost';
+    }
+
+    private function encodeOptions(object $args): array
+    {
+        try {
+            $encoded = json_decode(json_encode($args, JSON_THROW_ON_ERROR), true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $exception) {
+            throw new RuntimeException('Não foi possível iniciar a chave de acesso.', 0, $exception);
+        }
+
+        if (! is_array($encoded) || ! isset($encoded['publicKey']) || ! is_array($encoded['publicKey'])) {
+            throw new RuntimeException('Não foi possível iniciar a chave de acesso.');
+        }
+
+        return $encoded;
     }
 
     private function pullChallenge(Request $request, string $key): string

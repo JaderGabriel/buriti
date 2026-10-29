@@ -367,6 +367,7 @@ class MailboxTest extends TestCase
             ->assertSee('window.mailRecipientField()', false)
             ->assertSee('data-contacts-url="', false)
             ->assertSee('correio/contatos', false)
+            ->assertDontSee('data-contacts-url="/admin/correio/contatos"', false)
             ->assertSee('data-to="ana@exemplo.com"', false)
             ->assertSee('data-mail-picker="to"', false)
             ->assertSee('data-mail-picker="cc"', false)
@@ -459,6 +460,23 @@ class MailboxTest extends TestCase
             ->getJson(route('admin.mailbox.contacts'))
             ->assertOk()
             ->assertJsonPath('contacts.0.email', 'zelia@empresa.com');
+    }
+
+    public function test_compose_contact_search_url_keeps_public_path_prefix(): void
+    {
+        config(['app.url' => 'https://buriti.dev.br/public']);
+        url()->forceRootUrl('https://buriti.dev.br/public');
+
+        $html = view('admin.mailbox.partials.recipient-field', [
+            'field' => 'to',
+            'id' => 'mail-to',
+            'placeholder' => 'Nome, empresa ou e-mail',
+            'seedEmail' => '',
+            'seedName' => '',
+        ])->render();
+
+        $this->assertStringContainsString('/public/admin/correio/contatos', $html);
+        $this->assertStringNotContainsString('data-contacts-url="/admin/correio/contatos"', $html);
     }
 
     public function test_mailbox_folder_search_also_matches_contact_email(): void

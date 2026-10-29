@@ -372,7 +372,7 @@
                             class="mail-compose"
                             enctype="multipart/form-data"
                             x-data="window.mailCompose()"
-                            data-contacts-url="{{ route('admin.mailbox.contacts', absolute: false) }}"
+                            data-contacts-url="{{ route('admin.mailbox.contacts') }}"
                             data-show-cc="{{ $showCc ? '1' : '0' }}"
                             data-show-bcc="{{ $showBcc ? '1' : '0' }}"
                             data-to="{{ old('to', $compose['to'] ?? '') }}"

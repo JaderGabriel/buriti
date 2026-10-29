@@ -284,6 +284,8 @@ class LoginController extends Controller
                 'publicKey' => $this->passkeys->assertionOptions($request)['publicKey'] ?? [],
             ]);
         } catch (\Throwable $exception) {
+            report($exception);
+
             return response()->json([
                 'ok' => false,
                 'message' => 'Não foi possível iniciar a chave de acesso.',

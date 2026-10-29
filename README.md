@@ -52,7 +52,7 @@ Jornada: **Mensagem → Contato → Oportunidade → Projeto → Tarefa**.
 - Senha mínima com letras e números (regra `Password::defaults`)
 - Honeypot no contacto público
 - Login admin por usuário/senha exige 2FA: TOTP nas **Senhas do iPhone** se o método estiver vinculado; senão, código de 6 dígitos no Telegram
-- **Chave de acesso (passkey)** no Safari/iOS: Face ID entra sem o código de 6 dígitos. Cadastro em Perfil, neste aparelho. Outros dispositivos continuam com senha + código
+- **Chave de acesso (passkey)** cadastra-se só no perfil, já autenticado. No Safari/iOS o próximo login pode usar Face ID sem o código; outros dispositivos continuam com senha + código
 - Login admin também via desafio temporário no bot Telegram (sem widget de terceiros na página)
 - Membro de Jirau autentica só com usuário/senha (sem Telegram) e não acessa o CRM
 - Telefones normalizados em E.164 (DDI + DDD + número) em `tel:` e `wa.me` no CRM e no bot

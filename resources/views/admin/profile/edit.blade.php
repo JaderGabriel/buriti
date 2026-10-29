@@ -70,13 +70,13 @@
         <div class="space-y-6">
             <section class="rounded-sm border border-line bg-panel p-5 sm:p-6">
                 <p class="text-xs font-semibold uppercase tracking-[0.14em] text-mist">Verificação em dois fatores</p>
-                <p class="mt-1 text-sm text-mist">A chave de acesso no iPhone entra com Face ID, sem código. Nos outros aparelhos, senha + código (Senhas ou Telegram).</p>
+                <p class="mt-1 text-sm text-mist">A chave de acesso só se cadastra aqui, com a sessão já aberta. No iPhone, o próximo login no Safari usa Face ID e não pede o código. Nos outros aparelhos: senha + código (Senhas ou Telegram).</p>
 
                 <div class="mt-4 space-y-3">
                     <div class="border-b border-line pb-3" data-passkey-register data-passkey-options="{{ route('admin.profile.passkey.options') }}" data-passkey-store="{{ route('admin.profile.passkey.store') }}">
                         <p class="text-sm font-semibold text-snow">Chave de acesso · iPhone / Safari</p>
                         <p class="mt-0.5 text-xs text-mist">
-                            Depois de salvar neste iPhone, o Safari oferece Face ID no login e não pede o código de 6 dígitos. Um computador sem a chave continua com senha e código.
+                            Informe a senha atual e adicione neste aparelho. O Safari passa a oferecer Face ID na tela de login. Um computador sem a chave continua com senha e código.
                         </p>
 
                         @if ($passkeys->isNotEmpty())

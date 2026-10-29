@@ -185,10 +185,14 @@ class ProfileController extends Controller
 
         try {
             $options = $this->passkeys->registrationOptions($request->user(), $request);
-        } catch (\RuntimeException $exception) {
+        } catch (\Throwable $exception) {
+            report($exception);
+
             return response()->json([
                 'ok' => false,
-                'message' => $exception->getMessage(),
+                'message' => $exception instanceof \RuntimeException
+                    ? $exception->getMessage()
+                    : 'Não foi possível iniciar a chave de acesso.',
             ], 422);
         }
 
@@ -206,10 +210,14 @@ class ProfileController extends Controller
 
         try {
             $credential = $this->passkeys->register($request->user(), $request, $request->all());
-        } catch (\RuntimeException $exception) {
+        } catch (\Throwable $exception) {
+            report($exception);
+
             return response()->json([
                 'ok' => false,
-                'message' => $exception->getMessage(),
+                'message' => $exception instanceof \RuntimeException
+                    ? $exception->getMessage()
+                    : 'Não foi possível guardar a chave de acesso.',
             ], 422);
         }
 
