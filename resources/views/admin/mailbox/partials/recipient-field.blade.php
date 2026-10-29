@@ -7,6 +7,7 @@
     data-mail-picker="{{ $field }}"
     data-seed-email="{{ $seedEmail }}"
     data-seed-name="{{ $seedName }}"
+    data-contacts-url="{{ route('admin.mailbox.contacts', absolute: false) }}"
     x-data="mailRecipientField"
 >
     <input type="hidden" name="{{ $field }}" value="{{ $seedEmail }}" :value="joined()">

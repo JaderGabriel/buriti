@@ -1,28 +1,28 @@
 <div class="mail-editor">
     <div class="mail-editor__toolbar" role="toolbar" aria-label="Formatação">
-        <button type="button" class="mail-editor__btn" title="Negrito" @mousedown.prevent="format('bold')">
+        <button type="button" class="mail-editor__btn" title="Negrito" data-mail-format="bold" @mousedown.prevent="format('bold')">
             <x-ui.icon name="bold" class="h-4 w-4" />
         </button>
-        <button type="button" class="mail-editor__btn" title="Itálico" @mousedown.prevent="format('italic')">
+        <button type="button" class="mail-editor__btn" title="Itálico" data-mail-format="italic" @mousedown.prevent="format('italic')">
             <x-ui.icon name="italic" class="h-4 w-4" />
         </button>
-        <button type="button" class="mail-editor__btn" title="Sublinhado" @mousedown.prevent="format('underline')">
+        <button type="button" class="mail-editor__btn" title="Sublinhado" data-mail-format="underline" @mousedown.prevent="format('underline')">
             <x-ui.icon name="underline" class="h-4 w-4" />
         </button>
-        <button type="button" class="mail-editor__btn" title="Tachado" @mousedown.prevent="format('strikeThrough')">
+        <button type="button" class="mail-editor__btn" title="Tachado" data-mail-format="strikeThrough" @mousedown.prevent="format('strikeThrough')">
             <x-ui.icon name="strike" class="h-4 w-4" />
         </button>
         <span class="mail-editor__sep" aria-hidden="true"></span>
-        <button type="button" class="mail-editor__btn" title="Lista" @mousedown.prevent="format('insertUnorderedList')">
+        <button type="button" class="mail-editor__btn" title="Lista" data-mail-format="insertUnorderedList" @mousedown.prevent="format('insertUnorderedList')">
             <x-ui.icon name="list" class="h-4 w-4" />
         </button>
-        <button type="button" class="mail-editor__btn" title="Lista numerada" @mousedown.prevent="format('insertOrderedList')">
+        <button type="button" class="mail-editor__btn" title="Lista numerada" data-mail-format="insertOrderedList" @mousedown.prevent="format('insertOrderedList')">
             <x-ui.icon name="list-ol" class="h-4 w-4" />
         </button>
-        <button type="button" class="mail-editor__btn" title="Citação" @mousedown.prevent="format('formatBlock', 'blockquote')">
+        <button type="button" class="mail-editor__btn" title="Citação" data-mail-format="blockquote" @mousedown.prevent="format('formatBlock', 'blockquote')">
             <x-ui.icon name="quote" class="h-4 w-4" />
         </button>
-        <button type="button" class="mail-editor__btn" title="Link" @mousedown.prevent="insertLink()">
+        <button type="button" class="mail-editor__btn" title="Link" data-mail-format="createLink" @mousedown.prevent="insertLink()">
             <x-ui.icon name="link" class="h-4 w-4" />
         </button>
         <span class="mail-editor__sep" aria-hidden="true"></span>
@@ -33,7 +33,7 @@
             <x-ui.icon name="paperclip" class="h-4 w-4" />
             <span class="mail-editor__badge" x-show="items.length > 0" x-cloak x-text="items.length"></span>
         </button>
-        <button type="button" class="mail-editor__btn" title="Limpar formatação" @mousedown.prevent="format('removeFormat')">
+        <button type="button" class="mail-editor__btn" title="Limpar formatação" data-mail-format="removeFormat" @mousedown.prevent="format('removeFormat')">
             <x-ui.icon name="eraser" class="h-4 w-4" />
         </button>
     </div>
@@ -46,6 +46,9 @@
         data-placeholder="Escreva a mensagem…"
         x-ref="editor"
         @input="syncEditor()"
+        @mouseup="rememberSelection()"
+        @keyup="rememberSelection()"
+        @focus="rememberSelection()"
         @paste="onPaste($event)"
         @dragover.prevent
         @drop.prevent="onDrop($event)"

@@ -3445,13 +3445,16 @@ function mailRecipientField() {
         open: false,
         active: -1,
         loading: false,
+        fail: '',
         timer: 0,
         abort: null,
         tick: 0,
         init() {
             const el = this.$el;
             this.field = el.getAttribute('data-mail-picker') || 'to';
-            this.contactsUrl = el.closest('[data-contacts-url]')?.getAttribute('data-contacts-url') || '';
+            this.contactsUrl = el.getAttribute('data-contacts-url')
+                || el.closest('[data-contacts-url]')?.getAttribute('data-contacts-url')
+                || '';
             const seeded = parseMailAddresses(el.getAttribute('data-seed-email') || '');
             const label = String(el.getAttribute('data-seed-name') || '').trim();
             if (label !== '' && seeded.length === 1 && seeded[0].name === '') {
@@ -3463,6 +3466,14 @@ function mailRecipientField() {
             };
             window.addEventListener('resize', this.onWin);
             window.addEventListener('scroll', this.onWin, true);
+            this.$nextTick(() => this.mountSuggest());
+        },
+        mountSuggest() {
+            const node = this.$refs.suggest;
+            if (! node || node.parentElement === document.body) {
+                return;
+            }
+            document.body.appendChild(node);
         },
         destroy() {
             window.clearTimeout(this.timer);
@@ -3470,6 +3481,10 @@ function mailRecipientField() {
             if (this.onWin) {
                 window.removeEventListener('resize', this.onWin);
                 window.removeEventListener('scroll', this.onWin, true);
+            }
+            const node = this.$refs.suggest;
+            if (node && node.parentElement === document.body) {
+                node.remove();
             }
         },
         initial(item) {
@@ -3491,6 +3506,9 @@ function mailRecipientField() {
         },
         suggestStyle() {
             this.tick;
+            if (! this.open) {
+                return { display: 'none' };
+            }
             const box = this.$refs.box;
             if (! box) {
                 return { display: 'none' };
@@ -3504,10 +3522,11 @@ function mailRecipientField() {
             const spaceBelow = window.innerHeight - rect.bottom - 12;
             const flip = spaceBelow < 160 && rect.top > spaceBelow;
             const style = {
+                display: 'flex',
                 position: 'fixed',
                 left: `${Math.max(8, left)}px`,
                 width: `${width}px`,
-                zIndex: 90,
+                zIndex: 120,
                 maxHeight: `${Math.max(140, flip ? rect.top - 12 : spaceBelow)}px`,
             };
             if (flip) {
@@ -3533,11 +3552,14 @@ function mailRecipientField() {
             this.timer = window.setTimeout(() => this.fetchHits(q), 60);
         },
         async fetchHits(q) {
+            this.open = true;
+            this.fail = '';
+            this.tick++;
             if (! this.contactsUrl) {
                 this.hits.splice(0, this.hits.length);
                 this.active = -1;
                 this.loading = false;
-                this.open = true;
+                this.fail = 'Busca de contatos indisponível.';
 
                 return;
             }
@@ -3545,7 +3567,6 @@ function mailRecipientField() {
             const controller = new AbortController();
             this.abort = controller;
             this.loading = true;
-            this.open = true;
             try {
                 const url = new URL(this.contactsUrl, window.location.href);
                 url.search = '';
@@ -3562,11 +3583,20 @@ function mailRecipientField() {
                     signal: controller.signal,
                 });
                 if (! response.ok) {
-                    this.loading = false;
+                    this.hits.splice(0, this.hits.length);
+                    this.active = -1;
+                    this.fail = 'Não foi possível buscar contatos.';
 
                     return;
                 }
-                const data = await response.json();
+                const data = await response.json().catch(() => null);
+                if (! data) {
+                    this.hits.splice(0, this.hits.length);
+                    this.active = -1;
+                    this.fail = 'Não foi possível buscar contatos.';
+
+                    return;
+                }
                 const taken = new Set(this.selectedEmails());
                 const next = (Array.isArray(data.contacts) ? data.contacts : [])
                     .filter((hit) => hit?.email && ! taken.has(String(hit.email).toLowerCase()));
@@ -3580,6 +3610,7 @@ function mailRecipientField() {
                 }
                 this.hits.splice(0, this.hits.length);
                 this.active = -1;
+                this.fail = 'Não foi possível buscar contatos.';
             } finally {
                 if (this.abort === controller) {
                     this.loading = false;
@@ -3723,6 +3754,7 @@ function mailCompose() {
         editorEmpty: true,
         sending: false,
         contactsUrl: '',
+        savedRange: null,
         get sizeLabel() {
             return this.formatSize(this.items.reduce((sum, item) => sum + item.size, 0));
         },
@@ -3742,6 +3774,12 @@ function mailCompose() {
             if (this.$refs.editor) {
                 this.$refs.editor.innerHTML = seed !== '' ? seed : '<p><br></p>';
             }
+            try {
+                document.execCommand('defaultParagraphSeparator', false, 'p');
+                document.execCommand('styleWithCSS', false, false);
+            } catch {
+                // ignorar browsers sem o comando
+            }
             this.syncEditor();
         },
         syncEditor() {
@@ -3752,18 +3790,104 @@ function mailCompose() {
             const text = (this.$refs.editor?.innerText || '').replace(/\u00a0/g, ' ').trim();
             this.editorEmpty = text === '';
         },
-        format(command, value) {
-            this.$refs.editor?.focus();
-            try {
-                document.execCommand(command, false, value || null);
-            } catch {
-                // alguns comandos falham em browsers antigos
+        selectionInEditor() {
+            const editor = this.$refs.editor;
+            const sel = window.getSelection();
+            if (! editor || ! sel || sel.rangeCount === 0) {
+                return false;
             }
+            const node = sel.anchorNode;
+
+            return Boolean(node && (editor === node || editor.contains(node)));
+        },
+        rememberSelection() {
+            const sel = window.getSelection();
+            if (! this.selectionInEditor() || ! sel) {
+                return;
+            }
+            this.savedRange = sel.getRangeAt(0).cloneRange();
+        },
+        restoreSelection() {
+            const editor = this.$refs.editor;
+            const sel = window.getSelection();
+            if (! editor || ! sel) {
+                return;
+            }
+            if (this.selectionInEditor() && ! sel.getRangeAt(0).collapsed) {
+                this.savedRange = sel.getRangeAt(0).cloneRange();
+
+                return;
+            }
+            if (! this.savedRange) {
+                return;
+            }
+            editor.focus();
+            sel.removeAllRanges();
+            sel.addRange(this.savedRange);
+        },
+        format(command, value) {
+            this.restoreSelection();
+            let ok = false;
+            try {
+                document.execCommand('styleWithCSS', false, false);
+                if (command === 'formatBlock' && value) {
+                    const tag = String(value).replace(/[<>]/g, '');
+                    ok = document.execCommand('formatBlock', false, tag)
+                        || document.execCommand('formatBlock', false, '<'+tag+'>');
+                } else {
+                    ok = document.execCommand(command, false, value || null);
+                }
+            } catch {
+                ok = false;
+            }
+            if (! ok) {
+                this.formatFallback(command, value);
+            }
+            this.rememberSelection();
             this.syncEditor();
         },
+        formatFallback(command, value) {
+            const sel = window.getSelection();
+            if (! sel || sel.rangeCount === 0) {
+                return;
+            }
+            const range = sel.getRangeAt(0);
+            if (command === 'createLink' && value) {
+                const link = document.createElement('a');
+                link.href = String(value);
+                link.target = '_blank';
+                link.rel = 'noopener';
+                if (range.collapsed) {
+                    link.textContent = String(value);
+                    range.insertNode(link);
+                } else {
+                    link.appendChild(range.extractContents());
+                    range.insertNode(link);
+                }
+                return;
+            }
+            const tag = { bold: 'strong', italic: 'em', underline: 'u', strikeThrough: 's' }[command];
+            if (! tag || range.collapsed) {
+                return;
+            }
+            try {
+                const wrap = document.createElement(tag);
+                wrap.appendChild(range.extractContents());
+                range.insertNode(wrap);
+                sel.removeAllRanges();
+                const next = document.createRange();
+                next.selectNodeContents(wrap);
+                sel.addRange(next);
+            } catch {
+                // seleção a atravessar vários nós
+            }
+        },
         insertLink() {
+            this.rememberSelection();
             const raw = window.prompt('Endereço do link', 'https://');
             if (! raw) {
+                this.restoreSelection();
+
                 return;
             }
             const url = raw.trim();

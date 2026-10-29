@@ -1775,7 +1775,7 @@ html.dark .postit-lilac {
 }
 
 .mail-suggest {
-    display: flex;
+    display: none;
     flex-direction: column;
     gap: 0.15rem;
     margin: 0;
@@ -1787,6 +1787,16 @@ html.dark .postit-lilac {
     background: color-mix(in oklab, var(--color-panel) 92%, var(--color-ink));
     box-shadow: 0 22px 48px color-mix(in oklab, #000 42%, transparent);
     backdrop-filter: blur(16px);
+}
+
+.mail-suggest__kicker {
+    margin: 0;
+    padding: 0.35rem 0.7rem 0.2rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-mist);
 }
 
 .mail-suggest__status {
