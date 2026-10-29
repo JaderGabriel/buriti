@@ -178,7 +178,7 @@ final class AdminNavigation
                     [
                         'route' => 'admin.settings.mail',
                         'label' => 'E-mail',
-                        'pattern' => ['admin.settings.mail', 'admin.settings.mail.update', 'admin.settings.mail.test'],
+                        'pattern' => ['admin.settings.mail', 'admin.settings.mail.update', 'admin.settings.mail.test', 'admin.settings.mail.inbox'],
                         'icon' => 'mail',
                     ],
                     [
@@ -320,7 +320,7 @@ final class AdminNavigation
             'admin.users.index' => 'users usuarios',
             'admin.integrations.edit' => 'google telegram integracoes',
             'admin.settings.edit' => 'settings config configuracoes',
-            'admin.settings.mail' => 'email smtp mailer teste envio caixa',
+            'admin.settings.mail' => 'email smtp imap mailer teste envio caixa enviados recebidos',
             'admin.roadmap.show' => 'roadmap produto ideias concorrentes pipedrive hubspot modulos',
             'admin.qa.index' => 'testes phpunit suite telegram qa laboratorio probes relatorios comercial jirau site migrations google unitario depoimentos selo autenticidade',
         ][$key] ?? '';

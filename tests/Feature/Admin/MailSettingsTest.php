@@ -5,6 +5,7 @@ namespace Tests\Feature\Admin;
 use App\Mail\TestMail;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\MailboxStore;
 use App\Services\SettingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -32,7 +33,7 @@ class MailSettingsTest extends TestCase
         $this->actingAs($this->admin)
             ->get(route('admin.settings.edit'))
             ->assertOk()
-            ->assertSee('E-mail (SMTP e teste)', false)
+            ->assertSee('E-mail (SMTP, IMAP e teste)', false)
             ->assertSee(route('admin.settings.mail'), false);
 
         $this->actingAs($this->admin)
@@ -41,7 +42,8 @@ class MailSettingsTest extends TestCase
             ->assertSee('E-mail', false)
             ->assertSee('Enviar e-mail de teste', false)
             ->assertSee('não são enviados por e-mail', false)
-            ->assertSee('Convites de depoimento', false);
+            ->assertSee('Convites de depoimento', false)
+            ->assertSee('Abrir caixa', false);
 
         $this->actingAs($this->admin)
             ->getJson(route('admin.search', ['q' => 'smtp']))
@@ -58,6 +60,9 @@ class MailSettingsTest extends TestCase
         $this->get(route('admin.settings.mail'))
             ->assertRedirect(route('login'));
 
+        $this->post(route('admin.settings.mail.inbox'))
+            ->assertRedirect(route('login'));
+
         $staff = User::factory()->withoutAdminAccess()->create();
 
         $this->actingAs($staff)
@@ -68,6 +73,10 @@ class MailSettingsTest extends TestCase
             ->put(route('admin.settings.mail.update'), [
                 'mail_mailer' => 'log',
             ])
+            ->assertRedirect(route('jirau.home'));
+
+        $this->actingAs($staff)
+            ->post(route('admin.settings.mail.inbox'))
             ->assertRedirect(route('jirau.home'));
     }
 
@@ -153,6 +162,98 @@ class MailSettingsTest extends TestCase
             ->assertRedirect(route('jirau.home'));
 
         Mail::assertNothingSent();
+    }
+
+    public function test_update_rejects_gmail_from_unless_host_is_gmail_smtp(): void
+    {
+        $this->actingAs($this->admin)
+            ->from(route('admin.settings.mail'))
+            ->put(route('admin.settings.mail.update'), [
+                'mail_mailer' => 'smtp',
+                'mail_host' => '127.0.0.1',
+                'mail_port' => '25',
+                'mail_encryption' => 'none',
+                'mail_from_address' => 'jadergabriel8@gmail.com',
+                'mail_from_name' => 'BURI-TI',
+            ])
+            ->assertRedirect(route('admin.settings.mail'))
+            ->assertSessionHasErrors('mail_from_address');
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.settings.mail.update'), [
+                'mail_mailer' => 'smtp',
+                'mail_host' => 'smtp.gmail.com',
+                'mail_port' => '587',
+                'mail_encryption' => 'tls',
+                'mail_username' => 'jadergabriel8@gmail.com',
+                'mail_from_address' => 'jadergabriel8@gmail.com',
+                'mail_from_name' => 'BURI-TI',
+            ])
+            ->assertRedirect(route('admin.settings.mail'))
+            ->assertSessionHas('success')
+            ->assertSessionDoesntHaveErrors();
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.settings.mail.update'), [
+                'mail_mailer' => 'smtp',
+                'mail_host' => 'mail.exemplo.com',
+                'mail_port' => '587',
+                'mail_encryption' => 'tls',
+                'mail_username' => 'contato@exemplo.com',
+                'mail_from_address' => 'jadergabriel8@gmail.com',
+                'mail_from_name' => 'BURI-TI',
+            ])
+            ->assertRedirect(route('admin.settings.mail'))
+            ->assertSessionHas('success')
+            ->assertSessionDoesntHaveErrors();
+
+        $this->assertSame('contato@exemplo.com', app(SettingService::class)->get('mail_from_address'));
+        $this->assertSame('contato@exemplo.com', config('mail.from.address'));
+    }
+
+    public function test_send_test_is_blocked_for_gmail_from_without_gmail_smtp(): void
+    {
+        app(SettingService::class)->putMany([
+            'mail_mailer' => 'sendmail',
+            'mail_from_address' => 'jadergabriel8@gmail.com',
+        ]);
+
+        Mail::fake();
+
+        $this->actingAs($this->admin)
+            ->from(route('admin.settings.mail'))
+            ->post(route('admin.settings.mail.test'), [
+                'to' => 'qa@exemplo.com',
+            ])
+            ->assertRedirect(route('admin.settings.mail'))
+            ->assertSessionHas('error');
+
+        Mail::assertNothingSent();
+    }
+
+    public function test_admin_can_preview_inbox_via_imap(): void
+    {
+        $store = \Mockery::mock(MailboxStore::class);
+        $store->shouldReceive('recentInbox')->once()->with(8)->andReturn([
+            ['from' => 'ana@exemplo.com', 'subject' => 'Ola', 'date' => 'hoje'],
+        ]);
+        $this->app->instance(MailboxStore::class, $store);
+
+        $this->actingAs($this->admin)
+            ->from(route('admin.settings.mail'))
+            ->post(route('admin.settings.mail.inbox'))
+            ->assertRedirect(route('admin.settings.mail'))
+            ->assertSessionHas('success')
+            ->assertSessionHas('mail_inbox');
+    }
+
+    public function test_mail_page_explains_gmail_authentication(): void
+    {
+        $this->actingAs($this->admin)
+            ->get(route('admin.settings.mail'))
+            ->assertOk()
+            ->assertSee('550 5.7.26', false)
+            ->assertSee('contato@localhost', false);
     }
 
     public function test_update_rejects_invalid_mailer_port_and_from(): void

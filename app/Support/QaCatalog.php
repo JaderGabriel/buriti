@@ -94,13 +94,15 @@ final class QaCatalog
                         'suite.mail',
                         'suite',
                         'Suíte E-mail',
-                        'SMTP do painel, overlay das settings e e-mail de teste. Convites não disparam.',
+                        'SMTP/IMAP da conta, overlay das settings e e-mail de teste. Convites não disparam.',
                         'mail',
                         null,
                         'phpunit',
                         ['args' => [
                             'tests/Feature/Admin/MailSettingsTest.php',
                             'tests/Unit/MailSettingsServiceTest.php',
+                            'tests/Unit/ImapClientTest.php',
+                            'tests/Unit/ImapMailboxStoreTest.php',
                         ]],
                     ),
                     self::command(
@@ -447,7 +449,7 @@ final class QaCatalog
                 'id' => 'email',
                 'label' => 'E-mail',
                 'icon' => 'mail',
-                'description' => 'SMTP do painel e e-mail de teste. Convites de depoimento continuam só com link para copiar.',
+                'description' => 'SMTP/IMAP da conta do painel e e-mail de teste. Convites de depoimento continuam só com link para copiar.',
                 'commands' => [
                     self::command(
                         'mail.health',
@@ -462,6 +464,7 @@ final class QaCatalog
                                 'admin.settings.mail',
                                 'admin.settings.mail.update',
                                 'admin.settings.mail.test',
+                                'admin.settings.mail.inbox',
                             ],
                             'views' => [
                                 'admin.settings.mail',

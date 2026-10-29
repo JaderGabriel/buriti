@@ -8,7 +8,7 @@
         </div>
         <a href="{{ route('admin.settings.mail') }}" class="pm-btn pm-btn--ghost">
             <x-ui.icon name="mail" class="h-4 w-4" />
-            E-mail (SMTP e teste)
+            E-mail (SMTP, IMAP e teste)
         </a>
     </div>
 

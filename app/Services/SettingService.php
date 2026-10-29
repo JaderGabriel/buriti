@@ -43,6 +43,10 @@ class SettingService
         'mail_username',
         'mail_from_address',
         'mail_from_name',
+        'mail_imap_host',
+        'mail_imap_port',
+        'mail_imap_encryption',
+        'mail_imap_sent_folder',
     ];
 
     /** @var list<string> */
@@ -197,6 +201,10 @@ class SettingService
             'mail_username' => null,
             'mail_from_address' => null,
             'mail_from_name' => null,
+            'mail_imap_host' => null,
+            'mail_imap_port' => null,
+            'mail_imap_encryption' => null,
+            'mail_imap_sent_folder' => null,
         ];
     }
 

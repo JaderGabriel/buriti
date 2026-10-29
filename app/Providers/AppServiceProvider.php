@@ -5,6 +5,8 @@ namespace App\Providers;
 use App\Models\JirauCard;
 use App\Models\Opportunity;
 use App\Observers\OpportunityObserver;
+use App\Services\ImapMailboxStore;
+use App\Services\MailboxStore;
 use App\Services\MailSettingsService;
 use App\Services\SettingService;
 use App\Support\RuntimeVersions;
@@ -25,6 +27,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(SettingService::class);
+        $this->app->singleton(MailboxStore::class, ImapMailboxStore::class);
 
         // Must run before routes boot — route:cache + APP_URL subpath breaks GET /.
         SubdirectoryRouteCacheGuard::clearIncompatibleCache();

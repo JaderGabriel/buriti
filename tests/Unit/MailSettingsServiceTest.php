@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Mail\TestMail;
 use App\Models\User;
+use App\Services\MailboxStore;
 use App\Services\MailSettingsService;
 use App\Services\SettingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -24,7 +25,7 @@ class MailSettingsServiceTest extends TestCase
             'mail_port' => '465',
             'mail_encryption' => 'ssl',
             'mail_username' => 'nao-responda@exemplo.com',
-            'mail_from_address' => 'nao-responda@exemplo.com',
+            'mail_from_address' => 'outro@exemplo.com',
             'mail_from_name' => 'BURI-TI',
         ]);
         $settings->putSecret('mail_password', 'segredo-smtp');
@@ -38,6 +39,7 @@ class MailSettingsServiceTest extends TestCase
         $this->assertSame('nao-responda@exemplo.com', config('mail.mailers.smtp.username'));
         $this->assertSame('segredo-smtp', config('mail.mailers.smtp.password'));
         $this->assertSame('nao-responda@exemplo.com', config('mail.from.address'));
+        $this->assertNotSame('outro@exemplo.com', config('mail.from.address'));
         $this->assertSame('BURI-TI', config('mail.from.name'));
     }
 
@@ -63,6 +65,7 @@ class MailSettingsServiceTest extends TestCase
             'mail_host' => 'smtp.exemplo.com',
             'mail_port' => '587',
             'mail_encryption' => 'tls',
+            'mail_username' => 'nao-responda@exemplo.com',
             'mail_from_address' => 'nao-responda@exemplo.com',
         ]);
         $settings->putSecret('mail_password', 'nao-pode-aparecer');
@@ -70,8 +73,11 @@ class MailSettingsServiceTest extends TestCase
         $snap = app(MailSettingsService::class)->snapshot();
 
         $this->assertTrue($snap['ready']);
+        $this->assertTrue($snap['aligned']);
+        $this->assertSame([], $snap['warnings']);
         $this->assertTrue($snap['has_password']);
-        $this->assertSame('SMTP pronto', $snap['label']);
+        $this->assertSame('Conta pronta', $snap['label']);
+        $this->assertSame('imap.exemplo.com', $snap['imap_host']);
         $this->assertArrayNotHasKey('password', $snap);
         $this->assertArrayNotHasKey('mail_password', $snap);
         $this->assertStringNotContainsString('nao-pode-aparecer', json_encode($snap));
@@ -102,6 +108,84 @@ class MailSettingsServiceTest extends TestCase
         ]);
     }
 
+    public function test_gmail_from_requires_gmail_smtp(): void
+    {
+        $this->assertNotNull(MailSettingsService::fromAlignmentIssue(
+            'jadergabriel8@gmail.com',
+            'sendmail',
+            '',
+        ));
+        $this->assertNotNull(MailSettingsService::fromAlignmentIssue(
+            'jadergabriel8@gmail.com',
+            'smtp',
+            'localhost',
+        ));
+        $this->assertNull(MailSettingsService::fromAlignmentIssue(
+            'jadergabriel8@gmail.com',
+            'smtp',
+            'smtp.gmail.com',
+        ));
+        $this->assertNull(MailSettingsService::fromAlignmentIssue(
+            'contato@buriti.dev.br',
+            'smtp',
+            'localhost',
+        ));
+        $this->assertNull(MailSettingsService::fromAlignmentIssue(
+            'jadergabriel8@gmail.com',
+            'log',
+            '',
+        ));
+        $this->assertNotNull(MailSettingsService::identityIssue(
+            'outro@exemplo.com',
+            'smtp',
+            'mail.exemplo.com',
+            'contato@exemplo.com',
+        ));
+        $this->assertNull(MailSettingsService::identityIssue(
+            'contato@exemplo.com',
+            'smtp',
+            'mail.exemplo.com',
+            'contato@exemplo.com',
+        ));
+        $this->assertSame('contato@exemplo.com', MailSettingsService::mailboxAddress('Contato@exemplo.com'));
+    }
+
+    public function test_snapshot_marks_gmail_from_as_not_ready(): void
+    {
+        app(SettingService::class)->putMany([
+            'mail_mailer' => 'smtp',
+            'mail_host' => '127.0.0.1',
+            'mail_from_address' => 'jadergabriel8@gmail.com',
+        ]);
+
+        $snap = app(MailSettingsService::class)->snapshot();
+
+        $this->assertFalse($snap['ready']);
+        $this->assertFalse($snap['aligned']);
+        $this->assertSame('Conta recusada / desalinhada', $snap['label']);
+        $this->assertNotEmpty($snap['warnings']);
+        $this->assertSame('contato@localhost', $snap['suggested_from']);
+    }
+
+    public function test_try_send_test_blocks_gmail_from_on_local_smtp(): void
+    {
+        Mail::fake();
+        app(SettingService::class)->putMany([
+            'mail_mailer' => 'smtp',
+            'mail_host' => '127.0.0.1',
+            'mail_from_address' => 'jadergabriel8@gmail.com',
+        ]);
+
+        $fail = app(MailSettingsService::class)->trySendTest(
+            'qa@exemplo.com',
+            User::factory()->create(),
+        );
+
+        $this->assertFalse($fail['ok']);
+        $this->assertStringContainsString('550 5.7.26', $fail['message']);
+        Mail::assertNothingSent();
+    }
+
     public function test_try_send_test_swallows_transport_errors(): void
     {
         Mail::shouldReceive('to')->once()->andThrow(new RuntimeException('SMTP recusou'));
@@ -113,5 +197,17 @@ class MailSettingsServiceTest extends TestCase
 
         $this->assertFalse($fail['ok']);
         $this->assertStringContainsString('SMTP recusou', $fail['message']);
+    }
+
+    public function test_sent_mail_is_copied_to_mailbox_when_imap_should_archive(): void
+    {
+        $store = \Mockery::mock(MailboxStore::class);
+        $store->shouldReceive('shouldArchiveSent')->once()->andReturn(true);
+        $store->shouldReceive('storeSent')->once()->withArgs(function (string $raw) {
+            return str_contains($raw, 'Subject:') || str_contains($raw, 'e-mail de teste');
+        });
+        $this->app->instance(MailboxStore::class, $store);
+
+        Mail::mailer('array')->to('qa@exemplo.com')->send(new TestMail);
     }
 }

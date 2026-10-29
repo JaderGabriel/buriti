@@ -32,6 +32,9 @@ class MailSettingController extends Controller
         $data['mail_port'] = $request->filled('mail_port')
             ? (string) $request->integer('mail_port')
             : null;
+        $data['mail_imap_port'] = $request->filled('mail_imap_port')
+            ? (string) $request->integer('mail_imap_port')
+            : null;
 
         $this->settings->putMany($data);
 
@@ -54,8 +57,25 @@ class MailSettingController extends Controller
             $request->user(),
         );
 
+        $flash = 'success';
+        if (! $result['ok']) {
+            $flash = 'error';
+        } elseif (str_contains($result['message'], 'cópia IMAP')) {
+            $flash = 'warning';
+        }
+
         return redirect()
             ->route('admin.settings.mail')
-            ->with($result['ok'] ? 'success' : 'error', $result['message']);
+            ->with($flash, $result['message']);
+    }
+
+    public function inbox(): RedirectResponse
+    {
+        $preview = $this->mail->inboxPreview();
+
+        return redirect()
+            ->route('admin.settings.mail')
+            ->with($preview['ok'] ? 'success' : 'error', $preview['message'])
+            ->with('mail_inbox', $preview['messages']);
     }
 }

@@ -356,6 +356,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::post('/configuracoes/email/teste', [MailSettingController::class, 'test'])
         ->middleware('throttle:5,1')
         ->name('settings.mail.test');
+    Route::post('/configuracoes/email/caixa', [MailSettingController::class, 'inbox'])
+        ->middleware('throttle:10,1')
+        ->name('settings.mail.inbox');
 
     Route::get('/google/connect', [GoogleOAuthController::class, 'redirect'])->name('google.connect');
     Route::get('/google/callback', [GoogleOAuthController::class, 'callback'])->name('google.callback');
