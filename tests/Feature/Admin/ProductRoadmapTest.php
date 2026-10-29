@@ -59,7 +59,7 @@ class ProductRoadmapTest extends TestCase
             ->assertSee('Nesta versão', false)
             ->assertSee('Inbox in-app', false)
             ->assertSee('E-mail da conta', false)
-            ->assertSee('MAIL', false)
+            ->assertSee('autocomplete', false)
             ->assertSee('LGPD', false);
     }
 

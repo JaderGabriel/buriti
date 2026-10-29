@@ -1,10 +1,17 @@
 # Roadmap de produto BURI-TI
 
-Ideias de **módulos**, **submódulos** e **recursos** inspirados em concorrentes, com impacto medido sobre o sistema actual (site + CRM + Jirau). A versão visível no admin vem de `config/buriti.php` (`RuntimeVersions`); este ficheiro acompanha o lançamento **1.9 Corrente**.
+Ideias de **módulos**, **submódulos** e **recursos** inspirados em concorrentes, com impacto medido sobre o sistema actual (site + CRM + Jirau). A versão visível no admin vem de `config/buriti.php` (`RuntimeVersions`); este ficheiro acompanha o lançamento **1.10 Porto**.
 
 Este ficheiro é o artefacto no Git. A leitura operacional está em **Sistema → Roadmap** (`/admin/sistema/roadmap`). Complementa a consolidação do CRM em [`CRM-CONSOLIDACAO.md`](CRM-CONSOLIDACAO.md).
 
 Não é um compromisso de entrega. É um mapa para não copiar HubSpot inteiro nem ignorar o que Pipedrive, Accelo e o mercado BR já resolveram.
+
+## Entregue no 1.10 Porto
+
+- Compositor com Para, Cc e Cco em chips: busca nos contatos do CRM enquanto se digita; a lista abre fora do painel (não fica cortada).
+- Responder uma mensagem do site já chega com o nome e o e-mail do formulário.
+- E-mails recebidos e respondidos geram resumo no Telegram e notificação no sistema.
+- Textos do correio e do painel em pt-BR.
 
 ## Entregue no 1.9 Corrente
 

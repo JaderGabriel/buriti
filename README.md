@@ -1,6 +1,6 @@
 # BURI-TI
 
-Site institucional e painel administrativo da **BURI-TI** — *Tecnologia para Pessoas*. Sistema **1.9 Corrente** (site, CRM e Jirau). A versão visível no UI vem de `config/buriti.php` via `RuntimeVersions`.
+Site institucional e painel administrativo da **BURI-TI** — *Tecnologia para Pessoas*. Sistema **1.10 Porto** (site, CRM e Jirau). A versão visível no UI vem de `config/buriti.php` via `RuntimeVersions`.
 
 Stack: **Laravel 13**, **Blade**, **Vite**, **Tailwind CSS 4**, **Alpine.js**, MySQL.
 
@@ -28,7 +28,7 @@ Jornada: **Mensagem → Contato → Oportunidade → Projeto → Tarefa**.
 |---|---|
 | **Dashboard** | KPIs com tendência, mensagens, contactos, agenda, atividades recentes, ideias (post-its); atalhos Meet / Teams / Jitsi |
 | **Mensagens** | Inbox do formulário público; vínculo a contacto / lead |
-| **Correio** | Cliente IMAP da conta SMTP (só admin): pastas, etiquetas, marcadores, ligações CRM; compositor HTML (formatação, imagens inline CID, galeria de anexos com exclusão e indicador de carregamento); autocomplete de contactos; assinatura e aviso LGPD; cópia em Enviados |
+| **Correio** | Cliente IMAP da conta SMTP (só admin): pastas, etiquetas, marcadores, ligações CRM; compositor HTML (Para/Cc/Cco em chips com autocomplete de contatos, formatação, imagens inline CID, galeria de anexos); avisos de e-mail recebido/respondido; assinatura e aviso LGPD; cópia em Enviados |
 | **Empresas** | Cadastro de clientes/organizações |
 | **Contatos** | Agenda telefónica + ficha (hero, timeline, pasta de arquivos, mini-calendário); telefone em E.164 (`tel:` e WhatsApp) |
 | **Atividades** | Notas, chamadas, reuniões, e-mails; vínculo opcional a tarefa/oportunidade; conclusão de reunião **só se marcada** |

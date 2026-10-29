@@ -251,3 +251,7 @@ Fatia de produto, não de consolidação P0–P2: 2FA TOTP nas Senhas do iPhone;
 ### Actualização 29/10/2026 (1.9 Corrente)
 
 Fatia de produto: Correio IMAP exclusivo do admin (pastas, envio, respostas ao site), cópia em Enviados, assinatura e aviso LGPD, busca da pasta isolada da busca do painel, e envio pelo bot (`/correio`, `/email`, `/mensagem responder`). As regras da secção 4 mantêm-se. Pendente de produto (não desta fatia): papéis além de admin, contratos assistidos, SLA de follow-up.
+
+### Actualização 29/10/2026 (1.10 Porto)
+
+Fatia de produto sobre o Correio: destinos em chip (Para/Cc/Cco) com autocomplete de contatos, resposta ao site já preenchida, avisos de e-mail recebido/respondido (Telegram + inbox) e copy em pt-BR. As regras da secção 4 mantêm-se. Pendente de produto (não desta fatia): papéis além de admin, contratos assistidos, SLA de follow-up.

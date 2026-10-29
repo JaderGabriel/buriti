@@ -334,12 +334,12 @@ final class ProductRoadmap
         return [
             'short' => RuntimeVersions::short(),
             'release' => RuntimeVersions::release(),
-            'headline' => 'E-mail da conta, cópia em Enviados e aviso LGPD em cada envio.',
+            'headline' => 'E-mail da conta com destinos em chip, autocomplete de contatos e avisos.',
             'items' => [
-                'Cliente IMAP só para o admin: pastas, leitura, envio, respostas ao site e rascunhos, com a identidade do login SMTP.',
-                'O envio guarda cópia em Enviados (APPEND com tamanho exacto; Gmail/Outlook usam a pasta do provedor).',
-                'Modelo claro com assinatura pronta e rodapé de confidencialidade + Lei nº 13.709/2018 (LGPD).',
-                'Busca da pasta isolada da busca do painel; apagar o critério volta a mostrar todas as mensagens.',
+                'Para, Cc e Cco viram chips com busca nos contatos do CRM; a lista não fica cortada pelo painel.',
+                'Responder uma mensagem do site já chega com o nome e o e-mail do formulário.',
+                'E-mails recebidos e respondidos geram resumo no Telegram e notificação no sistema.',
+                'O cliente IMAP, a cópia em Enviados, a assinatura e o aviso LGPD da 1.9 mantêm-se.',
                 'Bot: /correio, /email e /mensagem responder pela mesma conta.',
             ],
         ];

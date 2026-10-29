@@ -388,20 +388,20 @@
                             <input type="hidden" name="contact_message_id" value="{{ $compose['contact_message_id'] ?? '' }}">
                             <div class="mail-compose__fields">
                                 <div class="mail-compose__row">
-                                    <div class="mail-compose__heading">
-                                        <label for="mail-to">Para</label>
+                                    <label for="mail-to">Para</label>
+                                    <div class="mail-compose__field">
+                                        @include('admin.mailbox.partials.recipient-field', [
+                                            'field' => 'to',
+                                            'id' => 'mail-to',
+                                            'placeholder' => 'Nome, empresa ou e-mail',
+                                            'seedEmail' => old('to', $compose['to'] ?? ''),
+                                            'seedName' => old('to_name', $compose['to_name'] ?? ''),
+                                        ])
                                         <div class="mail-compose__toggles">
                                             <button type="button" class="mail-compose__toggle" @click="showCc = !showCc" :class="{ 'is-on': showCc }" :aria-pressed="showCc">Cc</button>
                                             <button type="button" class="mail-compose__toggle" @click="showBcc = !showBcc" :class="{ 'is-on': showBcc }" :aria-pressed="showBcc">Cco</button>
                                         </div>
                                     </div>
-                                    @include('admin.mailbox.partials.recipient-field', [
-                                        'field' => 'to',
-                                        'id' => 'mail-to',
-                                        'placeholder' => 'Nome, empresa ou e-mail',
-                                        'seedEmail' => old('to', $compose['to'] ?? ''),
-                                        'seedName' => old('to_name', $compose['to_name'] ?? ''),
-                                    ])
                                 </div>
                                 <div class="mail-compose__row" x-show="showCc" x-cloak>
                                     <label for="mail-cc">Cc</label>

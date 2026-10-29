@@ -357,14 +357,20 @@ class MailboxTest extends TestCase
             ->assertSee('Remover anexo', false)
             ->assertSee('enctype="multipart/form-data"', false)
             ->assertSee('mailCompose', false)
+            ->assertSee('mailRecipientField', false)
             ->assertSee('data-contacts-url="', false)
             ->assertSee('correio/contatos', false)
             ->assertSee('data-to="ana@exemplo.com"', false)
+            ->assertSee('data-mail-picker="to"', false)
+            ->assertSee('data-mail-picker="cc"', false)
+            ->assertSee('data-mail-picker="bcc"', false)
+            ->assertSee('data-seed-email="ana@exemplo.com"', false)
+            ->assertSee('x-teleport="body"', false)
             ->assertSee('mail-chips', false)
             ->assertSee('mail-compose-pane', false)
             ->assertSee('mail-compose__fields', false)
             ->assertSee('mail-compose__scroll', false)
-            ->assertSee('mail-compose__heading', false)
+            ->assertSee('mail-compose__field', false)
             ->assertSee('aria-label="Enviar"', false)
             ->assertSee('aria-label="Rascunho"', false)
             ->assertSee('Nome, empresa ou e-mail', false)
@@ -436,6 +442,11 @@ class MailboxTest extends TestCase
             ->getJson(route('admin.mailbox.contacts', ['q' => 'Z']))
             ->assertOk()
             ->assertJsonPath('contacts.0.email', 'zelia@empresa.com');
+
+        $this->actingAs($this->admin)
+            ->getJson(route('admin.mailbox.contacts'))
+            ->assertOk()
+            ->assertJsonPath('contacts.0.email', 'zelia@empresa.com');
     }
 
     public function test_mailbox_folder_search_also_matches_contact_email(): void
@@ -486,7 +497,9 @@ class MailboxTest extends TestCase
             ->assertSee('Resposta ao site', false)
             ->assertSee('data-to="carla@empresa.com"', false)
             ->assertSee('data-to-name="Carla Site"', false)
-            ->assertSee('data-mail-seed-chip', false)
+            ->assertSee('data-seed-email="carla@empresa.com"', false)
+            ->assertSee('data-seed-name="Carla Site"', false)
+            ->assertSee('data-mail-picker="to"', false)
             ->assertSee('Carla Site', false)
             ->assertSee('name="to"', false)
             ->assertSee('value="carla@empresa.com"', false)

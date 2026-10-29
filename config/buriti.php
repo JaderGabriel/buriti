@@ -5,12 +5,12 @@ return [
     | Identidade visual do produto. RuntimeVersions / product_*() / <x-product.release>
     | lêem daqui — mudar versão ou codinome actualiza rodapé, sidebar, títulos e roadmap.
     |
-    | Corrente é o fio de água que sai da nascente e leva a correspondência:
-    | o Correio da conta SMTP, com cópia em Enviados, assinatura e aviso LGPD.
+    | Porto é onde a corrente desemboca: destinos, contatos e avisos
+    | encontram o compositor sem sair do painel.
     */
     'name' => 'BURI-TI',
-    'version' => '1.9',
-    'codename' => 'Corrente',
+    'version' => '1.10',
+    'codename' => 'Porto',
     'tagline' => 'Tecnologia para Pessoas',
 
     'contact' => [

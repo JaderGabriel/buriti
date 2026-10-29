@@ -40,12 +40,12 @@ final class RuntimeVersions
 
     public static function version(): string
     {
-        return trim((string) config('buriti.version', '1.9'));
+        return trim((string) config('buriti.version', '1.10'));
     }
 
     public static function codename(): string
     {
-        return trim((string) config('buriti.codename', 'Corrente'));
+        return trim((string) config('buriti.codename', 'Porto'));
     }
 
     public static function tagline(): string

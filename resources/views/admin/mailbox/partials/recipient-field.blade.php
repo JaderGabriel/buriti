@@ -2,18 +2,23 @@
     $seedEmail = trim((string) ($seedEmail ?? ''));
     $seedName = trim((string) ($seedName ?? ''));
 @endphp
-<div class="mail-picker" @mouseenter="keepOpen()">
-    <input type="hidden" name="{{ $field }}" value="{{ $seedEmail }}" :value="joined('{{ $field }}')">
-    <div class="mail-chips" @click="$refs.{{ $field }}Query?.focus()">
-        @if($seedEmail !== '')
-            <span class="mail-token" data-mail-seed-chip title="{{ $seedEmail }}" x-show="chips.{{ $field }}.length === 0">
-                <span class="mail-token__label">{{ $seedName !== '' ? $seedName : $seedEmail }}</span>
-            </span>
-        @endif
-        <template x-for="(chip, index) in chips.{{ $field }}" :key="chip.email + '-' + index">
+<div
+    class="mail-picker"
+    data-mail-picker="{{ $field }}"
+    data-seed-email="{{ $seedEmail }}"
+    data-seed-name="{{ $seedName }}"
+    x-data="mailRecipientField"
+>
+    <input type="hidden" name="{{ $field }}" value="{{ $seedEmail }}" :value="joined()">
+    <div class="mail-chips" x-ref="box" @click="$refs.query?.focus()">
+        <template x-for="(chip, index) in chips" :key="chip.email + '-' + index">
             <span class="mail-token" :title="chip.email">
-                <span class="mail-token__label" x-text="chip.name || chip.email"></span>
-                <button type="button" class="mail-token__remove" @click.stop="removeChip('{{ $field }}', index)" :aria-label="'Remover ' + (chip.email || '')">×</button>
+                <span class="mail-token__avatar" x-text="initial(chip)"></span>
+                <span class="mail-token__text">
+                    <span class="mail-token__label" x-text="chip.name || chip.email"></span>
+                    <span class="mail-token__email" x-show="chip.name" x-text="chip.email"></span>
+                </span>
+                <button type="button" class="mail-token__remove" @click.stop="removeChip(index)" :aria-label="'Remover ' + (chip.email || '')">×</button>
             </span>
         </template>
         <input
@@ -26,15 +31,15 @@
             spellcheck="false"
             role="combobox"
             aria-autocomplete="list"
-            :aria-expanded="open.{{ $field }} ? 'true' : 'false'"
-            x-model="query.{{ $field }}"
-            x-ref="{{ $field }}Query"
-            @focus="lookup('{{ $field }}', $event.target.value)"
-            @input="lookup('{{ $field }}', $event.target.value)"
-            @keydown="onKey('{{ $field }}', $event)"
-            @blur="onBlur('{{ $field }}')"
+            :aria-expanded="open ? 'true' : 'false'"
+            x-ref="query"
+            @focus="lookup($event.target.value)"
+            @input="lookup($event.target.value)"
+            @keydown="onKey($event)"
+            @keydown.enter.prevent="onEnter($event)"
+            @blur="onBlur()"
             @if($field === 'to')
-                :required="chips.to.length === 0"
+                :required="chips.length === 0"
             @endif
         >
     </div>

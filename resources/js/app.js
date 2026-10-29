@@ -3431,6 +3431,285 @@ function looksLikeEmail(value) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
+function mailCsrfToken() {
+    return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+}
+
+function mailRecipientField() {
+    return {
+        field: 'to',
+        contactsUrl: '',
+        query: '',
+        chips: [],
+        hits: [],
+        open: false,
+        active: -1,
+        loading: false,
+        timer: 0,
+        abort: null,
+        tick: 0,
+        init() {
+            const el = this.$el;
+            this.field = el.getAttribute('data-mail-picker') || 'to';
+            this.contactsUrl = el.closest('[data-contacts-url]')?.getAttribute('data-contacts-url') || '';
+            const seeded = parseMailAddresses(el.getAttribute('data-seed-email') || '');
+            const label = String(el.getAttribute('data-seed-name') || '').trim();
+            if (label !== '' && seeded.length === 1 && seeded[0].name === '') {
+                seeded[0].name = label;
+            }
+            this.chips.splice(0, this.chips.length, ...seeded);
+            this.onWin = () => {
+                this.tick++;
+            };
+            window.addEventListener('resize', this.onWin);
+            window.addEventListener('scroll', this.onWin, true);
+        },
+        destroy() {
+            window.clearTimeout(this.timer);
+            this.abort?.abort();
+            if (this.onWin) {
+                window.removeEventListener('resize', this.onWin);
+                window.removeEventListener('scroll', this.onWin, true);
+            }
+        },
+        initial(item) {
+            const source = String(item?.name || item?.email || '?').trim();
+
+            return (source.charAt(0) || '?').toUpperCase();
+        },
+        joined() {
+            const emails = this.chips.map((chip) => chip.email);
+            const extra = this.query.trim();
+            if (looksLikeEmail(extra) && ! emails.includes(extra.toLowerCase())) {
+                emails.push(extra.toLowerCase());
+            }
+
+            return emails.join(', ');
+        },
+        selectedEmails() {
+            return this.chips.map((chip) => chip.email);
+        },
+        suggestStyle() {
+            this.tick;
+            const box = this.$refs.box;
+            if (! box) {
+                return { display: 'none' };
+            }
+            const rect = box.getBoundingClientRect();
+            const width = Math.min(Math.max(rect.width, 280), window.innerWidth - 16);
+            let left = rect.left;
+            if (left + width > window.innerWidth - 8) {
+                left = Math.max(8, window.innerWidth - width - 8);
+            }
+            const spaceBelow = window.innerHeight - rect.bottom - 12;
+            const flip = spaceBelow < 160 && rect.top > spaceBelow;
+            const style = {
+                position: 'fixed',
+                left: `${Math.max(8, left)}px`,
+                width: `${width}px`,
+                zIndex: 90,
+                maxHeight: `${Math.max(140, flip ? rect.top - 12 : spaceBelow)}px`,
+            };
+            if (flip) {
+                style.bottom = `${window.innerHeight - rect.top + 6}px`;
+                style.top = 'auto';
+            } else {
+                style.top = `${rect.bottom + 6}px`;
+                style.bottom = 'auto';
+            }
+
+            return style;
+        },
+        lookup(typed) {
+            if (typeof typed === 'string') {
+                this.query = typed;
+            } else {
+                this.query = this.$refs.query?.value || this.query;
+            }
+            this.open = true;
+            this.tick++;
+            window.clearTimeout(this.timer);
+            const q = this.query.trim();
+            this.timer = window.setTimeout(() => this.fetchHits(q), 60);
+        },
+        async fetchHits(q) {
+            if (! this.contactsUrl) {
+                this.hits.splice(0, this.hits.length);
+                this.active = -1;
+                this.loading = false;
+                this.open = true;
+
+                return;
+            }
+            this.abort?.abort();
+            const controller = new AbortController();
+            this.abort = controller;
+            this.loading = true;
+            this.open = true;
+            try {
+                const url = new URL(this.contactsUrl, window.location.href);
+                url.search = '';
+                if (q !== '') {
+                    url.searchParams.set('q', q);
+                }
+                const response = await fetch(url.toString(), {
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': mailCsrfToken(),
+                    },
+                    credentials: 'same-origin',
+                    signal: controller.signal,
+                });
+                if (! response.ok) {
+                    this.loading = false;
+
+                    return;
+                }
+                const data = await response.json();
+                const taken = new Set(this.selectedEmails());
+                const next = (Array.isArray(data.contacts) ? data.contacts : [])
+                    .filter((hit) => hit?.email && ! taken.has(String(hit.email).toLowerCase()));
+                this.hits.splice(0, this.hits.length, ...next);
+                this.active = this.hits.length > 0 ? 0 : -1;
+                this.open = true;
+                this.tick++;
+            } catch (error) {
+                if (error?.name === 'AbortError') {
+                    return;
+                }
+                this.hits.splice(0, this.hits.length);
+                this.active = -1;
+            } finally {
+                if (this.abort === controller) {
+                    this.loading = false;
+                }
+            }
+        },
+        addChip(chip) {
+            const email = String(chip.email || '').trim().toLowerCase();
+            if (email === '' || this.selectedEmails().includes(email)) {
+                this.clearQuery();
+                this.open = false;
+
+                return;
+            }
+            this.chips.push({
+                email,
+                name: String(chip.name || '').trim(),
+            });
+            this.clearQuery();
+            this.hits.splice(0, this.hits.length);
+            this.open = false;
+            this.active = -1;
+            this.$nextTick(() => this.$refs.query?.focus());
+        },
+        clearQuery() {
+            this.query = '';
+            if (this.$refs.query) {
+                this.$refs.query.value = '';
+            }
+        },
+        pick(hit) {
+            this.addChip(hit || {});
+        },
+        removeChip(index) {
+            this.chips.splice(index, 1);
+            this.$refs.query?.focus();
+            this.lookup('');
+        },
+        commitTyped() {
+            const typed = this.query.trim().replace(/[,;]+$/, '');
+            if (typed === '') {
+                return false;
+            }
+            const needle = typed.toLowerCase();
+            const match = this.hits.find((hit) => {
+                const blob = `${hit.name} ${hit.email} ${hit.company || ''}`.toLowerCase();
+
+                return hit.email === needle || blob.includes(needle);
+            });
+            if (match) {
+                this.addChip(match);
+
+                return true;
+            }
+            if (looksLikeEmail(typed)) {
+                this.addChip({ email: typed, name: '' });
+
+                return true;
+            }
+
+            return false;
+        },
+        onEnter() {
+            if (this.active >= 0 && this.hits[this.active]) {
+                this.pick(this.hits[this.active]);
+
+                return;
+            }
+            this.commitTyped();
+        },
+        onKey(event) {
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                if (this.hits.length === 0) {
+                    this.lookup(this.query);
+
+                    return;
+                }
+                this.open = true;
+                this.active = (this.active + 1) % this.hits.length;
+
+                return;
+            }
+            if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                if (this.hits.length === 0) {
+                    return;
+                }
+                this.open = true;
+                this.active = (this.active - 1 + this.hits.length) % this.hits.length;
+
+                return;
+            }
+            if (event.key === 'Tab' || event.key === ',' || event.key === ';' || event.key === ' ') {
+                if (event.key === ' ' && ! looksLikeEmail(this.query.trim())) {
+                    return;
+                }
+                if (this.active >= 0 && this.hits[this.active] && event.key !== ' ') {
+                    event.preventDefault();
+                    this.pick(this.hits[this.active]);
+
+                    return;
+                }
+                if (this.commitTyped()) {
+                    event.preventDefault();
+                }
+
+                return;
+            }
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                this.open = false;
+
+                return;
+            }
+            if (event.key === 'Backspace' && this.query === '' && this.chips.length > 0) {
+                this.chips.pop();
+            }
+        },
+        onBlur() {
+            window.setTimeout(() => {
+                if (looksLikeEmail(this.query.trim())) {
+                    this.commitTyped();
+                }
+                this.open = false;
+            }, 160);
+        },
+    };
+}
+
 function mailCompose() {
     const MAIL_ATTACH_MAX = 5;
     const MAIL_ATTACH_BYTES = 10 * 1024 * 1024;
@@ -3444,14 +3723,6 @@ function mailCompose() {
         editorEmpty: true,
         sending: false,
         contactsUrl: '',
-        query: { to: '', cc: '', bcc: '' },
-        chips: { to: [], cc: [], bcc: [] },
-        hits: { to: [], cc: [], bcc: [] },
-        open: { to: false, cc: false, bcc: false },
-        active: { to: -1, cc: -1, bcc: -1 },
-        timers: { to: 0, cc: 0, bcc: 0 },
-        abort: { to: null, cc: null, bcc: null },
-        hideTimer: 0,
         get sizeLabel() {
             return this.formatSize(this.items.reduce((sum, item) => sum + item.size, 0));
         },
@@ -3461,19 +3732,8 @@ function mailCompose() {
         init() {
             const el = this.$el;
             this.contactsUrl = el.getAttribute('data-contacts-url') || '';
-            this.showCc = el.getAttribute('data-show-cc') === '1';
-            this.showBcc = el.getAttribute('data-show-bcc') === '1';
-            this.chips = {
-                to: this.parseSeed(el.getAttribute('data-to') || '', el.getAttribute('data-to-name') || ''),
-                cc: this.parseSeed(el.getAttribute('data-cc') || ''),
-                bcc: this.parseSeed(el.getAttribute('data-bcc') || ''),
-            };
-            if (this.chips.cc.length > 0) {
-                this.showCc = true;
-            }
-            if (this.chips.bcc.length > 0) {
-                this.showBcc = true;
-            }
+            this.showCc = el.getAttribute('data-show-cc') === '1' || (el.getAttribute('data-cc') || '').trim() !== '';
+            this.showBcc = el.getAttribute('data-show-bcc') === '1' || (el.getAttribute('data-bcc') || '').trim() !== '';
             this.syncLoading();
             this.$nextTick(() => this.bootEditor());
         },
@@ -3699,196 +3959,24 @@ function mailCompose() {
 
             return (size / (1024 * 1024)).toFixed(1) + ' MB';
         },
-        parseSeed(raw, name) {
-            const parsed = parseMailAddresses(raw);
-            const label = String(name || '').trim();
-            if (label !== '' && parsed.length === 1 && parsed[0].name === '') {
-                parsed[0].name = label;
+        picker(field) {
+            const node = this.$el.querySelector(`[data-mail-picker="${field}"]`);
+            if (! node || ! window.Alpine?.$data) {
+                return null;
             }
 
-            return parsed;
-        },
-        seed(field, raw, name) {
-            const parsed = this.parseSeed(raw, name);
-            this.chips[field].splice(0, this.chips[field].length, ...parsed);
-            if (parsed.length === 0 && String(raw || '').trim() !== '') {
-                this.query[field] = String(raw).trim();
-            }
-        },
-        joined(field) {
-            const emails = this.chips[field].map((chip) => chip.email);
-            const extra = this.query[field].trim();
-            if (looksLikeEmail(extra) && ! emails.includes(extra.toLowerCase())) {
-                emails.push(extra.toLowerCase());
-            }
-
-            return emails.join(', ');
-        },
-        selectedEmails(field) {
-            return this.chips[field].map((chip) => chip.email);
-        },
-        queryEl(field) {
-            return this.$refs[field + 'Query'];
-        },
-        keepOpen() {
-            window.clearTimeout(this.hideTimer);
-        },
-        lookup(field, typed) {
-            this.keepOpen();
-            this.open[field] = true;
-            if (typeof typed === 'string') {
-                this.query[field] = typed;
-            } else {
-                const live = this.queryEl(field)?.value;
-                if (typeof live === 'string') {
-                    this.query[field] = live;
-                }
-            }
-            window.clearTimeout(this.timers[field]);
-            const q = (this.query[field] || '').trim();
-            this.timers[field] = window.setTimeout(() => this.fetchHits(field, q), 80);
-        },
-        async fetchHits(field, q) {
-            if (! this.contactsUrl) {
-                this.hits[field] = [];
-                this.active[field] = -1;
-
-                return;
-            }
-            this.abort[field]?.abort();
-            const controller = new AbortController();
-            this.abort[field] = controller;
-            try {
-                const url = new URL(this.contactsUrl, window.location.origin);
-                url.search = '';
-                if (q !== '') {
-                    url.searchParams.set('q', q);
-                }
-                const response = await fetch(url.pathname + url.search, {
-                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                    credentials: 'same-origin',
-                    signal: controller.signal,
-                });
-                if (! response.ok) {
-                    return;
-                }
-                const data = await response.json();
-                const taken = new Set(this.selectedEmails(field));
-                this.hits[field] = (Array.isArray(data.contacts) ? data.contacts : [])
-                    .filter((hit) => hit?.email && ! taken.has(String(hit.email).toLowerCase()));
-                this.active[field] = this.hits[field].length > 0 ? 0 : -1;
-                this.open[field] = true;
-            } catch (error) {
-                if (error?.name === 'AbortError') {
-                    return;
-                }
-                this.hits[field] = [];
-                this.active[field] = -1;
-            }
-        },
-        addChip(field, chip) {
-            const email = String(chip.email || '').trim().toLowerCase();
-            if (email === '' || this.selectedEmails(field).includes(email)) {
-                return;
-            }
-            this.chips[field].push({
-                email,
-                name: String(chip.name || '').trim(),
-            });
-            this.query[field] = '';
-            this.open[field] = false;
-            this.active[field] = -1;
-            this.$nextTick(() => this.queryEl(field)?.focus());
-        },
-        pick(field, hit) {
-            this.addChip(field, hit || {});
-        },
-        removeChip(field, index) {
-            this.chips[field].splice(index, 1);
-            this.queryEl(field)?.focus();
-            this.lookup(field);
-        },
-        commitTyped(field) {
-            const typed = this.query[field].trim().replace(/[,;]+$/, '');
-            if (typed === '') {
-                return false;
-            }
-            const match = this.hits[field].find((hit) => {
-                const blob = `${hit.name} ${hit.email} ${hit.company || ''}`.toLowerCase();
-
-                return hit.email === typed.toLowerCase() || blob.includes(typed.toLowerCase());
-            });
-            if (match) {
-                this.addChip(field, match);
-
-                return true;
-            }
-            if (looksLikeEmail(typed)) {
-                this.addChip(field, { email: typed, name: '' });
-
-                return true;
-            }
-
-            return false;
-        },
-        onKey(field, event) {
-            if (event.key === 'ArrowDown') {
-                event.preventDefault();
-                if (this.hits[field].length === 0) {
-                    return;
-                }
-                this.open[field] = true;
-                this.active[field] = (this.active[field] + 1) % this.hits[field].length;
-                return;
-            }
-            if (event.key === 'ArrowUp') {
-                event.preventDefault();
-                if (this.hits[field].length === 0) {
-                    return;
-                }
-                this.open[field] = true;
-                this.active[field] = (this.active[field] - 1 + this.hits[field].length) % this.hits[field].length;
-                return;
-            }
-            if (event.key === 'Enter' || event.key === 'Tab' || event.key === ',' || event.key === ';') {
-                if (event.key !== 'Tab' || this.open[field]) {
-                    if (this.active[field] >= 0 && this.hits[field][this.active[field]]) {
-                        event.preventDefault();
-                        this.pick(field, this.hits[field][this.active[field]]);
-                        return;
-                    }
-                    if (this.commitTyped(field)) {
-                        event.preventDefault();
-                    }
-                }
-                return;
-            }
-            if (event.key === 'Escape') {
-                event.preventDefault();
-                this.open[field] = false;
-                return;
-            }
-            if (event.key === 'Backspace' && this.query[field] === '' && this.chips[field].length > 0) {
-                this.chips[field].pop();
-            }
-        },
-        onBlur(field) {
-            this.hideTimer = window.setTimeout(() => {
-                this.commitTyped(field);
-                this.open[field] = false;
-            }, 180);
+            return window.Alpine.$data(node);
         },
         beforeSubmit(event) {
-            this.commitTyped('to');
-            this.commitTyped('cc');
-            this.commitTyped('bcc');
-            if (this.chips.to.length === 0) {
-                this.seed('to', this.$el.getAttribute('data-to') || '', this.$el.getAttribute('data-to-name') || '');
-            }
-            if (this.chips.to.length === 0) {
+            ['to', 'cc', 'bcc'].forEach((field) => {
+                this.picker(field)?.commitTyped();
+            });
+            const to = this.picker('to');
+            if (! to || to.chips.length === 0) {
                 event.preventDefault();
-                this.$refs.toQuery?.focus();
-                this.lookup('to');
+                this.$el.querySelector('#mail-to')?.focus();
+                to?.lookup('');
+
                 return;
             }
             this.commitInlineSrc();
@@ -3933,6 +4021,7 @@ function mailFolderList(raw) {
 window.buritiWhatsAppField = buritiWhatsAppField;
 window.taskDayCreate = taskDayCreate;
 window.mailCompose = mailCompose;
+window.mailRecipientField = mailRecipientField;
 window.mailFolderList = mailFolderList;
 
 document.addEventListener('alpine:init', () => {
@@ -3940,6 +4029,7 @@ document.addEventListener('alpine:init', () => {
     Alpine.data('buritiWhatsAppField', buritiWhatsAppField);
     Alpine.data('taskDayCreate', taskDayCreate);
     Alpine.data('mailCompose', mailCompose);
+    Alpine.data('mailRecipientField', mailRecipientField);
 });
 
 function initTaskCreateDialog() {
