@@ -265,6 +265,7 @@ class UserSecurityTest extends TestCase
             ->assertOk()
             ->assertSee('Meu perfil', false)
             ->assertSee('Sessões ativas', false)
+            ->assertDontSee('sessãoões', false)
             ->assertSee('Histórico de login', false)
             ->assertSee('Verificação em dois fatores', false)
             ->assertSee('Vincular iPhone', false);
@@ -364,6 +365,8 @@ class UserSecurityTest extends TestCase
             ->get(route('admin.users.index'))
             ->assertOk()
             ->assertSee('Sessões ativas', false)
+            ->assertSee('2 sessões', false)
+            ->assertDontSee('sessãoões', false)
             ->assertSee('Sessão Alvo', false)
             ->assertSee('10.0.0.55', false)
             ->assertSee('Chrome · Windows', false)

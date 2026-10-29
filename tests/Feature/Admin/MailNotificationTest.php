@@ -40,7 +40,7 @@ class MailNotificationTest extends TestCase
             'mail_from_name' => 'BURI-TI',
         ]);
         app(SettingService::class)->putSecret('mail_password', 'segredo-imap');
-        Cache::forget(MailInboxPollService::CURSOR_KEY);
+        Cache::flush();
     }
 
     public function test_sent_mail_posts_telegram_summary_without_inbox_item(): void
@@ -118,23 +118,7 @@ class MailNotificationTest extends TestCase
             'uid' => 4,
         ]);
         $raw = "From: Ada <ada@cliente.com>\r\nSubject: Preciso de proposta\r\n\r\nSegue o briefing do projeto.";
-        $this->scriptImap([
-            '* 5 EXISTS',
-            '* OK [UIDVALIDITY 7]',
-            '* OK [UIDNEXT 6]',
-            'A1 OK SELECT completed',
-            '* 5 EXISTS',
-            'A2 OK SELECT completed',
-            '* SEARCH 5',
-            'A3 OK SEARCH completed',
-            '* 5 EXISTS',
-            'A4 OK SELECT completed',
-            '* 1 FETCH (UID 5 FLAGS () BODY.PEEK[] {'.strlen($raw).'}',
-            ')',
-            'A5 OK Fetch completed',
-            '* BYE',
-            'A6 OK LOGOUT completed',
-        ], $raw);
+        $this->scriptInboxUid(5, $raw);
 
         $result = app(MailInboxPollService::class)->poll();
 
@@ -147,6 +131,87 @@ class MailNotificationTest extends TestCase
         ]);
     }
 
+    public function test_inbox_poll_does_not_notify_same_uid_twice(): void
+    {
+        $raw = "From: Ada <ada@cliente.com>\r\nMessage-ID: <once@exemplo.com>\r\nSubject: Preciso de proposta\r\n\r\nSegue o briefing do projeto.";
+        Cache::forever(MailInboxPollService::CURSOR_KEY, [
+            'uidvalidity' => 7,
+            'uid' => 4,
+        ]);
+        $this->scriptInboxUid(5, $raw);
+
+        $first = app(MailInboxPollService::class)->poll();
+        $this->assertSame(1, $first['notified']);
+
+        Cache::forever(MailInboxPollService::CURSOR_KEY, [
+            'uidvalidity' => 7,
+            'uid' => 4,
+        ]);
+        $this->scriptInboxUid(5, $raw);
+
+        $second = app(MailInboxPollService::class)->poll();
+        $this->assertSame(0, $second['notified']);
+        $this->assertSame(1, $second['skipped']);
+        $this->assertSame(1, $this->telegramSentCount());
+        $this->assertSame(1, UserNotification::query()->where('type', NotificationType::Mail->value)->count());
+    }
+
+    public function test_inbox_poll_skips_copy_with_the_same_message_id(): void
+    {
+        $rawA = "From: Ada <ada@cliente.com>\r\nMessage-ID: <dup@exemplo.com>\r\nSubject: Preciso de proposta\r\n\r\nPrimeira copia.";
+        $rawB = "From: Ada <ada@cliente.com>\r\nMessage-ID: <dup@exemplo.com>\r\nSubject: Preciso de proposta\r\n\r\nSegunda copia.";
+        Cache::forever(MailInboxPollService::CURSOR_KEY, [
+            'uidvalidity' => 7,
+            'uid' => 4,
+        ]);
+        $this->scriptImap([
+            '* 6 EXISTS',
+            '* OK [UIDVALIDITY 7]',
+            '* OK [UIDNEXT 7]',
+            'A1 OK SELECT completed',
+            '* 6 EXISTS',
+            'A2 OK SELECT completed',
+            '* SEARCH 5 6',
+            'A3 OK SEARCH completed',
+            '* 6 EXISTS',
+            'A4 OK SELECT completed',
+            '* 1 FETCH (UID 5 FLAGS () BODY.PEEK[] {'.strlen($rawA).'}',
+            ')',
+            'A5 OK Fetch completed',
+            '* 6 EXISTS',
+            'A6 OK SELECT completed',
+            '* 1 FETCH (UID 6 FLAGS () BODY.PEEK[] {'.strlen($rawB).'}',
+            ')',
+            'A7 OK Fetch completed',
+            '* BYE',
+            'A8 OK LOGOUT completed',
+        ], $rawA.$rawB);
+
+        $result = app(MailInboxPollService::class)->poll();
+
+        $this->assertSame(1, $result['notified']);
+        $this->assertSame(1, $result['skipped']);
+        $this->assertSame(1, $this->telegramSentCount());
+        $this->assertSame(1, UserNotification::query()->where('type', NotificationType::Mail->value)->count());
+    }
+
+    public function test_incoming_telegram_sends_once_when_notify_chat_matches_admin(): void
+    {
+        app(SettingService::class)->putMany([
+            'telegram_notify_chat_id' => '424242',
+        ]);
+
+        app(MailNotificationService::class)->notifyIncoming([
+            'from' => 'Ada <ada@cliente.com>',
+            'subject' => 'Preciso de proposta',
+            'snippet' => 'Segue o briefing do projeto.',
+            'folder' => 'INBOX',
+            'uid' => 8,
+        ]);
+
+        $this->assertSame(1, $this->telegramSentCount());
+    }
+
     public function test_inbox_poll_skips_mail_from_own_address(): void
     {
         Cache::forever(MailInboxPollService::CURSOR_KEY, [
@@ -154,23 +219,7 @@ class MailNotificationTest extends TestCase
             'uid' => 4,
         ]);
         $raw = "From: BURI-TI <contato@exemplo.com>\r\nSubject: Cópia enviada\r\n\r\nTexto próprio.";
-        $this->scriptImap([
-            '* 5 EXISTS',
-            '* OK [UIDVALIDITY 7]',
-            '* OK [UIDNEXT 6]',
-            'A1 OK SELECT completed',
-            '* 5 EXISTS',
-            'A2 OK SELECT completed',
-            '* SEARCH 5',
-            'A3 OK SEARCH completed',
-            '* 5 EXISTS',
-            'A4 OK SELECT completed',
-            '* 1 FETCH (UID 5 FLAGS () BODY.PEEK[] {'.strlen($raw).'}',
-            ')',
-            'A5 OK Fetch completed',
-            '* BYE',
-            'A6 OK LOGOUT completed',
-        ], $raw);
+        $this->scriptInboxUid(5, $raw);
 
         $result = app(MailInboxPollService::class)->poll();
 
@@ -257,6 +306,34 @@ class MailNotificationTest extends TestCase
             '* BYE',
             'A3 OK LOGOUT completed',
         ]);
+    }
+
+    private function scriptInboxUid(int $uid, string $raw): void
+    {
+        $this->scriptImap([
+            '* '.$uid.' EXISTS',
+            '* OK [UIDVALIDITY 7]',
+            '* OK [UIDNEXT '.($uid + 1).']',
+            'A1 OK SELECT completed',
+            '* '.$uid.' EXISTS',
+            'A2 OK SELECT completed',
+            '* SEARCH '.$uid,
+            'A3 OK SEARCH completed',
+            '* '.$uid.' EXISTS',
+            'A4 OK SELECT completed',
+            '* 1 FETCH (UID '.$uid.' FLAGS () BODY.PEEK[] {'.strlen($raw).'}',
+            ')',
+            'A5 OK Fetch completed',
+            '* BYE',
+            'A6 OK LOGOUT completed',
+        ], $raw);
+    }
+
+    private function telegramSentCount(): int
+    {
+        return collect(Http::recorded())->filter(
+            fn ($pair) => str_contains($pair[0]->url(), 'sendMessage')
+        )->count();
     }
 
     /**

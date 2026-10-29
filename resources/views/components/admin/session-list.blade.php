@@ -37,7 +37,7 @@
         </div>
         <div class="flex flex-wrap items-center gap-3">
             <span class="rounded-full bg-white/5 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-mist">
-                {{ $sessions->count() }} sessão{{ $sessions->count() === 1 ? '' : 'ões' }}
+                {{ $sessions->count() }} {{ $sessions->count() === 1 ? 'sessão' : 'sessões' }}
             </span>
             @if($destroyAllUrl && $sessionDriver === 'database' && $sessions->isNotEmpty())
                 <form method="POST" action="{{ $destroyAllUrl }}" data-confirm="{{ $destroyAllConfirm }}">

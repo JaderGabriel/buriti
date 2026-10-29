@@ -151,10 +151,10 @@ class ImapClient
         $this->select($folder);
         $from = max(1, $uid + 1);
 
-        return array_values(array_filter(
+        return array_values(array_unique(array_filter(
             $this->parseSearchUids($this->command('UID SEARCH UID '.$from.':*')),
             fn (int $found) => $found > $uid,
-        ));
+        )));
     }
 
     /**

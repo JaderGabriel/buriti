@@ -169,11 +169,11 @@ class MailNotificationService
             ->where('is_active', true)
             ->whereNotNull('telegram_chat_id')
             ->pluck('telegram_chat_id')
-            ->map(fn ($id) => trim((string) $id))
+            ->map(fn ($id) => self::normalizeChatId((string) $id))
             ->filter()
             ->values();
 
-        $notify = trim((string) ($this->settings->get('telegram_notify_chat_id') ?? ''));
+        $notify = self::normalizeChatId((string) ($this->settings->get('telegram_notify_chat_id') ?? ''));
         if ($notify !== '') {
             $ids->push($notify);
         }
@@ -196,6 +196,13 @@ class MailNotificationService
             $subject !== '' ? $subject : '(sem assunto)',
             $summary !== '' ? $summary : null,
         ]));
+    }
+
+    private static function normalizeChatId(string $id): string
+    {
+        $id = trim($id);
+
+        return preg_match('/^-?\d+$/', $id) === 1 ? $id : '';
     }
 
     private static function escape(string $value): string
