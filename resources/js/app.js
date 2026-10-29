@@ -1515,7 +1515,7 @@ function passkeyPreparePublicKey(publicKey) {
 }
 
 async function passkeyPostJson(url, body) {
-    const response = await fetch(url, {
+    const response = await fetch(mailAppUrl(url) || url, {
         method: 'POST',
         credentials: 'same-origin',
         headers: {
@@ -1524,7 +1524,7 @@ async function passkeyPostJson(url, body) {
             'X-CSRF-TOKEN': passkeyCsrf(),
             'X-Requested-With': 'XMLHttpRequest',
         },
-        body: JSON.stringify(body || {}),
+        body: JSON.stringify({ ...(body || {}), _token: passkeyCsrf() }),
     });
     const data = await response.json().catch(() => ({}));
     if (! response.ok || data.ok === false) {
@@ -1604,6 +1604,8 @@ function initPasskeyRegister() {
     const errorBox = root.querySelector('[data-passkey-error]');
     const optionsUrl = root.getAttribute('data-passkey-options');
     const storeUrl = root.getAttribute('data-passkey-store');
+    let cached = null;
+    let cachedPassword = '';
 
     const showError = (message) => {
         if (! errorBox) {
@@ -1612,6 +1614,28 @@ function initPasskeyRegister() {
         errorBox.textContent = message;
         errorBox.classList.toggle('hidden', ! message);
     };
+
+    const loadOptions = async (password) => {
+        const options = await passkeyPostJson(optionsUrl, { current_password: password });
+        if (! options?.publicKey?.challenge || ! options?.publicKey?.user?.id) {
+            throw new Error('O servidor não devolveu a chave de acesso.');
+        }
+        cached = options;
+        cachedPassword = password;
+
+        return options;
+    };
+
+    passwordInput?.addEventListener('blur', () => {
+        const password = passwordInput.value || '';
+        if (password === '') {
+            return;
+        }
+        loadOptions(password).catch(() => {
+            cached = null;
+            cachedPassword = '';
+        });
+    });
 
     addBtn.addEventListener('click', async () => {
         showError('');
@@ -1623,7 +1647,9 @@ function initPasskeyRegister() {
         }
         addBtn.disabled = true;
         try {
-            const options = await passkeyPostJson(optionsUrl, { current_password: currentPassword });
+            const options = cached && cachedPassword === currentPassword
+                ? cached
+                : await loadOptions(currentPassword);
             const credential = await navigator.credentials.create({
                 publicKey: passkeyPreparePublicKey(options.publicKey),
             });
@@ -1641,9 +1667,14 @@ function initPasskeyRegister() {
             });
             window.location.reload();
         } catch (error) {
-            if (error?.name !== 'NotAllowedError') {
-                showError(error.message || 'Não foi possível guardar a chave de acesso.');
+            if (error?.name === 'AbortError') {
+                return;
             }
+            if (error?.name === 'NotAllowedError' || error?.name === 'NotSupportedError') {
+                showError('O Safari não criou a chave. Use o Safari neste iPhone, com Face ID, ou um gerenciador de senhas neste computador.');
+                return;
+            }
+            showError(error.message || 'Não foi possível guardar a chave de acesso.');
         } finally {
             addBtn.disabled = false;
         }

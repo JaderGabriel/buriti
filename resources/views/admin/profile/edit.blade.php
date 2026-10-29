@@ -76,7 +76,7 @@
                     <div class="border-b border-line pb-3" data-passkey-register data-passkey-options="{{ route('admin.profile.passkey.options') }}" data-passkey-store="{{ route('admin.profile.passkey.store') }}">
                         <p class="text-sm font-semibold text-snow">Chave de acesso · iPhone / Safari</p>
                         <p class="mt-0.5 text-xs text-mist">
-                            Informe a senha atual e adicione neste aparelho. O Safari passa a oferecer Face ID na tela de login. Um computador sem a chave continua com senha e código.
+                            No Safari deste iPhone: senha atual e Adicionar. Confirme com Face ID. Depois o login neste aparelho não pede o código. No computador use um gerenciador de senhas, ou continue com senha e código.
                         </p>
 
                         @if ($passkeys->isNotEmpty())

@@ -111,14 +111,21 @@ class AuthPasskeyTest extends TestCase
 
     public function test_logged_in_user_can_start_passkey_with_password(): void
     {
-        $this->actingAs($this->admin)
+        $response = $this->actingAs($this->admin)
             ->postJson(route('admin.profile.passkey.options'), [
                 'current_password' => 'secret123',
-            ])
-            ->assertOk()
+            ]);
+
+        $response->assertOk()
             ->assertJsonPath('ok', true)
+            ->assertJsonPath('publicKey.attestation', 'none')
+            ->assertJsonPath('publicKey.authenticatorSelection.residentKey', 'required')
+            ->assertJsonPath('publicKey.pubKeyCredParams.0.alg', -7)
             ->assertJsonStructure(['ok', 'publicKey' => ['challenge', 'rp', 'user']]);
 
+        $payload = $response->json('publicKey');
+        $this->assertArrayNotHasKey('extensions', $payload);
+        $this->assertArrayNotHasKey('authenticatorAttachment', $payload['authenticatorSelection'] ?? []);
         $this->assertTrue(session()->has(PasskeyService::REGISTER_SESSION));
     }
 

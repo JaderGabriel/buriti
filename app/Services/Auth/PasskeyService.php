@@ -36,13 +36,13 @@ class PasskeyService
             60,
             true,
             true,
-            false,
+            null,
             $exclude,
         );
 
         $request->session()->put(self::REGISTER_SESSION, $this->b64urlEncode($webAuthn->getChallenge()->getBinaryString()));
 
-        return $this->encodeOptions($args);
+        return $this->passkeyCreateOptions($args);
     }
 
     public function register(User $user, Request $request, array $payload): WebauthnCredential
@@ -161,13 +161,31 @@ class PasskeyService
 
     private function rpId(?Request $request = null): string
     {
-        foreach ([$request?->getHost(), parse_url((string) config('app.url'), PHP_URL_HOST)] as $host) {
+        foreach ([parse_url((string) config('app.url'), PHP_URL_HOST), $request?->getHost()] as $host) {
             if (is_string($host) && $host !== '') {
                 return $host;
             }
         }
 
         return 'localhost';
+    }
+
+    private function passkeyCreateOptions(object $args): array
+    {
+        $encoded = $this->encodeOptions($args);
+        $publicKey = $encoded['publicKey'];
+        unset($publicKey['extensions']);
+        if (empty($publicKey['excludeCredentials'])) {
+            unset($publicKey['excludeCredentials']);
+        }
+        $publicKey['attestation'] = 'none';
+        $publicKey['pubKeyCredParams'] = [
+            ['type' => 'public-key', 'alg' => -7],
+            ['type' => 'public-key', 'alg' => -257],
+        ];
+        unset($publicKey['authenticatorSelection']['authenticatorAttachment']);
+
+        return ['publicKey' => $publicKey];
     }
 
     private function encodeOptions(object $args): array
