@@ -116,7 +116,7 @@
                 @csrf
                 <div>
                     <h2 class="font-display text-lg font-semibold">Enviar teste</h2>
-                    <p class="mt-1 text-sm text-mist">Sai autenticado como a conta. A cópia deve aparecer em Enviados no mailserver. Não envia convite de depoimento.</p>
+                    <p class="mt-1 text-sm text-mist">Sai autenticado como a conta. Responder no Gmail devolve para essa mesma conta (não para o e-mail do site). A cópia deve aparecer em Enviados. Não envia convite de depoimento.</p>
                 </div>
                 <x-ui.input type="email" name="to" label="Destinatário" :value="old('to', $defaultTo)" required placeholder="voce@exemplo.com" />
                 <button type="submit" class="pm-btn pm-btn--ghost">

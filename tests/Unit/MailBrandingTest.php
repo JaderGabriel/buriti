@@ -51,4 +51,14 @@ class MailBrandingTest extends TestCase
         $this->assertStringNotContainsString('99175', $text);
         $this->assertStringNotContainsString('contato@exemplo.com', $text);
     }
+
+    public function test_legal_notice_uses_mailbox_not_null_mx_vanity(): void
+    {
+        config(['mail.from.address' => 'jadergabriel8@gmail.com']);
+
+        $notice = MailBranding::legalNotice();
+
+        $this->assertStringContainsString('jadergabriel8@gmail.com', $notice);
+        $this->assertStringNotContainsString('contato@buriti.dev.br', $notice);
+    }
 }

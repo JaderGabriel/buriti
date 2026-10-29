@@ -114,7 +114,10 @@ final class MailBranding
     public static function legalNotice(?string $privacyUrl = null, ?string $privacyEmail = null): string
     {
         $privacyUrl = $privacyUrl ?: self::privacyUrl();
-        $privacyEmail = $privacyEmail ?: 'contato@buriti.dev.br';
+        $privacyEmail = $privacyEmail
+            ?: (string) config('mail.from.address')
+            ?: (string) config('buriti.contact.email')
+            ?: 'jadergabriel8@gmail.com';
 
         return 'Esta mensagem e quaisquer anexos são de propriedade da BURI-TI e destinam-se exclusivamente ao destinatário. '
             .'Podem conter informação confidencial ou privilegiada. Se a recebeu por engano, elimine-a e avise-nos; '

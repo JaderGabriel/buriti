@@ -67,6 +67,9 @@ class SiteController extends Controller
 
     private function privacyEmail(): string
     {
-        return (string) ($this->settings->get('contact_email') ?: 'contato@buriti.dev.br');
+        return (string) ($this->settings->get('contact_email')
+            ?: config('buriti.contact.email')
+            ?: config('mail.from.address')
+            ?: 'jadergabriel8@gmail.com');
     }
 }

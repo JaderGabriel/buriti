@@ -2,7 +2,6 @@
 
 namespace App\Mail;
 
-use App\Services\SettingService;
 use App\Support\MailBranding;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -19,12 +18,12 @@ class TestMail extends Mailable
     {
         $from = (string) config('mail.from.address');
         $name = (string) config('mail.from.name');
-        $reply = app(SettingService::class)->get('contact_email');
 
+        // Respostas vão para a conta SMTP/IMAP. contact_email do site (ex. contato@buriti.dev.br)
+        // não pode ser Reply-To: buriti.dev.br anuncia Null MX e o Gmail recusa a entrega.
         return new Envelope(
             from: $from !== '' ? new Address($from, $name !== '' ? $name : $from) : null,
             subject: 'BURI-TI — e-mail de teste',
-            replyTo: ($reply && strcasecmp($reply, $from) !== 0) ? [$reply] : [],
         );
     }
 

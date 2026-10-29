@@ -124,6 +124,28 @@ class MailSettingsServiceTest extends TestCase
         ]);
     }
 
+    public function test_test_mail_does_not_reply_to_site_contact(): void
+    {
+        Mail::fake();
+        app(SettingService::class)->putMany([
+            'contact_email' => 'contato@buriti.dev.br',
+            'mail_from_name' => 'BURI-TI',
+        ]);
+        app(MailSettingsService::class)->apply();
+
+        $ok = app(MailSettingsService::class)->trySendTest(
+            'qa@exemplo.com',
+            User::factory()->create(),
+        );
+
+        $this->assertTrue($ok['ok']);
+        Mail::assertSent(TestMail::class, function (TestMail $mail) {
+            $this->assertSame([], $mail->envelope()->replyTo);
+
+            return true;
+        });
+    }
+
     public function test_gmail_from_requires_gmail_smtp(): void
     {
         $this->assertNotNull(MailSettingsService::fromAlignmentIssue(
