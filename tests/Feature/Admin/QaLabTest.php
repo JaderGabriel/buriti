@@ -571,6 +571,7 @@ class QaLabTest extends TestCase
         $this->assertStringContainsString('rota testimonials.seal', (string) $health->output);
         $this->assertStringContainsString('view testimonials.form', (string) $health->output);
         $this->assertStringContainsString('view site.partials.quotes', (string) $health->output);
+        $this->assertStringContainsString('view site.partials.quote-seal-dialog', (string) $health->output);
         $this->assertStringContainsString('Depoimentos: 2', (string) $health->output);
 
         $this->actingAs($this->admin)

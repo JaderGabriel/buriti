@@ -365,9 +365,11 @@ function initDialogs() {
             return;
         }
 
-        document.querySelectorAll('.career-dialog.is-open, .quote-dialog.is-open').forEach((dialog) => {
-            closeCareerDialog(dialog);
-        });
+        const open = document.querySelectorAll('.career-dialog.is-open, .quote-dialog.is-open');
+        const top = open[open.length - 1];
+        if (top) {
+            closeCareerDialog(top);
+        }
     });
 }
 

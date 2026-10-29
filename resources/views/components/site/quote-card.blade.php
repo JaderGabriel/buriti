@@ -13,10 +13,30 @@
     <footer class="quote-card__foot">
         <cite>{{ $quote->displayName() }}</cite>
         @if($showProject && $quote->project)
-            <span>{{ $quote->project->name }}</span>
-        @endif
-        @if($quote->verification_code)
-            <a href="{{ route('testimonials.seal', $quote->verification_code) }}" class="quote-card__seal">Selo</a>
+            <span class="quote-card__project">
+                {{ $quote->project->name }}
+                @if($quote->verification_code)
+                    <button
+                        type="button"
+                        class="quote-card__seal"
+                        data-dialog-open="quote-seal-{{ $quote->id }}"
+                        aria-label="Ver autenticidade do depoimento"
+                        title="Ver autenticidade"
+                    >
+                        <x-ui.icon name="verified" class="h-4 w-4" />
+                    </button>
+                @endif
+            </span>
+        @elseif($quote->verification_code)
+            <button
+                type="button"
+                class="quote-card__seal"
+                data-dialog-open="quote-seal-{{ $quote->id }}"
+                aria-label="Ver autenticidade do depoimento"
+                title="Ver autenticidade"
+            >
+                <x-ui.icon name="verified" class="h-4 w-4" />
+            </button>
         @endif
     </footer>
 </blockquote>

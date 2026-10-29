@@ -2,11 +2,7 @@
     <section id="depoimentos" class="section-shell quote-strip" aria-labelledby="depoimentos-title">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div class="quote-strip__head">
-                <div>
-                    <p class="section-kicker">Clientes</p>
-                    <h2 id="depoimentos-title" class="section-title">Como foi trabalhar conosco</h2>
-                    <p class="section-lead">Depoimentos aprovados, com selo. Projetos em destaque vêm primeiro.</p>
-                </div>
+                <h2 id="depoimentos-title" class="section-title">Como foi trabalhar conosco</h2>
             </div>
 
             <div class="quote-strip__track">

@@ -17,5 +17,8 @@
             'quotes' => $projectQuotes,
         ])
     @endforeach
+    @foreach($homeTestimonials ?? [] as $quote)
+        @include('site.partials.quote-seal-dialog', ['quote' => $quote])
+    @endforeach
     @include('site.partials.contact')
 @endsection

@@ -175,18 +175,24 @@ class TestimonialTest extends TestCase
             ->assertOk()
             ->assertSee('id="depoimentos"', false)
             ->assertSee('quote-strip', false)
+            ->assertSee('Como foi trabalhar conosco', false)
+            ->assertDontSee('Depoimentos aprovados, com selo', false)
             ->assertSee('quote-flag', false)
             ->assertSee('Ver depoimento', false)
             ->assertSee('data-dialog-open="quote-project-'.$project->id.'"', false)
             ->assertSee('id="quote-project-'.$project->id.'"', false)
+            ->assertSee('data-dialog-open="quote-seal-'.$quote->id.'"', false)
+            ->assertSee('aria-label="Ver autenticidade do depoimento"', false)
             ->assertSee('Entrega no prazo com comunicação clara no portal da escola.', false)
             ->assertSee('Ana Publica', false)
             ->assertSee($quote->verification_code, false)
+            ->assertSee('Selo autêntico', false)
             ->getContent();
 
         $this->assertTrue($quote->fresh()->authenticity()['ok']);
         $this->assertStringContainsString('quote-dialog', $html);
         $this->assertStringContainsString('data-dialog-close', $html);
+        $this->assertStringNotContainsString('quote-card__seal">Selo', $html);
     }
 
     public function test_home_prefers_featured_project_quotes_then_stars_and_date(): void

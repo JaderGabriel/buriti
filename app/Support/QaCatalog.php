@@ -315,6 +315,7 @@ final class QaCatalog
                                 'admin.testimonials.partials.sample-tools',
                                 'site.partials.quotes',
                                 'site.partials.quote-dialog',
+                                'site.partials.quote-seal-dialog',
                                 'components.site.quote-card',
                                 'testimonials.form',
                                 'testimonials.thanks',
