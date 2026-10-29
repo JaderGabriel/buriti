@@ -5,12 +5,19 @@ namespace Tests\Feature\Admin;
 use App\Mail\CrmOutgoingMail;
 use App\Mail\ImapClient;
 use App\Mail\ImapConfig;
+use App\Models\Contact;
 use App\Models\ContactMessage;
+use App\Models\IdeaNote;
+use App\Models\Jirau;
+use App\Models\MailLabel;
+use App\Models\MailRecord;
+use App\Models\Project;
 use App\Models\User;
 use App\Services\ImapMailboxStore;
 use App\Services\SettingService;
 use App\Support\AdminNavigation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
 use Tests\Support\ScriptedImapTransport;
 use Tests\TestCase;
@@ -49,6 +56,7 @@ class MailboxTest extends TestCase
         foreach ([
             ['get', 'admin.mailbox.index'],
             ['get', 'admin.mailbox.compose'],
+            ['get', 'admin.mailbox.contacts'],
             ['get', 'admin.mailbox.attachment'],
             ['post', 'admin.mailbox.send'],
             ['post', 'admin.mailbox.destroy'],
@@ -56,6 +64,11 @@ class MailboxTest extends TestCase
             ['post', 'admin.mailbox.seen'],
             ['post', 'admin.mailbox.folders.store'],
             ['put', 'admin.mailbox.signature'],
+            ['post', 'admin.mailbox.bulk'],
+            ['post', 'admin.mailbox.marker'],
+            ['post', 'admin.mailbox.label'],
+            ['post', 'admin.mailbox.link'],
+            ['delete', 'admin.mailbox.unlink'],
         ] as [$method, $name]) {
             $this->actingAs($staff)
                 ->{$method}(route($name))
@@ -97,7 +110,7 @@ class MailboxTest extends TestCase
             ->assertSee('data-mail-search', false)
             ->assertSee('name="buscar"', false)
             ->assertSee('id="mail-folder-search"', false)
-            ->assertSee('Remetente, destinatário ou assunto', false);
+            ->assertSee('Remetente, contacto, destinatário ou assunto', false);
     }
 
     public function test_mailbox_folder_search_ignores_admin_query_parameter(): void
@@ -182,6 +195,9 @@ class MailboxTest extends TestCase
                 && str_contains($html, 'Segue o texto.')
                 && str_contains($html, 'Lei nº 13.709/2018')
                 && str_contains($html, 'logo-buriti.png')
+                && str_contains($html, 'Jader Gabriel')
+                && str_contains($html, 'font-style:italic')
+                && str_contains($html, 'BURI-TI - Consultoria &amp; Software')
                 && str_contains($html, 'images/mail/phone.png')
                 && str_contains($html, 'images/mail/whatsapp.png')
                 && str_contains($html, 'images/mail/telegram.png')
@@ -246,10 +262,74 @@ class MailboxTest extends TestCase
             ->assertSee('ana@exemplo.com', false)
             ->assertSee('Assinatura', false)
             ->assertSee('Cco', false)
-            ->assertSee('BURI-TI · consultoria e software', false)
+            ->assertSee('Jader Gabriel', false)
+            ->assertSee('BURI-TI - Consultoria &amp; Software', false)
+            ->assertSee('font-style:italic', false)
+            ->assertSee('font-weight:700', false)
             ->assertSee('images/mail/whatsapp.png', false)
             ->assertSee('images/mail/telegram.png', false)
-            ->assertSee('aviso LGPD', false);
+            ->assertSee('aviso LGPD', false)
+            ->assertSee('Anexos', false)
+            ->assertSee('10 MB', false)
+            ->assertSee('name="attachments[]"', false)
+            ->assertSee('enctype="multipart/form-data"', false)
+            ->assertSee('mailCompose', false)
+            ->assertSee('admin\\/correio\\/contatos', false)
+            ->assertSee('mail-compose-pane', false)
+            ->assertSee('mail-compose__scroll', false)
+            ->assertSee('mail-compose__heading', false)
+            ->assertSee('Nome ou e-mail', false)
+            ->assertDontSee('<details class="mail-signature" open>', false);
+    }
+
+    public function test_admin_can_search_system_contacts_for_compose(): void
+    {
+        Contact::factory()->create([
+            'name' => 'Zelia Costa',
+            'email' => 'zelia@empresa.com',
+            'company' => 'Costa & Filhos',
+        ]);
+        Contact::factory()->create([
+            'name' => 'Sem Correio',
+            'email' => '',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->getJson(route('admin.mailbox.contacts', ['q' => 'Zelia']))
+            ->assertOk()
+            ->assertJsonCount(1, 'contacts')
+            ->assertJsonPath('contacts.0.email', 'zelia@empresa.com')
+            ->assertJsonPath('contacts.0.name', 'Zelia Costa')
+            ->assertJsonPath('contacts.0.company', 'Costa & Filhos');
+    }
+
+    public function test_mailbox_folder_search_also_matches_contact_email(): void
+    {
+        Contact::factory()->create([
+            'name' => 'Zelia Costa',
+            'email' => 'zelia@empresa.com',
+        ]);
+        $this->configureMailbox();
+        $this->scriptImap([
+            '* LIST (\\HasNoChildren) "/" INBOX',
+            'A1 OK LIST completed',
+            '* STATUS "INBOX" (MESSAGES 0 UNSEEN 0)',
+            'A2 OK STATUS completed',
+            '* 0 EXISTS',
+            'A3 OK SELECT completed',
+            '* SEARCH',
+            'A4 OK SEARCH completed',
+            '* SEARCH',
+            'A5 OK SEARCH completed',
+            '* BYE',
+            'A6 OK LOGOUT completed',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.mailbox.index', ['pasta' => 'INBOX', 'buscar' => 'Zelia']))
+            ->assertOk()
+            ->assertSee('Nada encontrado para “Zelia”.', false)
+            ->assertDontSee('IMAP script esgotado', false);
     }
 
     public function test_compose_from_site_message_quotes_original(): void
@@ -306,6 +386,138 @@ class MailboxTest extends TestCase
                 && $mail->hasBcc('copia@exemplo.com');
         });
         $this->assertNotNull($message->fresh()->read_at);
+    }
+
+    public function test_admin_can_send_with_attachment_under_10mb(): void
+    {
+        $this->configureMailbox();
+        $this->scriptImap([
+            '* LIST (\\HasNoChildren \\Sent) "/" Sent',
+            'A1 OK LIST completed',
+            '+',
+            'A2 OK APPEND completed',
+            '* BYE',
+            'A3 OK LOGOUT completed',
+        ]);
+        Mail::fake();
+
+        $file = UploadedFile::fake()->create('proposta.pdf', 200, 'application/pdf');
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.mailbox.send'), [
+                'to' => 'qa@exemplo.com',
+                'subject' => 'Proposta com anexo',
+                'body' => 'Segue o PDF.',
+                'signature' => '1',
+                'attachments' => [$file],
+            ])
+            ->assertRedirect(route('admin.mailbox.index', ['pasta' => 'Sent']))
+            ->assertSessionHas('success');
+
+        Mail::assertSent(CrmOutgoingMail::class, function (CrmOutgoingMail $mail) {
+            return $mail->hasTo('qa@exemplo.com')
+                && count($mail->files) === 1
+                && $mail->files[0]['name'] === 'proposta.pdf';
+        });
+    }
+
+    public function test_send_rejects_attachments_over_10mb(): void
+    {
+        $this->actingAs($this->admin)
+            ->post(route('admin.mailbox.send'), [
+                'to' => 'qa@exemplo.com',
+                'subject' => 'Pesado',
+                'body' => 'Ficheiro grande.',
+                'signature' => '1',
+                'attachments' => [UploadedFile::fake()->create('pesado.pdf', 11000, 'application/pdf')],
+            ])
+            ->assertSessionHasErrors('attachments.0');
+    }
+
+    public function test_admin_can_star_selected_messages(): void
+    {
+        $this->configureMailbox();
+        $this->scriptImap([
+            '* 2 EXISTS',
+            'A1 OK SELECT completed',
+            'A2 OK STORE completed',
+            '* BYE',
+            'A3 OK LOGOUT completed',
+            '* LIST (\\HasNoChildren) "/" INBOX',
+            'A1 OK LIST completed',
+            '* STATUS "INBOX" (MESSAGES 0 UNSEEN 0)',
+            'A2 OK STATUS completed',
+            '* 0 EXISTS',
+            'A3 OK SELECT completed',
+            '* BYE',
+            'A4 OK LOGOUT completed',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.mailbox.bulk'), [
+                'pasta' => 'INBOX',
+                'uids' => [11, 12],
+                'acao' => 'star',
+            ])
+            ->assertRedirect(route('admin.mailbox.index', ['pasta' => 'INBOX']))
+            ->assertSessionHas('success');
+    }
+
+    public function test_admin_can_label_and_link_message_to_project_jirau_and_idea(): void
+    {
+        $this->configureMailbox();
+        $project = Project::factory()->create(['name' => 'Portal interno', 'is_public' => true]);
+        $jirau = Jirau::factory()->create(['name' => 'Quadro portal', 'project_id' => $project->id]);
+        $idea = IdeaNote::factory()->create(['title' => 'Ideia do contrato', 'user_id' => $this->admin->id]);
+        $label = MailLabel::query()->where('slug', 'comercial')->first();
+        $this->assertNotNull($label);
+
+        $payload = [
+            'pasta' => 'INBOX',
+            'uid' => 44,
+            'message_id' => '<proposta@buriti>',
+            'subject' => 'Proposta comercial',
+            'from' => 'ana@cliente.com',
+        ];
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.mailbox.label'), $payload + ['label_id' => $label->id])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.mailbox.marker'), $payload + ['marker' => 'acompanhar'])
+            ->assertRedirect();
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.mailbox.link'), $payload + ['kind' => 'project', 'linkable_id' => $project->id])
+            ->assertRedirect();
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.mailbox.link'), $payload + ['kind' => 'jirau', 'linkable_id' => $jirau->id])
+            ->assertRedirect();
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.mailbox.link'), $payload + ['kind' => 'idea', 'linkable_id' => $idea->id])
+            ->assertRedirect();
+
+        $record = MailRecord::query()->where('rfc_message_id', 'proposta@buriti')->first();
+        $this->assertNotNull($record);
+        $this->assertSame('acompanhar', $record->marker?->value);
+        $this->assertTrue($record->labels->contains('id', $label->id));
+        $this->assertSame(3, $record->links()->count());
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.projects.edit', $project))
+            ->assertOk()
+            ->assertSee('E-mails ligados', false)
+            ->assertSee('Proposta comercial', false)
+            ->assertSee('não entram no portfólio público', false);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertDontSee('E-mails ligados', false)
+            ->assertDontSee('CRM interno', false);
     }
 
     public function test_comercial_nav_lists_mailbox(): void

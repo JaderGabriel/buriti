@@ -83,3 +83,14 @@
         <a href="{{ route('account.notifications.index') }}" class="admin-notify__all">Ver todas</a>
     </div>
 </div>
+
+@if(auth()->user()?->can('manageMail'))
+    <a
+        href="{{ route('admin.mailbox.index') }}"
+        class="admin-icon-btn admin-icon-btn--mail"
+        title="E-mail"
+        aria-label="E-mail"
+    >
+        <x-ui.icon name="mail" class="h-5 w-5" />
+    </a>
+@endif

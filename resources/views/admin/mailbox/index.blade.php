@@ -33,6 +33,7 @@
         };
         $showCc = filled(old('cc', $compose['cc'] ?? ''));
         $showBcc = filled(old('bcc', $compose['bcc'] ?? ''));
+        $catalog = $catalog ?? ['labels' => collect(), 'markers' => [], 'projects' => collect(), 'jiraus' => collect(), 'ideas' => collect()];
         $mailList = function (array $extra = []) use ($folder, $query): array {
             return array_filter([
                 'pasta' => $folder,
@@ -105,7 +106,7 @@
                     </a>
                 </aside>
 
-                <aside class="messenger-list" aria-label="Mensagens">
+                <aside class="messenger-list" aria-label="Mensagens" x-data="{ selected: [] }">
                     <header class="messenger-list__header">
                         <div class="min-w-0">
                             <p class="mail-kicker">{{ $folderMeta['label'] ?? $folder }}</p>
@@ -144,7 +145,7 @@
                             type="text"
                             name="buscar"
                             value="{{ $query }}"
-                            placeholder="Remetente, destinatário ou assunto"
+                            placeholder="Remetente, contacto, destinatário ou assunto"
                             class="mail-input mail-search__input"
                             autocomplete="off"
                             autocorrect="off"
@@ -162,39 +163,110 @@
                             <x-ui.icon name="lost" class="h-3.5 w-3.5" />
                         </a>
                     </form>
+                    <form id="mail-bulk" method="POST" action="{{ route('admin.mailbox.bulk') }}" class="mail-bulk" x-show="selected.length > 0" x-cloak>
+                        @csrf
+                        <input type="hidden" name="pasta" value="{{ $folder }}">
+                        <p class="mail-bulk__count"><span x-text="selected.length"></span> seleccionada(s)</p>
+                        <div class="mail-bulk__actions">
+                            <button type="submit" name="acao" value="star" class="messenger-icon-btn" title="Estrela">
+                                <x-ui.icon name="star" class="h-4 w-4" />
+                            </button>
+                            <button type="submit" name="acao" value="unstar" class="messenger-icon-btn" title="Tirar estrela">☆</button>
+                            <button type="submit" name="acao" value="seen" class="messenger-icon-btn" title="Marcar lida">
+                                <x-ui.icon name="eye" class="h-4 w-4" />
+                            </button>
+                            <button type="submit" name="acao" value="unseen" class="messenger-icon-btn" title="Marcar não lida">
+                                <x-ui.icon name="eye-off" class="h-4 w-4" />
+                            </button>
+                            <label class="mail-bulk__select">
+                                <span class="sr-only">Marcador</span>
+                                <select name="marker" class="mail-input mail-input--compact">
+                                    <option value="">Marcador</option>
+                                    @foreach($catalog['markers'] as $value => $label)
+                                        <option value="{{ $value }}">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                                <button type="submit" name="acao" value="marker" class="mail-bulk__go">OK</button>
+                            </label>
+                            <label class="mail-bulk__select">
+                                <span class="sr-only">Etiqueta</span>
+                                <select name="label_id" class="mail-input mail-input--compact">
+                                    <option value="">Etiqueta</option>
+                                    @foreach($catalog['labels'] as $label)
+                                        <option value="{{ $label->id }}">{{ $label->name }}</option>
+                                    @endforeach
+                                </select>
+                                <button type="submit" name="acao" value="label" class="mail-bulk__go">OK</button>
+                            </label>
+                            @if(count($folders) > 1)
+                                <label class="mail-bulk__select">
+                                    <span class="sr-only">Mover</span>
+                                    <select name="destino" class="mail-input mail-input--compact">
+                                        @foreach($folders as $item)
+                                            @if($item['name'] !== $folder)
+                                                <option value="{{ $item['name'] }}">{{ $item['label'] }}</option>
+                                            @endif
+                                        @endforeach
+                                    </select>
+                                    <button type="submit" name="acao" value="move" class="mail-bulk__go">Mover</button>
+                                </label>
+                            @endif
+                            <button type="submit" name="acao" value="destroy" class="messenger-icon-btn messenger-icon-btn--danger" title="Apagar" onclick="return confirm('Enviar as seleccionadas para o Lixo?')">
+                                <x-ui.icon name="trash" class="h-4 w-4" />
+                            </button>
+                        </div>
+                    </form>
                     <div class="messenger-list__scroll">
                         @forelse($messages as $item)
                             @php
                                 $peer = $isSent ? ($item['to'] ?: $item['from']) : ($item['from'] ?: $item['to']);
                             @endphp
-                            <a
-                                href="{{ route('admin.mailbox.index', $mailList(['uid' => $item['uid'], 'page' => $listing['page'] ?? 1])) }}"
+                            <div
                                 @class([
                                     'messenger-item',
                                     'messenger-item--active' => ($selected['uid'] ?? null) === $item['uid'],
                                     'messenger-item--unread' => empty($item['seen']),
                                 ])
                             >
-                                <span class="messenger-avatar" aria-hidden="true">{{ mb_strtoupper(mb_substr($peer ?: '?', 0, 1)) }}</span>
-                                <span class="min-w-0 flex-1">
-                                    <span class="flex items-baseline justify-between gap-2">
-                                        <span class="truncate font-semibold text-snow">{{ $peer ?: '(sem remetente)' }}</span>
-                                        <span class="shrink-0 text-[11px] text-mist">{{ \App\Support\MailDate::compact($item['date'] ?? '') }}</span>
-                                    </span>
-                                    <span class="mt-0.5 flex items-center gap-1.5">
-                                        @if(! empty($item['answered']))
-                                            <x-ui.icon name="restore" class="h-3 w-3 shrink-0 text-brand-bright" />
+                                <label class="mail-check">
+                                    <span class="sr-only">Seleccionar mensagem</span>
+                                    <input type="checkbox" form="mail-bulk" name="uids[]" value="{{ $item['uid'] }}" x-model="selected">
+                                </label>
+                                <a
+                                    href="{{ route('admin.mailbox.index', $mailList(['uid' => $item['uid'], 'page' => $listing['page'] ?? 1])) }}"
+                                    class="mail-item-link"
+                                >
+                                    <span class="messenger-avatar" aria-hidden="true">{{ mb_strtoupper(mb_substr($peer ?: '?', 0, 1)) }}</span>
+                                    <span class="min-w-0 flex-1">
+                                        <span class="flex items-baseline justify-between gap-2">
+                                            <span class="truncate font-semibold text-snow">{{ $peer ?: '(sem remetente)' }}</span>
+                                            <span class="shrink-0 text-[11px] text-mist">{{ \App\Support\MailDate::compact($item['date'] ?? '') }}</span>
+                                        </span>
+                                        <span class="mt-0.5 flex items-center gap-1.5">
+                                            @if(! empty($item['answered']))
+                                                <x-ui.icon name="restore" class="h-3 w-3 shrink-0 text-brand-bright" />
+                                            @endif
+                                            @if(! empty($item['starred']) || ! empty($item['flagged']))
+                                                <x-ui.icon name="star" class="h-3 w-3 shrink-0 text-brand-bright" />
+                                            @endif
+                                            @if(! empty($item['marker_label']))
+                                                <span class="mail-marker mail-marker--{{ $item['marker'] }}">{{ $item['marker_label'] }}</span>
+                                            @endif
+                                            <span class="truncate text-xs {{ empty($item['seen']) ? 'text-snow' : 'text-mist' }}">{{ ($item['subject'] ?? '') !== '' ? $item['subject'] : '(sem assunto)' }}</span>
+                                        </span>
+                                        @if(! empty($item['labels']))
+                                            <span class="mail-label-row">
+                                                @foreach($item['labels'] as $chip)
+                                                    <span class="mail-label mail-label--{{ $chip['color'] }}">{{ $chip['name'] }}</span>
+                                                @endforeach
+                                            </span>
                                         @endif
-                                        @if(! empty($item['flagged']))
-                                            <x-ui.icon name="star" class="h-3 w-3 shrink-0 text-brand-bright" />
-                                        @endif
-                                        <span class="truncate text-xs {{ empty($item['seen']) ? 'text-snow' : 'text-mist' }}">{{ ($item['subject'] ?? '') !== '' ? $item['subject'] : '(sem assunto)' }}</span>
                                     </span>
-                                </span>
-                                @if(empty($item['seen']))
-                                    <span class="messenger-dot" title="Não lida"></span>
-                                @endif
-                            </a>
+                                    @if(empty($item['seen']))
+                                        <span class="messenger-dot" title="Não lida"></span>
+                                    @endif
+                                </a>
+                            </div>
                         @empty
                             <div class="px-5 py-16 text-center text-sm text-mist">
                                 @if($query !== '')
@@ -215,12 +287,18 @@
                     @endif
                 </aside>
 
-                <section class="messenger-chat" aria-label="Leitura">
+                <section
+                    @class(['messenger-chat', 'mail-compose-pane' => $mode === 'compose'])
+                    aria-label="{{ $mode === 'compose' ? $composeTitle : 'Leitura' }}"
+                >
                     @if($mode === 'compose')
                         <header class="messenger-chat__header">
-                            <div class="min-w-0">
-                                <p class="mail-kicker">{{ $composeTitle }}</p>
-                                <p class="truncate font-semibold text-snow">De {{ $identity['name'] ?: $identity['address'] ?: 'a conta gravada' }}</p>
+                            <div class="flex min-w-0 items-center gap-3">
+                                <a href="{{ route('admin.mailbox.index', ['pasta' => $folder]) }}" class="messenger-back lg:hidden" aria-label="Voltar">←</a>
+                                <div class="min-w-0">
+                                    <p class="mail-kicker">{{ $composeTitle }}</p>
+                                    <p class="truncate font-semibold text-snow">De {{ $identity['name'] ?: $identity['address'] ?: 'a conta gravada' }}</p>
+                                </div>
                             </div>
                             <a href="{{ route('admin.mailbox.index', ['pasta' => $folder]) }}" class="messenger-icon-btn" title="Fechar">
                                 <x-ui.icon name="lost" class="h-4 w-4" />
@@ -230,36 +308,120 @@
                             method="POST"
                             action="{{ route('admin.mailbox.send') }}"
                             class="mail-compose"
-                            x-data="{ cc: {{ $showCc ? 'true' : 'false' }}, bcc: {{ $showBcc ? 'true' : 'false' }} }"
+                            enctype="multipart/form-data"
+                            x-data="mailCompose({
+                                cc: {{ $showCc ? 'true' : 'false' }},
+                                bcc: {{ $showBcc ? 'true' : 'false' }},
+                                contactsUrl: @js(route('admin.mailbox.contacts')),
+                            })"
                         >
                             @csrf
                             <input type="hidden" name="in_reply_to" value="{{ $compose['in_reply_to'] ?? '' }}">
                             <input type="hidden" name="reply_folder" value="{{ $compose['reply_folder'] ?? '' }}">
                             <input type="hidden" name="reply_uid" value="{{ $compose['reply_uid'] ?? '' }}">
                             <input type="hidden" name="contact_message_id" value="{{ $compose['contact_message_id'] ?? '' }}">
-                            <div class="mail-compose__row">
-                                <label for="mail-to">Para</label>
-                                <div class="mail-compose__field">
-                                    <input id="mail-to" type="text" name="to" value="{{ old('to', $compose['to'] ?? '') }}" required placeholder="destinatario@exemplo.com" class="mail-input" autocomplete="email">
-                                    <div class="mail-compose__toggles">
-                                        <button type="button" class="mail-compose__toggle" @click="cc = !cc" :class="{ 'is-on': cc }">Cc</button>
-                                        <button type="button" class="mail-compose__toggle" @click="bcc = !bcc" :class="{ 'is-on': bcc }">Cco</button>
+                            <div class="mail-compose__scroll">
+                                <div class="mail-compose__row">
+                                    <div class="mail-compose__heading">
+                                        <label for="mail-to">Para</label>
+                                        <div class="mail-compose__toggles">
+                                            <button type="button" class="mail-compose__toggle" @click="showCc = !showCc" :class="{ 'is-on': showCc }" :aria-pressed="showCc">Cc</button>
+                                            <button type="button" class="mail-compose__toggle" @click="showBcc = !showBcc" :class="{ 'is-on': showBcc }" :aria-pressed="showBcc">Cco</button>
+                                        </div>
+                                    </div>
+                                    <div class="mail-picker">
+                                        <input
+                                            id="mail-to"
+                                            type="text"
+                                            name="to"
+                                            value="{{ old('to', $compose['to'] ?? '') }}"
+                                            required
+                                            placeholder="Nome ou e-mail"
+                                            class="mail-input"
+                                            autocomplete="off"
+                                            autocorrect="off"
+                                            spellcheck="false"
+                                            x-ref="toField"
+                                            @focus="lookup('to')"
+                                            @input.debounce.200ms="lookup('to')"
+                                            @keydown.escape.prevent="open.to = false"
+                                            @blur="hide('to')"
+                                        >
+                                        @include('admin.mailbox.partials.contact-suggest', ['field' => 'to'])
                                     </div>
                                 </div>
+                                <div class="mail-compose__row" x-show="showCc" x-cloak>
+                                    <label for="mail-cc">Cc</label>
+                                    <div class="mail-picker">
+                                        <input
+                                            id="mail-cc"
+                                            type="text"
+                                            name="cc"
+                                            value="{{ old('cc', $compose['cc'] ?? '') }}"
+                                            placeholder="Nome ou e-mail"
+                                            class="mail-input"
+                                            autocomplete="off"
+                                            x-ref="ccField"
+                                            @focus="lookup('cc')"
+                                            @input.debounce.200ms="lookup('cc')"
+                                            @keydown.escape.prevent="open.cc = false"
+                                            @blur="hide('cc')"
+                                        >
+                                        @include('admin.mailbox.partials.contact-suggest', ['field' => 'cc'])
+                                    </div>
+                                </div>
+                                <div class="mail-compose__row" x-show="showBcc" x-cloak>
+                                    <label for="mail-bcc">Cco</label>
+                                    <div class="mail-picker">
+                                        <input
+                                            id="mail-bcc"
+                                            type="text"
+                                            name="bcc"
+                                            value="{{ old('bcc', $compose['bcc'] ?? '') }}"
+                                            placeholder="Nome ou e-mail"
+                                            class="mail-input"
+                                            autocomplete="off"
+                                            x-ref="bccField"
+                                            @focus="lookup('bcc')"
+                                            @input.debounce.200ms="lookup('bcc')"
+                                            @keydown.escape.prevent="open.bcc = false"
+                                            @blur="hide('bcc')"
+                                        >
+                                        @include('admin.mailbox.partials.contact-suggest', ['field' => 'bcc'])
+                                    </div>
+                                </div>
+                                <div class="mail-compose__row">
+                                    <label for="mail-subject">Assunto</label>
+                                    <input id="mail-subject" type="text" name="subject" value="{{ old('subject', $compose['subject'] ?? '') }}" required class="mail-input" autocomplete="off">
+                                </div>
+                                <textarea name="body" required rows="8" class="mail-input mail-compose__body" placeholder="Escreve a mensagem…">{{ old('body', $compose['body'] ?? '') }}</textarea>
+                                <div class="mail-compose__attach">
+                                    <label class="mail-compose__attach-btn">
+                                        <x-ui.icon name="paperclip" class="h-4 w-4" />
+                                        Anexos
+                                        <input
+                                            type="file"
+                                            name="attachments[]"
+                                            multiple
+                                            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.jpg,.jpeg,.png,.webp,.gif,.odt,.ods"
+                                            class="sr-only"
+                                            @change="files = Array.from($event.target.files || [])"
+                                        >
+                                    </label>
+                                    <p class="mail-compose__attach-hint">Até 10 MB no total · PDF, Office, imagens ou zip.</p>
+                                    <ul class="mail-attach-list" x-show="files.length" x-cloak>
+                                        <template x-for="file in files" :key="file.name + file.size">
+                                            <li x-text="file.name + ' · ' + (file.size / 1024).toFixed(1) + ' KB'"></li>
+                                        </template>
+                                    </ul>
+                                    @error('attachments')
+                                        <p class="mail-compose__error">{{ $message }}</p>
+                                    @enderror
+                                    @error('attachments.0')
+                                        <p class="mail-compose__error">{{ $message }}</p>
+                                    @enderror
+                                </div>
                             </div>
-                            <div class="mail-compose__row" x-show="cc" x-cloak>
-                                <label for="mail-cc">Cc</label>
-                                <input id="mail-cc" type="text" name="cc" value="{{ old('cc', $compose['cc'] ?? '') }}" placeholder="cópia" class="mail-input" autocomplete="off">
-                            </div>
-                            <div class="mail-compose__row" x-show="bcc" x-cloak>
-                                <label for="mail-bcc">Cco</label>
-                                <input id="mail-bcc" type="text" name="bcc" value="{{ old('bcc', $compose['bcc'] ?? '') }}" placeholder="cópia oculta" class="mail-input" autocomplete="off">
-                            </div>
-                            <div class="mail-compose__row">
-                                <label for="mail-subject">Assunto</label>
-                                <input id="mail-subject" type="text" name="subject" value="{{ old('subject', $compose['subject'] ?? '') }}" required class="mail-input">
-                            </div>
-                            <textarea name="body" required rows="12" class="mail-input mail-compose__body" placeholder="Escreve a mensagem…">{{ old('body', $compose['body'] ?? '') }}</textarea>
                             <div class="mail-compose__bar">
                                 <label class="mail-compose__sign">
                                     <input type="hidden" name="signature" value="0">
@@ -272,16 +434,16 @@
                                 </div>
                             </div>
                         </form>
-                        <details class="mail-signature" open>
+                        <details class="mail-signature">
                             <summary>Assinatura da conta</summary>
-                            <p class="mt-2 text-xs text-mist">Padrão comercial: logomarca, nome e ícones de telefone, WhatsApp e Telegram (clicáveis, sem mostrar o número). O aviso LGPD entra sempre no rodapé.</p>
-                            <div class="mt-3 overflow-hidden rounded-sm bg-white p-4 text-slate-900">
+                            <p class="mail-signature__hint">Padrão comercial: logomarca, nome e ícones de telefone, WhatsApp e Telegram (clicáveis, sem mostrar o número). O aviso LGPD entra sempre no rodapé.</p>
+                            <div class="mail-signature__preview">
                                 @include('mail.partials.signature', ['block' => $identity['signature_block'] ?? []])
                             </div>
-                            <form method="POST" action="{{ route('admin.mailbox.signature') }}" class="mt-3 grid gap-2">
+                            <form method="POST" action="{{ route('admin.mailbox.signature') }}" class="mail-signature__form">
                                 @csrf
                                 @method('PUT')
-                                <textarea name="mail_signature" rows="3" class="mail-input" placeholder="Nome&#10;Consultoria e software">{{ old('mail_signature', $identity['signature']) }}</textarea>
+                                <textarea name="mail_signature" rows="3" class="mail-input" placeholder="Jader Gabriel&#10;BURI-TI - Consultoria &amp; Software">{{ old('mail_signature', $identity['signature']) }}</textarea>
                                 <button type="submit" class="messenger-composer__secondary justify-self-start">Guardar nome na assinatura</button>
                             </form>
                         </details>
@@ -296,6 +458,15 @@
                                 </div>
                             </div>
                             <div class="mail-read-actions">
+                                <form method="POST" action="{{ route('admin.mailbox.bulk') }}">
+                                    @csrf
+                                    <input type="hidden" name="pasta" value="{{ $folder }}">
+                                    <input type="hidden" name="uids[]" value="{{ $selected['uid'] }}">
+                                    <input type="hidden" name="acao" value="{{ ! empty($selected['starred']) || ! empty($selected['flagged']) ? 'unstar' : 'star' }}">
+                                    <button type="submit" class="messenger-icon-btn {{ ! empty($selected['starred']) || ! empty($selected['flagged']) ? 'is-on' : '' }}" title="{{ ! empty($selected['starred']) || ! empty($selected['flagged']) ? 'Tirar estrela' : 'Estrela' }}">
+                                        <x-ui.icon name="star" class="h-4 w-4" />
+                                    </button>
+                                </form>
                                 <a href="{{ route('admin.mailbox.compose', ['modo' => 'reply', 'responder_pasta' => $folder, 'responder_uid' => $selected['uid']]) }}" class="mail-action" title="Responder">
                                     <x-ui.icon name="restore" class="h-4 w-4" />
                                     <span>Responder</span>
@@ -371,6 +542,147 @@
                                     <button type="submit" class="messenger-composer__secondary mt-2">Mover</button>
                                 </form>
                             @endif
+                            <section class="mail-crm" aria-label="CRM interno">
+                                <p class="mail-kicker">CRM interno</p>
+                                <p class="mt-1 text-xs text-mist">Estrelas, etiquetas e vínculos com projetos, jiraus e ideias. Não aparece no site público.</p>
+                                @php
+                                    $annotateFields = [
+                                        'pasta' => $folder,
+                                        'uid' => $selected['uid'],
+                                        'message_id' => $selected['message_id'] ?? '',
+                                        'subject' => $selected['subject'] ?? '',
+                                        'from' => $selected['from'] ?? '',
+                                    ];
+                                @endphp
+                                <div class="mail-crm__row">
+                                    <form method="POST" action="{{ route('admin.mailbox.marker') }}" class="mail-crm__form">
+                                        @csrf
+                                        @foreach($annotateFields as $name => $value)
+                                            <input type="hidden" name="{{ $name }}" value="{{ $value }}">
+                                        @endforeach
+                                        <label>
+                                            Marcador
+                                            <select name="marker" class="mail-input mt-1">
+                                                <option value="">—</option>
+                                                @foreach($catalog['markers'] as $value => $label)
+                                                    <option value="{{ $value }}" @selected(($selected['marker'] ?? '') === $value)>{{ $label }}</option>
+                                                @endforeach
+                                            </select>
+                                        </label>
+                                        <button type="submit" class="messenger-composer__secondary">Guardar</button>
+                                    </form>
+                                    <form method="POST" action="{{ route('admin.mailbox.label') }}" class="mail-crm__form">
+                                        @csrf
+                                        @foreach($annotateFields as $name => $value)
+                                            <input type="hidden" name="{{ $name }}" value="{{ $value }}">
+                                        @endforeach
+                                        <label>
+                                            Etiqueta
+                                            <select name="label_id" class="mail-input mt-1" required>
+                                                <option value="">Escolher…</option>
+                                                @foreach($catalog['labels'] as $label)
+                                                    <option value="{{ $label->id }}">{{ $label->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </label>
+                                        <button type="submit" class="messenger-composer__secondary">Aplicar</button>
+                                    </form>
+                                </div>
+                                @if(! empty($selected['labels']))
+                                    <ul class="mail-label-row mt-2">
+                                        @foreach($selected['labels'] as $chip)
+                                            <li>
+                                                <form method="POST" action="{{ route('admin.mailbox.label') }}" class="inline">
+                                                    @csrf
+                                                    @foreach($annotateFields as $name => $value)
+                                                        <input type="hidden" name="{{ $name }}" value="{{ $value }}">
+                                                    @endforeach
+                                                    <input type="hidden" name="label_id" value="{{ $chip['id'] }}">
+                                                    <input type="hidden" name="detach_label" value="1">
+                                                    <button type="submit" class="mail-label mail-label--{{ $chip['color'] }}" title="Remover etiqueta">
+                                                        {{ $chip['name'] }} ×
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                @endif
+                                <form method="POST" action="{{ route('admin.mailbox.label') }}" class="mail-crm__form mt-3">
+                                    @csrf
+                                    <label>
+                                        Nova etiqueta
+                                        <input type="text" name="name" maxlength="40" class="mail-input mt-1" placeholder="Nome">
+                                    </label>
+                                    <select name="color" class="mail-input">
+                                        @foreach(\App\Models\MailLabel::COLORS as $color)
+                                            <option value="{{ $color }}">{{ $color }}</option>
+                                        @endforeach
+                                    </select>
+                                    <button type="submit" class="messenger-composer__secondary">Criar</button>
+                                </form>
+                                <form method="POST" action="{{ route('admin.mailbox.link') }}" class="mail-crm__form mt-4" x-data="{ kind: 'project' }">
+                                    @csrf
+                                    @foreach($annotateFields as $name => $value)
+                                        <input type="hidden" name="{{ $name }}" value="{{ $value }}">
+                                    @endforeach
+                                    <label>
+                                        Ligar a
+                                        <select name="kind" class="mail-input mt-1" required x-model="kind">
+                                            <option value="project">Projeto</option>
+                                            <option value="jirau">Jirau</option>
+                                            <option value="idea">Ideia</option>
+                                        </select>
+                                    </label>
+                                    <label x-show="kind === 'project'">
+                                        Projeto
+                                        <select name="linkable_id" class="mail-input mt-1" :disabled="kind !== 'project'">
+                                            @foreach($catalog['projects'] as $project)
+                                                <option value="{{ $project->id }}">{{ $project->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </label>
+                                    <label x-show="kind === 'jirau'" x-cloak>
+                                        Jirau
+                                        <select name="linkable_id" class="mail-input mt-1" :disabled="kind !== 'jirau'">
+                                            @foreach($catalog['jiraus'] as $jirau)
+                                                <option value="{{ $jirau->id }}">{{ $jirau->name }}{{ $jirau->project ? ' · '.$jirau->project->name : '' }}</option>
+                                            @endforeach
+                                        </select>
+                                    </label>
+                                    <label x-show="kind === 'idea'" x-cloak>
+                                        Ideia
+                                        <select name="linkable_id" class="mail-input mt-1" :disabled="kind !== 'idea'">
+                                            @foreach($catalog['ideas'] as $idea)
+                                                <option value="{{ $idea->id }}">{{ $idea->displayTitle() }}</option>
+                                            @endforeach
+                                        </select>
+                                    </label>
+                                    <button type="submit" class="messenger-composer__secondary">Ligar</button>
+                                </form>
+                                @if(! empty($selected['links']))
+                                    <ul class="mail-link-list">
+                                        @foreach($selected['links'] as $link)
+                                            <li>
+                                                <span class="mail-kicker">{{ $link['kind_label'] }}</span>
+                                                @if($link['href'])
+                                                    <a href="{{ $link['href'] }}" class="text-brand-bright hover:text-snow">{{ $link['name'] }}</a>
+                                                @else
+                                                    <span>{{ $link['name'] }}</span>
+                                                @endif
+                                                <form method="POST" action="{{ route('admin.mailbox.unlink') }}" class="inline">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    @foreach($annotateFields as $name => $value)
+                                                        <input type="hidden" name="{{ $name }}" value="{{ $value }}">
+                                                    @endforeach
+                                                    <input type="hidden" name="link_id" value="{{ $link['id'] }}">
+                                                    <button type="submit" class="mail-unlink" title="Desligar">×</button>
+                                                </form>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                @endif
+                            </section>
                         </div>
                     @else
                         <div class="messenger-empty">

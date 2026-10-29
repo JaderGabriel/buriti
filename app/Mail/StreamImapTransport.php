@@ -46,6 +46,11 @@ class StreamImapTransport implements ImapTransport
     {
         $line = fgets($this->stream);
         if ($line === false) {
+            $meta = is_resource($this->stream) ? stream_get_meta_data($this->stream) : [];
+            if (($meta['timed_out'] ?? false) === true) {
+                throw new RuntimeException('IMAP: tempo esgotado.');
+            }
+
             throw new RuntimeException('IMAP: ligação fechada.');
         }
 
@@ -69,8 +74,18 @@ class StreamImapTransport implements ImapTransport
 
     public function write(string $data): void
     {
-        $written = fwrite($this->stream, $data);
-        if ($written === false || $written !== strlen($data)) {
+        $offset = 0;
+        $length = strlen($data);
+
+        while ($offset < $length) {
+            $written = fwrite($this->stream, substr($data, $offset));
+            if ($written === false || $written === 0) {
+                throw new RuntimeException('IMAP: falha a escrever.');
+            }
+            $offset += $written;
+        }
+
+        if (is_resource($this->stream) && fflush($this->stream) === false) {
             throw new RuntimeException('IMAP: falha a escrever.');
         }
     }

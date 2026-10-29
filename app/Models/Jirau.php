@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Jirau extends Model
 {
@@ -97,6 +98,11 @@ class Jirau extends Model
     public function labels(): HasMany
     {
         return $this->hasMany(JirauLabel::class)->orderBy('name');
+    }
+
+    public function mailLinks(): MorphMany
+    {
+        return $this->morphMany(MailLink::class, 'linkable');
     }
 
     public function members(): BelongsToMany

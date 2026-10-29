@@ -10,6 +10,14 @@ class MailBrandingTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_block_defaults_to_italic_signer_and_bold_lockup(): void
+    {
+        $block = MailBranding::block(null, 'BURI-TI');
+
+        $this->assertSame('Jader Gabriel', $block['name']);
+        $this->assertSame('BURI-TI - Consultoria & Software', $block['role']);
+    }
+
     public function test_block_uses_logo_and_icon_channels_without_exposing_numbers(): void
     {
         $block = MailBranding::block("Jader Gabriel\nFundador", 'BURI-TI');
@@ -47,7 +55,7 @@ class MailBrandingTest extends TestCase
         $text = MailBranding::personal('Jader', 'contato@exemplo.com', '+55 38 99175-8416');
 
         $this->assertStringContainsString('Jader', $text);
-        $this->assertStringContainsString('BURI-TI · consultoria e software', $text);
+        $this->assertStringContainsString('BURI-TI - Consultoria & Software', $text);
         $this->assertStringNotContainsString('99175', $text);
         $this->assertStringNotContainsString('contato@exemplo.com', $text);
     }

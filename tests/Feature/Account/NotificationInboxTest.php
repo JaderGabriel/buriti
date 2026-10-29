@@ -27,6 +27,9 @@ class NotificationInboxTest extends TestCase
             ->assertSee('admin-notify', false)
             ->assertSee('data-admin-notify-panel', false)
             ->assertSee('aria-label="Fechar notificações"', false)
+            ->assertSee('admin-icon-btn--mail', false)
+            ->assertSee('aria-label="E-mail"', false)
+            ->assertSee(route('admin.mailbox.index'), false)
             ->getContent();
 
         $this->assertMatchesRegularExpression(
@@ -36,6 +39,7 @@ class NotificationInboxTest extends TestCase
 
         $account = strpos($html, 'admin-topbar__account');
         $bell = strpos($html, 'admin-notify');
+        $mail = strpos($html, 'admin-icon-btn--mail');
         $theme = strpos($html, 'data-theme-toggle');
         $site = strpos($html, 'admin-icon-btn--site');
         $logout = strpos($html, 'admin-icon-btn--logout');
@@ -43,12 +47,14 @@ class NotificationInboxTest extends TestCase
 
         $this->assertNotFalse($account);
         $this->assertNotFalse($bell);
+        $this->assertNotFalse($mail);
         $this->assertNotFalse($theme);
         $this->assertNotFalse($site);
         $this->assertNotFalse($logout);
         $this->assertNotFalse($chip);
         $this->assertLessThan($bell, $account);
-        $this->assertLessThan($theme, $bell);
+        $this->assertLessThan($mail, $bell);
+        $this->assertLessThan($theme, $mail);
         $this->assertLessThan($site, $theme);
         $this->assertLessThan($logout, $site);
         $this->assertLessThan($chip, $logout);
@@ -72,7 +78,9 @@ class NotificationInboxTest extends TestCase
             ->assertSee('admin-chrome', false)
             ->assertSee('Novo Teams', false)
             ->assertSee('Novo Jitsi', false)
-            ->assertSee('Cartão movido no Jirau');
+            ->assertSee('Cartão movido no Jirau')
+            ->assertDontSee('admin-icon-btn--mail', false)
+            ->assertDontSee(route('admin.mailbox.index'), false);
 
         $this->actingAs($staff)
             ->get(route('account.notifications.index'))

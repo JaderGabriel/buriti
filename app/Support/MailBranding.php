@@ -3,17 +3,17 @@
 namespace App\Support;
 
 use App\Services\SettingService;
+use Illuminate\Support\Str;
 
 final class MailBranding
 {
+    public const SIGNER = 'Jader Gabriel';
+
+    public const LOCKUP = 'BURI-TI - Consultoria & Software';
+
     public static function personal(?string $name, ?string $email = null, ?string $phone = null, ?string $site = null): string
     {
-        $name = trim((string) $name);
-
-        return implode("\n", array_values(array_filter([
-            $name !== '' ? $name : 'BURI-TI',
-            'BURI-TI · consultoria e software',
-        ])));
+        return self::signerName($name)."\n".self::LOCKUP;
     }
 
     /**
@@ -31,20 +31,53 @@ final class MailBranding
     {
         $lines = preg_split('/\R+/', trim((string) $custom)) ?: [];
         $lines = array_values(array_filter(array_map('trim', $lines), fn (string $line) => $line !== ''));
-        $fallback = trim((string) $name) !== '' ? trim((string) $name) : (string) config('mail.from.name', 'BURI-TI');
-
-        $person = $lines[0] ?? ($fallback !== '' ? $fallback : 'BURI-TI');
-        $role = $lines[1] ?? 'Consultoria e software';
 
         return [
-            'name' => $person,
-            'role' => $role,
+            'name' => self::signerName($lines[0] ?? null, $name),
+            'role' => self::lockup($lines[1] ?? null),
             'company' => 'BURI-TI',
             'logo' => self::imageUrl('images/logo-buriti.png'),
             'site_url' => self::siteUrl(),
             'site_host' => self::siteHost(),
             'channels' => self::channels(),
         ];
+    }
+
+    public static function signerName(?string $custom = null, ?string $fromName = null): string
+    {
+        foreach ([$custom, $fromName] as $candidate) {
+            $candidate = trim((string) $candidate);
+            if ($candidate !== '' && ! self::isCompanyName($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return self::SIGNER;
+    }
+
+    public static function lockup(?string $custom = null): string
+    {
+        $custom = trim((string) $custom);
+        if ($custom === '' || self::isCompanyName($custom) || self::isLegacyTagline($custom)) {
+            return self::LOCKUP;
+        }
+
+        return $custom;
+    }
+
+    private static function isCompanyName(string $value): bool
+    {
+        $fold = Str::lower(Str::ascii($value));
+
+        return in_array($fold, ['buriti', 'buri-ti', 'buri ti'], true);
+    }
+
+    private static function isLegacyTagline(string $value): bool
+    {
+        $fold = Str::lower(Str::ascii($value));
+
+        return str_contains($fold, 'consultoria e software')
+            || str_contains($fold, 'consultoria & software');
     }
 
     /**

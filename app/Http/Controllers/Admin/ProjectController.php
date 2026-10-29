@@ -122,6 +122,7 @@ class ProjectController extends Controller
             'jirau',
             'jiraus.company',
             'steps.jirauCard.jirau',
+            'mailLinks.record',
         ]);
         $project->loadCount([
             'tasks',

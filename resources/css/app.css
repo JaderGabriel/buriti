@@ -1507,6 +1507,8 @@ html.dark .postit-lilac {
 
 .mail-input {
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
     border-radius: 0.75rem;
     border: 1px solid var(--color-line);
     background: var(--color-ink);
@@ -1515,78 +1517,223 @@ html.dark .postit-lilac {
     font-size: 0.85rem;
 }
 
+.mail-compose-pane {
+    min-height: 0;
+    overflow: hidden;
+}
+
 .mail-compose {
     display: flex;
     flex-direction: column;
     gap: 0;
     min-height: 0;
-    flex: 1;
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+}
+
+.mail-compose__scroll {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 .mail-compose__row {
     display: grid;
-    grid-template-columns: 4.25rem minmax(0, 1fr);
-    gap: 0.65rem;
-    align-items: center;
-    padding: 0.45rem 1rem;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.3rem;
+    align-items: start;
+    min-width: 0;
+    padding: 0.55rem 1rem 0.5rem;
     border-bottom: 1px solid color-mix(in oklab, var(--color-line) 75%, transparent);
 }
 
+.mail-compose__heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
 .mail-compose__row label {
-    font-size: 0.75rem;
-    font-weight: 600;
+    display: block;
+    min-width: 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
     color: var(--color-mist);
 }
 
 .mail-compose__field {
     display: flex;
+    min-width: 0;
     align-items: center;
     gap: 0.5rem;
 }
 
+.mail-picker {
+    position: relative;
+    display: grid;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+.mail-suggest {
+    position: relative;
+    z-index: 2;
+    margin: 0;
+    max-height: 9.5rem;
+    overflow: auto;
+    list-style: none;
+    padding: 0.25rem;
+    border: 1px solid var(--color-line);
+    border-radius: 0.7rem;
+    background: var(--color-panel);
+    box-shadow: 0 8px 20px rgba(8, 16, 32, 0.12);
+}
+
+.mail-suggest__hit {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    gap: 0.08rem;
+    border: 0;
+    border-radius: 0.45rem;
+    background: transparent;
+    padding: 0.4rem 0.5rem;
+    text-align: left;
+    color: var(--color-snow);
+}
+
+.mail-suggest__hit:hover,
+.mail-suggest__hit:focus {
+    background: color-mix(in oklab, var(--color-brand) 16%, transparent);
+}
+
+.mail-suggest__name,
+.mail-suggest__email,
+.mail-suggest__company {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.mail-suggest__name {
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.mail-suggest__email,
+.mail-suggest__company {
+    font-size: 0.72rem;
+    color: var(--color-mist);
+}
+
 .mail-compose__toggles {
     display: flex;
-    gap: 0.2rem;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.3rem;
 }
 
 .mail-compose__toggle {
-    border: 0;
+    border: 1px solid var(--color-line);
+    border-radius: 999px;
     background: transparent;
     color: var(--color-mist);
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     font-weight: 700;
     letter-spacing: 0.04em;
-    padding: 0.2rem 0.35rem;
+    padding: 0.18rem 0.55rem;
 }
 
 .mail-compose__toggle.is-on,
 .mail-compose__toggle:hover {
+    border-color: color-mix(in oklab, var(--color-brand-bright) 50%, var(--color-line));
     color: var(--color-brand-bright);
+    background: color-mix(in oklab, var(--color-brand) 10%, transparent);
 }
 
 .mail-compose__body {
-    flex: 1;
-    min-height: 14rem;
+    flex: 1 1 auto;
+    min-height: 10rem;
+    width: 100%;
     border: 0;
     border-radius: 0;
-    padding: 1rem;
+    padding: 0.85rem 1rem;
     font-size: 0.95rem;
     line-height: 1.55;
     resize: vertical;
 }
 
-.mail-compose__bar {
+.mail-compose__attach {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem 1rem;
+    gap: 0.45rem 0.75rem;
+    padding: 0.65rem 1rem;
     border-top: 1px solid var(--color-line);
+}
+
+.mail-compose__attach-btn {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-snow);
+}
+
+.mail-compose__attach-hint {
+    flex: 1 1 10rem;
+    min-width: 0;
+    margin: 0;
+    font-size: 0.72rem;
+    line-height: 1.35;
+    color: var(--color-mist);
+}
+
+.mail-compose__error {
+    flex: 1 1 100%;
+    margin: 0;
+    font-size: 0.75rem;
+    color: #fca5a5;
+}
+
+.mail-attach-list {
+    flex: 1 1 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.75rem;
+    color: var(--color-mist);
+    overflow-wrap: anywhere;
+}
+
+.mail-compose__bar {
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem 0.75rem;
+    padding: 0.7rem 1rem;
+    border-top: 1px solid var(--color-line);
+    background: color-mix(in oklab, var(--color-panel) 94%, transparent);
 }
 
 .mail-compose__sign {
     display: inline-flex;
+    min-width: 0;
     align-items: center;
     gap: 0.45rem;
     font-size: 0.8rem;
@@ -1594,7 +1741,11 @@ html.dark .postit-lilac {
 }
 
 .mail-signature {
-    padding: 0.75rem 1rem 1rem;
+    flex: 0 1 auto;
+    min-height: 0;
+    max-height: min(16rem, 36%);
+    overflow: auto;
+    padding: 0.65rem 1rem 0.85rem;
     border-top: 1px solid var(--color-line);
     font-size: 0.85rem;
     color: var(--color-mist);
@@ -1603,6 +1754,29 @@ html.dark .postit-lilac {
 .mail-signature summary {
     cursor: pointer;
     color: var(--color-snow);
+    font-weight: 600;
+}
+
+.mail-signature__hint {
+    margin: 0.55rem 0 0;
+    font-size: 0.72rem;
+    line-height: 1.45;
+}
+
+.mail-signature__preview {
+    margin-top: 0.75rem;
+    max-width: 100%;
+    overflow: auto;
+    border-radius: 0.45rem;
+    background: #fff;
+    padding: 0.85rem;
+    color: #0f172a;
+}
+
+.mail-signature__form {
+    display: grid;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
 }
 
 .mail-thread {
@@ -1707,6 +1881,147 @@ html.dark .postit-lilac {
 .mail-move {
     margin-top: 0.5rem;
     max-width: 16rem;
+}
+
+.mail-check {
+    display: flex;
+    align-items: center;
+    padding-top: 0.35rem;
+}
+
+.mail-check input {
+    accent-color: var(--color-brand-bright);
+}
+
+.mail-item-link {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    align-items: flex-start;
+    gap: 0.75rem;
+    color: inherit;
+}
+
+.mail-bulk {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    padding: 0.55rem 1rem;
+    border-bottom: 1px solid var(--color-line);
+    background: color-mix(in oklab, var(--color-brand) 8%, var(--color-ink));
+}
+
+.mail-bulk__count {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-snow);
+}
+
+.mail-bulk__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.mail-bulk__select {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.mail-input--compact {
+    min-width: 7.5rem;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.72rem;
+}
+
+.mail-bulk__go {
+    border: 0;
+    background: transparent;
+    color: var(--color-brand-bright);
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.mail-label-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-top: 0.35rem;
+}
+
+.mail-label {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.1rem 0.45rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    background: color-mix(in oklab, var(--color-line) 70%, transparent);
+}
+
+.mail-label--blue { background: color-mix(in oklab, #3b82f6 28%, transparent); }
+.mail-label--amber { background: color-mix(in oklab, #f59e0b 28%, transparent); }
+.mail-label--mint { background: color-mix(in oklab, #34d399 28%, transparent); }
+.mail-label--rose { background: color-mix(in oklab, #fb7185 28%, transparent); }
+.mail-label--lilac { background: color-mix(in oklab, #a78bfa 28%, transparent); }
+.mail-label--slate { background: color-mix(in oklab, #94a3b8 28%, transparent); }
+
+.mail-marker {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-brand-bright);
+}
+
+.mail-crm {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-line);
+}
+
+.mail-crm__row,
+.mail-crm__form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 0.65rem;
+}
+
+.mail-crm__form label {
+    font-size: 0.75rem;
+    color: var(--color-mist);
+}
+
+.mail-link-list {
+    display: grid;
+    gap: 0.45rem;
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+}
+
+.mail-link-list li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.mail-unlink {
+    border: 0;
+    background: transparent;
+    color: var(--color-mist);
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.mail-unlink:hover,
+.messenger-icon-btn.is-on {
+    color: var(--color-brand-bright);
 }
 
 /* —— Pasta de arquivos / Álbum (admin) —— */

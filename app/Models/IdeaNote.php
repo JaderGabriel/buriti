@@ -3,13 +3,15 @@
 namespace App\Models;
 
 use App\Enums\IdeaNoteColor;
+use Database\Factories\IdeaNoteFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class IdeaNote extends Model
 {
-    /** @use HasFactory<\Database\Factories\IdeaNoteFactory> */
+    /** @use HasFactory<IdeaNoteFactory> */
     use HasFactory;
 
     protected $fillable = [
@@ -41,6 +43,11 @@ class IdeaNote extends Model
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);
+    }
+
+    public function mailLinks(): MorphMany
+    {
+        return $this->morphMany(MailLink::class, 'linkable');
     }
 
     public function displayTitle(): string

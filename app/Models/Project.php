@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Facades\Storage;
 
 class Project extends Model
@@ -77,6 +78,11 @@ class Project extends Model
     public function jirau(): HasOne
     {
         return $this->hasOne(Jirau::class)->latestOfMany();
+    }
+
+    public function mailLinks(): MorphMany
+    {
+        return $this->morphMany(MailLink::class, 'linkable');
     }
 
     public function jiraus(): HasMany

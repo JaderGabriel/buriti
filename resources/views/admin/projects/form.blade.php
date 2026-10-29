@@ -290,6 +290,30 @@
                 </form>
             </section>
 
+            @if($project->relationLoaded('mailLinks') && $project->mailLinks->isNotEmpty())
+                <section class="pm-panel mt-6">
+                    <header class="pm-panel__head">
+                        <h2>E-mails ligados</h2>
+                        <p>Só no admin — não entram no portfólio público.</p>
+                    </header>
+                    <ul class="space-y-2 text-sm">
+                        @foreach($project->mailLinks as $mailLink)
+                            @php $record = $mailLink->record; @endphp
+                            <li>
+                                @if($record)
+                                    <a href="{{ route('admin.mailbox.index', ['pasta' => $record->folder, 'uid' => $record->uid]) }}" class="text-brand-bright hover:text-snow">
+                                        {{ $record->subject ?: '(sem assunto)' }}
+                                    </a>
+                                    <span class="text-mist"> · {{ $record->from_address }}</span>
+                                @else
+                                    <span class="text-mist">Mensagem #{{ $mailLink->mail_record_id }}</span>
+                                @endif
+                            </li>
+                        @endforeach
+                    </ul>
+                </section>
+            @endif
+
             <div class="mt-6">
                 <x-admin.attachments-panel
                     :attachable="$project"

@@ -8,9 +8,13 @@ use App\Mail\ImapConfig;
 use App\Mail\Rfc822Message;
 use App\Models\User;
 use App\Support\MailBranding;
+use App\Support\MailContacts;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Mail\SentMessage;
 use Illuminate\Support\Facades\Mail;
 use RuntimeException;
+use Symfony\Component\Mime\Address as MimeAddress;
+use Symfony\Component\Mime\Email;
 use Throwable;
 
 class CrmMailboxService
@@ -20,6 +24,7 @@ class CrmMailboxService
         private MailSettingsService $mail,
         private SettingService $settings,
         private AuditLogger $audit,
+        private MailAnnotationService $annotate,
     ) {}
 
     public function isReady(): bool
@@ -73,7 +78,13 @@ class CrmMailboxService
             return $this->imap->usingClient(function (ImapClient $client, ImapConfig $config) use ($folder, $page, $uid, $query, $identity) {
                 $folders = $this->foldersFrom($client, $config);
                 $folder = $this->resolveFolder($folders, $folder);
-                $listing = $client->listMessages($folder, $page, 40, $query);
+                $listing = $client->listMessages(
+                    $folder,
+                    $page,
+                    40,
+                    $query,
+                    is_string($query) ? MailContacts::emailsMatching($query) : [],
+                );
                 $selected = null;
 
                 if ($uid !== null && $uid > 0) {
@@ -87,6 +98,12 @@ class CrmMailboxService
                         }
                     }
                     $selected = $this->presentMessage($fetched, $folder);
+                }
+
+                $account = (string) ($identity['address'] ?? '');
+                $listing['messages'] = $this->annotate->decorate($account, $folder, $listing['messages'] ?? []);
+                if (is_array($selected)) {
+                    $selected = $this->annotate->hydrate($account, $selected);
                 }
 
                 return [
@@ -112,14 +129,17 @@ class CrmMailboxService
         }
     }
 
-    public function send(string $to, string $subject, string $body, User $admin, bool $withSignature = true, ?string $cc = null, ?string $inReplyTo = null, ?string $replyFolder = null, ?int $replyUid = null, ?string $bcc = null): ?string
+    /**
+     * @param  list<UploadedFile>  $attachments
+     */
+    public function send(string $to, string $subject, string $body, User $admin, bool $withSignature = true, ?string $cc = null, ?string $inReplyTo = null, ?string $replyFolder = null, ?int $replyUid = null, ?string $bcc = null, array $attachments = []): ?string
     {
         $this->assertAdmin($admin);
         $this->mail->apply();
         $this->mail->assertDeliverable();
 
         $signature = $withSignature ? $this->personalSignature() : '';
-        $mailable = new CrmOutgoingMail($subject, $body, $signature, $inReplyTo);
+        $mailable = new CrmOutgoingMail($subject, $body, $signature, $inReplyTo, $this->filePayloads($attachments));
         $pending = Mail::to($this->splitAddresses($to));
         if (filled($cc)) {
             $pending->cc($this->splitAddresses($cc));
@@ -150,13 +170,16 @@ class CrmMailboxService
         return $this->archiveOutgoing($raw);
     }
 
-    public function saveDraft(string $to, string $subject, string $body, User $admin, bool $withSignature = true): string
+    /**
+     * @param  list<UploadedFile>  $attachments
+     */
+    public function saveDraft(string $to, string $subject, string $body, User $admin, bool $withSignature = true, array $attachments = []): string
     {
         $this->assertAdmin($admin);
         $this->mail->apply();
         $identity = $this->identity();
         $signature = $withSignature ? $this->personalSignature() : '';
-        $raw = $this->draftRfc822($identity, $to, $subject, $body, $signature);
+        $raw = $this->draftRfc822($identity, $to, $subject, $body, $signature, $attachments);
 
         return $this->imap->usingClient(function (ImapClient $client) use ($raw, $admin, $subject) {
             $folder = $this->roleFolder($client, 'drafts') ?? 'Drafts';
@@ -174,46 +197,92 @@ class CrmMailboxService
 
     public function destroy(string $folder, int $uid, User $admin): void
     {
+        $this->destroyMany($folder, [$uid], $admin);
+    }
+
+    /**
+     * @param  list<int>  $uids
+     */
+    public function destroyMany(string $folder, array $uids, User $admin): void
+    {
         $this->assertAdmin($admin);
-        $this->imap->usingClient(function (ImapClient $client) use ($folder, $uid) {
+        $uids = $this->cleanUids($uids);
+        $this->imap->usingClient(function (ImapClient $client) use ($folder, $uids) {
             $trash = $this->roleFolder($client, 'trash');
             $role = ImapClient::classifyFolder($folder, '');
             if ($trash !== null && $role !== 'trash') {
                 try {
-                    $client->copyUid($folder, $uid, $trash);
+                    $client->copyUids($folder, $uids, $trash);
                 } catch (Throwable) {
                     // apaga na pasta actual se o Lixo não existir
                 }
             }
-            $client->addFlags($folder, $uid, '\\Deleted');
+            $client->setFlags($folder, $uids, '\\Deleted', true);
             $client->expunge();
         });
 
         $this->audit->record('mailbox.deleted', null, [
             'folder' => $folder,
-            'uid' => $uid,
+            'uids' => $uids,
         ], null, $admin->id);
     }
 
     public function move(string $folder, int $uid, string $destination, User $admin): void
     {
+        $this->moveMany($folder, [$uid], $destination, $admin);
+    }
+
+    /**
+     * @param  list<int>  $uids
+     */
+    public function moveMany(string $folder, array $uids, string $destination, User $admin): void
+    {
         $this->assertAdmin($admin);
-        $this->imap->usingClient(function (ImapClient $client) use ($folder, $uid, $destination) {
-            $client->copyUid($folder, $uid, $destination);
-            $client->addFlags($folder, $uid, '\\Deleted');
+        $uids = $this->cleanUids($uids);
+        $this->imap->usingClient(function (ImapClient $client) use ($folder, $uids, $destination) {
+            $client->copyUids($folder, $uids, $destination);
+            $client->setFlags($folder, $uids, '\\Deleted', true);
             $client->expunge();
         });
     }
 
     public function toggleSeen(string $folder, int $uid, bool $seen, User $admin): void
     {
+        $this->setFlag($folder, [$uid], '\\Seen', $seen, $admin);
+    }
+
+    /**
+     * @param  list<int>  $uids
+     */
+    public function setFlag(string $folder, array $uids, string $flag, bool $add, User $admin): void
+    {
         $this->assertAdmin($admin);
-        $this->imap->usingClient(function (ImapClient $client) use ($folder, $uid, $seen) {
-            if ($seen) {
-                $client->addFlags($folder, $uid, '\\Seen');
-            } else {
-                $client->removeFlags($folder, $uid, '\\Seen');
-            }
+        $uids = $this->cleanUids($uids);
+        $this->imap->usingClient(
+            fn (ImapClient $client) => $client->setFlags($folder, $uids, $flag, $add)
+        );
+    }
+
+    /**
+     * @param  list<int>  $uids
+     * @return list<array<string, mixed>>
+     */
+    public function headersFor(string $folder, array $uids, User $admin): array
+    {
+        $this->assertAdmin($admin);
+        $uids = $this->cleanUids($uids);
+        if ($uids === []) {
+            return [];
+        }
+
+        return $this->imap->usingClient(function (ImapClient $client) use ($folder, $uids) {
+            $messages = $client->listedMessagesByUids($folder, $uids);
+
+            return array_map(function (array $message) use ($folder) {
+                $message['folder'] = $folder;
+
+                return $message;
+            }, $messages);
         });
     }
 
@@ -324,7 +393,7 @@ class CrmMailboxService
     }
 
     /**
-     * @param  array{uid: int, flags: list<string>, seen: bool, raw: string, parsed: Rfc822Message}  $fetched
+     * @param  array{uid: int, flags: list<string>, seen: bool, flagged?: bool, raw: string, parsed: Rfc822Message}  $fetched
      * @return array<string, mixed>
      */
     private function presentMessage(array $fetched, string $folder): array
@@ -345,6 +414,7 @@ class CrmMailboxService
             'html' => $html,
             'preview' => $parsed->preview(),
             'seen' => $fetched['seen'],
+            'flagged' => (bool) ($fetched['flagged'] ?? false),
             'attachments' => array_map(
                 fn (array $item, int $i) => [
                     'index' => $i,
@@ -384,29 +454,84 @@ class CrmMailboxService
 
     /**
      * @param  array{address: string, name: string, signature: string}  $identity
+     * @param  list<UploadedFile>  $attachments
      */
-    private function draftRfc822(array $identity, string $to, string $subject, string $body, string $signature): string
+    private function draftRfc822(array $identity, string $to, string $subject, string $body, string $signature, array $attachments = []): string
     {
         $from = $identity['name'] !== ''
             ? sprintf('"%s" <%s>', addcslashes($identity['name'], '"'), $identity['address'])
             : $identity['address'];
-        $encoded = function_exists('mb_encode_mimeheader')
-            ? mb_encode_mimeheader($subject, 'UTF-8', 'Q')
-            : $subject;
         $text = trim($body.($signature !== '' ? "\n\n-- \n".$signature : ''));
         $text .= "\n\n-- \n".MailBranding::legalNotice();
 
-        return implode("\r\n", [
-            'From: '.$from,
-            'To: '.$to,
-            'Subject: '.$encoded,
-            'Date: '.now()->toRfc2822String(),
-            'MIME-Version: 1.0',
-            'Content-Type: text/plain; charset=UTF-8',
-            'Content-Transfer-Encoding: 8bit',
-            '',
-            $text,
-        ]);
+        if ($attachments === []) {
+            $encoded = function_exists('mb_encode_mimeheader')
+                ? mb_encode_mimeheader($subject, 'UTF-8', 'Q')
+                : $subject;
+
+            return implode("\r\n", [
+                'From: '.$from,
+                'To: '.$to,
+                'Subject: '.$encoded,
+                'Date: '.now()->toRfc2822String(),
+                'MIME-Version: 1.0',
+                'Content-Type: text/plain; charset=UTF-8',
+                'Content-Transfer-Encoding: 8bit',
+                '',
+                $text,
+            ]);
+        }
+
+        $email = (new Email)
+            ->from(new MimeAddress($identity['address'], $identity['name'] ?: $identity['address']))
+            ->to(...$this->splitAddresses($to))
+            ->subject($subject)
+            ->text($text)
+            ->date(now());
+
+        foreach ($this->filePayloads($attachments) as $file) {
+            $email->attachFromPath($file['path'], $file['name'], $file['mime']);
+        }
+
+        return $email->toString();
+    }
+
+    /**
+     * @param  list<UploadedFile>|array<int, UploadedFile|null>  $files
+     * @return list<array{path: string, name: string, mime: string}>
+     */
+    private function filePayloads(array $files): array
+    {
+        $payloads = [];
+        foreach ($files as $file) {
+            if (! $file instanceof UploadedFile || ! $file->isValid()) {
+                continue;
+            }
+            $payloads[] = [
+                'path' => $file->getRealPath() ?: $file->getPathname(),
+                'name' => $file->getClientOriginalName() ?: 'anexo',
+                'mime' => $file->getMimeType() ?: 'application/octet-stream',
+            ];
+        }
+
+        return $payloads;
+    }
+
+    /**
+     * @param  list<int|string>  $uids
+     * @return list<int>
+     */
+    private function cleanUids(array $uids): array
+    {
+        $clean = [];
+        foreach ($uids as $uid) {
+            $value = (int) $uid;
+            if ($value > 0) {
+                $clean[$value] = $value;
+            }
+        }
+
+        return array_values($clean);
     }
 
     public function lastSentArchive(): array

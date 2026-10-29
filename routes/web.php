@@ -231,6 +231,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::middleware('mail.admin')->group(function () {
         Route::get('/correio', [MailboxController::class, 'index'])->name('mailbox.index');
         Route::get('/correio/escrever', [MailboxController::class, 'compose'])->name('mailbox.compose');
+        Route::get('/correio/contatos', [MailboxController::class, 'contacts'])
+            ->name('mailbox.contacts');
         Route::post('/correio/enviar', [MailboxController::class, 'send'])
             ->middleware('throttle:20,1')
             ->name('mailbox.send');
@@ -249,6 +251,21 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
         Route::put('/correio/assinatura', [MailboxController::class, 'signature'])
             ->name('mailbox.signature');
         Route::get('/correio/anexo', [MailboxController::class, 'attachment'])->name('mailbox.attachment');
+        Route::post('/correio/lote', [MailboxController::class, 'bulk'])
+            ->middleware('throttle:30,1')
+            ->name('mailbox.bulk');
+        Route::post('/correio/marcador', [MailboxController::class, 'marker'])
+            ->middleware('throttle:30,1')
+            ->name('mailbox.marker');
+        Route::post('/correio/etiqueta', [MailboxController::class, 'label'])
+            ->middleware('throttle:30,1')
+            ->name('mailbox.label');
+        Route::post('/correio/vincular', [MailboxController::class, 'link'])
+            ->middleware('throttle:30,1')
+            ->name('mailbox.link');
+        Route::delete('/correio/vincular', [MailboxController::class, 'unlink'])
+            ->middleware('throttle:30,1')
+            ->name('mailbox.unlink');
     });
 
     Route::get('/mensagens', [ContactMessageController::class, 'index'])->name('messages.index');

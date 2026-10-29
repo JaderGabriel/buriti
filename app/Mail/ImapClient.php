@@ -81,7 +81,9 @@ class ImapClient
             throw new RuntimeException('IMAP APPEND recusado: '.self::sanitize($lines[array_key_last($lines)] ?? ''));
         }
 
-        $this->transport->write($rfc822);
+        // Dovecot (e outros) exigem o CRLF que termina o comando APPEND
+        // depois dos n octetos do literal; esse CRLF não entra no {n}.
+        $this->transport->write($rfc822."\r\n");
         $done = $this->readUntilTag($tag);
         $last = $done[array_key_last($done)] ?? '';
         if (! str_contains($last, ' OK ')) {
@@ -154,9 +156,10 @@ class ImapClient
     }
 
     /**
+     * @param  list<string>  $also
      * @return array{messages: list<array<string, mixed>>, exists: int, page: int, pages: int}
      */
-    public function listMessages(string $folder, int $page = 1, int $perPage = 40, ?string $query = null): array
+    public function listMessages(string $folder, int $page = 1, int $perPage = 40, ?string $query = null, array $also = []): array
     {
         $meta = $this->select($folder);
         $exists = $meta['exists'];
@@ -165,6 +168,13 @@ class ImapClient
 
         if ($query !== '') {
             $uids = $this->searchUids($query);
+            foreach ($also as $needle) {
+                $needle = trim((string) $needle);
+                if ($needle === '' || strcasecmp($needle, $query) === 0) {
+                    continue;
+                }
+                $uids = array_values(array_unique([...$uids, ...$this->searchUids($needle)]));
+            }
             $total = count($uids);
             $pages = max(1, (int) ceil($total / $perPage));
             $page = min(max(1, $page), $pages);
@@ -183,7 +193,7 @@ class ImapClient
         $end = $exists - (($page - 1) * $perPage);
         $start = max(1, $end - $perPage + 1);
         $fetch = $this->command(
-            'FETCH '.$start.':'.$end.' (UID FLAGS BODY.PEEK[HEADER.FIELDS (FROM TO SUBJECT DATE)])'
+            'FETCH '.$start.':'.$end.' (UID FLAGS BODY.PEEK[HEADER.FIELDS (FROM TO SUBJECT DATE MESSAGE-ID)])'
         );
 
         return [
@@ -212,20 +222,46 @@ class ImapClient
 
     public function addFlags(string $folder, int $uid, string $flag): void
     {
-        $this->select($folder);
-        $this->command('UID STORE '.self::safeUid($uid).' +FLAGS ('.$flag.')');
+        $this->setFlags($folder, [$uid], $flag, true);
     }
 
     public function removeFlags(string $folder, int $uid, string $flag): void
     {
+        $this->setFlags($folder, [$uid], $flag, false);
+    }
+
+    /**
+     * @param  list<int>  $uids
+     */
+    public function setFlags(string $folder, array $uids, string $flag, bool $add): void
+    {
+        $set = self::uidSet($uids);
+        if ($set === null) {
+            return;
+        }
+
         $this->select($folder);
-        $this->command('UID STORE '.self::safeUid($uid).' -FLAGS ('.$flag.')');
+        $op = $add ? '+FLAGS' : '-FLAGS';
+        $this->command('UID STORE '.$set.' '.$op.' ('.$flag.')');
     }
 
     public function copyUid(string $folder, int $uid, string $destination): void
     {
+        $this->copyUids($folder, [$uid], $destination);
+    }
+
+    /**
+     * @param  list<int>  $uids
+     */
+    public function copyUids(string $folder, array $uids, string $destination): void
+    {
+        $set = self::uidSet($uids);
+        if ($set === null) {
+            return;
+        }
+
         $this->select($folder);
-        $this->command('UID COPY '.self::safeUid($uid).' '.self::quote(self::safeFolder($destination)));
+        $this->command('UID COPY '.$set.' '.self::quote(self::safeFolder($destination)));
     }
 
     public function createFolder(string $name): void
@@ -264,6 +300,7 @@ class ImapClient
                 'to' => self::headerValue($block, 'To'),
                 'subject' => self::headerValue($block, 'Subject'),
                 'date' => self::headerValue($block, 'Date'),
+                'message_id' => self::headerValue($block, 'Message-ID') ?: self::headerValue($block, 'Message-Id'),
                 'seen' => str_contains($flagBlob, '\\seen'),
                 'flagged' => str_contains($flagBlob, '\\flagged'),
                 'draft' => str_contains($flagBlob, '\\draft'),
@@ -276,7 +313,7 @@ class ImapClient
 
     /**
      * @param  list<string>  $lines
-     * @return array{uid: int, flags: list<string>, seen: bool, raw: string, parsed: Rfc822Message}|null
+     * @return array{uid: int, flags: list<string>, seen: bool, flagged: bool, raw: string, parsed: Rfc822Message}|null
      */
     public static function parseFullMessage(array $lines): ?array
     {
@@ -292,11 +329,13 @@ class ImapClient
         }
 
         $seen = str_contains(strtolower($text), '\\seen');
+        $flagged = str_contains(strtolower($text), '\\flagged');
 
         return [
             'uid' => (int) $uid[1],
             'flags' => [],
             'seen' => $seen,
+            'flagged' => $flagged,
             'raw' => $raw,
             'parsed' => Rfc822Message::parse($raw),
         ];
@@ -352,6 +391,24 @@ class ImapClient
         }
 
         return $uid;
+    }
+
+    /**
+     * @param  list<int|string>  $uids
+     */
+    public static function uidSet(array $uids): ?string
+    {
+        $clean = [];
+        foreach ($uids as $uid) {
+            $value = self::safeUid((int) $uid);
+            $clean[$value] = $value;
+        }
+
+        if ($clean === []) {
+            return null;
+        }
+
+        return implode(',', $clean);
     }
 
     public function logout(): void
@@ -548,11 +605,26 @@ class ImapClient
      * @param  list<int>  $uids
      * @return list<array<string, mixed>>
      */
+    public function listedMessagesByUids(string $folder, array $uids): array
+    {
+        if (self::uidSet($uids) === null) {
+            return [];
+        }
+
+        $this->select($folder);
+
+        return $this->fetchListedByUids($uids);
+    }
+
+    /**
+     * @param  list<int>  $uids
+     * @return list<array<string, mixed>>
+     */
     private function fetchListedByUids(array $uids): array
     {
         $set = implode(',', array_map(fn (int $uid) => (string) $uid, $uids));
         $fetch = $this->command(
-            'UID FETCH '.$set.' (UID FLAGS BODY.PEEK[HEADER.FIELDS (FROM TO SUBJECT DATE)])'
+            'UID FETCH '.$set.' (UID FLAGS BODY.PEEK[HEADER.FIELDS (FROM TO SUBJECT DATE MESSAGE-ID)])'
         );
 
         return self::parseListedMessages($fetch);

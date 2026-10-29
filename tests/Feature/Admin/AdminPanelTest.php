@@ -85,6 +85,8 @@ class AdminPanelTest extends TestCase
             ->assertSee('aria-label="Ver site"', false)
             ->assertSee('aria-label="Sair"', false)
             ->assertSee('data-theme-toggle', false)
+            ->assertSee('admin-icon-btn--mail', false)
+            ->assertSee('aria-label="E-mail"', false)
             ->assertSee('meet.google.com/new', false)
             ->assertSee('teams.microsoft.com/l/meeting/new', false)
             ->assertSee('meet.jit.si', false)
@@ -96,6 +98,7 @@ class AdminPanelTest extends TestCase
         $topbar = strpos($html, 'admin-topbar__account');
         $chrome = strpos($html, 'admin-chrome');
         $bell = strpos($html, 'admin-notify');
+        $mail = strpos($html, 'admin-icon-btn--mail');
 
         $this->assertNotFalse($sidebar);
         $this->assertNotFalse($stage);
@@ -103,11 +106,13 @@ class AdminPanelTest extends TestCase
         $this->assertNotFalse($topbar);
         $this->assertNotFalse($chrome);
         $this->assertNotFalse($bell);
+        $this->assertNotFalse($mail);
         $this->assertGreaterThan($sidebar, $meetings);
         $this->assertLessThan($stage, $meetings);
         $this->assertGreaterThan($stage, $topbar);
         $this->assertGreaterThan($topbar, $bell);
-        $this->assertGreaterThan($bell, $chrome);
+        $this->assertGreaterThan($bell, $mail);
+        $this->assertGreaterThan($mail, $chrome);
         $this->assertLessThan(strpos($html, 'admin-content'), strpos($html, 'admin-topbar'));
         $this->assertSame(1, substr_count($html, 'admin-chrome'));
         $this->assertSame(1, substr_count($html, 'admin-meetings'));

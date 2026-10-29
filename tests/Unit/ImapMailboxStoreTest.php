@@ -54,7 +54,8 @@ class ImapMailboxStoreTest extends TestCase
         $this->assertTrue(str_contains(implode('', $transport->writes), 'APPEND "Sent"'));
         $this->assertTrue(str_contains(implode('', $transport->writes), $raw));
         preg_match('/APPEND "Sent" \(\\\\Seen\) \{(\d+)\}/', implode('', $transport->writes), $match);
-        $this->assertSame((int) $match[1], strlen($transport->writes[2]));
+        $this->assertSame((int) $match[1] + 2, strlen($transport->writes[2]));
+        $this->assertTrue(str_ends_with($transport->writes[2], "\r\n"));
     }
 
     public function test_should_archive_sent_still_runs_for_gmail_when_imap_is_ready(): void

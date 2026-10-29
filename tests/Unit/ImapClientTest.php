@@ -59,8 +59,8 @@ class ImapClientTest extends TestCase
         $this->assertCount(2, $transport->writes);
         $this->assertMatchesRegularExpression('/^A1 APPEND "Sent" \(\\\\Seen\) \{\d+\}\r\n$/', $transport->writes[0]);
         preg_match('/\{(\d+)\}/', $transport->writes[0], $match);
-        $this->assertSame((int) $match[1], strlen($transport->writes[1]));
-        $this->assertSame("Subject: Hi\r\n\r\nOi\r\n", $transport->writes[1]);
+        $this->assertSame((int) $match[1] + 2, strlen($transport->writes[1]));
+        $this->assertSame("Subject: Hi\r\n\r\nOi\r\n\r\n", $transport->writes[1]);
     }
 
     public function test_parse_fetch_headers_reads_from_subject_date(): void
@@ -98,7 +98,9 @@ class ImapClientTest extends TestCase
         $this->assertCount(1, $messages);
         $this->assertSame(88, $messages[0]['uid']);
         $this->assertFalse($messages[0]['seen']);
+        $this->assertFalse($messages[0]['flagged']);
         $this->assertSame('Hello', $messages[0]['subject']);
+        $this->assertSame('', $messages[0]['message_id']);
         $this->assertSame('inbox', ImapClient::classifyFolder('INBOX', ''));
         $this->assertSame('Enviados', ImapClient::folderLabel('Sent', 'sent'));
     }
@@ -130,5 +132,31 @@ class ImapClientTest extends TestCase
         $this->assertSame(0, $listing['exists']);
         $this->assertTrue(str_contains(implode('', $transport->writes), 'UID SEARCH'));
         $this->assertTrue(str_contains(implode('', $transport->writes), 'FROM "proposta"'));
+    }
+
+    public function test_list_messages_also_searches_contact_emails(): void
+    {
+        $transport = new ScriptedImapTransport([
+            '* 4 EXISTS',
+            'A1 OK SELECT completed',
+            '* SEARCH',
+            'A2 OK SEARCH completed',
+            '* SEARCH 9',
+            'A3 OK SEARCH completed',
+            '* 9 FETCH (UID 9 FLAGS (\\Seen) BODY[HEADER.FIELDS (FROM TO SUBJECT DATE MESSAGE-ID)]',
+            'From: Ana <ana@empresa.com>',
+            'Subject: Ola',
+            'Date: Thu, 29 Oct 2026 10:00:00 -0300',
+            ')',
+            'A4 OK FETCH completed',
+        ]);
+
+        $listing = (new ImapClient($transport))->listMessages('INBOX', 1, 40, 'Ana', ['ana@empresa.com']);
+
+        $this->assertSame(1, $listing['exists']);
+        $this->assertSame('Ana <ana@empresa.com>', $listing['messages'][0]['from']);
+        $writes = implode('', $transport->writes);
+        $this->assertTrue(str_contains($writes, 'FROM "Ana"'));
+        $this->assertTrue(str_contains($writes, 'FROM "ana@empresa.com"'));
     }
 }

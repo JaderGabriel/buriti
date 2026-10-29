@@ -2,23 +2,36 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\MailMarker;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\AnnotateMailboxRequest;
+use App\Http\Requests\Admin\BulkMailboxRequest;
 use App\Http\Requests\Admin\SendMailboxMessageRequest;
 use App\Http\Requests\Admin\UpdateMailboxSignatureRequest;
 use App\Models\ContactMessage;
+use App\Models\MailLabel;
+use App\Models\MailRecord;
 use App\Models\User;
 use App\Services\CrmMailboxService;
+use App\Services\MailAnnotationService;
+use App\Services\MailSettingsService;
+use App\Support\MailContacts;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\View\View;
+use InvalidArgumentException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Throwable;
 
 class MailboxController extends Controller
 {
-    public function __construct(private CrmMailboxService $mailbox) {}
+    public function __construct(
+        private CrmMailboxService $mailbox,
+        private MailAnnotationService $annotate,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -36,6 +49,7 @@ class MailboxController extends Controller
             'mode' => 'read',
             'compose' => null,
             'query' => $query,
+            'catalog' => $this->annotate->catalog(),
         ]);
     }
 
@@ -108,6 +122,7 @@ class MailboxController extends Controller
                 'modo' => $modo,
             ],
             'query' => '',
+            'catalog' => $this->annotate->catalog(),
         ]);
     }
 
@@ -117,10 +132,11 @@ class MailboxController extends Controller
         $subject = $request->string('subject')->toString();
         $body = $request->string('body')->toString();
         $withSignature = $request->boolean('signature', true);
+        $files = $request->uploadedAttachments();
 
         try {
             if ($request->boolean('draft')) {
-                $folder = $this->mailbox->saveDraft($to, $subject, $body, $request->user(), $withSignature);
+                $folder = $this->mailbox->saveDraft($to, $subject, $body, $request->user(), $withSignature, $files);
 
                 return redirect()
                     ->route('admin.mailbox.index', ['pasta' => $folder])
@@ -138,6 +154,7 @@ class MailboxController extends Controller
                 $request->input('reply_folder'),
                 $request->integer('reply_uid') ?: null,
                 $request->input('bcc'),
+                $files,
             );
 
             $contactMessageId = $request->integer('contact_message_id');
@@ -253,6 +270,15 @@ class MailboxController extends Controller
         return back()->with('success', 'Assinatura guardada. Entra nas mensagens novas a seguir ao texto.');
     }
 
+    public function contacts(Request $request): JsonResponse
+    {
+        $this->authorizeMailAdmin($request->user());
+
+        return response()->json([
+            'contacts' => MailContacts::search($request->string('q')->toString()),
+        ]);
+    }
+
     public function attachment(Request $request): Response
     {
         $this->authorizeMailAdmin($request->user());
@@ -274,6 +300,173 @@ class MailboxController extends Controller
             'Content-Type' => $file['type'] ?: 'application/octet-stream',
             'Content-Disposition' => 'attachment; filename="'.str_replace('"', '', $name).'"',
         ]);
+    }
+
+    public function bulk(BulkMailboxRequest $request): RedirectResponse
+    {
+        $folder = $request->string('pasta')->toString();
+        $uids = $request->uids();
+        $acao = $request->string('acao')->toString();
+        $admin = $request->user();
+
+        try {
+            match ($acao) {
+                'star' => $this->mailbox->setFlag($folder, $uids, '\\Flagged', true, $admin),
+                'unstar' => $this->mailbox->setFlag($folder, $uids, '\\Flagged', false, $admin),
+                'seen' => $this->mailbox->setFlag($folder, $uids, '\\Seen', true, $admin),
+                'unseen' => $this->mailbox->setFlag($folder, $uids, '\\Seen', false, $admin),
+                'destroy' => $this->mailbox->destroyMany($folder, $uids, $admin),
+                'move' => $this->mailbox->moveMany($folder, $uids, (string) $request->input('destino'), $admin),
+                'marker' => $this->applyMarker($folder, $uids, $admin, $request->input('marker')),
+                'label' => $this->applyLabel($folder, $uids, $admin, $request->integer('label_id')),
+                default => null,
+            };
+        } catch (Throwable $e) {
+            $this->rethrowAuthorization($e);
+
+            return back()->with('error', $e->getMessage());
+        }
+
+        $flash = match ($acao) {
+            'star' => 'Mensagens marcadas com estrela.',
+            'unstar' => 'Estrela removida.',
+            'seen' => 'Mensagens marcadas como lidas.',
+            'unseen' => 'Mensagens marcadas como não lidas.',
+            'destroy' => 'Mensagens enviadas para o Lixo.',
+            'move' => 'Mensagens movidas.',
+            'marker' => 'Marcador actualizado.',
+            'label' => 'Etiqueta aplicada.',
+            default => 'Acção aplicada.',
+        };
+
+        $redirectFolder = $acao === 'move' ? (string) $request->input('destino') : $folder;
+
+        return redirect()
+            ->route('admin.mailbox.index', ['pasta' => $redirectFolder])
+            ->with('success', $flash);
+    }
+
+    public function marker(AnnotateMailboxRequest $request): RedirectResponse
+    {
+        try {
+            $record = $this->recordFrom($request);
+            $value = trim((string) $request->input('marker', ''));
+            $this->annotate->setMarker($record, MailMarker::tryFrom($value));
+        } catch (Throwable $e) {
+            $this->rethrowAuthorization($e);
+
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'Marcador actualizado.');
+    }
+
+    public function label(AnnotateMailboxRequest $request): RedirectResponse
+    {
+        try {
+            if (filled($request->input('name'))) {
+                $this->annotate->createLabel(
+                    (string) $request->input('name'),
+                    (string) $request->input('color', 'slate'),
+                );
+
+                return back()->with('success', 'Etiqueta criada.');
+            }
+
+            $record = $this->recordFrom($request);
+            $label = MailLabel::query()->findOrFail($request->integer('label_id'));
+            if ($request->boolean('detach_label')) {
+                $this->annotate->detachLabel($record, $label);
+
+                return back()->with('success', 'Etiqueta removida.');
+            }
+            $this->annotate->attachLabel($record, $label);
+        } catch (Throwable $e) {
+            $this->rethrowAuthorization($e);
+
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'Etiqueta aplicada.');
+    }
+
+    public function link(AnnotateMailboxRequest $request): RedirectResponse
+    {
+        try {
+            $record = $this->recordFrom($request);
+            $this->annotate->addLink(
+                $record,
+                (string) $request->input('kind'),
+                $request->integer('linkable_id'),
+            );
+        } catch (InvalidArgumentException $e) {
+            return back()->with('error', $e->getMessage());
+        } catch (Throwable $e) {
+            $this->rethrowAuthorization($e);
+
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'E-mail ligado no CRM (só visível no admin).');
+    }
+
+    public function unlink(AnnotateMailboxRequest $request): RedirectResponse
+    {
+        try {
+            $record = $this->recordFrom($request);
+            $this->annotate->removeLink($record, $request->integer('link_id'));
+        } catch (Throwable $e) {
+            $this->rethrowAuthorization($e);
+
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'Vínculo removido.');
+    }
+
+    private function recordFrom(AnnotateMailboxRequest $request): MailRecord
+    {
+        $this->authorizeMailAdmin($request->user());
+
+        return $this->annotate->remember($this->mailboxAccount(), [
+            'folder' => $request->string('pasta')->toString(),
+            'uid' => $request->integer('uid'),
+            'message_id' => $request->input('message_id'),
+            'subject' => $request->input('subject'),
+            'from' => $request->input('from'),
+        ]);
+    }
+
+    /**
+     * @param  list<int>  $uids
+     */
+    private function applyMarker(string $folder, array $uids, User $admin, mixed $marker): void
+    {
+        $value = is_string($marker) ? trim($marker) : '';
+        $enum = MailMarker::tryFrom($value);
+        $account = $this->mailboxAccount();
+        foreach ($this->mailbox->headersFor($folder, $uids, $admin) as $message) {
+            $this->annotate->setMarker($this->annotate->remember($account, $message), $enum);
+        }
+    }
+
+    /**
+     * @param  list<int>  $uids
+     */
+    private function applyLabel(string $folder, array $uids, User $admin, int $labelId): void
+    {
+        $label = MailLabel::query()->findOrFail($labelId);
+        $account = $this->mailboxAccount();
+        foreach ($this->mailbox->headersFor($folder, $uids, $admin) as $message) {
+            $this->annotate->attachLabel($this->annotate->remember($account, $message), $label);
+        }
+    }
+
+    private function mailboxAccount(): string
+    {
+        app(MailSettingsService::class)->apply();
+
+        return (string) config('mail.from.address');
     }
 
     private function extractEmail(string $from): string

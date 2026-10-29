@@ -6,6 +6,7 @@ use App\Support\MailBranding;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Headers;
@@ -15,12 +16,32 @@ class CrmOutgoingMail extends Mailable
 {
     use Queueable, SerializesModels;
 
+    /**
+     * @param  list<array{path: string, name: string, mime: string}>  $files
+     */
     public function __construct(
         public string $subjectLine,
         public string $body,
         public string $signature = '',
         public ?string $inReplyTo = null,
+        public array $files = [],
     ) {}
+
+    /**
+     * @return list<Attachment>
+     */
+    public function attachments(): array
+    {
+        return array_values(array_filter(array_map(function (array $file): ?Attachment {
+            if (! is_file($file['path'] ?? '')) {
+                return null;
+            }
+
+            return Attachment::fromPath($file['path'])
+                ->as($file['name'] ?: basename($file['path']))
+                ->withMime($file['mime'] ?: 'application/octet-stream');
+        }, $this->files)));
+    }
 
     public function envelope(): Envelope
     {

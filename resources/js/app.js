@@ -3377,14 +3377,83 @@ function initPhonebookSelection() {
     sync();
 }
 
+function mailCompose(options = {}) {
+    return {
+        showCc: Boolean(options.cc),
+        showBcc: Boolean(options.bcc),
+        files: [],
+        contactsUrl: options.contactsUrl || '',
+        hits: { to: [], cc: [], bcc: [] },
+        open: { to: false, cc: false, bcc: false },
+        fieldEl(field) {
+            return this.$refs[field + 'Field'];
+        },
+        token(field) {
+            const el = this.fieldEl(field);
+            const value = el instanceof HTMLInputElement ? el.value : '';
+            const parts = value.split(',');
+
+            return (parts[parts.length - 1] || '').trim();
+        },
+        async lookup(field) {
+            if (! this.contactsUrl) {
+                return;
+            }
+            const q = this.token(field);
+            try {
+                const url = new URL(this.contactsUrl, window.location.origin);
+                if (q !== '') {
+                    url.searchParams.set('q', q);
+                }
+                const response = await fetch(url.toString(), {
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                });
+                if (! response.ok) {
+                    return;
+                }
+                const data = await response.json();
+                this.hits[field] = Array.isArray(data.contacts) ? data.contacts : [];
+                this.open[field] = this.hits[field].length > 0;
+            } catch {
+                this.hits[field] = [];
+                this.open[field] = false;
+            }
+        },
+        pick(field, email) {
+            const el = this.fieldEl(field);
+            if (! (el instanceof HTMLInputElement) || ! email) {
+                return;
+            }
+            const parts = el.value.split(',').map((part) => part.trim()).filter(Boolean);
+            if (this.token(field) !== '') {
+                parts.pop();
+            }
+            if (! parts.includes(email)) {
+                parts.push(email);
+            }
+            el.value = parts.join(', ');
+            this.open[field] = false;
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.focus();
+        },
+        hide(field) {
+            window.setTimeout(() => {
+                this.open[field] = false;
+            }, 160);
+        },
+    };
+}
+
 window.buritiPhoneCountryField = buritiPhoneCountryField;
 window.buritiWhatsAppField = buritiWhatsAppField;
 window.taskDayCreate = taskDayCreate;
+window.mailCompose = mailCompose;
 
 document.addEventListener('alpine:init', () => {
     Alpine.data('buritiPhoneCountryField', buritiPhoneCountryField);
     Alpine.data('buritiWhatsAppField', buritiWhatsAppField);
     Alpine.data('taskDayCreate', taskDayCreate);
+    Alpine.data('mailCompose', mailCompose);
 });
 
 function initTaskCreateDialog() {

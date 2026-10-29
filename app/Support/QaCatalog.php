@@ -475,6 +475,11 @@ final class QaCatalog
                                 'admin.settings.mail.inbox',
                                 'admin.mailbox.index',
                                 'admin.mailbox.compose',
+                                'admin.mailbox.contacts',
+                                'admin.mailbox.bulk',
+                                'admin.mailbox.marker',
+                                'admin.mailbox.label',
+                                'admin.mailbox.link',
                             ],
                             'views' => [
                                 'admin.settings.mail',
