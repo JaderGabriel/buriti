@@ -192,7 +192,7 @@ class ProfileController extends Controller
                 'ok' => false,
                 'message' => $exception instanceof \RuntimeException
                     ? $exception->getMessage()
-                    : 'Não foi possível iniciar a chave de acesso. '.$exception->getMessage(),
+                    : 'Não foi possível iniciar a chave de acesso.',
             ], 422);
         }
 

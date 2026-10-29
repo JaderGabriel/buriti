@@ -151,12 +151,41 @@ class PasskeyService
 
     private function client(?Request $request = null): WebAuthn
     {
+        $this->ensureWebAuthnLoaded();
+
         return new WebAuthn(
             (string) config('buriti.name', 'BURI-TI'),
             $this->rpId($request),
             ['none', 'packed', 'apple', 'android-key', 'android-safetynet'],
             true,
         );
+    }
+
+    private function ensureWebAuthnLoaded(): void
+    {
+        if (class_exists(WebAuthn::class, false)) {
+            return;
+        }
+
+        $src = is_file(base_path('libraries/lbuchs-webauthn/src/WebAuthn.php'))
+            ? base_path('libraries/lbuchs-webauthn/src')
+            : base_path('vendor/lbuchs/webauthn/src');
+        $file = $src.DIRECTORY_SEPARATOR.'WebAuthn.php';
+
+        if (! is_file($file)) {
+            throw new RuntimeException('A biblioteca de chave de acesso não está instalada.');
+        }
+
+        $includePath = get_include_path();
+        if (! str_contains($includePath, $src)) {
+            set_include_path($src.PATH_SEPARATOR.$includePath);
+        }
+
+        require_once $file;
+
+        if (! class_exists(WebAuthn::class, false)) {
+            throw new RuntimeException('A biblioteca de chave de acesso não carregou neste PHP.');
+        }
     }
 
     private function rpId(?Request $request = null): string

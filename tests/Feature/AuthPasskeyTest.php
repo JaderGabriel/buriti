@@ -109,6 +109,12 @@ class AuthPasskeyTest extends TestCase
             ->assertSee('data-passkey-register', false);
     }
 
+    public function test_webauthn_library_is_loadable(): void
+    {
+        $this->assertFileExists(base_path('libraries/lbuchs-webauthn/src/WebAuthn.php'));
+        $this->assertFileExists(base_path('libraries/lbuchs-webauthn/src/WebAuthnException.php'));
+    }
+
     public function test_logged_in_user_can_start_passkey_with_password(): void
     {
         $response = $this->actingAs($this->admin)
