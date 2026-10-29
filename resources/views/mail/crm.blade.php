@@ -21,19 +21,13 @@
                             <div style="white-space:pre-wrap;">{!! nl2br(e($body)) !!}</div>
                         </td>
                     </tr>
-                    @if(filled($signature))
+                    @if(! empty($signatureBlock))
                     <tr>
                         <td style="padding:0 28px 24px;">
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:2px solid #1a5f9e;">
                                 <tr>
-                                    <td style="padding-top:18px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.55;color:#1b2430;white-space:pre-wrap;">{!! nl2br(e($signature)) !!}</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding-top:10px;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#5b6b7c;">
-                                        <a href="{{ $siteUrl }}" style="color:#1a5f9e;text-decoration:none;">{{ $siteHost }}</a>
-                                        @if(filled($fromAddress))
-                                            · <a href="mailto:{{ $fromAddress }}" style="color:#1a5f9e;text-decoration:none;">{{ $fromAddress }}</a>
-                                        @endif
+                                    <td style="padding-top:18px;">
+                                        @include('mail.partials.signature', ['block' => $signatureBlock, 'siteUrl' => $siteUrl, 'siteHost' => $siteHost])
                                     </td>
                                 </tr>
                             </table>

@@ -11,7 +11,7 @@ class UpdateMailSettingsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->canManageMail() === true;
+        return $this->user()?->can('manageMail') === true;
     }
 
     protected function prepareForValidation(): void

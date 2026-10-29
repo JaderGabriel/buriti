@@ -41,7 +41,8 @@ class MailboxTest extends TestCase
         $this->actingAs($staff)
             ->get(route('jirau.home'))
             ->assertOk()
-            ->assertDontSee('>Correio</span>', false)
+            ->assertDontSee('>E-mail</span>', false)
+            ->assertDontSee('>MAIL</span>', false)
             ->assertDontSee(route('admin.mailbox.index'), false)
             ->assertDontSee(route('admin.settings.mail'), false);
 
@@ -68,7 +69,8 @@ class MailboxTest extends TestCase
             ->get(route('admin.mailbox.index'))
             ->assertOk()
             ->assertSee('Configurar conta', false)
-            ->assertSee('Correio', false);
+            ->assertSee('Comercial · E-mail', false)
+            ->assertSee('Sistema → MAIL', false);
     }
 
     public function test_mailbox_lists_inbox_from_imap(): void
@@ -179,10 +181,48 @@ class MailboxTest extends TestCase
                 && $mail->hasFrom('contato@exemplo.com')
                 && str_contains($html, 'Segue o texto.')
                 && str_contains($html, 'Lei nº 13.709/2018')
-                && str_contains($html, 'BURI-TI · consultoria e software')
-                && str_contains($html, '#eef2f6')
+                && str_contains($html, 'logo-buriti.png')
+                && str_contains($html, 'images/mail/phone.png')
+                && str_contains($html, 'images/mail/whatsapp.png')
+                && str_contains($html, 'images/mail/telegram.png')
+                && str_contains($html, 'tel:+5538991758416')
+                && str_contains($html, 'wa.me/jadergabriel')
+                && str_contains($html, 't.me/JaderGabriel')
+                && str_contains($html, 'alt="Telefone"')
+                && ! str_contains($html, '+55 38 99175-8416')
                 && ! str_contains($html, 'background:#0a1628');
         });
+    }
+
+    public function test_gmail_send_still_appends_a_copy_to_sent(): void
+    {
+        $settings = app(SettingService::class);
+        $settings->putMany([
+            'mail_mailer' => 'smtp',
+            'mail_host' => 'smtp.gmail.com',
+            'mail_username' => 'jadergabriel8@gmail.com',
+            'mail_from_name' => 'BURI-TI',
+        ]);
+        $settings->putSecret('mail_password', 'app-pass');
+        $this->scriptImap([
+            '* LIST (\\HasNoChildren \\Sent) "/" "[Gmail]/Sent Mail"',
+            'A1 OK LIST completed',
+            '+',
+            'A2 OK APPEND completed',
+            '* BYE',
+            'A3 OK LOGOUT completed',
+        ]);
+        Mail::fake();
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.mailbox.send'), [
+                'to' => 'qa@exemplo.com',
+                'subject' => 'Proposta Gmail',
+                'body' => 'Segue o texto.',
+                'signature' => '1',
+            ])
+            ->assertRedirect(route('admin.mailbox.index', ['pasta' => '[Gmail]/Sent Mail']))
+            ->assertSessionHas('success');
     }
 
     public function test_admin_can_save_signature(): void
@@ -207,7 +247,9 @@ class MailboxTest extends TestCase
             ->assertSee('Assinatura', false)
             ->assertSee('Cco', false)
             ->assertSee('BURI-TI · consultoria e software', false)
-            ->assertSee('aviso de confidencialidade e LGPD', false);
+            ->assertSee('images/mail/whatsapp.png', false)
+            ->assertSee('images/mail/telegram.png', false)
+            ->assertSee('aviso LGPD', false);
     }
 
     public function test_compose_from_site_message_quotes_original(): void
@@ -275,9 +317,9 @@ class MailboxTest extends TestCase
         $this->actingAs($this->admin)
             ->get(route('admin.mailbox.index'))
             ->assertOk()
-            ->assertSee('>Correio</span>', false)
+            ->assertSee('>E-mail</span>', false)
             ->assertSee('>Mensagens</span>', false)
-            ->assertSee('>E-mail</span>', false);
+            ->assertSee('>MAIL</span>', false);
     }
 
     private function configureMailbox(): void

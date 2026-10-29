@@ -33,7 +33,7 @@ final class AdminNavigation
             ];
         }
 
-        $canMail = $user->canManageMail();
+        $canMail = $user->can('manageMail');
 
         return [
             [
@@ -70,7 +70,7 @@ final class AdminNavigation
                     ],
                     ...($canMail ? [[
                         'route' => 'admin.mailbox.index',
-                        'label' => 'Correio',
+                        'label' => 'E-mail',
                         'pattern' => 'admin.mailbox.*',
                         'icon' => 'mail',
                     ]] : []),
@@ -189,7 +189,7 @@ final class AdminNavigation
                     ],
                     ...($canMail ? [[
                         'route' => 'admin.settings.mail',
-                        'label' => 'E-mail',
+                        'label' => 'MAIL',
                         'pattern' => ['admin.settings.mail', 'admin.settings.mail.update', 'admin.settings.mail.test', 'admin.settings.mail.inbox'],
                         'icon' => 'mail',
                     ]] : []),
@@ -318,7 +318,7 @@ final class AdminNavigation
             'jirau' => 'kanban agil board quadro',
             'sistema' => 'admin sistema',
             'admin.messages.index' => 'inbox email mail mensagens',
-            'admin.mailbox.index' => 'correio imap smtp caixa enviados rascunhos assinatura pastas',
+            'admin.mailbox.index' => 'email e-mail mail correio imap smtp caixa enviados rascunhos assinatura pastas',
             'admin.companies.index' => 'company empresas clientes',
             'admin.contacts.index' => 'contactos telefone contatos',
             'admin.opportunities.index' => 'pipeline negocio oportunidades',
@@ -333,7 +333,7 @@ final class AdminNavigation
             'admin.users.index' => 'users usuarios',
             'admin.integrations.edit' => 'google telegram integracoes',
             'admin.settings.edit' => 'settings config configuracoes',
-            'admin.settings.mail' => 'email smtp imap mailer teste envio caixa enviados recebidos',
+            'admin.settings.mail' => 'mail smtp imap mailer teste envio caixa enviados recebidos email e-mail',
             'admin.roadmap.show' => 'roadmap produto ideias concorrentes pipedrive hubspot modulos',
             'admin.qa.index' => 'testes phpunit suite telegram qa laboratorio probes relatorios comercial jirau site migrations google unitario depoimentos selo autenticidade',
         ][$key] ?? '';

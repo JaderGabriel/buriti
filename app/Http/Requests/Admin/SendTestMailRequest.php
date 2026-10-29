@@ -8,7 +8,7 @@ class SendTestMailRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->canManageMail() === true;
+        return $this->user()?->can('manageMail') === true;
     }
 
     /** @return array<string, mixed> */

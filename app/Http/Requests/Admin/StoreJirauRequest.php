@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\JirauTemplate;
+use App\Models\Jirau;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -10,7 +11,7 @@ class StoreJirauRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->is_admin === true && $this->user()?->is_active === true;
+        return $this->user()?->can('create', Jirau::class) === true;
     }
 
     /** @return array<string, mixed> */

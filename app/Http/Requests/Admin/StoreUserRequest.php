@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\JirauStaffRole;
+use App\Models\User;
 use App\Services\AvatarService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -12,7 +13,7 @@ class StoreUserRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->is_admin === true;
+        return $this->user()?->can('create', User::class) === true;
     }
 
     /** @return array<string, mixed> */

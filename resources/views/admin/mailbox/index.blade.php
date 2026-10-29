@@ -49,10 +49,10 @@
 
         @if(! $ready && $mode !== 'compose')
             <article class="mail-setup">
-                <p class="mail-kicker">Comercial · Correio</p>
-                <h1 class="mt-2 font-display text-2xl font-bold">Correio da conta</h1>
+                <p class="mail-kicker">Comercial · E-mail</p>
+                <h1 class="mt-2 font-display text-2xl font-bold">E-mail da conta</h1>
                 <p class="mt-3 text-sm text-mist">
-                    Liga SMTP e IMAP em Sistema → E-mail. A mesma identidade serve para o painel, as respostas do site e o bot no Telegram
+                    Liga SMTP e IMAP em Sistema → MAIL. A mesma identidade serve para o painel, as respostas do site e o bot no Telegram
                     (<code>/email</code> e <code>/mensagem responder</code>).
                 </p>
                 <div class="mt-6 flex flex-wrap gap-2">
@@ -70,7 +70,7 @@
             <div @class(['messenger', 'mail', 'messenger--open' => $isOpen])>
                 <aside class="mail-folders" aria-label="Pastas">
                     <div class="mail-folders__head">
-                        <p class="mail-kicker">Correio</p>
+                        <p class="mail-kicker">E-mail</p>
                         <p class="mt-1 truncate text-sm font-semibold text-snow" title="{{ $identity['address'] }}">{{ $identity['name'] ?: $identity['address'] ?: 'Conta' }}</p>
                         <p class="truncate text-[11px] text-mist" title="{{ $identity['address'] }}">{{ $identity['address'] ?: 'sem identidade' }}</p>
                     </div>
@@ -274,12 +274,15 @@
                         </form>
                         <details class="mail-signature" open>
                             <summary>Assinatura da conta</summary>
-                            <p class="mt-2 text-xs text-mist">Bloco moderno com nome e BURI-TI. O aviso de confidencialidade e LGPD entra sempre no rodapé, mesmo sem este texto.</p>
+                            <p class="mt-2 text-xs text-mist">Padrão comercial: logomarca, nome e ícones de telefone, WhatsApp e Telegram (clicáveis, sem mostrar o número). O aviso LGPD entra sempre no rodapé.</p>
+                            <div class="mt-3 overflow-hidden rounded-sm bg-white p-4 text-slate-900">
+                                @include('mail.partials.signature', ['block' => $identity['signature_block'] ?? []])
+                            </div>
                             <form method="POST" action="{{ route('admin.mailbox.signature') }}" class="mt-3 grid gap-2">
                                 @csrf
                                 @method('PUT')
-                                <textarea name="mail_signature" rows="5" class="mail-input" placeholder="Nome&#10;BURI-TI · consultoria e software&#10;{{ $identity['address'] }}">{{ old('mail_signature', $identity['signature']) }}</textarea>
-                                <button type="submit" class="messenger-composer__secondary justify-self-start">Guardar assinatura</button>
+                                <textarea name="mail_signature" rows="3" class="mail-input" placeholder="Nome&#10;Consultoria e software">{{ old('mail_signature', $identity['signature']) }}</textarea>
+                                <button type="submit" class="messenger-composer__secondary justify-self-start">Guardar nome na assinatura</button>
                             </form>
                         </details>
                     @elseif($selected)
@@ -373,7 +376,7 @@
                         <div class="messenger-empty">
                             <div class="messenger-empty__card">
                                 <span class="messenger-avatar messenger-avatar--xl"><x-ui.icon name="mail" class="h-7 w-7" /></span>
-                                <h2 class="mt-4 font-display text-lg font-semibold">Correio da conta</h2>
+                                <h2 class="mt-4 font-display text-lg font-semibold">E-mail da conta</h2>
                                 <p class="mt-2 max-w-sm text-sm text-mist">
                                     Escolhe uma mensagem à esquerda ou escreve uma nova. O envio sai autenticado como {{ $identity['address'] ?: 'a conta gravada' }}{{ $inboxUnseen > 0 ? ' · '.$inboxUnseen.' por ler na caixa de entrada' : '' }}.
                                 </p>

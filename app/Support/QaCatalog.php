@@ -106,6 +106,8 @@ final class QaCatalog
                             'tests/Unit/ImapClientTest.php',
                             'tests/Unit/ImapMailboxStoreTest.php',
                             'tests/Unit/Rfc822MessageTest.php',
+                            'tests/Unit/AuthorizationPolicyTest.php',
+                            'tests/Unit/MailBrandingTest.php',
                         ]],
                     ),
                     self::command(

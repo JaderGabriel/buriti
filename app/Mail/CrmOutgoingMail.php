@@ -50,6 +50,9 @@ class CrmOutgoingMail extends Mailable
             with: [
                 'body' => $this->body,
                 'signature' => $this->signature,
+                'signatureBlock' => filled($this->signature)
+                    ? MailBranding::block($this->signature, (string) config('mail.from.name'))
+                    : null,
                 'fromName' => (string) config('mail.from.name'),
                 'fromAddress' => (string) config('mail.from.address'),
                 'siteUrl' => MailBranding::siteUrl(),

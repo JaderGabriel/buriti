@@ -33,10 +33,13 @@ class CrmMailboxService
     {
         $this->mail->apply();
 
+        $signature = $this->personalSignature();
+
         return [
             'address' => (string) config('mail.from.address'),
             'name' => (string) config('mail.from.name'),
-            'signature' => $this->personalSignature(),
+            'signature' => $signature,
+            'signature_block' => MailBranding::block($signature, (string) config('mail.from.name')),
         ];
     }
 
@@ -47,7 +50,7 @@ class CrmMailboxService
      *     folder: string,
      *     listing: array<string, mixed>,
      *     selected: ?array<string, mixed>,
-     *     identity: array<string, string>,
+     *     identity: array<string, mixed>,
      *     error: ?string
      * }
      */
@@ -441,13 +444,12 @@ class CrmMailboxService
 
     private function archiveOutgoing(string $rfc822): ?string
     {
-        if (! $this->imap->isConfigured()) {
-            return null;
-        }
-
-        $already = $this->imap->lastArchiveStatus();
-        if ($already['stored'] && is_string($already['folder']) && $already['folder'] !== '') {
-            return $already['folder'];
+        if ($this->imap->shouldArchiveSent()) {
+            try {
+                return $this->imap->storeSent($rfc822);
+            } catch (Throwable $e) {
+                report($e);
+            }
         }
 
         if ($this->imap->providerSavesSentAutomatically()) {
@@ -458,21 +460,11 @@ class CrmMailboxService
             }
         }
 
-        if (! $this->imap->shouldArchiveSent()) {
-            return null;
-        }
-
-        try {
-            return $this->imap->storeSent($rfc822);
-        } catch (Throwable $e) {
-            report($e);
-
-            return null;
-        }
+        return null;
     }
 
     private function assertAdmin(User $admin): void
     {
-        abort_unless($admin->canManageMail(), 403, 'O serviço de e-mail é exclusivo do admin.');
+        abort_unless($admin->can('manageMail'), 403, 'O serviço de e-mail é exclusivo do admin.');
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Requests\Jirau;
 
 use App\Enums\JirauCardPriority;
 use App\Enums\JirauCardType;
+use App\Models\Jirau;
 use App\Models\User;
 use App\Services\Jirau\JirauBoardService;
 use Illuminate\Foundation\Http\FormRequest;
@@ -13,7 +14,10 @@ class UpdateCardRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->is_active === true;
+        $jirau = $this->route('jirau');
+
+        return $jirau instanceof Jirau
+            && $this->user()?->can('write', $jirau) === true;
     }
 
     /** @return array<string, mixed> */

@@ -124,10 +124,10 @@ final class ProductRoadmap
     {
         return [
             ['id' => 'home', 'label' => 'Início', 'items' => ['Dashboard', 'Próximas acções', 'Funil']],
-            ['id' => 'comercial', 'label' => 'Comercial', 'items' => ['Mensagens', 'Empresas', 'Contatos', 'Oportunidades']],
+            ['id' => 'comercial', 'label' => 'Comercial', 'items' => ['Mensagens', 'E-mail', 'Empresas', 'Contatos', 'Oportunidades']],
             ['id' => 'entrega', 'label' => 'Entrega', 'items' => ['Projetos', 'Vitrine', 'Agenda']],
             ['id' => 'jirau', 'label' => 'Jirau', 'items' => ['Quadros', 'Visão geral', 'Analítica / horas', 'Equipe']],
-            ['id' => 'sistema', 'label' => 'Sistema', 'items' => ['Usuários', 'Integrações', 'Configurações', 'E-mail', 'Roadmap', 'Testes']],
+            ['id' => 'sistema', 'label' => 'Sistema', 'items' => ['Usuários', 'Integrações', 'Configurações', 'MAIL', 'Roadmap', 'Testes']],
         ];
     }
 
@@ -334,7 +334,7 @@ final class ProductRoadmap
         return [
             'short' => RuntimeVersions::short(),
             'release' => RuntimeVersions::release(),
-            'headline' => 'Correio da conta, cópia em Enviados e aviso LGPD em cada envio.',
+            'headline' => 'E-mail da conta, cópia em Enviados e aviso LGPD em cada envio.',
             'items' => [
                 'Cliente IMAP só para o admin: pastas, leitura, envio, respostas ao site e rascunhos, com a identidade do login SMTP.',
                 'O envio guarda cópia em Enviados (APPEND com tamanho exacto; Gmail/Outlook usam a pasta do provedor).',

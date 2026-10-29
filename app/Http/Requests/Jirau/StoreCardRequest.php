@@ -4,6 +4,7 @@ namespace App\Http\Requests\Jirau;
 
 use App\Enums\JirauCardPriority;
 use App\Enums\JirauCardType;
+use App\Models\Jirau;
 use App\Services\Jirau\JirauBoardService;
 use App\Services\Jirau\JirauEvidenceService;
 use App\Support\JirauSafeLink;
@@ -15,7 +16,7 @@ class StoreCardRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->is_admin === true && $this->user()?->is_active === true;
+        return $this->user()?->can('manage', Jirau::class) === true;
     }
 
     /** @return array<string, mixed> */

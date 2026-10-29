@@ -29,7 +29,10 @@ class ImapMailboxStore implements MailboxStore
     /** @var Closure(ImapConfig): ImapClient|null */
     private ?Closure $connector = null;
 
-    public function __construct(private SettingService $settings) {}
+    public function __construct(
+        private SettingService $settings,
+        private MailSettingsService $mail,
+    ) {}
 
     /**
      * @param  Closure(ImapConfig): ImapClient  $connector
@@ -43,11 +46,9 @@ class ImapMailboxStore implements MailboxStore
 
     public function shouldArchiveSent(): bool
     {
-        if ((string) config('mail.default') !== 'smtp') {
-            return false;
-        }
+        $this->mail->apply();
 
-        if ($this->providerSavesSentAutomatically()) {
+        if ((string) config('mail.default') !== 'smtp') {
             return false;
         }
 
@@ -56,6 +57,8 @@ class ImapMailboxStore implements MailboxStore
 
     public function providerSavesSentAutomatically(): bool
     {
+        $this->mail->apply();
+
         return self::hostSavesSentAutomatically((string) config('mail.mailers.smtp.host'));
     }
 
@@ -155,6 +158,8 @@ class ImapMailboxStore implements MailboxStore
 
     public function imapConfig(): ?ImapConfig
     {
+        $this->mail->apply();
+
         $username = MailSettingsService::mailboxAddress(
             $this->settings->get('mail_username') ?: (string) config('mail.mailers.smtp.username')
         );

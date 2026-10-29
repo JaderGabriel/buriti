@@ -15,7 +15,7 @@ class EnsureUserCanManageMail
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->user()?->canManageMail() === true) {
+        if ($request->user()?->can('manageMail') === true) {
             return $next($request);
         }
 

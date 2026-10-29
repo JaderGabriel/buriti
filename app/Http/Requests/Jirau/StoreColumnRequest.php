@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Jirau;
 
 use App\Enums\JirauOverviewLane;
+use App\Models\Jirau;
 use App\Models\JirauColumn;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -11,7 +12,7 @@ class StoreColumnRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->is_admin === true && $this->user()?->is_active === true;
+        return $this->user()?->can('manage', Jirau::class) === true;
     }
 
     /** @return array<string, mixed> */

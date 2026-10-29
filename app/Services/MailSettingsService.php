@@ -130,9 +130,8 @@ class MailSettingsService
         $hint = $alignment
             ?? ($spf
                 ?? ($ready
-                    ? ($savesSent
-                        ? 'SMTP autenticado com a conta '.$identity.'. O provedor já guarda os enviados na caixa.'
-                        : 'SMTP autenticado com a conta '.$identity.'. Cada envio é copiado para Enviados via IMAP, visível no mailserver.')
+                    ? 'SMTP autenticado com a conta '.$identity.'. Cada envio é copiado para Enviados via IMAP'
+                        .($savesSent ? '; o provedor também pode guardar uma cópia.' : ', visível no mailserver.')
                     : 'Preenche host, conta (e-mail) e senha. O remetente fica preso a essa conta. Enquanto o mailer for log, nada sai da máquina.'));
 
         return [
@@ -475,7 +474,7 @@ class MailSettingsService
     private function archiveTestCopy(mixed $sent): void
     {
         $store = app(MailboxStore::class);
-        if ($store->lastArchiveStatus()['stored'] || ! $store->shouldArchiveSent()) {
+        if (! $store->shouldArchiveSent()) {
             return;
         }
 
@@ -497,6 +496,6 @@ class MailSettingsService
 
     private function assertAdmin(User $admin): void
     {
-        abort_unless($admin->canManageMail(), 403, 'O serviço de e-mail é exclusivo do admin.');
+        abort_unless($admin->can('manageMail'), 403, 'O serviço de e-mail é exclusivo do admin.');
     }
 }

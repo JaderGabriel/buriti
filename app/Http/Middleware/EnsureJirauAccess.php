@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Jirau;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,7 +30,7 @@ class EnsureJirauAccess
                 ->withErrors(['login' => 'Esta conta está desativada.']);
         }
 
-        if ($user->canEnterJirau()) {
+        if ($user->can('viewAny', Jirau::class)) {
             return $next($request);
         }
 

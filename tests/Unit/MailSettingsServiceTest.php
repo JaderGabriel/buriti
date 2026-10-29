@@ -222,8 +222,19 @@ class MailSettingsServiceTest extends TestCase
         $store->shouldReceive('storeSent')->once()->withArgs(function (string $raw) {
             return str_contains($raw, 'Subject:') || str_contains($raw, 'e-mail de teste');
         });
+        $store->shouldReceive('lastArchiveStatus')->andReturn([
+            'stored' => true,
+            'folder' => 'Sent',
+            'error' => null,
+        ]);
+        $store->shouldReceive('providerSavesSentAutomatically')->andReturn(false);
         $this->app->instance(MailboxStore::class, $store);
 
-        Mail::mailer('array')->to('qa@exemplo.com')->send(new TestMail);
+        $ok = app(MailSettingsService::class)->trySendTest(
+            'qa@exemplo.com',
+            User::factory()->create(),
+        );
+
+        $this->assertTrue($ok['ok']);
     }
 }

@@ -58,7 +58,8 @@ class ProductRoadmapTest extends TestCase
             ->assertSee(RuntimeVersions::short(), false)
             ->assertSee('Nesta versão', false)
             ->assertSee('Inbox in-app', false)
-            ->assertSee('Correio', false)
+            ->assertSee('E-mail da conta', false)
+            ->assertSee('MAIL', false)
             ->assertSee('LGPD', false);
     }
 

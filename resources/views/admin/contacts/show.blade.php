@@ -104,8 +104,8 @@
                     WhatsApp
                 </a>
             @endif
-            @if($contact->email && auth()->user()?->canManageMail())
-                <a href="{{ route('admin.mailbox.compose', ['para' => $contact->email]) }}" class="contact-dossier__quick-btn contact-dossier__quick-btn--mail" title="Escrever no correio">
+            @if($contact->email && auth()->user()?->can('manageMail'))
+                <a href="{{ route('admin.mailbox.compose', ['para' => $contact->email]) }}" class="contact-dossier__quick-btn contact-dossier__quick-btn--mail" title="Escrever no E-mail">
                     <x-ui.icon name="mail" class="h-4 w-4" />
                     E-mail
                 </a>

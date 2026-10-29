@@ -57,7 +57,7 @@ class ImapMailboxStoreTest extends TestCase
         $this->assertSame((int) $match[1], strlen($transport->writes[2]));
     }
 
-    public function test_should_archive_sent_skips_gmail_because_it_already_saves(): void
+    public function test_should_archive_sent_still_runs_for_gmail_when_imap_is_ready(): void
     {
         config([
             'mail.default' => 'smtp',
@@ -72,6 +72,19 @@ class ImapMailboxStoreTest extends TestCase
         $store = app(ImapMailboxStore::class);
 
         $this->assertTrue($store->providerSavesSentAutomatically());
-        $this->assertFalse($store->shouldArchiveSent());
+        $this->assertTrue($store->shouldArchiveSent());
+    }
+
+    public function test_should_archive_sent_skips_when_mailer_is_not_smtp(): void
+    {
+        config(['mail.default' => 'log']);
+        app(SettingService::class)->putMany([
+            'mail_mailer' => 'log',
+            'mail_username' => 'contato@exemplo.com',
+            'mail_host' => 'mail.exemplo.com',
+        ]);
+        app(SettingService::class)->putSecret('mail_password', 'segredo-imap');
+
+        $this->assertFalse(app(ImapMailboxStore::class)->shouldArchiveSent());
     }
 }

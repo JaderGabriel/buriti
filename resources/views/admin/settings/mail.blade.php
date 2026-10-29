@@ -2,8 +2,8 @@
 
 @section('content')
     <div class="mb-8">
-        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand">Sistema · Configurações</p>
-        <h1 class="mt-2 font-display text-2xl font-bold sm:text-3xl">E-mail</h1>
+        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand">Sistema · MAIL</p>
+        <h1 class="mt-2 font-display text-2xl font-bold sm:text-3xl">MAIL</h1>
         <p class="mt-1 max-w-2xl text-mist">
             A conta gravada aqui é a identidade: o mesmo login autentica o SMTP (envio) e o IMAP (caixa).
             O remetente fica preso a essa conta — não é possível fingir ser outro endereço.
@@ -12,7 +12,7 @@
         </p>
         <p class="mt-3 flex flex-wrap gap-3">
             <a href="{{ route('admin.settings.edit') }}" class="text-sm text-brand-bright hover:underline">← Configurações</a>
-            <a href="{{ route('admin.mailbox.index') }}" class="text-sm text-brand-bright hover:underline">Abrir correio no CRM</a>
+            <a href="{{ route('admin.mailbox.index') }}" class="text-sm text-brand-bright hover:underline">Abrir e-mail no CRM</a>
         </p>
     </div>
 

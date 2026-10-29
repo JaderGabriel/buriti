@@ -629,6 +629,8 @@ class QaLabTest extends TestCase
                 && in_array('tests/Feature/Admin/MailboxTest.php', $command, true)
                 && in_array('tests/Unit/MailDateTest.php', $command, true)
                 && in_array('tests/Unit/Rfc822MessageTest.php', $command, true)
+                && in_array('tests/Unit/AuthorizationPolicyTest.php', $command, true)
+                && in_array('tests/Unit/MailBrandingTest.php', $command, true)
                 && ($process->environment['DB_CONNECTION'] ?? null) === 'sqlite';
         });
     }

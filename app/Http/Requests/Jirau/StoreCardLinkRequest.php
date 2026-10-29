@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Jirau;
 
+use App\Models\Jirau;
 use App\Support\JirauSafeLink;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
@@ -10,7 +11,10 @@ class StoreCardLinkRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->is_active === true;
+        $jirau = $this->route('jirau');
+
+        return $jirau instanceof Jirau
+            && $this->user()?->can('write', $jirau) === true;
     }
 
     /** @return array<string, mixed> */

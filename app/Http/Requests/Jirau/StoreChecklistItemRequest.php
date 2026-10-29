@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Jirau;
 
+use App\Models\Jirau;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -9,7 +10,10 @@ class StoreChecklistItemRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->is_active === true;
+        $jirau = $this->route('jirau');
+
+        return $jirau instanceof Jirau
+            && $this->user()?->can('write', $jirau) === true;
     }
 
     /** @return array<string, mixed> */

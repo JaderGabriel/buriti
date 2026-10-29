@@ -77,7 +77,7 @@
                             </div>
                         </div>
                         <div class="flex shrink-0 items-center gap-1.5">
-                            <a href="{{ route('admin.mailbox.compose', ['para' => $selected->email, 'assunto' => 'Re: '.$selected->subject, 'mensagem' => $selected->id]) }}" class="messenger-icon-btn" title="Responder no correio">
+                            <a href="{{ route('admin.mailbox.compose', ['para' => $selected->email, 'assunto' => 'Re: '.$selected->subject, 'mensagem' => $selected->id]) }}" class="messenger-icon-btn" title="Responder no E-mail">
                                 <x-ui.icon name="mail" class="h-4 w-4" />
                             </a>
                             @if($waHref)
@@ -160,7 +160,7 @@
                                 </form>
                             @endif
                         </div>
-                        <p class="mt-2 text-[11px] text-mist">Mensagem do formulário do site. A resposta por e-mail sai pela conta SMTP do correio (painel ou bot Telegram).</p>
+                        <p class="mt-2 text-[11px] text-mist">Mensagem do formulário do site. A resposta por e-mail sai pela conta SMTP do MAIL (painel ou bot Telegram).</p>
                     </footer>
                 @else
                     <div class="messenger-empty">

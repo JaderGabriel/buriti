@@ -237,7 +237,7 @@ class TelegramMailService
 
     private function assertAdmin(User $admin): void
     {
-        if (! $admin->canManageMail()) {
+        if (! $admin->can('manageMail')) {
             throw new RuntimeException('O serviço de e-mail é exclusivo do admin.');
         }
     }

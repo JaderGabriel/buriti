@@ -3,7 +3,6 @@
 @if(filled($signature))
 --
 {{ $signature }}
-{{ $fromAddress }}
 {{ $siteHost }}
 @endif
 

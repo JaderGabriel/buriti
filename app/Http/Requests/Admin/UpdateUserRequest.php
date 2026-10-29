@@ -12,7 +12,9 @@ class UpdateUserRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->is_admin === true;
+        $target = $this->route('user');
+
+        return $target instanceof User && $this->user()?->can('update', $target) === true;
     }
 
     /** @return array<string, mixed> */

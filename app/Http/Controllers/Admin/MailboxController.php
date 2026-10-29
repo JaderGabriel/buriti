@@ -356,7 +356,7 @@ class MailboxController extends Controller
 
     private function authorizeMailAdmin(?User $user): void
     {
-        abort_unless($user?->canManageMail() === true, 403, 'O serviço de e-mail é exclusivo do admin.');
+        abort_unless($user?->can('manageMail') === true, 403, 'O serviço de e-mail é exclusivo do admin.');
     }
 
     private function rethrowAuthorization(Throwable $e): void

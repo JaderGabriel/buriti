@@ -29,18 +29,20 @@ class MailSettingsTest extends TestCase
         $this->actingAs($this->admin)
             ->get(route('admin.dashboard'))
             ->assertOk()
+            ->assertSee('>MAIL</span>', false)
             ->assertSee('>E-mail</span>', false);
 
         $this->actingAs($this->admin)
             ->get(route('admin.settings.edit'))
             ->assertOk()
-            ->assertSee('E-mail (SMTP, IMAP e teste)', false)
+            ->assertSee('MAIL (SMTP, IMAP e teste)', false)
             ->assertSee(route('admin.settings.mail'), false);
 
         $this->actingAs($this->admin)
             ->get(route('admin.settings.mail'))
             ->assertOk()
-            ->assertSee('E-mail', false)
+            ->assertSee('>MAIL</span>', false)
+            ->assertSee('Sistema · MAIL', false)
             ->assertSee('Enviar e-mail de teste', false)
             ->assertSee('não são enviados por e-mail', false)
             ->assertSee('Convites de depoimento', false)
@@ -50,7 +52,7 @@ class MailSettingsTest extends TestCase
             ->getJson(route('admin.search', ['q' => 'smtp']))
             ->assertOk()
             ->assertJsonFragment([
-                'title' => 'E-mail',
+                'title' => 'MAIL',
                 'type' => 'página',
                 'subtitle' => 'Sistema',
             ]);
@@ -72,6 +74,7 @@ class MailSettingsTest extends TestCase
         $this->actingAs($staff)
             ->get(route('jirau.home'))
             ->assertOk()
+            ->assertDontSee('>MAIL</span>', false)
             ->assertDontSee('>E-mail</span>', false)
             ->assertDontSee(route('admin.settings.mail'), false);
 

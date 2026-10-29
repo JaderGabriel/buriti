@@ -5,9 +5,9 @@ namespace App\Providers;
 use App\Models\JirauCard;
 use App\Models\Opportunity;
 use App\Observers\OpportunityObserver;
+use App\Policies\MailboxPolicy;
 use App\Services\ImapMailboxStore;
 use App\Services\MailboxStore;
-use App\Services\MailSettingsService;
 use App\Services\SettingService;
 use App\Support\RuntimeVersions;
 use App\Support\SubdirectoryRouteCacheGuard;
@@ -16,11 +16,11 @@ use App\View\Composers\SiteLayoutComposer;
 use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
-use Throwable;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -50,11 +50,7 @@ class AppServiceProvider extends ServiceProvider
 
         Opportunity::observe(OpportunityObserver::class);
 
-        try {
-            $this->app->make(MailSettingsService::class)->apply();
-        } catch (Throwable) {
-            // Base pode ainda não existir (migrate / primeiro boot).
-        }
+        Gate::define('manageMail', [MailboxPolicy::class, 'manage']);
 
         Route::bind('item', function (string $value, $route) {
             $card = $route->parameter('card');
