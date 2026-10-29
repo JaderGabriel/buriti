@@ -101,6 +101,7 @@ final class QaCatalog
                         ['args' => [
                             'tests/Feature/Admin/MailSettingsTest.php',
                             'tests/Feature/Admin/MailboxTest.php',
+                            'tests/Feature/Admin/MailNotificationTest.php',
                             'tests/Unit/MailSettingsServiceTest.php',
                             'tests/Unit/MailDateTest.php',
                             'tests/Unit/ImapClientTest.php',
@@ -122,6 +123,7 @@ final class QaCatalog
                             'tests/Feature/TelegramBotTest.php',
                             'tests/Feature/TelegramWebLoginTest.php',
                             'tests/Feature/TaskTelegramReminderTest.php',
+                            'tests/Feature/Admin/MailNotificationTest.php',
                         ]],
                     ),
                     self::command(
@@ -477,6 +479,7 @@ final class QaCatalog
                                 'admin.mailbox.compose',
                                 'admin.mailbox.contacts',
                                 'admin.mailbox.bulk',
+                                'admin.mailbox.empty',
                                 'admin.mailbox.marker',
                                 'admin.mailbox.label',
                                 'admin.mailbox.link',

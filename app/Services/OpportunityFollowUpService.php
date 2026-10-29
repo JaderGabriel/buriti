@@ -89,7 +89,7 @@ class OpportunityFollowUpService
             '📊 <b>Resumo comercial da semana</b>',
             $from->format('d/m').' – '.now()->format('d/m'),
             '',
-            'Novos contactos: <b>'.Contact::query()->where('created_at', '>=', $from)->count().'</b>',
+            'Novos contatos: <b>'.Contact::query()->where('created_at', '>=', $from)->count().'</b>',
             'Actividades: <b>'.CrmActivity::query()->where('happened_at', '>=', $from)->count().'</b>',
             'Oportunidades abertas: <b>'.$openCount.'</b> · '.$this->money($openValue),
             implode(' · ', $stageBits),

@@ -257,6 +257,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
         Route::post('/correio/lote', [MailboxController::class, 'bulk'])
             ->middleware('throttle:30,1')
             ->name('mailbox.bulk');
+        Route::post('/correio/esvaziar', [MailboxController::class, 'emptyFolder'])
+            ->middleware('throttle:10,1')
+            ->name('mailbox.empty');
         Route::post('/correio/marcador', [MailboxController::class, 'marker'])
             ->middleware('throttle:30,1')
             ->name('mailbox.marker');

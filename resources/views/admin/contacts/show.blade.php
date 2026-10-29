@@ -457,7 +457,7 @@
                         </span>
                     </label>
                     <x-ui.input type="datetime-local" name="happened_at" label="Quando" :value="old('happened_at', now()->format('Y-m-d\\TH:i'))" />
-                    <x-ui.button type="submit">Guardar atividade</x-ui.button>
+                    <x-ui.button type="submit">Salvar atividade</x-ui.button>
                 </form>
             </article>
         </aside>

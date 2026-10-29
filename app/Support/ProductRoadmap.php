@@ -87,7 +87,7 @@ final class ProductRoadmap
             [
                 'name' => 'Jira / Linear',
                 'kind' => 'Entrega',
-                'take' => 'Ciclos, WIP e SLA. O Jirau já é o quadro; templates e prazo por coluna fecham o que Linear faz com pouco ecrã.',
+                'take' => 'Ciclos, WIP e SLA. O Jirau já é o quadro; templates e prazo por coluna fecham o que Linear faz com pouco espaço na tela.',
             ],
             [
                 'name' => 'ClickUp / Monday',
@@ -102,7 +102,7 @@ final class ProductRoadmap
             [
                 'name' => 'Take Blip / Z-API',
                 'kind' => 'WhatsApp',
-                'take' => 'API oficial ou ponte. O valor está na ficha do contacto, não no chatbot de marketing.',
+                'take' => 'API oficial ou ponte. O valor está na ficha do contato, não no chatbot de marketing.',
             ],
             [
                 'name' => 'Odoo / Conta Azul',
@@ -155,7 +155,7 @@ final class ProductRoadmap
     {
         return [
             ['title' => 'Lead', 'note' => 'Site, WhatsApp ou Telegram na mesma ficha'],
-            ['title' => 'Qualificar', 'note' => 'Empresa + contacto + próxima acção'],
+            ['title' => 'Qualificar', 'note' => 'Empresa + contato + próxima ação'],
             ['title' => 'Proposta', 'note' => 'PDF versionado na oportunidade'],
             ['title' => 'Contrato', 'note' => 'Modelo Drive com revisão humana'],
             ['title' => 'Entregar', 'note' => 'Projeto + quadro Jirau + horas'],
@@ -186,13 +186,13 @@ final class ProductRoadmap
                 'area' => 'Jobs, Telegram, Google',
                 'agora' => 'Alertas de follow-up já existem; relatórios e templates não mexem no bot.',
                 'proximo' => 'Playbooks geram actividades e ruído no Telegram. Contratos pedem scopes Drive. Horas podem avisar atraso.',
-                'escala' => 'Webhooks WhatsApp e Moodle. Faturas podem exigir NF-e — fora do núcleo Laravel actual.',
+                'escala' => 'Webhooks WhatsApp e Moodle. Faturas podem exigir NF-e — fora do núcleo Laravel atual.',
             ],
             [
                 'area' => 'Site público',
                 'agora' => 'Intacto.',
                 'proximo' => 'Formulário NPS por token. Nada de marketing site-wide.',
-                'escala' => 'Portal autenticado (novo guard) e, se houver WhatsApp, página de privacidade a actualizar.',
+                'escala' => 'Portal autenticado (novo guard) e, se houver WhatsApp, página de privacidade a atualizar.',
             ],
             [
                 'area' => 'Testes e operação',
@@ -212,7 +212,7 @@ final class ProductRoadmap
             'Virar HubSpot: automação de inbound, landing pages, e-mail marketing em massa.',
             'Virar ClickUp: dezenas de views, docs, chat e metas no mesmo sítio.',
             'ERP completo (estoque, folha, fiscal nativo) antes de proposta e apontamento existirem.',
-            'Chatbot de WhatsApp para marketing; o canal entra como inbox ligada ao contacto.',
+            'Chatbot de WhatsApp para marketing; o canal entra como inbox ligada ao contato.',
             'Multi-empresa / white-label. O produto é a operação da BURI-TI, não um SaaS genérico.',
         ];
     }
@@ -407,7 +407,7 @@ final class ProductRoadmap
                 'esforco' => 2,
                 'risco' => 2,
                 'inspired' => 'Pipedrive activities, RD Station tarefas',
-                'summary' => 'Prazo máximo sem próxima acção por estágio da oportunidade, com destaque no inbox e no Telegram. O job de follow-up já existe.',
+                'summary' => 'Prazo máximo sem próxima ação por estágio da oportunidade, com destaque no inbox e no Telegram. O job de follow-up já existe.',
                 'impact' => 'Campos de política em settings ou no estágio. Risco baixo se não auto-concluir reuniões. Alinha com a consolidação do CRM (não fechar actividade por acidente).',
                 'surfaces' => ['Oportunidades', 'inbox', 'Telegram', 'settings'],
             ],
@@ -449,7 +449,7 @@ final class ProductRoadmap
                 'esforco' => 3,
                 'risco' => 3,
                 'inspired' => 'RD Station, Agendor, Take Blip, HubSpot conversations',
-                'summary' => 'Webhook da API oficial (ou Z-API) a gravar na ficha do contacto, lado a lado com mensagens do site e Telegram. Sem chatbot de marketing.',
+                'summary' => 'Webhook da API oficial (ou Z-API) a gravar na ficha do contato, lado a lado com mensagens do site e Telegram. Sem chatbot de marketing.',
                 'impact' => 'Novo canal, idempotência de webhooks, CSP e secrets. Risco de duplicar o inbox. contacts.whatsapp já existe; unificar threads é o trabalho difícil. LGPD: retenção de conversas.',
                 'surfaces' => ['Contatos', 'Mensagens', 'webhooks', 'CSP'],
             ],
@@ -508,7 +508,7 @@ final class ProductRoadmap
                 'inspired' => 'Accelo, Clockify, Scoro',
                 'summary' => 'Parcial: Fazer/Encerrar no cartão Jirau, histórico admin e extrato na analítica já existem. Falta apontamento na ficha do projeto como base de fatura.',
                 'impact' => 'jirau_time_entries + analítica. UI na ficha do projeto ainda falta. Sem isto o Financeiro não tem o que faturar no CRM.',
-                'surfaces' => ['Jirau', 'Analítica', 'Projetos', 'utilizadores'],
+                'surfaces' => ['Jirau', 'Analítica', 'Projetos', 'usuários'],
             ],
             [
                 'id' => 'sla-jirau',
@@ -535,7 +535,7 @@ final class ProductRoadmap
                 'risco' => 3,
                 'inspired' => 'HubSpot seats, Salesforce profiles',
                 'summary' => 'Comercial, entrega, leitura. Hoje é admin vs Jirau. Sem isto, Portal e Financeiro não podem nascer seguros.',
-                'impact' => 'Maior blast radius: policies, nav, Telegram, busca, testes. Não adiciona ecrã bonito — muda o kernel. Fazer antes dos módulos novos.',
+                'impact' => 'Maior blast radius: policies, nav, Telegram, busca, testes. Não adiciona tela bonita — muda o kernel. Fazer antes dos módulos novos.',
                 'surfaces' => ['users', 'policies', 'nav', 'Telegram', 'suite de testes'],
             ],
             [
@@ -548,7 +548,7 @@ final class ProductRoadmap
                 'esforco' => 4,
                 'risco' => 3,
                 'inspired' => 'Accelo client portal, Teamwork',
-                'summary' => 'Login do contacto para ver status do projeto, ficheiros e próximas reuniões. Um módulo novo na barra.',
+                'summary' => 'Login do contato para ver status do projeto, arquivos e próximas reuniões. Um módulo novo na barra.',
                 'impact' => 'Novo guard, rotas públicas autenticadas, papéis obrigatórios. Site e admin deixam de ser os únicos públicos. CSP, 2FA e anexos precisam de regras de visibilidade.',
                 'surfaces' => ['auth', 'projetos', 'anexos', 'site'],
             ],

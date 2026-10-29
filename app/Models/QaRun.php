@@ -68,7 +68,7 @@ class QaRun extends Model
     public function statusLabel(): string
     {
         return match ($this->status) {
-            self::STATUS_RUNNING => 'A correr',
+            self::STATUS_RUNNING => 'Em execução',
             self::STATUS_PASSED => 'OK',
             self::STATUS_FAILED => 'Falhou',
             self::STATUS_ERROR => 'Erro',

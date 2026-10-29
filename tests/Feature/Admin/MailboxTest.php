@@ -73,6 +73,7 @@ class MailboxTest extends TestCase
             ['post', 'admin.mailbox.folders.store'],
             ['put', 'admin.mailbox.signature'],
             ['post', 'admin.mailbox.bulk'],
+            ['post', 'admin.mailbox.empty'],
             ['post', 'admin.mailbox.marker'],
             ['post', 'admin.mailbox.label'],
             ['post', 'admin.mailbox.link'],
@@ -112,13 +113,82 @@ class MailboxTest extends TestCase
             ->get(route('admin.mailbox.index'))
             ->assertOk()
             ->assertSee('Caixa de entrada', false)
-            ->assertSee('Escrever', false)
+            ->assertSee('aria-label="Escrever"', false)
+            ->assertSee('Selecionar tudo', false)
+            ->assertSee('aria-label="Filtro"', false)
+            ->assertSee('Não lidas', false)
+            ->assertSee('Com estrela', false)
             ->assertSee('contato@exemplo.com', false)
             ->assertSee('Nenhuma mensagem nesta pasta', false)
             ->assertSee('data-mail-search', false)
             ->assertSee('name="buscar"', false)
             ->assertSee('id="mail-folder-search"', false)
-            ->assertSee('Remetente, contacto, destinatário ou assunto', false);
+            ->assertSee('Remetente, contato, destinatário ou assunto', false);
+    }
+
+    public function test_mailbox_filter_lists_unread_and_empty_folder_actions(): void
+    {
+        $this->configureMailbox();
+        $this->scriptImap([
+            '* LIST (\\HasNoChildren) "/" INBOX',
+            '* LIST (\\HasNoChildren \\Trash) "/" Trash',
+            '* LIST (\\HasNoChildren \\Junk) "/" Spam',
+            'A1 OK LIST completed',
+            '* STATUS "INBOX" (MESSAGES 0 UNSEEN 0)',
+            'A2 OK STATUS completed',
+            '* STATUS "Trash" (MESSAGES 4 UNSEEN 0)',
+            'A3 OK STATUS completed',
+            '* STATUS "Spam" (MESSAGES 2 UNSEEN 0)',
+            'A4 OK STATUS completed',
+            '* 0 EXISTS',
+            'A5 OK SELECT completed',
+            '* SEARCH',
+            'A6 OK SEARCH completed',
+            '* BYE',
+            'A7 OK LOGOUT completed',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.mailbox.index', ['pasta' => 'INBOX', 'filtro' => 'nao-lidas']))
+            ->assertOk()
+            ->assertSee('Nenhuma mensagem não lida.', false)
+            ->assertSee('filtro=nao-lidas', false)
+            ->assertSee('Esvaziar lixeira', false)
+            ->assertSee('Esvaziar spam', false)
+            ->assertDontSee('IMAP script esgotado', false);
+    }
+
+    public function test_admin_can_empty_trash(): void
+    {
+        $this->configureMailbox();
+        $this->scriptImap([
+            '* 4 EXISTS',
+            'A1 OK SELECT completed',
+            'A2 OK STORE completed',
+            'A3 OK EXPUNGE completed',
+            '* BYE',
+            'A4 OK LOGOUT completed',
+            '* LIST (\\HasNoChildren \\Trash) "/" Trash',
+            'A1 OK LIST completed',
+            '* STATUS "Trash" (MESSAGES 0 UNSEEN 0)',
+            'A2 OK STATUS completed',
+            '* 0 EXISTS',
+            'A3 OK SELECT completed',
+            '* BYE',
+            'A4 OK LOGOUT completed',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.mailbox.empty'), ['pasta' => 'Trash'])
+            ->assertRedirect(route('admin.mailbox.index', ['pasta' => 'Trash']))
+            ->assertSessionHas('success', 'Lixeira esvaziada.');
+    }
+
+    public function test_empty_folder_rejects_inbox(): void
+    {
+        $this->actingAs($this->admin)
+            ->post(route('admin.mailbox.empty'), ['pasta' => 'INBOX'])
+            ->assertSessionHas('error', 'Só a Lixeira e o Spam podem ser esvaziados.');
     }
 
     public function test_mailbox_folder_search_ignores_admin_query_parameter(): void
@@ -292,13 +362,54 @@ class MailboxTest extends TestCase
             ->assertSee('data-to="ana@exemplo.com"', false)
             ->assertSee('mail-chips', false)
             ->assertSee('mail-compose-pane', false)
+            ->assertSee('mail-compose__fields', false)
             ->assertSee('mail-compose__scroll', false)
             ->assertSee('mail-compose__heading', false)
+            ->assertSee('aria-label="Enviar"', false)
+            ->assertSee('aria-label="Rascunho"', false)
             ->assertSee('Nome, empresa ou e-mail', false)
+            ->assertSee('role="combobox"', false)
+            ->assertSee('Contatos', false)
             ->assertSee('data-mail-acao="marker"', false)
             ->assertSee('data-mail-acao="label"', false)
             ->assertDontSee('mail-bulk__go">OK', false)
             ->assertDontSee('<details class="mail-signature" open>', false);
+    }
+
+    public function test_empty_compose_does_not_show_attachment_loading(): void
+    {
+        $html = $this->actingAs($this->admin)
+            ->get(route('admin.mailbox.compose'))
+            ->assertOk()
+            ->assertSee('x-if="items.length > 0"', false)
+            ->assertSee('x-if="loadingCount > 0"', false)
+            ->assertSee('data-mail-attach-loading', false)
+            ->getContent();
+
+        $this->assertSame(1, substr_count($html, 'class="mail-gallery"'));
+        $this->assertSame(1, substr_count($html, 'mail-gallery__progress-bar'));
+        $this->assertSame(1, substr_count($html, 'data-mail-attach-loading'));
+        $this->assertMatchesRegularExpression(
+            '/<template[^>]*x-if="items\.length > 0"[^>]*>\s*<div class="mail-gallery">/s',
+            $html,
+        );
+        $this->assertMatchesRegularExpression(
+            '/<template[^>]*x-if="loadingCount > 0"[^>]*>\s*<p class="mail-compose__attach-hint" data-mail-attach-loading>/s',
+            $html,
+        );
+
+        $galleryAt = strpos($html, 'class="mail-gallery"');
+        $galleryTemplateAt = strpos($html, 'x-if="items.length > 0"');
+        $loadingAt = strpos($html, 'data-mail-attach-loading');
+        $loadingTemplateAt = strpos($html, 'x-if="loadingCount > 0"');
+
+        $this->assertNotFalse($galleryAt);
+        $this->assertNotFalse($galleryTemplateAt);
+        $this->assertNotFalse($loadingAt);
+        $this->assertNotFalse($loadingTemplateAt);
+        $this->assertLessThan($galleryAt, $galleryTemplateAt);
+        $this->assertLessThan($loadingAt, $loadingTemplateAt);
+        $this->assertStringContainsString('Até 5 arquivos', $html);
     }
 
     public function test_admin_can_search_system_contacts_for_compose(): void
@@ -366,9 +477,19 @@ class MailboxTest extends TestCase
         ]);
 
         $this->actingAs($this->admin)
-            ->get(route('admin.mailbox.compose', ['mensagem' => $message->id]))
+            ->get(route('admin.mailbox.compose', [
+                'para' => $message->email,
+                'assunto' => 'Re: '.$message->subject,
+                'mensagem' => $message->id,
+            ]))
             ->assertOk()
             ->assertSee('Resposta ao site', false)
+            ->assertSee('data-to="carla@empresa.com"', false)
+            ->assertSee('data-to-name="Carla Site"', false)
+            ->assertSee('data-mail-seed-chip', false)
+            ->assertSee('Carla Site', false)
+            ->assertSee('name="to"', false)
+            ->assertSee('value="carla@empresa.com"', false)
             ->assertSee('carla@empresa.com', false)
             ->assertSee('Re: Orçamento institucional', false)
             ->assertSee('Preciso de um site novo.', false)

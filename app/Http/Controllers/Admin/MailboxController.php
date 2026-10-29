@@ -8,6 +8,8 @@ use App\Http\Requests\Admin\AnnotateMailboxRequest;
 use App\Http\Requests\Admin\BulkMailboxRequest;
 use App\Http\Requests\Admin\SendMailboxMessageRequest;
 use App\Http\Requests\Admin\UpdateMailboxSignatureRequest;
+use App\Mail\ImapClient;
+use App\Models\Contact;
 use App\Models\ContactMessage;
 use App\Models\MailLabel;
 use App\Models\MailRecord;
@@ -42,14 +44,16 @@ class MailboxController extends Controller
         $uid = $request->integer('uid') ?: null;
         $page = max(1, $request->integer('page', 1));
         $query = trim((string) $request->query('buscar', ''));
+        $filter = ImapClient::normalizeFilter($request->string('filtro')->toString());
 
-        $workspace = $this->mailbox->workspace($folder, $page, $uid, $query !== '' ? $query : null);
+        $workspace = $this->mailbox->workspace($folder, $page, $uid, $query !== '' ? $query : null, $filter);
 
         return view('admin.mailbox.index', [
             'workspace' => $workspace,
             'mode' => 'read',
             'compose' => null,
             'query' => $query,
+            'filter' => $filter,
             'catalog' => $this->annotate->catalog(),
         ]);
     }
@@ -69,6 +73,7 @@ class MailboxController extends Controller
         }
 
         $to = (string) $request->query('para', '');
+        $toName = '';
         $cc = '';
         $subject = (string) $request->query('assunto', '');
         $modo = (string) $request->query('modo', 'new');
@@ -79,9 +84,13 @@ class MailboxController extends Controller
         $contactMessageId = $request->integer('mensagem') ?: null;
 
         if ($contactMessageId) {
-            $contactMessage = ContactMessage::query()->find($contactMessageId);
+            $contactMessage = ContactMessage::query()->with('contact')->find($contactMessageId);
             if ($contactMessage) {
-                $to = $to !== '' ? $to : (string) $contactMessage->email;
+                $email = $this->extractEmail((string) $contactMessage->email)
+                    ?: $this->extractEmail((string) ($contactMessage->contact?->email ?? ''))
+                    ?: $this->extractEmail($to);
+                $toName = trim((string) ($contactMessage->contact?->name ?: $contactMessage->name));
+                $to = $email;
                 $subject = $subject !== '' ? $subject : $this->replySubject((string) $contactMessage->subject);
                 $quoted = $this->quoteContactMessage($contactMessage);
                 $quote = MailHtml::quoteBlock($quoted['intro'], $quoted['text']);
@@ -89,6 +98,11 @@ class MailboxController extends Controller
             } else {
                 $contactMessageId = null;
             }
+        } elseif ($to !== '') {
+            $email = $this->extractEmail($to);
+            $to = $email;
+            $match = Contact::query()->where('email', $email)->first();
+            $toName = trim((string) ($match?->name ?? ''));
         }
 
         if (is_array($reply)) {
@@ -116,8 +130,11 @@ class MailboxController extends Controller
         return view('admin.mailbox.index', [
             'workspace' => $workspace,
             'mode' => 'compose',
+            'query' => '',
+            'filter' => null,
             'compose' => [
                 'to' => $to,
+                'to_name' => $toName,
                 'cc' => $cc,
                 'bcc' => '',
                 'subject' => $subject,
@@ -130,7 +147,6 @@ class MailboxController extends Controller
                 'contact_message_id' => $contactMessageId,
                 'modo' => $modo,
             ],
-            'query' => '',
             'catalog' => $this->annotate->catalog(),
         ]);
     }
@@ -153,7 +169,7 @@ class MailboxController extends Controller
 
                 return redirect()
                     ->route('admin.mailbox.index', ['pasta' => $folder])
-                    ->with('success', 'Rascunho guardado em '.$folder.'.');
+                    ->with('success', 'Rascunho salvo em '.$folder.'.');
             }
 
             $sentFolder = $this->mailbox->send(
@@ -208,7 +224,7 @@ class MailboxController extends Controller
 
             return redirect()
                 ->route('admin.mailbox.index', ['pasta' => $folder])
-                ->with('success', 'Mensagem enviada para o Lixo.');
+                ->with('success', 'Mensagem enviada para a lixeira.');
         } catch (Throwable $e) {
             $this->rethrowAuthorization($e);
 
@@ -261,7 +277,7 @@ class MailboxController extends Controller
 
         $name = trim((string) $request->input('name', ''));
         if ($name === '') {
-            return back()->with('error', 'Indica o nome da pasta.');
+            return back()->with('error', 'Informe o nome da pasta.');
         }
 
         try {
@@ -281,7 +297,7 @@ class MailboxController extends Controller
     {
         $this->mailbox->saveSignature((string) $request->input('mail_signature', ''), $request->user());
 
-        return back()->with('success', 'Assinatura guardada. Entra nas mensagens novas a seguir ao texto.');
+        return back()->with('success', 'Assinatura salva. Ela entra nas mensagens novas depois do texto.');
     }
 
     public function contacts(Request $request): JsonResponse
@@ -316,6 +332,31 @@ class MailboxController extends Controller
         ]);
     }
 
+    public function emptyFolder(Request $request): RedirectResponse
+    {
+        $this->authorizeMailAdmin($request->user());
+
+        $folder = trim((string) $request->input('pasta', ''));
+        if ($folder === '') {
+            return back()->with('error', 'Informe a pasta a esvaziar.');
+        }
+
+        try {
+            $this->mailbox->emptyFolder($folder, $request->user());
+        } catch (Throwable $e) {
+            $this->rethrowAuthorization($e);
+
+            return back()->with('error', $e->getMessage());
+        }
+
+        $role = ImapClient::classifyFolder($folder, '');
+        $flash = $role === 'junk' ? 'Spam esvaziado.' : 'Lixeira esvaziada.';
+
+        return redirect()
+            ->route('admin.mailbox.index', ['pasta' => $folder])
+            ->with('success', $flash);
+    }
+
     public function bulk(BulkMailboxRequest $request): RedirectResponse
     {
         $folder = $request->string('pasta')->toString();
@@ -346,11 +387,11 @@ class MailboxController extends Controller
             'unstar' => 'Estrela removida.',
             'seen' => 'Mensagens marcadas como lidas.',
             'unseen' => 'Mensagens marcadas como não lidas.',
-            'destroy' => 'Mensagens enviadas para o Lixo.',
+            'destroy' => 'Mensagens enviadas para a lixeira.',
             'move' => 'Mensagens movidas.',
-            'marker' => 'Marcador actualizado.',
+            'marker' => 'Marcador atualizado.',
             'label' => 'Etiqueta aplicada.',
-            default => 'Acção aplicada.',
+            default => 'Ação aplicada.',
         };
 
         $redirectFolder = $acao === 'move' ? (string) $request->input('destino') : $folder;
@@ -372,7 +413,7 @@ class MailboxController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        return back()->with('success', 'Marcador actualizado.');
+        return back()->with('success', 'Marcador atualizado.');
     }
 
     public function label(AnnotateMailboxRequest $request): RedirectResponse
@@ -421,7 +462,7 @@ class MailboxController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        return back()->with('success', 'E-mail ligado no CRM (só visível no admin).');
+        return back()->with('success', 'E-mail vinculado no CRM (só visível no admin).');
     }
 
     public function unlink(AnnotateMailboxRequest $request): RedirectResponse
@@ -487,7 +528,7 @@ class MailboxController extends Controller
     {
         $emails = CrmMailboxService::extractAddresses($from);
 
-        return $emails[0] ?? trim($from);
+        return $emails[0] ?? '';
     }
 
     /**

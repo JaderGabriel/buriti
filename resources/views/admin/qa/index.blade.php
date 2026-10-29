@@ -98,7 +98,7 @@
                     <input type="hidden" name="command" value="suite.phpunit">
                     <button type="submit" class="qa-lab__run" @disabled($suiteRunning)>
                         <x-ui.icon name="play" class="h-4 w-4" />
-                        {{ $suiteRunning ? 'Suíte a correr…' : 'Rodar suíte completa' }}
+                        {{ $suiteRunning ? 'Suíte em execução…' : 'Rodar suíte completa' }}
                     </button>
                 </form>
             </div>
@@ -240,7 +240,7 @@
                                             @csrf
                                             <input type="hidden" name="command" value="{{ $item['id'] }}">
                                             @if($item['kind'] === 'suite' && $suiteRunning)
-                                                <button type="submit" class="qa-command__btn" disabled>A correr…</button>
+                                                <button type="submit" class="qa-command__btn" disabled>Em execução…</button>
                                             @else
                                                 <button type="submit" class="qa-command__btn">Executar</button>
                                             @endif

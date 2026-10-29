@@ -108,7 +108,7 @@
                     <div class="bulk-activity-dialog__actions">
                         <button type="button" class="rounded-sm border border-line px-4 py-2 text-sm text-mist hover:text-snow" data-bulk-activity-close>Cancelar</button>
                         <button type="submit" class="rounded-sm bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-bright">
-                            Guardar para selecionados
+                            Salvar para selecionados
                         </button>
                     </div>
                 </section>

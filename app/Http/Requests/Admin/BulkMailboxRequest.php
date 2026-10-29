@@ -38,8 +38,8 @@ class BulkMailboxRequest extends FormRequest
     {
         return [
             'uids.required' => 'Selecciona pelo menos uma mensagem.',
-            'destino.required_if' => 'Indica a pasta de destino.',
-            'label_id.required_if' => 'Escolhe uma etiqueta.',
+            'destino.required_if' => 'Informe a pasta de destino.',
+            'label_id.required_if' => 'Escolha uma etiqueta.',
         ];
     }
 }

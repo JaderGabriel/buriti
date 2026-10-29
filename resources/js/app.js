@@ -2034,7 +2034,7 @@ function initIdeaPostitBoard() {
                 body: JSON.stringify({ ids: noteIds() }),
             });
             if (! response.ok) {
-                throw new Error(`Falha ao gravar (${response.status})`);
+                throw new Error(`Falha ao salvar (${response.status})`);
             }
             if (statusEl) {
                 statusEl.textContent = 'Ordem dos post-its atualizada.';
@@ -2473,7 +2473,7 @@ function initHomeProjectBoard() {
                 body: JSON.stringify(payload()),
             });
             if (! response.ok) {
-                throw new Error(`Falha ao gravar (${response.status})`);
+                throw new Error(`Falha ao salvar (${response.status})`);
             }
             if (statusEl) {
                 statusEl.textContent = 'Ordem do site atualizada.';
@@ -2481,7 +2481,7 @@ function initHomeProjectBoard() {
         } catch (error) {
             console.error(error);
             if (statusEl) {
-                statusEl.textContent = 'Não foi possível gravar. Recarregue a página.';
+                statusEl.textContent = 'Não foi possível salvar. Recarregue a página.';
             }
         }
     };
@@ -3439,6 +3439,7 @@ function mailCompose() {
         showCc: false,
         showBcc: false,
         items: [],
+        loadingCount: 0,
         attachError: '',
         editorEmpty: true,
         sending: false,
@@ -3454,23 +3455,26 @@ function mailCompose() {
         get sizeLabel() {
             return this.formatSize(this.items.reduce((sum, item) => sum + item.size, 0));
         },
-        get loadingCount() {
-            return this.items.filter((item) => item.loading).length;
+        syncLoading() {
+            this.loadingCount = this.items.filter((item) => item.loading).length;
         },
         init() {
             const el = this.$el;
             this.contactsUrl = el.getAttribute('data-contacts-url') || '';
             this.showCc = el.getAttribute('data-show-cc') === '1';
             this.showBcc = el.getAttribute('data-show-bcc') === '1';
-            this.seed('to', el.getAttribute('data-to') || '');
-            this.seed('cc', el.getAttribute('data-cc') || '');
-            this.seed('bcc', el.getAttribute('data-bcc') || '');
+            this.chips = {
+                to: this.parseSeed(el.getAttribute('data-to') || '', el.getAttribute('data-to-name') || ''),
+                cc: this.parseSeed(el.getAttribute('data-cc') || ''),
+                bcc: this.parseSeed(el.getAttribute('data-bcc') || ''),
+            };
             if (this.chips.cc.length > 0) {
                 this.showCc = true;
             }
             if (this.chips.bcc.length > 0) {
                 this.showBcc = true;
             }
+            this.syncLoading();
             this.$nextTick(() => this.bootEditor());
         },
         bootEditor() {
@@ -3498,7 +3502,7 @@ function mailCompose() {
             this.syncEditor();
         },
         insertLink() {
-            const raw = window.prompt('Endereço da ligação', 'https://');
+            const raw = window.prompt('Endereço do link', 'https://');
             if (! raw) {
                 return;
             }
@@ -3535,7 +3539,11 @@ function mailCompose() {
         },
         addFiles(fileList, inline) {
             this.attachError = '';
-            const incoming = Array.from(fileList || []);
+            const incoming = Array.from(fileList || []).filter(Boolean);
+            if (incoming.length === 0) {
+                this.syncLoading();
+                return;
+            }
             for (const file of incoming) {
                 if (this.items.length >= MAIL_ATTACH_MAX) {
                     this.attachError = 'No máximo 5 anexos, incluindo imagens no texto.';
@@ -3565,6 +3573,7 @@ function mailCompose() {
                     this.insertInlineImage(stored);
                 }
             }
+            this.syncLoading();
             this.syncFileInputs();
         },
         loadPreview(cid) {
@@ -3573,11 +3582,13 @@ function mailCompose() {
                 return;
             }
             item.loading = true;
+            this.syncLoading();
             if (! String(item.file?.type || '').startsWith('image/')) {
                 window.setTimeout(() => {
                     const current = this.items.find((entry) => entry.cid === cid);
                     if (current) {
                         current.loading = false;
+                        this.syncLoading();
                     }
                 }, 160);
                 return;
@@ -3590,6 +3601,7 @@ function mailCompose() {
                 }
                 current.preview = String(reader.result || '');
                 current.loading = false;
+                this.syncLoading();
                 const img = this.$refs.editor?.querySelector(`img[data-cid="${cid}"]`);
                 if (img && current.preview) {
                     img.setAttribute('src', current.preview);
@@ -3599,6 +3611,7 @@ function mailCompose() {
                 const current = this.items.find((entry) => entry.cid === cid);
                 if (current) {
                     current.loading = false;
+                    this.syncLoading();
                 }
             };
             reader.readAsDataURL(item.file);
@@ -3639,6 +3652,7 @@ function mailCompose() {
                 this.syncEditor();
             }
             this.items.splice(index, 1);
+            this.syncLoading();
             this.syncFileInputs();
         },
         syncFileInputs() {
@@ -3685,8 +3699,21 @@ function mailCompose() {
 
             return (size / (1024 * 1024)).toFixed(1) + ' MB';
         },
-        seed(field, raw) {
-            this.chips[field] = parseMailAddresses(raw);
+        parseSeed(raw, name) {
+            const parsed = parseMailAddresses(raw);
+            const label = String(name || '').trim();
+            if (label !== '' && parsed.length === 1 && parsed[0].name === '') {
+                parsed[0].name = label;
+            }
+
+            return parsed;
+        },
+        seed(field, raw, name) {
+            const parsed = this.parseSeed(raw, name);
+            this.chips[field].splice(0, this.chips[field].length, ...parsed);
+            if (parsed.length === 0 && String(raw || '').trim() !== '') {
+                this.query[field] = String(raw).trim();
+            }
         },
         joined(field) {
             const emails = this.chips[field].map((chip) => chip.email);
@@ -3706,27 +3733,38 @@ function mailCompose() {
         keepOpen() {
             window.clearTimeout(this.hideTimer);
         },
-        lookup(field) {
+        lookup(field, typed) {
             this.keepOpen();
             this.open[field] = true;
+            if (typeof typed === 'string') {
+                this.query[field] = typed;
+            } else {
+                const live = this.queryEl(field)?.value;
+                if (typeof live === 'string') {
+                    this.query[field] = live;
+                }
+            }
             window.clearTimeout(this.timers[field]);
-            const q = this.query[field].trim();
-            this.timers[field] = window.setTimeout(() => this.fetchHits(field, q), 120);
+            const q = (this.query[field] || '').trim();
+            this.timers[field] = window.setTimeout(() => this.fetchHits(field, q), 80);
         },
         async fetchHits(field, q) {
             if (! this.contactsUrl) {
+                this.hits[field] = [];
+                this.active[field] = -1;
+
                 return;
             }
             this.abort[field]?.abort();
             const controller = new AbortController();
             this.abort[field] = controller;
             try {
-                const url = new URL(this.contactsUrl, window.location.href);
+                const url = new URL(this.contactsUrl, window.location.origin);
                 url.search = '';
                 if (q !== '') {
                     url.searchParams.set('q', q);
                 }
-                const response = await fetch(url.toString(), {
+                const response = await fetch(url.pathname + url.search, {
                     headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                     credentials: 'same-origin',
                     signal: controller.signal,
@@ -3845,6 +3883,9 @@ function mailCompose() {
             this.commitTyped('cc');
             this.commitTyped('bcc');
             if (this.chips.to.length === 0) {
+                this.seed('to', this.$el.getAttribute('data-to') || '', this.$el.getAttribute('data-to-name') || '');
+            }
+            if (this.chips.to.length === 0) {
                 event.preventDefault();
                 this.$refs.toQuery?.focus();
                 this.lookup('to');
@@ -3865,9 +3906,34 @@ function mailCompose() {
 }
 
 window.buritiPhoneCountryField = buritiPhoneCountryField;
+function mailFolderList(raw) {
+    let uids = [];
+    if (Array.isArray(raw)) {
+        uids = raw.map(String);
+    } else {
+        try {
+            uids = JSON.parse(raw || '[]').map(String);
+        } catch {
+            uids = [];
+        }
+    }
+
+    return {
+        selected: [],
+        uids,
+        get allOn() {
+            return this.uids.length > 0 && this.selected.length === this.uids.length;
+        },
+        toggleAll() {
+            this.selected = this.allOn ? [] : this.uids.slice();
+        },
+    };
+}
+
 window.buritiWhatsAppField = buritiWhatsAppField;
 window.taskDayCreate = taskDayCreate;
 window.mailCompose = mailCompose;
+window.mailFolderList = mailFolderList;
 
 document.addEventListener('alpine:init', () => {
     Alpine.data('buritiPhoneCountryField', buritiPhoneCountryField);
@@ -4015,7 +4081,7 @@ function initTaskEditDialog() {
         dialog.classList.add('is-open');
         dialog.setAttribute('aria-hidden', 'false');
         document.documentElement.classList.add('overflow-hidden');
-        body.innerHTML = '<p class="text-sm text-mist">A carregar tarefa…</p>';
+        body.innerHTML = '<p class="text-sm text-mist">Carregando tarefa…</p>';
 
         const ticket = ++seq;
         try {
@@ -4414,7 +4480,7 @@ function initDriveViewer() {
         } else if (kind === 'audio') {
             body.innerHTML = `<audio class="drive-viewer__media drive-viewer__media--audio" src="${escapeHtml(src)}" controls></audio>`;
         } else if (kind === 'text') {
-            body.innerHTML = `<pre class="drive-viewer__text">A carregar…</pre>`;
+            body.innerHTML = `<pre class="drive-viewer__text">Carregando…</pre>`;
             try {
                 const response = await fetch(src, { credentials: 'same-origin' });
                 const text = await response.text();

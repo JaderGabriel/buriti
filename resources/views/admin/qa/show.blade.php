@@ -73,7 +73,7 @@
                         <input type="hidden" name="command" value="{{ $command['id'] ?? $run->command }}">
                         <button type="submit" class="qa-lab__run" @disabled($repeatBlocked)>
                             <x-ui.icon name="play" class="h-4 w-4" />
-                            {{ $repeatBlocked ? 'A correr…' : 'Repetir' }}
+                            {{ $repeatBlocked ? 'Em execução…' : 'Repetir' }}
                         </button>
                     </form>
                 @endif
@@ -85,7 +85,7 @@
             <span>{{ $run->user?->name ?? '—' }}</span>
             <span>{{ $run->started_at?->timezone(config('app.timezone'))->format('d/m/Y H:i:s') }}</span>
             @if($run->isRunning())
-                <span class="qa-report__live">A actualizar…</span>
+                <span class="qa-report__live">Atualizando…</span>
             @endif
         </p>
 

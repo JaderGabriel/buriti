@@ -1,11 +1,11 @@
 <ul
     class="mail-suggest"
-    x-show="open.{{ $field }} && hits.{{ $field }}.length"
+    x-show="open.{{ $field }} && hits.{{ $field }}.length > 0"
     x-cloak
     role="listbox"
     aria-label="Contatos"
 >
-    <template x-for="(hit, index) in hits.{{ $field }}" :key="hit.id">
+    <template x-for="(hit, index) in hits.{{ $field }}" :key="(hit.id || hit.email) + '-' + index">
         <li>
             <button
                 type="button"
@@ -18,8 +18,10 @@
                 <span class="mail-suggest__avatar" x-text="((hit.name || hit.email || '?').charAt(0) || '?').toUpperCase()"></span>
                 <span class="mail-suggest__meta">
                     <span class="mail-suggest__name" x-text="hit.name || hit.email"></span>
-                    <span class="mail-suggest__email" x-text="hit.email"></span>
-                    <span class="mail-suggest__company" x-show="hit.company" x-text="hit.company"></span>
+                    <span class="mail-suggest__detail">
+                        <span x-text="hit.email"></span>
+                        <span x-show="hit.company" x-text="' · ' + hit.company"></span>
+                    </span>
                 </span>
             </button>
         </li>
@@ -30,5 +32,5 @@
     x-show="open.{{ $field }} && query.{{ $field }}.trim() !== '' && hits.{{ $field }}.length === 0"
     x-cloak
 >
-    Nenhum contacto. Enter adiciona o e-mail escrito.
+    Nenhum contato. Enter adiciona o e-mail escrito.
 </p>

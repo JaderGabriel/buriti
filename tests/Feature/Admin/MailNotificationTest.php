@@ -1,0 +1,229 @@
+<?php
+
+namespace Tests\Feature\Admin;
+
+use App\Enums\NotificationType;
+use App\Mail\CrmOutgoingMail;
+use App\Mail\ImapClient;
+use App\Mail\ImapConfig;
+use App\Models\User;
+use App\Models\UserNotification;
+use App\Services\CrmMailboxService;
+use App\Services\ImapMailboxStore;
+use App\Services\MailInboxPollService;
+use App\Services\MailNotificationService;
+use App\Services\SettingService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
+use Tests\Support\ScriptedImapTransport;
+use Tests\TestCase;
+
+class MailNotificationTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private User $admin;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->admin = User::factory()->create([
+            'telegram_chat_id' => '424242',
+        ]);
+        $this->fakeTelegramApi();
+        app(SettingService::class)->putMany([
+            'mail_mailer' => 'smtp',
+            'mail_host' => 'mail.exemplo.com',
+            'mail_username' => 'contato@exemplo.com',
+            'mail_from_name' => 'BURI-TI',
+        ]);
+        app(SettingService::class)->putSecret('mail_password', 'segredo-imap');
+        Cache::forget(MailInboxPollService::CURSOR_KEY);
+    }
+
+    public function test_sent_mail_posts_telegram_summary_without_inbox_item(): void
+    {
+        $this->scriptArchiveImap();
+        Mail::fake();
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.mailbox.send'), [
+                'to' => 'ana@cliente.com',
+                'subject' => 'Proposta comercial',
+                'body' => '<p>Segue o briefing do projeto de consultoria.</p>',
+                'signature' => '0',
+            ])
+            ->assertRedirect();
+
+        Mail::assertSent(CrmOutgoingMail::class);
+        $this->assertTelegramSaw('E-mail enviado', 'ana@cliente.com', 'Proposta comercial', 'briefing do projeto');
+        $this->assertDatabaseMissing('user_notifications', [
+            'type' => NotificationType::Mail->value,
+        ]);
+    }
+
+    public function test_replied_mail_posts_telegram_summary_and_inbox_item(): void
+    {
+        $this->scriptArchiveImap();
+        Mail::fake();
+
+        app(CrmMailboxService::class)->send(
+            'ana@cliente.com',
+            'Re: Proposta',
+            '<p>Aceitamos o prazo combinado na segunda.</p>',
+            $this->admin,
+            withSignature: false,
+            isReply: true,
+        );
+
+        $this->assertTelegramSaw('E-mail respondido', 'ana@cliente.com', 'Re: Proposta', 'prazo combinado');
+        $this->assertDatabaseHas('user_notifications', [
+            'user_id' => $this->admin->id,
+            'type' => NotificationType::Mail->value,
+            'title' => 'E-mail respondido',
+        ]);
+        $notification = UserNotification::query()->first();
+        $this->assertNotNull($notification);
+        $this->assertStringContainsString('prazo combinado', (string) $notification->body);
+        $this->assertStringContainsString('/correio', (string) $notification->url);
+    }
+
+    public function test_inbox_poll_seeds_cursor_without_notifying_backlog(): void
+    {
+        $this->scriptImap([
+            '* 11 EXISTS',
+            '* OK [UIDVALIDITY 7]',
+            '* OK [UIDNEXT 12]',
+            'A1 OK SELECT completed',
+            '* BYE',
+            'A2 OK LOGOUT completed',
+        ]);
+
+        $result = app(MailInboxPollService::class)->poll();
+
+        $this->assertSame(0, $result['notified']);
+        $this->assertSame(11, $result['seeded']);
+        $this->assertSame(0, Http::recorded()->count());
+        $this->assertDatabaseMissing('user_notifications', [
+            'type' => NotificationType::Mail->value,
+        ]);
+    }
+
+    public function test_inbox_poll_notifies_new_message_on_telegram_and_inbox(): void
+    {
+        Cache::forever(MailInboxPollService::CURSOR_KEY, [
+            'uidvalidity' => 7,
+            'uid' => 4,
+        ]);
+        $raw = "From: Ada <ada@cliente.com>\r\nSubject: Preciso de proposta\r\n\r\nSegue o briefing do projeto.";
+        $this->scriptImap([
+            '* 5 EXISTS',
+            '* OK [UIDVALIDITY 7]',
+            '* OK [UIDNEXT 6]',
+            'A1 OK SELECT completed',
+            '* 5 EXISTS',
+            'A2 OK SELECT completed',
+            '* SEARCH 5',
+            'A3 OK SEARCH completed',
+            '* 5 EXISTS',
+            'A4 OK SELECT completed',
+            '* 1 FETCH (UID 5 FLAGS () BODY.PEEK[] {'.strlen($raw).'}',
+            ')',
+            'A5 OK Fetch completed',
+            '* BYE',
+            'A6 OK LOGOUT completed',
+        ], $raw);
+
+        $result = app(MailInboxPollService::class)->poll();
+
+        $this->assertSame(1, $result['notified']);
+        $this->assertTelegramSaw('E-mail recebido', 'ada@cliente.com', 'Preciso de proposta', 'briefing do projeto');
+        $this->assertDatabaseHas('user_notifications', [
+            'user_id' => $this->admin->id,
+            'type' => NotificationType::Mail->value,
+            'title' => 'E-mail recebido',
+        ]);
+    }
+
+    public function test_inbox_poll_skips_mail_from_own_address(): void
+    {
+        Cache::forever(MailInboxPollService::CURSOR_KEY, [
+            'uidvalidity' => 7,
+            'uid' => 4,
+        ]);
+        $raw = "From: BURI-TI <contato@exemplo.com>\r\nSubject: Cópia enviada\r\n\r\nTexto próprio.";
+        $this->scriptImap([
+            '* 5 EXISTS',
+            '* OK [UIDVALIDITY 7]',
+            '* OK [UIDNEXT 6]',
+            'A1 OK SELECT completed',
+            '* 5 EXISTS',
+            'A2 OK SELECT completed',
+            '* SEARCH 5',
+            'A3 OK SEARCH completed',
+            '* 5 EXISTS',
+            'A4 OK SELECT completed',
+            '* 1 FETCH (UID 5 FLAGS () BODY.PEEK[] {'.strlen($raw).'}',
+            ')',
+            'A5 OK Fetch completed',
+            '* BYE',
+            'A6 OK LOGOUT completed',
+        ], $raw);
+
+        $result = app(MailInboxPollService::class)->poll();
+
+        $this->assertSame(0, $result['notified']);
+        $this->assertSame(1, $result['skipped']);
+        $this->assertSame(0, Http::recorded()->count());
+        $this->assertDatabaseMissing('user_notifications', [
+            'type' => NotificationType::Mail->value,
+        ]);
+    }
+
+    public function test_summarize_strips_html_to_plain_preview(): void
+    {
+        $this->assertSame(
+            'Olá mundo. Prazo ok.',
+            MailNotificationService::summarize('<p>Olá <strong>mundo</strong>.</p><p>Prazo ok.</p>'),
+        );
+    }
+
+    private function assertTelegramSaw(string $title, string $peer, string $subject, string $snippet): void
+    {
+        Http::assertSent(function ($request) use ($title, $peer, $subject, $snippet) {
+            $text = (string) ($request->data()['text'] ?? '');
+
+            return str_contains($request->url(), 'sendMessage')
+                && (string) ($request->data()['chat_id'] ?? '') === '424242'
+                && str_contains($text, $title)
+                && str_contains($text, $peer)
+                && str_contains($text, $subject)
+                && str_contains($text, $snippet);
+        });
+    }
+
+    private function scriptArchiveImap(): void
+    {
+        $this->scriptImap([
+            '* LIST (\\HasNoChildren \\Sent) "/" Sent',
+            'A1 OK LIST completed',
+            '+',
+            'A2 OK APPEND completed',
+            '* BYE',
+            'A3 OK LOGOUT completed',
+        ]);
+    }
+
+    /**
+     * @param  list<string>  $replies
+     */
+    private function scriptImap(array $replies, string $bytes = ''): void
+    {
+        $transport = new ScriptedImapTransport($replies, $bytes);
+        app(ImapMailboxStore::class)->connectUsing(
+            fn (ImapConfig $config) => new ImapClient($transport)
+        );
+    }
+}

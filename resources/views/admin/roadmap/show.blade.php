@@ -77,7 +77,7 @@
 
     <section class="roadmap-section" aria-labelledby="roadmap-loop-title">
         <h2 id="roadmap-loop-title" class="roadmap-section__title">Ciclo que os PSA de agência fecham — e o BURI-TI ainda não</h2>
-        <p class="roadmap-section__lead">Accelo/Scoro vendem este fluxo. O CRM actual pára em Projeto + Agenda. As ideias da onda Agora e Próximo preenchem as caixas a tracejado.</p>
+        <p class="roadmap-section__lead">Accelo/Scoro vendem este fluxo. O CRM atual para em Projeto + Agenda. As ideias da onda Agora e Próximo preenchem as caixas a tracejado.</p>
         <ol class="roadmap-loop">
             @foreach($deliveryLoop as $i => $step)
                 <li class="roadmap-loop__step @if($i >= 2) roadmap-loop__step--future @endif">
@@ -184,7 +184,7 @@
 
     <section class="roadmap-section" aria-labelledby="roadmap-impact-title">
         <h2 id="roadmap-impact-title" class="roadmap-section__title">Como cada onda mexe no sistema</h2>
-        <p class="roadmap-section__lead">Não é só “mais um ecrã”: nav, schema, jobs, site público e testes mudam de escala juntos.</p>
+        <p class="roadmap-section__lead">Não é só “mais uma tela”: nav, schema, jobs, site público e testes mudam de escala juntos.</p>
         <div class="roadmap-table-wrap">
             <table class="roadmap-table">
                 <thead>

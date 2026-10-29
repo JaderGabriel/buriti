@@ -5,6 +5,7 @@ namespace App\Enums;
 enum NotificationType: string
 {
     case Message = 'message';
+    case Mail = 'mail';
     case Jirau = 'jirau';
     case Task = 'task';
     case System = 'system';
@@ -14,6 +15,7 @@ enum NotificationType: string
     {
         return match ($this) {
             self::Message => 'Mensagem',
+            self::Mail => 'E-mail',
             self::Jirau => 'Jirau',
             self::Task => 'Agenda',
             self::System => 'Sistema',
@@ -25,6 +27,7 @@ enum NotificationType: string
     {
         return match ($this) {
             self::Message => 'message',
+            self::Mail => 'mail',
             self::Jirau => 'jirau',
             self::Task => 'calendar',
             self::System => 'bell',

@@ -103,6 +103,35 @@ class ImapClientTest extends TestCase
         $this->assertSame('', $messages[0]['message_id']);
         $this->assertSame('inbox', ImapClient::classifyFolder('INBOX', ''));
         $this->assertSame('Enviados', ImapClient::folderLabel('Sent', 'sent'));
+        $this->assertSame('Lixeira', ImapClient::folderLabel('Trash', 'trash'));
+    }
+
+    public function test_select_reads_uidvalidity_and_uidnext(): void
+    {
+        $transport = new ScriptedImapTransport([
+            '* 4 EXISTS',
+            '* OK [UIDVALIDITY 88]',
+            '* OK [UIDNEXT 12]',
+            'A1 OK SELECT completed',
+        ]);
+
+        $meta = (new ImapClient($transport))->select('INBOX');
+
+        $this->assertSame(4, $meta['exists']);
+        $this->assertSame(88, $meta['uidvalidity']);
+        $this->assertSame(12, $meta['uidnext']);
+    }
+
+    public function test_uids_after_keeps_only_newer_ids(): void
+    {
+        $transport = new ScriptedImapTransport([
+            '* 4 EXISTS',
+            'A1 OK SELECT completed',
+            '* SEARCH 5 6 7',
+            'A2 OK SEARCH completed',
+        ]);
+
+        $this->assertSame([5, 6, 7], (new ImapClient($transport))->uidsAfter('INBOX', 4));
     }
 
     public function test_list_messages_blank_query_does_not_search(): void
@@ -158,5 +187,49 @@ class ImapClientTest extends TestCase
         $writes = implode('', $transport->writes);
         $this->assertTrue(str_contains($writes, 'FROM "Ana"'));
         $this->assertTrue(str_contains($writes, 'FROM "ana@empresa.com"'));
+    }
+
+    public function test_list_messages_unread_filter_uses_uid_search(): void
+    {
+        $transport = new ScriptedImapTransport([
+            '* 4 EXISTS',
+            'A1 OK SELECT completed',
+            '* SEARCH 8 9',
+            'A2 OK SEARCH completed',
+            '* 9 FETCH (UID 9 FLAGS () BODY[HEADER.FIELDS (FROM TO SUBJECT DATE MESSAGE-ID)]',
+            'From: Ana <ana@empresa.com>',
+            'Subject: Novo',
+            'Date: Thu, 29 Oct 2026 10:00:00 -0300',
+            ')',
+            '* 8 FETCH (UID 8 FLAGS () BODY[HEADER.FIELDS (FROM TO SUBJECT DATE MESSAGE-ID)]',
+            'From: Bob <bob@empresa.com>',
+            'Subject: Antes',
+            'Date: Thu, 29 Oct 2026 09:00:00 -0300',
+            ')',
+            'A3 OK FETCH completed',
+        ]);
+
+        $listing = (new ImapClient($transport))->listMessages('INBOX', 1, 40, null, [], 'nao-lidas');
+
+        $this->assertSame(2, $listing['exists']);
+        $this->assertSame(9, $listing['messages'][0]['uid']);
+        $this->assertTrue(str_contains(implode('', $transport->writes), 'UID SEARCH UNSEEN'));
+    }
+
+    public function test_purge_folder_marks_all_deleted_and_expunges(): void
+    {
+        $transport = new ScriptedImapTransport([
+            '* 3 EXISTS',
+            'A1 OK SELECT completed',
+            'A2 OK STORE completed',
+            'A3 OK EXPUNGE completed',
+        ]);
+
+        $removed = (new ImapClient($transport))->purgeFolder('Trash');
+
+        $this->assertSame(3, $removed);
+        $writes = implode('', $transport->writes);
+        $this->assertTrue(str_contains($writes, 'STORE 1:* +FLAGS (\\Deleted)'));
+        $this->assertTrue(str_contains($writes, 'EXPUNGE'));
     }
 }

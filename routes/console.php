@@ -8,6 +8,11 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+Schedule::command('mail:notify-inbox')
+    ->everyFiveMinutes()
+    ->withoutOverlapping(10)
+    ->appendOutputTo(storage_path('logs/mail-inbox-notify.log'));
+
 Schedule::command('tasks:telegram-reminders')
     ->everyFiveMinutes()
     ->withoutOverlapping(10)

@@ -8,7 +8,7 @@
             <div>
                 <p class="notify-inbox__eyebrow">Inbox</p>
                 <h1 class="notify-inbox__title">Notificações</h1>
-                <p class="notify-inbox__lead">Avisos do Jirau, mensagens do site e lembretes da agenda — no mesmo lugar do perfil.</p>
+                <p class="notify-inbox__lead">Avisos do Jirau, mensagens do site, e-mails recebidos ou respondidos e lembretes da agenda — no mesmo lugar do perfil.</p>
             </div>
             @if($unreadCount > 0)
                 <form method="POST" action="{{ route('account.notifications.read-all') }}">

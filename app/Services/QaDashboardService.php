@@ -123,7 +123,7 @@ class QaDashboardService
                 $lastSuite === null ? 'flat' : ($lastSuite->isPassed() ? 'up' : ($lastSuite->isFailed() ? 'down' : 'flat')),
             ),
             $this->kpi(
-                'A correr',
+                'Em execução',
                 (string) $running,
                 $running > 0 ? 'ativo' : 'fila livre',
                 $dailyTotals,
@@ -277,7 +277,7 @@ class QaDashboardService
     {
         if ($running > 0) {
             return [
-                'label' => 'A correr',
+                'label' => 'Em execução',
                 'tone' => 'run',
                 'hint' => 'Há uma suíte ou probe em execução.',
             ];

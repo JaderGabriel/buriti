@@ -9,7 +9,7 @@
         <button type="button" class="mail-editor__btn" title="Sublinhado" @mousedown.prevent="format('underline')">
             <x-ui.icon name="underline" class="h-4 w-4" />
         </button>
-        <button type="button" class="mail-editor__btn" title="Rasurado" @mousedown.prevent="format('strikeThrough')">
+        <button type="button" class="mail-editor__btn" title="Tachado" @mousedown.prevent="format('strikeThrough')">
             <x-ui.icon name="strike" class="h-4 w-4" />
         </button>
         <span class="mail-editor__sep" aria-hidden="true"></span>
@@ -22,16 +22,16 @@
         <button type="button" class="mail-editor__btn" title="Citação" @mousedown.prevent="format('formatBlock', 'blockquote')">
             <x-ui.icon name="quote" class="h-4 w-4" />
         </button>
-        <button type="button" class="mail-editor__btn" title="Ligação" @mousedown.prevent="insertLink()">
+        <button type="button" class="mail-editor__btn" title="Link" @mousedown.prevent="insertLink()">
             <x-ui.icon name="link" class="h-4 w-4" />
         </button>
         <span class="mail-editor__sep" aria-hidden="true"></span>
         <button type="button" class="mail-editor__btn" title="Imagem no texto" @mousedown.prevent="$refs.inlineInput.click()">
             <x-ui.icon name="image" class="h-4 w-4" />
         </button>
-        <button type="button" class="mail-editor__btn" title="Anexar ficheiro" @mousedown.prevent="$refs.attachPicker.click()">
+        <button type="button" class="mail-editor__btn" title="Anexar arquivo" @mousedown.prevent="$refs.attachPicker.click()">
             <x-ui.icon name="paperclip" class="h-4 w-4" />
-            <span class="mail-editor__badge" x-show="items.length" x-cloak x-text="items.length"></span>
+            <span class="mail-editor__badge" x-show="items.length > 0" x-cloak x-text="items.length"></span>
         </button>
         <button type="button" class="mail-editor__btn" title="Limpar formatação" @mousedown.prevent="format('removeFormat')">
             <x-ui.icon name="eraser" class="h-4 w-4" />
@@ -43,7 +43,7 @@
         contenteditable="true"
         role="textbox"
         aria-label="Corpo da mensagem"
-        data-placeholder="Escreve a mensagem…"
+        data-placeholder="Escreva a mensagem…"
         x-ref="editor"
         @input="syncEditor()"
         @paste="onPaste($event)"
@@ -73,14 +73,16 @@
     <button type="button" class="mail-compose__attach-btn" @click="$refs.attachPicker.click()">
         <x-ui.icon name="paperclip" class="h-4 w-4" />
         Anexos
-        <span class="mail-attach-count" x-show="items.length" x-cloak>
+        <span class="mail-attach-count" x-show="items.length > 0" x-cloak>
             <span x-text="items.length"></span>
             · <span x-text="sizeLabel"></span>
         </span>
     </button>
-    <p class="mail-compose__attach-hint">Até 5 ficheiros · 10 MB no total. Imagens podem ir no texto.</p>
-    <p class="mail-compose__attach-hint" x-show="loadingCount > 0" x-cloak>A carregar <span x-text="loadingCount"></span>…</p>
-    <div class="mail-compose__file-sink" aria-hidden="true">
+    <p class="mail-compose__attach-hint">Até 5 arquivos · 10 MB no total. Imagens podem ir no texto.</p>
+    <template x-if="loadingCount > 0">
+        <p class="mail-compose__attach-hint" data-mail-attach-loading>Carregando <span x-text="loadingCount"></span>…</p>
+    </template>
+    <div class="mail-compose__file-sink" hidden aria-hidden="true">
         <input
             x-ref="attachPicker"
             type="file"
@@ -111,26 +113,28 @@
     @enderror
     <p class="mail-compose__error" x-show="attachError" x-cloak x-text="attachError"></p>
 </div>
-<div class="mail-gallery" x-show="items.length" x-cloak>
-    <div class="mail-gallery__progress" x-show="loadingCount > 0" x-cloak>
-        <span class="mail-gallery__progress-bar"></span>
+<template x-if="items.length > 0">
+    <div class="mail-gallery">
+        <div class="mail-gallery__progress" x-show="loadingCount > 0">
+            <span class="mail-gallery__progress-bar"></span>
+        </div>
+        <template x-for="item in items" :key="item.id">
+            <article class="mail-gallery__card" :class="{ 'is-loading': item.loading, 'is-inline': item.inline }">
+                <div class="mail-gallery__thumb">
+                    <img x-show="item.preview" :src="item.preview" :alt="item.name" class="mail-gallery__img">
+                    <x-ui.icon name="paperclip" class="h-5 w-5" x-show="! item.preview" />
+                    <span class="mail-gallery__spinner" x-show="item.loading" aria-hidden="true"></span>
+                </div>
+                <div class="mail-gallery__meta">
+                    <p class="mail-gallery__name" x-text="item.name"></p>
+                    <p class="mail-gallery__size">
+                        <span x-text="formatSize(item.size)"></span>
+                        <span x-show="item.inline"> · no texto</span>
+                        <span x-show="item.loading"> · carregando</span>
+                    </p>
+                </div>
+                <button type="button" class="mail-gallery__remove" @click="removeItem(item.id)" title="Remover anexo">×</button>
+            </article>
+        </template>
     </div>
-    <template x-for="item in items" :key="item.id">
-        <article class="mail-gallery__card" :class="{ 'is-loading': item.loading, 'is-inline': item.inline }">
-            <div class="mail-gallery__thumb">
-                <img x-show="item.preview" :src="item.preview" :alt="item.name" class="mail-gallery__img">
-                <x-ui.icon name="paperclip" class="h-5 w-5" x-show="! item.preview" />
-                <span class="mail-gallery__spinner" x-show="item.loading" aria-hidden="true"></span>
-            </div>
-            <div class="mail-gallery__meta">
-                <p class="mail-gallery__name" x-text="item.name"></p>
-                <p class="mail-gallery__size">
-                    <span x-text="formatSize(item.size)"></span>
-                    <span x-show="item.inline"> · no texto</span>
-                    <span x-show="item.loading"> · a carregar</span>
-                </p>
-            </div>
-            <button type="button" class="mail-gallery__remove" @click="removeItem(item.id)" title="Remover anexo">×</button>
-        </article>
-    </template>
-</div>
+</template>

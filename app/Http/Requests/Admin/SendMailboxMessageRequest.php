@@ -124,8 +124,8 @@ class SendMailboxMessageRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'to.required' => 'Indica o destinatário.',
-            'subject.required' => 'Indica o assunto.',
+            'to.required' => 'Informe o destinatário.',
+            'subject.required' => 'Informe o assunto.',
             'body.required' => 'A mensagem está vazia.',
             'attachments.max' => 'No máximo 5 anexos.',
             'attachments.*.max' => 'Cada anexo pode ter até 10 MB.',

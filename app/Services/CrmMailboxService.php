@@ -13,6 +13,7 @@ use App\Support\MailHtml;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Mail\SentMessage;
 use Illuminate\Support\Facades\Mail;
+use InvalidArgumentException;
 use RuntimeException;
 use Symfony\Component\Mime\Address as MimeAddress;
 use Symfony\Component\Mime\Email;
@@ -26,6 +27,7 @@ class CrmMailboxService
         private SettingService $settings,
         private AuditLogger $audit,
         private MailAnnotationService $annotate,
+        private MailNotificationService $notifications,
     ) {}
 
     public function isReady(): bool
@@ -60,7 +62,7 @@ class CrmMailboxService
      *     error: ?string
      * }
      */
-    public function workspace(string $folder, int $page = 1, ?int $uid = null, ?string $query = null): array
+    public function workspace(string $folder, int $page = 1, ?int $uid = null, ?string $query = null, ?string $filter = null): array
     {
         $identity = $this->identity();
         if (! $this->imap->isConfigured()) {
@@ -76,7 +78,7 @@ class CrmMailboxService
         }
 
         try {
-            return $this->imap->usingClient(function (ImapClient $client, ImapConfig $config) use ($folder, $page, $uid, $query, $identity) {
+            return $this->imap->usingClient(function (ImapClient $client, ImapConfig $config) use ($folder, $page, $uid, $query, $filter, $identity) {
                 $folders = $this->foldersFrom($client, $config);
                 $folder = $this->resolveFolder($folders, $folder);
                 $listing = $client->listMessages(
@@ -85,6 +87,7 @@ class CrmMailboxService
                     40,
                     $query,
                     is_string($query) ? MailContacts::emailsMatching($query) : [],
+                    $filter,
                 );
                 $selected = null;
 
@@ -134,7 +137,7 @@ class CrmMailboxService
      * @param  list<UploadedFile>  $attachments
      * @param  list<array{cid: string, file: UploadedFile}>  $inline
      */
-    public function send(string $to, string $subject, string $body, User $admin, bool $withSignature = true, ?string $cc = null, ?string $inReplyTo = null, ?string $replyFolder = null, ?int $replyUid = null, ?string $bcc = null, array $attachments = [], array $inline = []): ?string
+    public function send(string $to, string $subject, string $body, User $admin, bool $withSignature = true, ?string $cc = null, ?string $inReplyTo = null, ?string $replyFolder = null, ?int $replyUid = null, ?string $bcc = null, array $attachments = [], array $inline = [], bool $isReply = false): ?string
     {
         $this->assertAdmin($admin);
         $this->mail->apply();
@@ -168,8 +171,23 @@ class CrmMailboxService
 
         $identity = $this->identity();
         $raw = $this->capturedRfc822($sent, $identity, $to, $subject, $body, $signature);
+        $folder = $this->archiveOutgoing($raw);
+        $reply = $isReply || filled($inReplyTo) || (int) $replyUid > 0;
 
-        return $this->archiveOutgoing($raw);
+        try {
+            $this->notifications->notifyOutgoing(
+                $to,
+                $subject,
+                $body,
+                $reply,
+                $cc,
+                is_string($folder) ? $folder : null,
+            );
+        } catch (Throwable $e) {
+            // o envio já saiu
+        }
+
+        return $folder;
     }
 
     /**
@@ -252,6 +270,25 @@ class CrmMailboxService
     public function toggleSeen(string $folder, int $uid, bool $seen, User $admin): void
     {
         $this->setFlag($folder, [$uid], '\\Seen', $seen, $admin);
+    }
+
+    public function emptyFolder(string $folder, User $admin): void
+    {
+        $this->assertAdmin($admin);
+        $role = ImapClient::classifyFolder($folder, '');
+        if (! in_array($role, ['trash', 'junk'], true)) {
+            throw new InvalidArgumentException('Só a Lixeira e o Spam podem ser esvaziados.');
+        }
+
+        $removed = $this->imap->usingClient(
+            fn (ImapClient $client) => $client->purgeFolder($folder)
+        );
+
+        $this->audit->record('mailbox.emptied', null, [
+            'folder' => $folder,
+            'role' => $role,
+            'removed' => $removed,
+        ], null, $admin->id);
     }
 
     /**
@@ -449,7 +486,7 @@ class CrmMailboxService
         $emails = self::extractAddresses($raw);
 
         if ($emails === []) {
-            throw new RuntimeException('Indica pelo menos um destinatário válido.');
+            throw new RuntimeException('Informe pelo menos um destinatário válido.');
         }
 
         return $emails;

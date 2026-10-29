@@ -69,6 +69,6 @@
                 </label>
             @endforeach
         </div>
-        <button type="submit" class="pm-btn pm-btn--primary">Guardar etapa</button>
+        <button type="submit" class="pm-btn pm-btn--primary">Salvar etapa</button>
     </form>
 </x-jirau.dialog>

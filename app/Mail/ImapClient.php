@@ -120,19 +120,41 @@ class ImapClient
     }
 
     /**
-     * @return array{exists: int}
+     * @return array{exists: int, uidvalidity: int, uidnext: int}
      */
     public function select(string $folder): array
     {
         $lines = $this->command('SELECT '.self::quote(self::safeFolder($folder)));
         $exists = 0;
+        $uidvalidity = 0;
+        $uidnext = 0;
         foreach ($lines as $line) {
             if (preg_match('/^\* (\d+) EXISTS\b/', $line, $match) === 1) {
                 $exists = (int) $match[1];
             }
+            if (preg_match('/\[UIDVALIDITY (\d+)\]/i', $line, $match) === 1) {
+                $uidvalidity = (int) $match[1];
+            }
+            if (preg_match('/\[UIDNEXT (\d+)\]/i', $line, $match) === 1) {
+                $uidnext = (int) $match[1];
+            }
         }
 
-        return ['exists' => $exists];
+        return ['exists' => $exists, 'uidvalidity' => $uidvalidity, 'uidnext' => $uidnext];
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function uidsAfter(string $folder, int $uid): array
+    {
+        $this->select($folder);
+        $from = max(1, $uid + 1);
+
+        return array_values(array_filter(
+            $this->parseSearchUids($this->command('UID SEARCH UID '.$from.':*')),
+            fn (int $found) => $found > $uid,
+        ));
     }
 
     /**
@@ -159,21 +181,28 @@ class ImapClient
      * @param  list<string>  $also
      * @return array{messages: list<array<string, mixed>>, exists: int, page: int, pages: int}
      */
-    public function listMessages(string $folder, int $page = 1, int $perPage = 40, ?string $query = null, array $also = []): array
+    public function listMessages(string $folder, int $page = 1, int $perPage = 40, ?string $query = null, array $also = [], ?string $filter = null): array
     {
         $meta = $this->select($folder);
         $exists = $meta['exists'];
         $perPage = max(1, min(50, $perPage));
         $query = is_string($query) ? trim($query) : '';
+        $filter = self::normalizeFilter($filter);
 
-        if ($query !== '') {
-            $uids = $this->searchUids($query);
+        if ($query !== '' || $filter !== null) {
+            $uids = $query !== '' ? $this->searchUids($query) : $this->searchFlagUids($filter);
+            if ($query !== '' && $filter !== null) {
+                $uids = array_values(array_intersect($uids, $this->searchFlagUids($filter)));
+            }
             foreach ($also as $needle) {
                 $needle = trim((string) $needle);
                 if ($needle === '' || strcasecmp($needle, $query) === 0) {
                     continue;
                 }
                 $uids = array_values(array_unique([...$uids, ...$this->searchUids($needle)]));
+                if ($filter !== null) {
+                    $uids = array_values(array_intersect($uids, $this->searchFlagUids($filter)));
+                }
             }
             $total = count($uids);
             $pages = max(1, (int) ceil($total / $perPage));
@@ -274,6 +303,19 @@ class ImapClient
         $this->command('EXPUNGE');
     }
 
+    public function purgeFolder(string $folder): int
+    {
+        $exists = $this->select($folder)['exists'];
+        if ($exists < 1) {
+            return 0;
+        }
+
+        $this->command('STORE 1:* +FLAGS (\\Deleted)');
+        $this->expunge();
+
+        return $exists;
+    }
+
     /**
      * @return list<array<string, mixed>>
      */
@@ -354,7 +396,7 @@ class ImapClient
                 || str_contains($leaf, 'enviados')
                 || in_array($leaf, ['sent', 'sent items', 'sent mail', 'sent messages'], true) => 'sent',
             str_contains($attrs, '\\drafts') || in_array($leaf, ['drafts', 'rascunhos'], true) => 'drafts',
-            str_contains($attrs, '\\trash') || in_array($leaf, ['trash', 'deleted', 'lixo', 'deleted items'], true) => 'trash',
+            str_contains($attrs, '\\trash') || in_array($leaf, ['trash', 'deleted', 'lixo', 'lixeira', 'deleted items'], true) => 'trash',
             str_contains($attrs, '\\junk') || in_array($leaf, ['junk', 'spam'], true) => 'junk',
             str_contains($attrs, '\\archive') || $leaf === 'archive' => 'archive',
             default => 'other',
@@ -367,7 +409,7 @@ class ImapClient
             'inbox' => 'Caixa de entrada',
             'sent' => 'Enviados',
             'drafts' => 'Rascunhos',
-            'trash' => 'Lixo',
+            'trash' => 'Lixeira',
             'junk' => 'Spam',
             'archive' => 'Arquivo',
             default => $name,
@@ -585,7 +627,26 @@ class ImapClient
         }
 
         $quoted = self::quote($needle);
-        $lines = $this->command('UID SEARCH OR FROM '.$quoted.' OR TO '.$quoted.' SUBJECT '.$quoted);
+
+        return $this->parseSearchUids($this->command('UID SEARCH OR FROM '.$quoted.' OR TO '.$quoted.' SUBJECT '.$quoted));
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function searchFlagUids(string $filter): array
+    {
+        $term = $filter === 'estrelas' ? 'FLAGGED' : 'UNSEEN';
+
+        return $this->parseSearchUids($this->command('UID SEARCH '.$term));
+    }
+
+    /**
+     * @param  list<string>  $lines
+     * @return list<int>
+     */
+    private function parseSearchUids(array $lines): array
+    {
         $uids = [];
         foreach ($lines as $line) {
             if (preg_match('/^\* SEARCH\b(.*)$/i', $line, $match) !== 1) {
@@ -599,6 +660,13 @@ class ImapClient
         }
 
         return $uids;
+    }
+
+    public static function normalizeFilter(?string $filter): ?string
+    {
+        $filter = trim((string) $filter);
+
+        return in_array($filter, ['nao-lidas', 'estrelas'], true) ? $filter : null;
     }
 
     /**

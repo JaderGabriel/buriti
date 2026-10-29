@@ -82,10 +82,10 @@ class TelegramMailService
         $body = trim($body);
 
         if ($to === '' || CrmMailboxService::extractAddresses($to) === []) {
-            return 'Indica um destinatário válido.';
+            return 'Informe um destinatário válido.';
         }
         if ($subject === '') {
-            return 'Indica o assunto.';
+            return 'Informe o assunto.';
         }
         if ($body === '') {
             return 'A mensagem está vazia.';
@@ -116,7 +116,7 @@ class TelegramMailService
             : 'Re: '.$message->subject;
 
         try {
-            $folder = $this->mailbox->send((string) $message->email, $subject, $body, $admin);
+            $folder = $this->mailbox->send((string) $message->email, $subject, $body, $admin, isReply: true);
         } catch (Throwable $e) {
             return '❌ Falha ao responder: '.$this->escape($e->getMessage());
         }

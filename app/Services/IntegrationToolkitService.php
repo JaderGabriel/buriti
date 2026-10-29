@@ -28,7 +28,7 @@ class IntegrationToolkitService
                 2 => 'Use o board para cartões de entrega ligados a projetos e CRM.',
                 1 => $token
                     ? 'Indique o Board ID ou URL do board nas integrações.'
-                    : 'Adicione a API Key e o Token Trello neste ecrã.',
+                    : 'Adicione a API Key e o Token Trello nesta tela.',
                 default => 'Configure a API e o board abaixo.',
             },
             'board_url' => $boardUrl,
@@ -57,7 +57,7 @@ class IntegrationToolkitService
                 2 => 'Use a base para briefs, propostas e documentação de projetos.',
                 1 => $token
                     ? 'Indique o Database ID ou URL do workspace.'
-                    : 'Adicione o token Notion neste ecrã (integração interna).',
+                    : 'Adicione o token Notion nesta tela (integração interna).',
                 default => 'Configure o token e a base/workspace abaixo.',
             },
             'workspace_url' => $workspaceUrl,

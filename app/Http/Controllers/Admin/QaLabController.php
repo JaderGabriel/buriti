@@ -67,7 +67,7 @@ class QaLabController extends Controller
 
             return redirect()
                 ->route('admin.qa.show', $run)
-                ->with('success', 'Suíte a correr. Esta página actualiza sozinha.');
+                ->with('success', 'Suíte em execução. Esta página atualiza sozinha.');
         }
 
         $run = $this->lab->execute($run);

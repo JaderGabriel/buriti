@@ -92,7 +92,7 @@
             <x-ui.input type="datetime-local" name="happened_at" label="Quando" :value="$happenedValue" />
 
             <div class="flex flex-wrap items-center gap-3 pt-2">
-                <x-ui.button type="submit">Guardar alterações</x-ui.button>
+                <x-ui.button type="submit">Salvar alterações</x-ui.button>
                 <a href="{{ route('admin.contacts.show', $contact) }}" class="text-sm text-mist hover:text-snow">Cancelar</a>
             </div>
         </form>

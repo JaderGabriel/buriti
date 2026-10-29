@@ -34,10 +34,16 @@
         $showCc = filled(old('cc', $compose['cc'] ?? ''));
         $showBcc = filled(old('bcc', $compose['bcc'] ?? ''));
         $catalog = $catalog ?? ['labels' => collect(), 'markers' => [], 'projects' => collect(), 'jiraus' => collect(), 'ideas' => collect()];
-        $mailList = function (array $extra = []) use ($folder, $query): array {
+        $query = $query ?? '';
+        $filter = $filter ?? null;
+        $trashFolder = collect($folders)->firstWhere('role', 'trash');
+        $junkFolder = collect($folders)->firstWhere('role', 'junk');
+        $mailUids = array_map(fn ($item) => (string) ($item['uid'] ?? ''), $messages);
+        $mailList = function (array $extra = []) use ($folder, $query, $filter): array {
             return array_filter([
                 'pasta' => $folder,
                 'buscar' => $query !== '' ? $query : null,
+                'filtro' => $filter,
                 ...$extra,
             ], fn ($value) => $value !== null && $value !== '');
         };
@@ -106,7 +112,7 @@
                     </a>
                 </aside>
 
-                <aside class="messenger-list" aria-label="Mensagens" x-data="{ selected: [] }">
+                <aside class="messenger-list" aria-label="Mensagens" x-data="mailFolderList($el.dataset.uids)" data-uids='@json($mailUids)'>
                     <header class="messenger-list__header">
                         <div class="min-w-0">
                             <p class="mail-kicker">{{ $folderMeta['label'] ?? $folder }}</p>
@@ -117,13 +123,52 @@
                                 @endif
                             </h1>
                         </div>
-                        <div class="flex shrink-0 items-center gap-1.5">
-                            <a href="{{ route('admin.mailbox.index', $mailList()) }}" class="messenger-icon-btn" title="Atualizar">
+                        <div class="mail-toolbar">
+                            <button
+                                type="button"
+                                class="messenger-icon-btn"
+                                :class="{ 'is-on': allOn }"
+                                @click="toggleAll()"
+                                :disabled="uids.length === 0"
+                                :aria-pressed="allOn"
+                                title="Selecionar tudo"
+                                aria-label="Selecionar tudo"
+                            >
+                                <x-ui.icon name="check-square" class="h-4 w-4" />
+                            </button>
+                            <details class="mail-menu">
+                                <summary class="messenger-icon-btn {{ $filter ? 'is-on' : '' }}" title="Filtro" aria-label="Filtro">
+                                    <x-ui.icon name="filter" class="h-4 w-4" />
+                                </summary>
+                                <div class="mail-menu__panel">
+                                    <a href="{{ route('admin.mailbox.index', $mailList(['filtro' => null])) }}" @class(['is-on' => $filter === null])>Todas</a>
+                                    <a href="{{ route('admin.mailbox.index', $mailList(['filtro' => 'nao-lidas'])) }}" @class(['is-on' => $filter === 'nao-lidas'])>Não lidas</a>
+                                    <a href="{{ route('admin.mailbox.index', $mailList(['filtro' => 'estrelas'])) }}" @class(['is-on' => $filter === 'estrelas'])>Com estrela</a>
+                                </div>
+                            </details>
+                            @if($trashFolder && ($trashFolder['messages'] ?? 0) > 0)
+                                <form method="POST" action="{{ route('admin.mailbox.empty') }}" class="inline" onsubmit="return confirm('Esvaziar a lixeira em definitivo?')">
+                                    @csrf
+                                    <input type="hidden" name="pasta" value="{{ $trashFolder['name'] }}">
+                                    <button type="submit" class="messenger-icon-btn messenger-icon-btn--danger" title="Esvaziar lixeira" aria-label="Esvaziar lixeira">
+                                        <x-ui.icon name="trash" class="h-4 w-4" />
+                                    </button>
+                                </form>
+                            @endif
+                            @if($junkFolder && ($junkFolder['messages'] ?? 0) > 0)
+                                <form method="POST" action="{{ route('admin.mailbox.empty') }}" class="inline" onsubmit="return confirm('Esvaziar o Spam em definitivo?')">
+                                    @csrf
+                                    <input type="hidden" name="pasta" value="{{ $junkFolder['name'] }}">
+                                    <button type="submit" class="messenger-icon-btn messenger-icon-btn--danger" title="Esvaziar spam" aria-label="Esvaziar spam">
+                                        <x-ui.icon name="lost" class="h-4 w-4" />
+                                    </button>
+                                </form>
+                            @endif
+                            <a href="{{ route('admin.mailbox.index', $mailList()) }}" class="messenger-icon-btn" title="Atualizar" aria-label="Atualizar">
                                 <x-ui.icon name="restore" class="h-4 w-4" />
                             </a>
-                            <a href="{{ route('admin.mailbox.compose') }}" class="pm-btn pm-btn--primary" title="Escrever">
+                            <a href="{{ route('admin.mailbox.compose') }}" class="messenger-icon-btn messenger-icon-btn--primary" title="Escrever" aria-label="Escrever">
                                 <x-ui.icon name="pencil" class="h-4 w-4" />
-                                Escrever
                             </a>
                         </div>
                     </header>
@@ -133,10 +178,13 @@
                         class="mail-search"
                         role="search"
                         data-mail-search
-                        aria-label="Procurar nesta pasta"
+                        aria-label="Buscar nesta pasta"
                     >
                         <input type="hidden" name="pasta" value="{{ $folder }}">
-                        <label class="sr-only" for="mail-folder-search">Procurar nesta pasta</label>
+                        @if($filter)
+                            <input type="hidden" name="filtro" value="{{ $filter }}">
+                        @endif
+                        <label class="sr-only" for="mail-folder-search">Buscar nesta pasta</label>
                         <span class="mail-search__icon" aria-hidden="true">
                             <x-ui.icon name="search" class="h-4 w-4" />
                         </span>
@@ -145,7 +193,7 @@
                             type="text"
                             name="buscar"
                             value="{{ $query }}"
-                            placeholder="Remetente, contacto, destinatário ou assunto"
+                            placeholder="Remetente, contato, destinatário ou assunto"
                             class="mail-input mail-search__input"
                             autocomplete="off"
                             autocorrect="off"
@@ -166,12 +214,12 @@
                     <form id="mail-bulk" method="POST" action="{{ route('admin.mailbox.bulk') }}" class="mail-bulk" x-show="selected.length > 0" x-cloak>
                         @csrf
                         <input type="hidden" name="pasta" value="{{ $folder }}">
-                        <p class="mail-bulk__count"><span x-text="selected.length"></span> seleccionada(s)</p>
+                        <p class="mail-bulk__count"><span x-text="selected.length"></span> selecionada(s)</p>
                         <div class="mail-bulk__actions">
                             <button type="submit" name="acao" value="star" class="messenger-icon-btn" title="Estrela">
                                 <x-ui.icon name="star" class="h-4 w-4" />
                             </button>
-                            <button type="submit" name="acao" value="unstar" class="messenger-icon-btn" title="Tirar estrela">☆</button>
+                            <button type="submit" name="acao" value="unstar" class="messenger-icon-btn" title="Remover estrela">☆</button>
                             <button type="submit" name="acao" value="seen" class="messenger-icon-btn" title="Marcar lida">
                                 <x-ui.icon name="eye" class="h-4 w-4" />
                             </button>
@@ -219,7 +267,7 @@
                                     <button type="submit" name="acao" value="move" class="mail-bulk__go">Mover</button>
                                 </label>
                             @endif
-                            <button type="submit" name="acao" value="destroy" class="messenger-icon-btn messenger-icon-btn--danger" title="Apagar" onclick="return confirm('Enviar as seleccionadas para o Lixo?')">
+                            <button type="submit" name="acao" value="destroy" class="messenger-icon-btn messenger-icon-btn--danger" title="Excluir" onclick="return confirm('Enviar as selecionadas para a lixeira?')">
                                 <x-ui.icon name="trash" class="h-4 w-4" />
                             </button>
                         </div>
@@ -237,7 +285,7 @@
                                 ])
                             >
                                 <label class="mail-check">
-                                    <span class="sr-only">Seleccionar mensagem</span>
+                                    <span class="sr-only">Selecionar mensagem</span>
                                     <input type="checkbox" form="mail-bulk" name="uids[]" value="{{ $item['uid'] }}" x-model="selected">
                                 </label>
                                 <a
@@ -280,6 +328,12 @@
                                 @if($query !== '')
                                     <p>Nada encontrado para “{{ $query }}”.</p>
                                     <a href="{{ route('admin.mailbox.index', ['pasta' => $folder]) }}" class="mt-3 inline-block text-brand-bright hover:text-snow">Mostrar todas as mensagens</a>
+                                @elseif($filter === 'nao-lidas')
+                                    <p>Nenhuma mensagem não lida.</p>
+                                    <a href="{{ route('admin.mailbox.index', ['pasta' => $folder]) }}" class="mt-3 inline-block text-brand-bright hover:text-snow">Mostrar todas as mensagens</a>
+                                @elseif($filter === 'estrelas')
+                                    <p>Nenhuma mensagem com estrela.</p>
+                                    <a href="{{ route('admin.mailbox.index', ['pasta' => $folder]) }}" class="mt-3 inline-block text-brand-bright hover:text-snow">Mostrar todas as mensagens</a>
                                 @else
                                     Nenhuma mensagem nesta pasta.
                                 @endif
@@ -290,7 +344,7 @@
                         <div class="messenger-list__footer flex items-center justify-between text-xs text-mist">
                             <a href="{{ route('admin.mailbox.index', $mailList(['page' => max(1, ($listing['page'] ?? 1) - 1)])) }}" class="{{ ($listing['page'] ?? 1) <= 1 ? 'pointer-events-none opacity-40' : 'hover:text-snow' }}">← Anterior</a>
                             <span>{{ $listing['page'] }} / {{ $listing['pages'] }}</span>
-                            <a href="{{ route('admin.mailbox.index', $mailList(['page' => min($listing['pages'], ($listing['page'] ?? 1) + 1)])) }}" class="{{ ($listing['page'] ?? 1) >= ($listing['pages'] ?? 1) ? 'pointer-events-none opacity-40' : 'hover:text-snow' }}">Seguinte →</a>
+                            <a href="{{ route('admin.mailbox.index', $mailList(['page' => min($listing['pages'], ($listing['page'] ?? 1) + 1)])) }}" class="{{ ($listing['page'] ?? 1) >= ($listing['pages'] ?? 1) ? 'pointer-events-none opacity-40' : 'hover:text-snow' }}">Próxima →</a>
                         </div>
                     @endif
                 </aside>
@@ -305,7 +359,7 @@
                                 <a href="{{ route('admin.mailbox.index', ['pasta' => $folder]) }}" class="messenger-back lg:hidden" aria-label="Voltar">←</a>
                                 <div class="min-w-0">
                                     <p class="mail-kicker">{{ $composeTitle }}</p>
-                                    <p class="truncate font-semibold text-snow">De {{ $identity['name'] ?: $identity['address'] ?: 'a conta gravada' }}</p>
+                                    <p class="truncate font-semibold text-snow">De {{ $identity['name'] ?: $identity['address'] ?: 'a conta salva' }}</p>
                                 </div>
                             </div>
                             <a href="{{ route('admin.mailbox.index', ['pasta' => $folder]) }}" class="messenger-icon-btn" title="Fechar">
@@ -322,6 +376,7 @@
                             data-show-cc="{{ $showCc ? '1' : '0' }}"
                             data-show-bcc="{{ $showBcc ? '1' : '0' }}"
                             data-to="{{ old('to', $compose['to'] ?? '') }}"
+                            data-to-name="{{ old('to_name', $compose['to_name'] ?? '') }}"
                             data-cc="{{ old('cc', $compose['cc'] ?? '') }}"
                             data-bcc="{{ old('bcc', $compose['bcc'] ?? '') }}"
                             @submit="beforeSubmit($event)"
@@ -331,7 +386,7 @@
                             <input type="hidden" name="reply_folder" value="{{ $compose['reply_folder'] ?? '' }}">
                             <input type="hidden" name="reply_uid" value="{{ $compose['reply_uid'] ?? '' }}">
                             <input type="hidden" name="contact_message_id" value="{{ $compose['contact_message_id'] ?? '' }}">
-                            <div class="mail-compose__scroll">
+                            <div class="mail-compose__fields">
                                 <div class="mail-compose__row">
                                     <div class="mail-compose__heading">
                                         <label for="mail-to">Para</label>
@@ -344,6 +399,8 @@
                                         'field' => 'to',
                                         'id' => 'mail-to',
                                         'placeholder' => 'Nome, empresa ou e-mail',
+                                        'seedEmail' => old('to', $compose['to'] ?? ''),
+                                        'seedName' => old('to_name', $compose['to_name'] ?? ''),
                                     ])
                                 </div>
                                 <div class="mail-compose__row" x-show="showCc" x-cloak>
@@ -366,6 +423,8 @@
                                     <label for="mail-subject">Assunto</label>
                                     <input id="mail-subject" type="text" name="subject" value="{{ old('subject', $compose['subject'] ?? '') }}" required class="mail-input" autocomplete="off">
                                 </div>
+                            </div>
+                            <div class="mail-compose__scroll">
                                 @include('admin.mailbox.partials.editor')
                             </div>
                             <div class="mail-compose__bar">
@@ -375,13 +434,11 @@
                                     Assinatura
                                 </label>
                                 <div class="messenger-composer__actions">
-                                    <button type="submit" name="draft" value="1" class="messenger-composer__secondary" :disabled="sending">
-                                        <span x-show="! sending">Rascunho</span>
-                                        <span x-show="sending" x-cloak>A guardar…</span>
+                                    <button type="submit" name="draft" value="1" class="messenger-icon-btn" :disabled="sending" title="Rascunho" aria-label="Rascunho">
+                                        <x-ui.icon name="save" class="h-4 w-4" />
                                     </button>
-                                    <button type="submit" class="messenger-composer__primary" :disabled="sending">
-                                        <span x-show="! sending">Enviar</span>
-                                        <span x-show="sending" x-cloak>A enviar…</span>
+                                    <button type="submit" class="messenger-icon-btn messenger-icon-btn--primary" :disabled="sending" title="Enviar" aria-label="Enviar">
+                                        <x-ui.icon name="send" class="h-4 w-4" />
                                     </button>
                                 </div>
                             </div>
@@ -396,7 +453,7 @@
                                 @csrf
                                 @method('PUT')
                                 <textarea name="mail_signature" rows="3" class="mail-input" placeholder="Jader Gabriel&#10;BURI-TI - Consultoria &amp; Software">{{ old('mail_signature', $identity['signature']) }}</textarea>
-                                <button type="submit" class="messenger-composer__secondary justify-self-start">Guardar nome na assinatura</button>
+                                <button type="submit" class="messenger-composer__secondary justify-self-start">Salvar nome na assinatura</button>
                             </form>
                         </details>
                     @elseif($selected)
@@ -415,7 +472,7 @@
                                     <input type="hidden" name="pasta" value="{{ $folder }}">
                                     <input type="hidden" name="uids[]" value="{{ $selected['uid'] }}">
                                     <input type="hidden" name="acao" value="{{ ! empty($selected['starred']) || ! empty($selected['flagged']) ? 'unstar' : 'star' }}">
-                                    <button type="submit" class="messenger-icon-btn {{ ! empty($selected['starred']) || ! empty($selected['flagged']) ? 'is-on' : '' }}" title="{{ ! empty($selected['starred']) || ! empty($selected['flagged']) ? 'Tirar estrela' : 'Estrela' }}">
+                                    <button type="submit" class="messenger-icon-btn {{ ! empty($selected['starred']) || ! empty($selected['flagged']) ? 'is-on' : '' }}" title="{{ ! empty($selected['starred']) || ! empty($selected['flagged']) ? 'Remover estrela' : 'Estrela' }}">
                                         <x-ui.icon name="star" class="h-4 w-4" />
                                     </button>
                                 </form>
@@ -440,11 +497,11 @@
                                         <x-ui.icon :name="$selected['seen'] ? 'eye-off' : 'eye'" class="h-4 w-4" />
                                     </button>
                                 </form>
-                                <form method="POST" action="{{ route('admin.mailbox.destroy') }}" onsubmit="return confirm('Enviar para o Lixo?')">
+                                <form method="POST" action="{{ route('admin.mailbox.destroy') }}" onsubmit="return confirm('Enviar para a lixeira?')">
                                     @csrf
                                     <input type="hidden" name="pasta" value="{{ $folder }}">
                                     <input type="hidden" name="uid" value="{{ $selected['uid'] }}">
-                                    <button type="submit" class="messenger-icon-btn messenger-icon-btn--danger" title="Apagar">
+                                    <button type="submit" class="messenger-icon-btn messenger-icon-btn--danger" title="Excluir">
                                         <x-ui.icon name="trash" class="h-4 w-4" />
                                     </button>
                                 </form>
@@ -581,7 +638,7 @@
                                         <input type="hidden" name="{{ $name }}" value="{{ $value }}">
                                     @endforeach
                                     <label>
-                                        Ligar a
+                                        Vincular a
                                         <select name="kind" class="mail-input mt-1" required x-model="kind">
                                             <option value="project">Projeto</option>
                                             <option value="jirau">Jirau</option>
@@ -612,7 +669,7 @@
                                             @endforeach
                                         </select>
                                     </label>
-                                    <button type="submit" class="messenger-composer__secondary">Ligar</button>
+                                    <button type="submit" class="messenger-composer__secondary">Vincular</button>
                                 </form>
                                 @if(! empty($selected['links']))
                                     <ul class="mail-link-list">
@@ -631,7 +688,7 @@
                                                         <input type="hidden" name="{{ $name }}" value="{{ $value }}">
                                                     @endforeach
                                                     <input type="hidden" name="link_id" value="{{ $link['id'] }}">
-                                                    <button type="submit" class="mail-unlink" title="Desligar">×</button>
+                                                    <button type="submit" class="mail-unlink" title="Desvincular">×</button>
                                                 </form>
                                             </li>
                                         @endforeach
@@ -645,7 +702,7 @@
                                 <span class="messenger-avatar messenger-avatar--xl"><x-ui.icon name="mail" class="h-7 w-7" /></span>
                                 <h2 class="mt-4 font-display text-lg font-semibold">E-mail da conta</h2>
                                 <p class="mt-2 max-w-sm text-sm text-mist">
-                                    Escolhe uma mensagem à esquerda ou escreve uma nova. O envio sai autenticado como {{ $identity['address'] ?: 'a conta gravada' }}{{ $inboxUnseen > 0 ? ' · '.$inboxUnseen.' por ler na caixa de entrada' : '' }}.
+                                    Escolha uma mensagem à esquerda ou escreva uma nova. O envio sai autenticado como {{ $identity['address'] ?: 'a conta salva' }}{{ $inboxUnseen > 0 ? ' · '.$inboxUnseen.' '.($inboxUnseen === 1 ? 'não lida' : 'não lidas').' na caixa de entrada' : '' }}.
                                 </p>
                                 <div class="mt-5 flex flex-wrap justify-center gap-2">
                                     <a href="{{ route('admin.mailbox.compose') }}" class="pm-btn pm-btn--primary">
