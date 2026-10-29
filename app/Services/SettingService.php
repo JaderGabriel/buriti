@@ -47,6 +47,7 @@ class SettingService
         'mail_imap_port',
         'mail_imap_encryption',
         'mail_imap_sent_folder',
+        'mail_signature',
     ];
 
     /** @var list<string> */
@@ -205,6 +206,7 @@ class SettingService
             'mail_imap_port' => null,
             'mail_imap_encryption' => null,
             'mail_imap_sent_folder' => null,
+            'mail_signature' => null,
         ];
     }
 

@@ -202,6 +202,7 @@ class MailSettingsService
 
     public function sendTest(string $to, User $admin): void
     {
+        $this->assertAdmin($admin);
         $this->apply();
         $this->assertDeliverable();
 
@@ -216,6 +217,8 @@ class MailSettingsService
 
     public function trySendTest(string $to, User $admin): array
     {
+        $this->assertAdmin($admin);
+
         try {
             $this->sendTest($to, $admin);
 
@@ -228,8 +231,9 @@ class MailSettingsService
     /**
      * @return array{ok: bool, message: string, messages: list<array{from: string, subject: string, date: string}>}
      */
-    public function inboxPreview(): array
+    public function inboxPreview(User $admin): array
     {
+        $this->assertAdmin($admin);
         $this->apply();
 
         try {
@@ -471,5 +475,10 @@ class MailSettingsService
         $value = $this->settings->get($key);
 
         return filled($value) ? (string) $value : null;
+    }
+
+    private function assertAdmin(User $admin): void
+    {
+        abort_unless($admin->canManageMail(), 403, 'O serviço de e-mail é exclusivo do admin.');
     }
 }

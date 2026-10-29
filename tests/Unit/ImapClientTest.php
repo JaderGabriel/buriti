@@ -60,4 +60,22 @@ class ImapClientTest extends TestCase
         $this->assertSame('Ola', $messages[0]['subject']);
         $this->assertSame('Bob <bob@exemplo.com>', $messages[1]['from']);
     }
+
+    public function test_parse_listed_messages_reads_uid_and_unseen(): void
+    {
+        $messages = ImapClient::parseListedMessages([
+            '* 4 FETCH (UID 88 FLAGS (\\Recent) BODY[HEADER.FIELDS (FROM TO SUBJECT DATE)]',
+            'From: Ada <ada@exemplo.com>',
+            'Subject: Hello',
+            'Date: Thu, 29 Oct 2026 10:00:00 -0300',
+            ')',
+        ]);
+
+        $this->assertCount(1, $messages);
+        $this->assertSame(88, $messages[0]['uid']);
+        $this->assertFalse($messages[0]['seen']);
+        $this->assertSame('Hello', $messages[0]['subject']);
+        $this->assertSame('inbox', ImapClient::classifyFolder('INBOX', ''));
+        $this->assertSame('Enviados', ImapClient::folderLabel('Sent', 'sent'));
+    }
 }

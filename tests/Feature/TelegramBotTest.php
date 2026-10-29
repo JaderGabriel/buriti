@@ -8,6 +8,7 @@ use App\Enums\OpportunityStage;
 use App\Enums\ProjectStatus;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
+use App\Mail\CrmOutgoingMail;
 use App\Models\Contact;
 use App\Models\ContactMessage;
 use App\Models\CrmActivity;
@@ -17,11 +18,13 @@ use App\Models\Opportunity;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
+use App\Services\MailSettingsService;
 use App\Services\SettingService;
 use App\Services\Telegram\TelegramShareCardService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class TelegramBotTest extends TestCase
@@ -250,7 +253,9 @@ class TelegramBotTest extends TestCase
             $data = $request->data();
 
             $text = (string) ($data['text'] ?? '');
-            $buttons = $data['reply_markup']['inline_keyboard'][0] ?? [];
+            $rows = $data['reply_markup']['inline_keyboard'] ?? [];
+            $buttons = $rows[0] ?? [];
+            $message = ContactMessage::query()->where('email', 'lead@site.com')->first();
 
             return ($data['chat_id'] ?? null) == '999001'
                 && str_contains($text, 'Nova mensagem do site')
@@ -261,7 +266,9 @@ class TelegramBotTest extends TestCase
                 && ! str_contains($text, 'tel:')
                 && ($buttons[0]['text'] ?? null) === '💬 WhatsApp'
                 && ($buttons[0]['url'] ?? null) === 'https://wa.me/5511988887777'
-                && count($buttons) === 1;
+                && ($buttons[1]['text'] ?? null) === '✉️ Responder'
+                && ($buttons[1]['callback_data'] ?? null) === 'mail:msg:'.($message?->id)
+                && ($rows[1][0]['text'] ?? null) === '📂 Abrir no correio';
         });
 
         Http::assertSent(function ($request) {
@@ -1012,6 +1019,95 @@ class TelegramBotTest extends TestCase
         $this->assertDatabaseMissing('contact_messages', ['id' => $message->id]);
     }
 
+    public function test_admin_can_send_email_from_bot(): void
+    {
+        $this->loginAdmin();
+        $this->configurePanelMailbox();
+        Mail::fake();
+
+        $this->postWebhook([
+            'message' => [
+                'chat' => ['id' => 999001],
+                'text' => '/email qa@exemplo.com | Proposta | Segue o texto combinado.',
+            ],
+        ])->assertOk();
+
+        Mail::assertSent(CrmOutgoingMail::class, function (CrmOutgoingMail $mail) {
+            return $mail->hasTo('qa@exemplo.com')
+                && $mail->envelope()->subject === 'Proposta';
+        });
+
+        Http::assertSent(fn ($request) => str_contains(
+            (string) ($request->data()['text'] ?? ''),
+            'Enviado para',
+        ));
+    }
+
+    public function test_admin_can_reply_to_contact_message_from_bot(): void
+    {
+        $this->loginAdmin();
+        $this->configurePanelMailbox();
+        Mail::fake();
+
+        $message = ContactMessage::factory()->create([
+            'name' => 'Carla Site',
+            'email' => 'carla@empresa.com',
+            'subject' => 'Orçamento institucional',
+            'read_at' => null,
+        ]);
+
+        $this->postWebhook([
+            'message' => [
+                'chat' => ['id' => 999001],
+                'text' => '/mensagem responder '.$message->id,
+            ],
+        ])->assertOk();
+
+        Http::assertSent(fn ($request) => str_contains(
+            (string) ($request->data()['text'] ?? ''),
+            'Envie o texto da mensagem agora',
+        ));
+
+        $this->postWebhook([
+            'message' => [
+                'chat' => ['id' => 999001],
+                'text' => 'Olá Carla, segue a proposta.',
+            ],
+        ])->assertOk();
+
+        Mail::assertSent(CrmOutgoingMail::class, function (CrmOutgoingMail $mail) {
+            return $mail->hasTo('carla@empresa.com')
+                && $mail->envelope()->subject === 'Re: Orçamento institucional'
+                && str_contains($mail->body, 'Olá Carla, segue a proposta.');
+        });
+
+        $this->assertNotNull($message->fresh()->read_at);
+    }
+
+    public function test_admin_can_start_contact_reply_from_telegram_button(): void
+    {
+        $this->loginAdmin();
+
+        $message = ContactMessage::factory()->create([
+            'email' => 'botao@empresa.com',
+            'subject' => 'Site novo',
+        ]);
+
+        $this->postWebhook([
+            'callback_query' => [
+                'id' => 'cb-mail-1',
+                'message' => ['chat' => ['id' => 999001]],
+                'data' => 'mail:msg:'.$message->id,
+            ],
+        ])->assertOk();
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'answerCallbackQuery')
+            && str_contains((string) ($request->data()['text'] ?? ''), 'Escreva a resposta.'));
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'sendMessage')
+            && str_contains((string) ($request->data()['text'] ?? ''), 'Resposta a'));
+    }
+
     public function test_send_contact_failure_does_not_drop_crm_message(): void
     {
         $this->loginAdmin();
@@ -1046,5 +1142,16 @@ class TelegramBotTest extends TestCase
         });
 
         Http::assertSent(fn ($request) => str_contains($request->url(), 'sendContact'));
+    }
+
+    private function configurePanelMailbox(): void
+    {
+        app(SettingService::class)->putMany([
+            'mail_mailer' => 'log',
+            'mail_username' => 'contato@exemplo.com',
+            'mail_from_name' => 'BURI-TI',
+        ]);
+        app(SettingService::class)->putSecret('mail_password', 'segredo');
+        app(MailSettingsService::class)->apply();
     }
 }

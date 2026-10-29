@@ -94,6 +94,22 @@ class ImapMailboxStore implements MailboxStore
 
     public function recentInbox(int $limit = 8): array
     {
+        return $this->usingClient(fn (ImapClient $client) => $client->recentInbox($limit));
+    }
+
+    public function isConfigured(): bool
+    {
+        return $this->imapConfig() !== null;
+    }
+
+    /**
+     * @template T
+     *
+     * @param  callable(ImapClient, ImapConfig): T  $callback
+     * @return T
+     */
+    public function usingClient(callable $callback): mixed
+    {
         $config = $this->imapConfig();
         if ($config === null) {
             throw new RuntimeException('IMAP: falta host, conta ou senha.');
@@ -102,7 +118,7 @@ class ImapMailboxStore implements MailboxStore
         $client = $this->open($config);
 
         try {
-            return $client->recentInbox($limit);
+            return $callback($client, $config);
         } finally {
             $client->logout();
         }

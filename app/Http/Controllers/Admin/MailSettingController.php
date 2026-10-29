@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SendTestMailRequest;
 use App\Http\Requests\Admin\UpdateMailSettingsRequest;
+use App\Models\User;
 use App\Services\MailSettingsService;
 use App\Services\SettingService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class MailSettingController extends Controller
@@ -17,8 +19,10 @@ class MailSettingController extends Controller
         private MailSettingsService $mail,
     ) {}
 
-    public function edit(): View
+    public function edit(Request $request): View
     {
+        $this->authorizeMailAdmin($request->user());
+
         return view('admin.settings.mail', [
             'form' => $this->mail->formValues(),
             'mail' => $this->mail->snapshot(),
@@ -69,13 +73,20 @@ class MailSettingController extends Controller
             ->with($flash, $result['message']);
     }
 
-    public function inbox(): RedirectResponse
+    public function inbox(Request $request): RedirectResponse
     {
-        $preview = $this->mail->inboxPreview();
+        $this->authorizeMailAdmin($request->user());
+
+        $preview = $this->mail->inboxPreview($request->user());
 
         return redirect()
             ->route('admin.settings.mail')
             ->with($preview['ok'] ? 'success' : 'error', $preview['message'])
             ->with('mail_inbox', $preview['messages']);
+    }
+
+    private function authorizeMailAdmin(?User $user): void
+    {
+        abort_unless($user?->canManageMail() === true, 403, 'O serviço de e-mail é exclusivo do admin.');
     }
 }

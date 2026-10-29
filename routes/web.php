@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\HomeProjectsController;
 use App\Http\Controllers\Admin\IdeaNoteController;
 use App\Http\Controllers\Admin\IntegrationController;
 use App\Http\Controllers\Admin\JirauController;
+use App\Http\Controllers\Admin\MailboxController;
 use App\Http\Controllers\Admin\MailSettingController;
 use App\Http\Controllers\Admin\OpportunityController;
 use App\Http\Controllers\Admin\ProfileController;
@@ -227,6 +228,29 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/integracoes', [IntegrationController::class, 'edit'])->name('integrations.edit');
     Route::put('/integracoes', [IntegrationController::class, 'update'])->name('integrations.update');
 
+    Route::middleware('mail.admin')->group(function () {
+        Route::get('/correio', [MailboxController::class, 'index'])->name('mailbox.index');
+        Route::get('/correio/escrever', [MailboxController::class, 'compose'])->name('mailbox.compose');
+        Route::post('/correio/enviar', [MailboxController::class, 'send'])
+            ->middleware('throttle:20,1')
+            ->name('mailbox.send');
+        Route::post('/correio/apagar', [MailboxController::class, 'destroy'])
+            ->middleware('throttle:30,1')
+            ->name('mailbox.destroy');
+        Route::post('/correio/mover', [MailboxController::class, 'move'])
+            ->middleware('throttle:30,1')
+            ->name('mailbox.move');
+        Route::post('/correio/lido', [MailboxController::class, 'seen'])
+            ->middleware('throttle:30,1')
+            ->name('mailbox.seen');
+        Route::post('/correio/pastas', [MailboxController::class, 'storeFolder'])
+            ->middleware('throttle:10,1')
+            ->name('mailbox.folders.store');
+        Route::put('/correio/assinatura', [MailboxController::class, 'signature'])
+            ->name('mailbox.signature');
+        Route::get('/correio/anexo', [MailboxController::class, 'attachment'])->name('mailbox.attachment');
+    });
+
     Route::get('/mensagens', [ContactMessageController::class, 'index'])->name('messages.index');
     Route::get('/mensagens/{message}', [ContactMessageController::class, 'show'])->name('messages.show');
     Route::post('/mensagens/{message}/vincular-contato', [ContactMessageController::class, 'linkContact'])
@@ -351,14 +375,16 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
 
     Route::get('/configuracoes', [SettingController::class, 'edit'])->name('settings.edit');
     Route::put('/configuracoes', [SettingController::class, 'update'])->name('settings.update');
-    Route::get('/configuracoes/email', [MailSettingController::class, 'edit'])->name('settings.mail');
-    Route::put('/configuracoes/email', [MailSettingController::class, 'update'])->name('settings.mail.update');
-    Route::post('/configuracoes/email/teste', [MailSettingController::class, 'test'])
-        ->middleware('throttle:5,1')
-        ->name('settings.mail.test');
-    Route::post('/configuracoes/email/caixa', [MailSettingController::class, 'inbox'])
-        ->middleware('throttle:10,1')
-        ->name('settings.mail.inbox');
+    Route::middleware('mail.admin')->group(function () {
+        Route::get('/configuracoes/email', [MailSettingController::class, 'edit'])->name('settings.mail');
+        Route::put('/configuracoes/email', [MailSettingController::class, 'update'])->name('settings.mail.update');
+        Route::post('/configuracoes/email/teste', [MailSettingController::class, 'test'])
+            ->middleware('throttle:5,1')
+            ->name('settings.mail.test');
+        Route::post('/configuracoes/email/caixa', [MailSettingController::class, 'inbox'])
+            ->middleware('throttle:10,1')
+            ->name('settings.mail.inbox');
+    });
 
     Route::get('/google/connect', [GoogleOAuthController::class, 'redirect'])->name('google.connect');
     Route::get('/google/callback', [GoogleOAuthController::class, 'callback'])->name('google.callback');

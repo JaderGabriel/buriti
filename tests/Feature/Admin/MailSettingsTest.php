@@ -7,6 +7,7 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Services\MailboxStore;
 use App\Services\SettingService;
+use App\Support\AdminNavigation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
@@ -63,7 +64,16 @@ class MailSettingsTest extends TestCase
         $this->post(route('admin.settings.mail.inbox'))
             ->assertRedirect(route('login'));
 
-        $staff = User::factory()->withoutAdminAccess()->create();
+        $staff = User::factory()->staff()->create();
+        $this->assertFalse($staff->canManageMail());
+        $this->assertSame([], AdminNavigation::search('smtp', $staff));
+        $this->assertSame([], AdminNavigation::search('imap', $staff));
+
+        $this->actingAs($staff)
+            ->get(route('jirau.home'))
+            ->assertOk()
+            ->assertDontSee('>E-mail</span>', false)
+            ->assertDontSee(route('admin.settings.mail'), false);
 
         $this->actingAs($staff)
             ->get(route('admin.settings.mail'))

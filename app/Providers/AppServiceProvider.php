@@ -27,7 +27,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(SettingService::class);
-        $this->app->singleton(MailboxStore::class, ImapMailboxStore::class);
+        $this->app->singleton(ImapMailboxStore::class);
+        $this->app->singleton(MailboxStore::class, fn ($app) => $app->make(ImapMailboxStore::class));
 
         // Must run before routes boot — route:cache + APP_URL subpath breaks GET /.
         SubdirectoryRouteCacheGuard::clearIncompatibleCache();

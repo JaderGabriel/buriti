@@ -1866,14 +1866,16 @@ html.dark [data-admin-shell] .dash-stat[data-kpi-polarity="up-bad"].is-up .dash-
     background: rgba(47, 107, 255, 0.1);
 }
 
-.admin-content:has(.messenger-shell) {
+.admin-content:has(.messenger-shell),
+.admin-content:has(.mail-shell) {
     display: flex;
     flex-direction: column;
     min-height: 0;
     padding-bottom: 0.5rem;
 }
 
-.admin-content:has(.messenger-shell) {
+.admin-content:has(.messenger-shell),
+.admin-content:has(.mail-shell) {
     display: flex;
     flex-direction: column;
     overflow: hidden;

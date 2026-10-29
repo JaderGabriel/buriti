@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureJirauAccess;
+use App\Http\Middleware\EnsureUserCanManageMail;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\SecurityHeaders;
 use App\Support\AuthHome;
@@ -24,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,
+            'mail.admin' => EnsureUserCanManageMail::class,
             'jirau' => EnsureJirauAccess::class,
         ]);
         $middleware->append(SecurityHeaders::class);

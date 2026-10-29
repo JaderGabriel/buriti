@@ -10,8 +10,9 @@
             Depois de cada SMTP, a mensagem é copiada para Enviados no mailserver (salvo provedores que já o fazem).
             Convites de depoimento <strong class="text-snow">não são enviados por e-mail</strong> — o admin copia o link.
         </p>
-        <p class="mt-3">
+        <p class="mt-3 flex flex-wrap gap-3">
             <a href="{{ route('admin.settings.edit') }}" class="text-sm text-brand-bright hover:underline">← Configurações</a>
+            <a href="{{ route('admin.mailbox.index') }}" class="text-sm text-brand-bright hover:underline">Abrir correio no CRM</a>
         </p>
     </div>
 

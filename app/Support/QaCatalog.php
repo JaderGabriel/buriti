@@ -100,9 +100,12 @@ final class QaCatalog
                         'phpunit',
                         ['args' => [
                             'tests/Feature/Admin/MailSettingsTest.php',
+                            'tests/Feature/Admin/MailboxTest.php',
                             'tests/Unit/MailSettingsServiceTest.php',
+                            'tests/Unit/MailDateTest.php',
                             'tests/Unit/ImapClientTest.php',
                             'tests/Unit/ImapMailboxStoreTest.php',
+                            'tests/Unit/Rfc822MessageTest.php',
                         ]],
                     ),
                     self::command(
@@ -210,7 +213,7 @@ final class QaCatalog
                 'id' => 'comercial',
                 'label' => 'Comercial',
                 'icon' => 'opportunity',
-                'description' => 'Rotas, views e inventário de mensagens, empresas, contatos e oportunidades.',
+                'description' => 'Rotas, views e inventário de mensagens, correio IMAP, empresas, contatos e oportunidades.',
                 'commands' => [
                     self::command(
                         'crm.health',
@@ -224,6 +227,8 @@ final class QaCatalog
                             'routes' => [
                                 'admin.dashboard',
                                 'admin.messages.index',
+                                'admin.mailbox.index',
+                                'admin.mailbox.compose',
                                 'admin.companies.index',
                                 'admin.contacts.index',
                                 'admin.opportunities.index',
@@ -232,6 +237,7 @@ final class QaCatalog
                             'views' => [
                                 'admin.dashboard',
                                 'admin.messages.index',
+                                'admin.mailbox.index',
                                 'admin.companies.index',
                                 'admin.contacts.index',
                                 'admin.opportunities.index',
@@ -465,10 +471,13 @@ final class QaCatalog
                                 'admin.settings.mail.update',
                                 'admin.settings.mail.test',
                                 'admin.settings.mail.inbox',
+                                'admin.mailbox.index',
+                                'admin.mailbox.compose',
                             ],
                             'views' => [
                                 'admin.settings.mail',
                                 'mail.test',
+                                'admin.mailbox.index',
                             ],
                         ],
                     ),

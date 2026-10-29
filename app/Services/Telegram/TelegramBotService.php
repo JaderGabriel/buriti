@@ -22,6 +22,7 @@ use App\Models\Task;
 use App\Models\User;
 use App\Services\AuditLogger;
 use App\Services\CompanyResolver;
+use App\Services\CrmMailboxService;
 use App\Services\SettingService;
 use App\Support\PhoneNumber;
 use Carbon\Carbon;
@@ -41,7 +42,7 @@ class TelegramBotService
 
     private const LOGIN_LOCK_SECONDS = 900;
 
-    /** @var array{inline_keyboard: list<list<array{text: string, url: string}>>}|null */
+    /** @var array{inline_keyboard: list<list<array<string, mixed>>>}|null */
     private ?array $pendingReplyMarkup = null;
 
     /** @var array{phone_number: string, first_name: string, last_name: ?string, vcard: ?string}|null */
@@ -56,6 +57,7 @@ class TelegramBotService
         private CompanyResolver $companies,
         private TaskTelegramFormatter $taskFormatter,
         private CrmActivityTelegramFormatter $activityFormatter,
+        private TelegramMailService $mailer,
     ) {}
 
     public function configured(): bool
@@ -167,7 +169,7 @@ class TelegramBotService
             '🔗 <a href="'.$this->escape($adminUrl).'">Abrir no admin</a>',
         ]));
 
-        $markup = $this->phoneActionKeyboard($message->phone);
+        $markup = $this->contactMessageKeyboard($message);
 
         foreach ($chatIds as $chatId) {
             $this->api->sendMessage($chatId, $text, $markup);
@@ -296,14 +298,20 @@ class TelegramBotService
             '/atividades' => $this->listActivities($argument),
             '/atividade' => $this->handleActivity($argument, $admin),
             '/mensagens' => $this->listMessages($argument),
-            '/mensagem' => $this->handleMessage($argument),
-            default => $this->handleBareInput($text, $admin),
+            '/mensagem' => $this->handleMessage($argument, $admin, $chatId),
+            '/email', '/correio' => $this->handleEmail($chatId, $argument, $admin),
+            '/cancelar' => $this->cancelMailDraft($chatId),
+            default => $this->handleBareInput($text, $admin, $chatId),
         };
     }
 
-    private function handleBareInput(string $text, ?User $admin): string
+    private function handleBareInput(string $text, ?User $admin, string $chatId): string
     {
         $trimmed = trim($text);
+
+        if ($admin && $this->mailer->peekDraft($chatId) !== null) {
+            return $this->mailer->completeDraft($admin, $chatId, $trimmed);
+        }
 
         // Após /tarefas, digitar só o ID (ex.: 1) abre o detalhe da tarefa.
         if ($admin && ctype_digit($trimmed)) {
@@ -314,7 +322,7 @@ class TelegramBotService
             return $this->showJirauCard($trimmed);
         }
 
-        return 'Comando não reconhecido. Envie /ajuda para ver CRM e Jirau.';
+        return 'Comando não reconhecido. Envie /ajuda para ver CRM, Jirau e correio.';
     }
 
     private function handleStart(string $chatId, string $argument, ?User $admin): string
@@ -392,6 +400,12 @@ Em <code>del</code>, confirme com <code>ok</code>.
 • Listar: <code>/jiraus</code>
 • Ver quadro: <code>/jirau ID</code>
 • Ver cartão: <code>/cartao ID</code> ou <code>/cartao JR-12</code>
+
+<b>Correio</b>
+• Caixa: <code>/correio</code>
+• Enviar: <code>/email dest@x.com | assunto | texto</code>
+• Responder ao site: <code>/mensagem responder ID | texto</code>
+• Abortar rascunho: <code>/cancelar</code>
 
 <b>Atalhos</b>
 <code>/card</code> · <code>/card Nome do cliente</code> — card para encaminhar
@@ -1829,10 +1843,10 @@ HTML;
     // Mensagens
     // -------------------------------------------------------------------------
 
-    private function handleMessage(string $argument): string
+    private function handleMessage(string $argument, ?User $admin, string $chatId): string
     {
         if ($argument === '') {
-            return "Uso:\n<code>/mensagens</code>\n<code>/mensagem ID</code>\n<code>/mensagem lida ID</code>\n<code>/mensagem del ID ok</code>";
+            return "Uso:\n<code>/mensagens</code>\n<code>/mensagem ID</code>\n<code>/mensagem responder ID | texto</code>\n<code>/mensagem lida ID</code>\n<code>/mensagem del ID ok</code>";
         }
 
         [$action, $rest] = $this->parseAction($argument);
@@ -1840,12 +1854,89 @@ HTML;
         return match ($action) {
             'list', 'lista' => $this->listMessages($rest),
             'lida', 'read', 'ler' => $this->markMessageRead($rest),
+            'responder', 'reply', 'email' => $this->replyContactMessage($rest, $admin, $chatId),
             'del', 'delete', 'rm', 'apagar', 'remover' => $this->deleteMessage($rest),
             'get', 'ver', 'show' => $this->showMessage($rest),
             default => ctype_digit($action) && $rest === ''
                 ? $this->showMessage($action)
                 : $this->showMessage($argument),
         };
+    }
+
+    private function handleEmail(string $chatId, string $argument, ?User $admin): string
+    {
+        if (! $admin) {
+            return 'Inicie sessão com /login.';
+        }
+
+        $argument = trim($argument);
+        if ($argument === '' || in_array(Str::lower($argument), ['caixa', 'inbox', 'lista', 'ajuda'], true)) {
+            return $this->mailer->inboxDigest($admin)."\n\n".$this->mailer->usage();
+        }
+
+        $parts = $this->splitArgs($argument, 3);
+        $to = (string) ($parts[0] ?? '');
+        $subject = (string) ($parts[1] ?? '');
+        $body = (string) ($parts[2] ?? '');
+
+        if ($to === '' || CrmMailboxService::extractAddresses($to) === []) {
+            return $this->mailer->usage();
+        }
+
+        if ($body !== '') {
+            $this->mailer->forgetDraft($chatId);
+
+            return $this->mailer->sendCompose($admin, $to, $subject !== '' ? $subject : 'Mensagem BURI-TI', $body);
+        }
+
+        if ($subject !== '') {
+            return $this->mailer->startCompose($admin, $chatId, $to, $subject);
+        }
+
+        return $this->mailer->usage();
+    }
+
+    private function cancelMailDraft(string $chatId): string
+    {
+        if ($this->mailer->peekDraft($chatId) === null) {
+            return 'Não há e-mail em curso para cancelar.';
+        }
+
+        $this->mailer->forgetDraft($chatId);
+
+        return 'Rascunho de e-mail cancelado.';
+    }
+
+    private function replyContactMessage(string $argument, ?User $admin, string $chatId): string
+    {
+        if (! $admin) {
+            return 'Inicie sessão com /login.';
+        }
+
+        $parts = $this->splitArgs($argument, 2);
+        if ($parts === []) {
+            $parts = preg_split('/\s+/', trim($argument), 2) ?: [];
+        }
+
+        $id = trim((string) ($parts[0] ?? ''));
+        $body = trim((string) ($parts[1] ?? ''));
+
+        if (! ctype_digit($id)) {
+            return 'Uso: <code>/mensagem responder ID | texto</code>';
+        }
+
+        $item = ContactMessage::query()->find((int) $id);
+        if (! $item) {
+            return 'Mensagem não encontrada.';
+        }
+
+        if ($body === '') {
+            return $this->mailer->startContactReply($admin, $chatId, $item);
+        }
+
+        $this->mailer->forgetDraft($chatId);
+
+        return $this->mailer->replyToContact($admin, $item, $body);
     }
 
     private function listMessages(string $argument): string
@@ -1864,7 +1955,7 @@ HTML;
             $lines[] = "{$flag} #{$item->id} · {$this->escape($item->name)} · {$this->escape(Str::limit($item->subject, 40))}";
         }
         $lines[] = '';
-        $lines[] = 'Detalhe: <code>/mensagem ID</code> · Marcar lida: <code>/mensagem lida ID</code>';
+        $lines[] = 'Detalhe: <code>/mensagem ID</code> · Responder: <code>/mensagem responder ID | texto</code>';
 
         return implode("\n", $lines);
     }
@@ -1882,12 +1973,7 @@ HTML;
 
         $url = route('admin.messages.show', $item);
         $body = $this->escape(Str::limit($item->message, 1200));
-        $this->queuePhoneActions(
-            $item->phone,
-            $item->name,
-            $item->email,
-            $item->company,
-        );
+        $this->queueMessageActions($item);
 
         return implode("\n", array_filter([
             "✉️ <b>Mensagem #{$item->id}</b> ".($item->isUnread() ? '(não lida)' : '(lida)'),
@@ -1898,6 +1984,7 @@ HTML;
             '',
             $body,
             '',
+            'Responder: <code>/mensagem responder '.$item->id.' | texto</code>',
             "🔗 <a href=\"{$this->escape($url)}\">Abrir no admin</a>",
         ]));
     }
@@ -1976,6 +2063,7 @@ HTML;
             "Cartões abertos: <b>{$openCards}</b> (inbox: {$inboxCards})",
             '',
             'CRM: <code>/contatos</code> · <code>/oportunidades</code> · <code>/projetos</code> · <code>/tarefas</code> · <code>/atividades</code> · <code>/mensagens</code>',
+            'Correio: <code>/correio</code> · <code>/email dest | assunto | texto</code>',
             'Jirau: <code>/jiraus</code> · <code>/jirau ID</code> · <code>/cartao ID</code>',
         ]);
     }
@@ -2115,8 +2203,23 @@ HTML;
             return;
         }
 
-        if (! $this->chatPassesAllowlist($chatId) || ! $this->adminSessionForChat($chatId)) {
+        $admin = $this->adminSessionForChat($chatId);
+        if (! $this->chatPassesAllowlist($chatId) || ! $admin) {
             $this->api->answerCallbackQuery($callbackId, 'Acesso restrito.');
+
+            return;
+        }
+
+        if (preg_match('/^mail:msg:(\d+)$/', $data, $matches) === 1) {
+            $item = ContactMessage::query()->find((int) $matches[1]);
+            if (! $admin || ! $item) {
+                $this->api->answerCallbackQuery($callbackId, 'Mensagem não encontrada.');
+
+                return;
+            }
+
+            $this->api->answerCallbackQuery($callbackId, 'Escreva a resposta.');
+            $this->api->sendMessage($chatId, $this->mailer->startContactReply($admin, $chatId, $item));
 
             return;
         }
@@ -2129,6 +2232,44 @@ HTML;
 
         $this->api->answerCallbackQuery($callbackId);
         $this->deliverNativeContact($chatId, '+'.$matches[1], 'Contato');
+    }
+
+    private function queueMessageActions(ContactMessage $message): void
+    {
+        $this->pendingReplyMarkup = $this->contactMessageKeyboard($message);
+        $this->pendingNativeContact = $this->nativeContactPayload(
+            $message->phone,
+            $message->name,
+            $message->email,
+            $message->company,
+        );
+    }
+
+    /**
+     * @return array{inline_keyboard: list<list<array<string, mixed>>>}
+     */
+    private function contactMessageKeyboard(ContactMessage $message): array
+    {
+        $row = [];
+        $whatsapp = PhoneNumber::whatsappHref($message->phone);
+        if ($whatsapp !== null && str_starts_with($whatsapp, 'https://')) {
+            $row[] = ['text' => '💬 WhatsApp', 'url' => $whatsapp];
+        }
+        $row[] = ['text' => '✉️ Responder', 'callback_data' => 'mail:msg:'.$message->id];
+
+        $keyboard = [$row];
+        $compose = route('admin.mailbox.compose', [
+            'para' => $message->email,
+            'assunto' => preg_match('/^re:\s/i', (string) $message->subject) === 1
+                ? $message->subject
+                : 'Re: '.$message->subject,
+            'mensagem' => $message->id,
+        ]);
+        if (str_starts_with($compose, 'http')) {
+            $keyboard[] = [['text' => '📂 Abrir no correio', 'url' => $compose]];
+        }
+
+        return ['inline_keyboard' => $keyboard];
     }
 
     private function queuePhoneActions(

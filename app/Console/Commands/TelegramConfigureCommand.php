@@ -53,12 +53,12 @@ class TelegramConfigureCommand extends Command
 
         $steps['Descrição'] = $api->setMyDescription(
             "Assistente operacional da BURI-TI.\n\n".
-            "CRM e Jirau no Telegram: contatos, oportunidades, projetos, tarefas, mensagens e quadros ágeis.\n".
-            "Receba alertas do formulário do site e de demandas no Jirau.\n\n".
+            "CRM, correio e Jirau no Telegram: contatos, e-mails, oportunidades, projetos, tarefas, mensagens e quadros ágeis.\n".
+            "Receba alertas do formulário do site e responda por e-mail da conta SMTP.\n\n".
             'Comandos: /ajuda'
         );
         $steps['Descrição curta'] = $api->setMyShortDescription(
-            'CRM e Jirau BURI-TI: consultas, gestão e alertas.'
+            'CRM, correio e Jirau BURI-TI: consultas, e-mail e alertas.'
         );
         $steps['Comandos'] = $api->setMyCommands([
             ['command' => 'ajuda', 'description' => 'Lista completa de comandos CRM e Jirau'],
@@ -82,7 +82,10 @@ class TelegramConfigureCommand extends Command
             ['command' => 'atividades', 'description' => 'Listar atividades CRM'],
             ['command' => 'atividade', 'description' => 'Ver/add/set/del atividade'],
             ['command' => 'mensagens', 'description' => 'Listar mensagens do site'],
-            ['command' => 'mensagem', 'description' => 'Ver/lida/del mensagem'],
+            ['command' => 'mensagem', 'description' => 'Ver, responder ou apagar mensagem do site'],
+            ['command' => 'correio', 'description' => 'Caixa de entrada da conta SMTP'],
+            ['command' => 'email', 'description' => 'Enviar e-mail: dest | assunto | texto'],
+            ['command' => 'cancelar', 'description' => 'Cancelar rascunho de e-mail'],
         ]);
 
         foreach ($steps as $label => $result) {

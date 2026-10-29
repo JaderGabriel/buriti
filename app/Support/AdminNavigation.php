@@ -33,6 +33,8 @@ final class AdminNavigation
             ];
         }
 
+        $canMail = $user->canManageMail();
+
         return [
             [
                 'id' => 'home',
@@ -54,7 +56,9 @@ final class AdminNavigation
                 'route' => 'admin.messages.index',
                 'label' => 'Comercial',
                 'icon' => 'opportunity',
-                'pattern' => ['admin.messages.*', 'admin.companies.*', 'admin.contacts.*', 'admin.opportunities.*'],
+                'pattern' => $canMail
+                    ? ['admin.messages.*', 'admin.mailbox.*', 'admin.companies.*', 'admin.contacts.*', 'admin.opportunities.*']
+                    : ['admin.messages.*', 'admin.companies.*', 'admin.contacts.*', 'admin.opportunities.*'],
                 'badge' => $unreadMessages > 0 ? $unreadMessages : null,
                 'items' => [
                     [
@@ -64,6 +68,12 @@ final class AdminNavigation
                         'icon' => 'message',
                         'badge' => $unreadMessages > 0 ? $unreadMessages : null,
                     ],
+                    ...($canMail ? [[
+                        'route' => 'admin.mailbox.index',
+                        'label' => 'Correio',
+                        'pattern' => 'admin.mailbox.*',
+                        'icon' => 'mail',
+                    ]] : []),
                     [
                         'route' => 'admin.companies.index',
                         'label' => 'Empresas',
@@ -155,7 +165,9 @@ final class AdminNavigation
                 'route' => 'admin.settings.edit',
                 'label' => 'Sistema',
                 'icon' => 'settings',
-                'pattern' => ['admin.users.*', 'admin.integrations.*', 'admin.settings.*', 'admin.roadmap.*', 'admin.qa.*'],
+                'pattern' => $canMail
+                    ? ['admin.users.*', 'admin.integrations.*', 'admin.settings.*', 'admin.roadmap.*', 'admin.qa.*']
+                    : ['admin.users.*', 'admin.integrations.*', 'admin.settings.edit', 'admin.settings.update', 'admin.roadmap.*', 'admin.qa.*'],
                 'items' => [
                     [
                         'route' => 'admin.users.index',
@@ -175,12 +187,12 @@ final class AdminNavigation
                         'pattern' => ['admin.settings.edit', 'admin.settings.update'],
                         'icon' => 'settings',
                     ],
-                    [
+                    ...($canMail ? [[
                         'route' => 'admin.settings.mail',
                         'label' => 'E-mail',
                         'pattern' => ['admin.settings.mail', 'admin.settings.mail.update', 'admin.settings.mail.test', 'admin.settings.mail.inbox'],
                         'icon' => 'mail',
-                    ],
+                    ]] : []),
                     [
                         'route' => 'admin.roadmap.show',
                         'label' => 'Roadmap',
@@ -306,6 +318,7 @@ final class AdminNavigation
             'jirau' => 'kanban agil board quadro',
             'sistema' => 'admin sistema',
             'admin.messages.index' => 'inbox email mail mensagens',
+            'admin.mailbox.index' => 'correio imap smtp caixa enviados rascunhos assinatura pastas',
             'admin.companies.index' => 'company empresas clientes',
             'admin.contacts.index' => 'contactos telefone contatos',
             'admin.opportunities.index' => 'pipeline negocio oportunidades',

@@ -54,6 +54,11 @@ class User extends Authenticatable
         return $this->is_active && $this->jirau_role !== null;
     }
 
+    public function canManageMail(): bool
+    {
+        return $this->is_active && $this->is_admin === true;
+    }
+
     public function canEnterJirau(): bool
     {
         if (! $this->is_active) {

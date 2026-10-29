@@ -685,13 +685,13 @@ class QaLabService
         $checks = [];
         $lines = [];
 
-        foreach (['admin.settings.mail', 'admin.settings.mail.update', 'admin.settings.mail.test', 'admin.settings.mail.inbox'] as $name) {
+        foreach (['admin.settings.mail', 'admin.settings.mail.update', 'admin.settings.mail.test', 'admin.settings.mail.inbox', 'admin.mailbox.index'] as $name) {
             $exists = Route::has($name);
             $checks[] = ['name' => 'Rota '.$name, 'ok' => $exists, 'detail' => $exists ? 'registada' : 'em falta'];
             $lines[] = ($exists ? 'OK' : 'FALHOU').' rota '.$name;
         }
 
-        foreach (['admin.settings.mail', 'mail.test'] as $view) {
+        foreach (['admin.settings.mail', 'mail.test', 'admin.mailbox.index'] as $view) {
             $exists = View::exists($view);
             $checks[] = ['name' => 'View '.$view, 'ok' => $exists, 'detail' => $exists ? 'existe' : 'em falta'];
             $lines[] = ($exists ? 'OK' : 'FALHOU').' view '.$view;

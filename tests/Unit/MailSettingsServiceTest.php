@@ -10,6 +10,7 @@ use App\Services\SettingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use RuntimeException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 class MailSettingsServiceTest extends TestCase
@@ -91,6 +92,21 @@ class MailSettingsServiceTest extends TestCase
 
         $this->assertSame('log', $form['mail_mailer']);
         $this->assertContains($form['mail_encryption'], ['tls', 'ssl', 'none']);
+    }
+
+    public function test_staff_cannot_send_test_through_service(): void
+    {
+        Mail::fake();
+        $staff = User::factory()->withoutAdminAccess()->create();
+
+        try {
+            app(MailSettingsService::class)->trySendTest('qa@exemplo.com', $staff);
+            $this->fail('Staff should not send mail tests.');
+        } catch (HttpException $e) {
+            $this->assertSame(403, $e->getStatusCode());
+        }
+
+        Mail::assertNothingSent();
     }
 
     public function test_send_test_records_audit(): void
