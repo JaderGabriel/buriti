@@ -1465,6 +1465,216 @@ function initOtpChallenge() {
     window.setTimeout(() => valueInput?.focus({ preventScroll: true }), 50);
 }
 
+function passkeyCsrf() {
+    return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        || document.querySelector('input[name="_token"]')?.value
+        || '';
+}
+
+function passkeyB64urlToBuffer(value) {
+    const padded = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
+    const base64 = padded + '='.repeat((4 - (padded.length % 4)) % 4);
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+
+    return bytes.buffer;
+}
+
+function passkeyBufferToB64url(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    bytes.forEach((byte) => {
+        binary += String.fromCharCode(byte);
+    });
+
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+function passkeyPreparePublicKey(publicKey) {
+    const copy = { ...publicKey, challenge: passkeyB64urlToBuffer(publicKey.challenge) };
+    if (copy.user?.id) {
+        copy.user = { ...copy.user, id: passkeyB64urlToBuffer(copy.user.id) };
+    }
+    if (Array.isArray(copy.excludeCredentials)) {
+        copy.excludeCredentials = copy.excludeCredentials.map((item) => ({
+            ...item,
+            id: passkeyB64urlToBuffer(item.id),
+        }));
+    }
+    if (Array.isArray(copy.allowCredentials)) {
+        copy.allowCredentials = copy.allowCredentials.map((item) => ({
+            ...item,
+            id: passkeyB64urlToBuffer(item.id),
+        }));
+    }
+
+    return copy;
+}
+
+async function passkeyPostJson(url, body) {
+    const response = await fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': passkeyCsrf(),
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify(body || {}),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (! response.ok || data.ok === false) {
+        const firstError = Object.values(data.errors || {}).flat()[0];
+        throw new Error(data.message || firstError || 'Não foi possível concluir a chave de acesso.');
+    }
+
+    return data;
+}
+
+function initPasskeyLogin() {
+    const root = document.querySelector('[data-passkey-login]');
+    if (! root || ! window.PublicKeyCredential) {
+        root?.setAttribute('hidden', '');
+        return;
+    }
+
+    const startBtn = root.querySelector('[data-passkey-start]');
+    const label = root.querySelector('[data-passkey-label]');
+    const errorBox = root.querySelector('[data-passkey-error]');
+    const optionsUrl = root.getAttribute('data-passkey-options');
+    const loginUrl = root.getAttribute('data-passkey-login-url');
+    let abort = null;
+
+    const showError = (message) => {
+        if (! errorBox) {
+            return;
+        }
+        errorBox.textContent = message;
+        errorBox.classList.toggle('hidden', ! message);
+    };
+
+    const finishAssertion = async (credential) => {
+        const response = credential.response;
+        const data = await passkeyPostJson(loginUrl, {
+            id: credential.id,
+            rawId: passkeyBufferToB64url(credential.rawId),
+            type: credential.type,
+            clientDataJSON: passkeyBufferToB64url(response.clientDataJSON),
+            authenticatorData: passkeyBufferToB64url(response.authenticatorData),
+            signature: passkeyBufferToB64url(response.signature),
+            userHandle: response.userHandle ? passkeyBufferToB64url(response.userHandle) : '',
+        });
+        window.location.href = data.redirect || '/admin';
+    };
+
+    const runGet = async (conditional) => {
+        const options = await passkeyPostJson(optionsUrl, {});
+        abort?.abort();
+        abort = new AbortController();
+        const credential = await navigator.credentials.get({
+            publicKey: passkeyPreparePublicKey(options.publicKey),
+            mediation: conditional ? 'conditional' : 'optional',
+            signal: abort.signal,
+        });
+        if (credential) {
+            await finishAssertion(credential);
+        }
+    };
+
+    startBtn?.addEventListener('click', async () => {
+        showError('');
+        startBtn.disabled = true;
+        if (label) {
+            label.textContent = 'Aguardando o aparelho…';
+        }
+        try {
+            await runGet(false);
+        } catch (error) {
+            if (error?.name !== 'NotAllowedError' && error?.name !== 'AbortError') {
+                showError(error.message || 'Não foi possível usar a chave de acesso.');
+            }
+        } finally {
+            startBtn.disabled = false;
+            if (label) {
+                label.textContent = 'Entrar com chave de acesso';
+            }
+        }
+    });
+
+    if (window.PublicKeyCredential.isConditionalMediationAvailable) {
+        window.PublicKeyCredential.isConditionalMediationAvailable().then((available) => {
+            if (available) {
+                runGet(true).catch(() => {});
+            }
+        }).catch(() => {});
+    }
+}
+
+function initPasskeyRegister() {
+    const root = document.querySelector('[data-passkey-register]');
+    const addBtn = root?.querySelector('[data-passkey-add]');
+    if (! root || ! addBtn) {
+        return;
+    }
+    if (! window.PublicKeyCredential) {
+        addBtn.disabled = true;
+        return;
+    }
+
+    const passwordInput = root.querySelector('[data-passkey-password]');
+    const errorBox = root.querySelector('[data-passkey-error]');
+    const optionsUrl = root.getAttribute('data-passkey-options');
+    const storeUrl = root.getAttribute('data-passkey-store');
+
+    const showError = (message) => {
+        if (! errorBox) {
+            return;
+        }
+        errorBox.textContent = message;
+        errorBox.classList.toggle('hidden', ! message);
+    };
+
+    addBtn.addEventListener('click', async () => {
+        showError('');
+        const currentPassword = passwordInput?.value || '';
+        if (currentPassword === '') {
+            showError('Informe a senha atual para criar a chave de acesso.');
+            passwordInput?.focus();
+            return;
+        }
+        addBtn.disabled = true;
+        try {
+            const options = await passkeyPostJson(optionsUrl, { current_password: currentPassword });
+            const credential = await navigator.credentials.create({
+                publicKey: passkeyPreparePublicKey(options.publicKey),
+            });
+            if (! credential) {
+                throw new Error('O aparelho não devolveu a chave de acesso.');
+            }
+            const response = credential.response;
+            await passkeyPostJson(storeUrl, {
+                current_password: currentPassword,
+                id: credential.id,
+                rawId: passkeyBufferToB64url(credential.rawId),
+                type: credential.type,
+                clientDataJSON: passkeyBufferToB64url(response.clientDataJSON),
+                attestationObject: passkeyBufferToB64url(response.attestationObject),
+            });
+            window.location.reload();
+        } catch (error) {
+            if (error?.name !== 'NotAllowedError') {
+                showError(error.message || 'Não foi possível guardar a chave de acesso.');
+            }
+        } finally {
+            addBtn.disabled = false;
+        }
+    });
+}
+
 function initTelegramLogin() {
     const root = document.querySelector('[data-telegram-login]');
     const startBtn = root?.querySelector('[data-telegram-start]');
@@ -5446,6 +5656,8 @@ initPasswordFields();
 initDocumentMasks();
 initPasswordGenerators();
 initOtpChallenge();
+initPasskeyLogin();
+initPasskeyRegister();
 initTelegramLogin();
 initTaskCreateDialog();
 initTaskEditDialog();

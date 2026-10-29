@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateAvatarRequest;
 use App\Http\Requests\Admin\UpdateProfileRequest;
 use App\Models\LoginActivity;
+use App\Models\WebauthnCredential;
+use App\Services\Auth\PasskeyService;
 use App\Services\Auth\TotpService;
 use App\Services\AuthSecurityService;
 use App\Services\AvatarService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -21,6 +24,7 @@ class ProfileController extends Controller
         private AvatarService $avatars,
         private AuthSecurityService $security,
         private TotpService $totp,
+        private PasskeyService $passkeys,
     ) {}
 
     public function edit(Request $request): View
@@ -39,6 +43,8 @@ class ProfileController extends Controller
                 ->get(),
             'totpUri' => $setupSecret ? $this->totp->otpauthUri($user, $setupSecret) : null,
             'totpSecret' => $setupSecret ? $this->totp->groupedSecret($setupSecret) : null,
+            'passkeys' => $user->webauthnCredentials()->orderByDesc('last_used_at')->orderByDesc('id')->get(),
+            'passkeyEnabled' => $this->passkeys->supportedOn($request),
         ]);
     }
 
@@ -171,6 +177,63 @@ class ProfileController extends Controller
         return back()->with('success', 'App Senhas desvinculado. O Telegram segue como verificação.');
     }
 
+    public function passkeyOptions(Request $request): JsonResponse
+    {
+        if ($denied = $this->passkeyPasswordJson($request, 'Informe a senha atual para criar a chave de acesso.')) {
+            return $denied;
+        }
+
+        try {
+            $options = $this->passkeys->registrationOptions($request->user(), $request);
+        } catch (\RuntimeException $exception) {
+            return response()->json([
+                'ok' => false,
+                'message' => $exception->getMessage(),
+            ], 422);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'publicKey' => $options['publicKey'] ?? [],
+        ]);
+    }
+
+    public function storePasskey(Request $request): JsonResponse
+    {
+        if ($denied = $this->passkeyPasswordJson($request, 'Informe a senha atual para criar a chave de acesso.')) {
+            return $denied;
+        }
+
+        try {
+            $credential = $this->passkeys->register($request->user(), $request, $request->all());
+        } catch (\RuntimeException $exception) {
+            return response()->json([
+                'ok' => false,
+                'message' => $exception->getMessage(),
+            ], 422);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Chave de acesso salva. Neste aparelho o Safari entra com Face ID, sem o código.',
+            'name' => $credential->name,
+        ]);
+    }
+
+    public function destroyPasskey(Request $request, WebauthnCredential $credential): RedirectResponse
+    {
+        $user = $request->user();
+        if ($credential->user_id !== $user->id) {
+            abort(404);
+        }
+
+        $this->assertCurrentPassword($request, 'Informe a senha atual para remover a chave de acesso.');
+
+        $credential->delete();
+
+        return back()->with('success', 'Chave de acesso removida. Nos próximos acessos deste aparelho use senha e código.');
+    }
+
     private function pendingTotpSecret(Request $request): ?string
     {
         $secret = $request->session()->get(TotpService::SETUP_SESSION_KEY);
@@ -191,5 +254,27 @@ class ProfileController extends Controller
                 'current_password' => 'Senha atual inválida.',
             ]);
         }
+    }
+
+    private function passkeyPasswordJson(Request $request, string $requiredMessage): ?JsonResponse
+    {
+        $password = (string) $request->input('current_password');
+        if ($password === '') {
+            return response()->json([
+                'ok' => false,
+                'message' => $requiredMessage,
+                'errors' => ['current_password' => [$requiredMessage]],
+            ], 422);
+        }
+
+        if (! Hash::check($password, (string) $request->user()->password)) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Senha atual inválida.',
+                'errors' => ['current_password' => ['Senha atual inválida.']],
+            ], 422);
+        }
+
+        return null;
     }
 }

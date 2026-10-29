@@ -29,7 +29,7 @@
                 <div class="mb-8">
                     <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-bright">Acesso</p>
                     <h1 id="login-heading" class="mt-2 font-display text-2xl font-bold text-snow sm:text-3xl">Entrar no painel</h1>
-                    <p class="mt-2 text-sm text-mist">Admin: usuário/senha + código de 6 dígitos (Senhas do iPhone se vinculado, senão Telegram), ou desafio no bot. Membro de um Jirau entra só com usuário e senha do projeto.</p>
+                    <p class="mt-2 text-sm text-mist">No iPhone, a chave de acesso entra com Face ID e não pede o código. Nos outros aparelhos: usuário/senha + código de 6 dígitos. Membro de um Jirau entra só com usuário e senha do projeto.</p>
                 </div>
 
                 @if ($errors->has('telegram'))
@@ -43,6 +43,23 @@
                         Há uma verificação em andamento.
                         <a href="{{ route('login.two-factor') }}" class="font-semibold text-brand-bright hover:text-snow">Informar o código</a>
                     </p>
+                @endif
+
+                @if (! empty($passkeyEnabled))
+                    <div class="mb-5 space-y-3" data-passkey-login data-passkey-options="{{ route('login.passkey.options') }}" data-passkey-login-url="{{ route('login.passkey') }}">
+                        <button type="button" class="login-passkey-btn" data-passkey-start>
+                            <x-ui.icon name="passkey" class="h-5 w-5" />
+                            <span data-passkey-label>Entrar com chave de acesso</span>
+                        </button>
+                        <p class="text-xs leading-relaxed text-mist">
+                            Safari no iPhone sugere Face ID se você já salvou a chave no perfil. Sem chave neste aparelho, use senha e código abaixo.
+                        </p>
+                        <p class="hidden text-sm text-red-300" data-passkey-error role="alert"></p>
+                    </div>
+
+                    <div class="login-divider" aria-hidden="true">
+                        <span>{{ $telegramLoginEnabled ? 'ou' : 'ou com senha' }}</span>
+                    </div>
                 @endif
 
                 @if ($telegramLoginEnabled)
@@ -87,7 +104,7 @@
                             value="{{ old('login') }}"
                             required
                             autofocus
-                            autocomplete="username"
+                            autocomplete="username webauthn"
                             placeholder="usuario@exemplo.com"
                             class="login-input"
                         >

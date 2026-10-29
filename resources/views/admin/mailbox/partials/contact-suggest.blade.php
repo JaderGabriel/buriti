@@ -1,3 +1,4 @@
+<template x-teleport="body">
 <div
     class="mail-suggest"
     data-mail-suggest
@@ -37,3 +38,4 @@
         Nenhum contato com e-mail no sistema.
     </p>
 </div>
+</template>

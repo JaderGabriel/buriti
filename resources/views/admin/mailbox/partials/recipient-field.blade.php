@@ -8,7 +8,7 @@
     data-seed-email="{{ $seedEmail }}"
     data-seed-name="{{ $seedName }}"
     data-contacts-url="{{ route('admin.mailbox.contacts', absolute: false) }}"
-    x-data="mailRecipientField"
+    x-data="window.mailRecipientField()"
 >
     <input type="hidden" name="{{ $field }}" value="{{ $seedEmail }}" :value="joined()">
     <div class="mail-chips" x-ref="box" @click="$refs.query?.focus()">

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\User;
+use App\Services\Auth\PasskeyService;
 use App\Services\Auth\PasswordTwoFactorService;
 use App\Services\AuthSecurityService;
 use App\Services\Telegram\TelegramWebAuthService;
@@ -24,6 +25,7 @@ class LoginController extends Controller
         private AuthSecurityService $security,
         private TelegramWebAuthService $telegramWebAuth,
         private PasswordTwoFactorService $twoFactor,
+        private PasskeyService $passkeys,
     ) {}
 
     public function create(Request $request): View
@@ -31,6 +33,7 @@ class LoginController extends Controller
         return view('auth.login', [
             'telegramLoginEnabled' => $this->telegramWebAuth->enabled(),
             'twoFactorPending' => $this->twoFactor->hasChallenge($request),
+            'passkeyEnabled' => $this->passkeys->supportedOn($request),
         ]);
     }
 
@@ -271,6 +274,54 @@ class LoginController extends Controller
         $this->security->markSuccessfulLogin($user, $request);
 
         return redirect()->intended(AuthHome::url($user));
+    }
+
+    public function passkeyOptions(Request $request): JsonResponse
+    {
+        try {
+            return response()->json([
+                'ok' => true,
+                'publicKey' => $this->passkeys->assertionOptions($request)['publicKey'] ?? [],
+            ]);
+        } catch (\Throwable $exception) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Não foi possível iniciar a chave de acesso.',
+            ], 422);
+        }
+    }
+
+    public function passkeyLogin(Request $request): JsonResponse
+    {
+        try {
+            $user = $this->passkeys->assert($request, $request->all());
+        } catch (\RuntimeException $exception) {
+            $this->security->recordLoginAttempt($request, null, false);
+
+            return response()->json([
+                'ok' => false,
+                'message' => $exception->getMessage(),
+            ], 422);
+        }
+
+        if ($user->is_active === false || ($user->is_admin === false && ! $user->canEnterJirau())) {
+            $this->security->recordLoginAttempt($request, $user, false);
+
+            return response()->json([
+                'ok' => false,
+                'message' => self::LOGIN_FAILED,
+            ], 422);
+        }
+
+        Auth::login($user, true);
+        $request->session()->regenerate();
+        $this->twoFactor->forget($request);
+        $this->security->markSuccessfulLogin($user, $request);
+
+        return response()->json([
+            'ok' => true,
+            'redirect' => redirect()->intended(AuthHome::url($user))->getTargetUrl(),
+        ]);
     }
 
     public function destroy(Request $request): RedirectResponse

@@ -38,7 +38,7 @@ Jornada: **Mensagem → Contato → Oportunidade → Projeto → Tarefa**.
 | **Tarefas / agenda** | Calendário, agenda, quadro, lista; Meet / Teams / Jitsi; sync Google; cores; ICS |
 | **Anexos** | Soft delete (lixeira), preview no browser (PDF/imagem/média/texto), download |
 | **Usuários** | CRUD, avatar, ativar/desativar, sessões com revogação |
-| **Perfil** | Dados próprios, sessões e 2FA (vincular/desvincular Senhas do iPhone; Telegram já vinculado no bot) |
+| **Perfil** | Dados próprios, sessões, chave de acesso (passkey / Face ID) e 2FA (Senhas do iPhone ou Telegram) |
 | **Integrações** | Google, Telegram Bot, Trello e Notion — **credenciais cifradas na base**, não no Git |
 | **Configurações** | Contactos do site, e-mail SMTP/IMAP (senha cifrada) e hub Google (níveis 1–3) |
 
@@ -52,6 +52,7 @@ Jornada: **Mensagem → Contato → Oportunidade → Projeto → Tarefa**.
 - Senha mínima com letras e números (regra `Password::defaults`)
 - Honeypot no contacto público
 - Login admin por usuário/senha exige 2FA: TOTP nas **Senhas do iPhone** se o método estiver vinculado; senão, código de 6 dígitos no Telegram
+- **Chave de acesso (passkey)** no Safari/iOS: Face ID entra sem o código de 6 dígitos. Cadastro em Perfil, neste aparelho. Outros dispositivos continuam com senha + código
 - Login admin também via desafio temporário no bot Telegram (sem widget de terceiros na página)
 - Membro de Jirau autentica só com usuário/senha (sem Telegram) e não acessa o CRM
 - Telefones normalizados em E.164 (DDI + DDD + número) em `tel:` e `wa.me` no CRM e no bot
@@ -255,7 +256,7 @@ composer test
 ./bin/test
 ```
 
-Cobertura inclui site público, auth (2FA iOS + Telegram), CRM (contactos, oportunidades, projetos/board, tarefas, atividades, anexos/preview), Correio IMAP (compositor HTML, anexos, imagens CID), Jirau, Telegram bot, Google/settings, integrações com segredos na BD, roadmap e segurança de sessões.
+Cobertura inclui site público, auth (passkey/Face ID, 2FA iOS + Telegram), CRM (contactos, oportunidades, projetos/board, tarefas, atividades, anexos/preview), Correio IMAP (compositor HTML, anexos, imagens CID), Jirau, Telegram bot, Google/settings, integrações com segredos na BD, roadmap e segurança de sessões.
 
 ## Scripts úteis
 

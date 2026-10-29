@@ -22,8 +22,9 @@ class SecurityHeaders
         if (! $response->headers->has('Content-Security-Policy')) {
             $response->headers->set(
                 'Content-Security-Policy',
-                "default-src 'self'; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-src 'self' https://calendar.google.com https://*.google.com; connect-src 'self'"
+                "default-src 'self'; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; font-src 'self' data:; frame-src 'self' https://calendar.google.com https://*.google.com; connect-src 'self'"
             );
+            // Alpine 3 avalia x-data e @click com new Function; sem unsafe-eval o compositor de e-mail não inicia.
         }
 
         return $response;

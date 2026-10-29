@@ -26,13 +26,13 @@
             <x-ui.icon name="link" class="h-4 w-4" />
         </button>
         <span class="mail-editor__sep" aria-hidden="true"></span>
-        <button type="button" class="mail-editor__btn" title="Imagem no texto" @mousedown.prevent="$refs.inlineInput.click()">
+        <label class="mail-editor__btn" for="mail-inline-picker" title="Imagem no texto">
             <x-ui.icon name="image" class="h-4 w-4" />
-        </button>
-        <button type="button" class="mail-editor__btn" title="Anexar arquivo" @mousedown.prevent="$refs.attachPicker.click()">
+        </label>
+        <label class="mail-editor__btn" for="mail-attach-picker" title="Anexar arquivo">
             <x-ui.icon name="paperclip" class="h-4 w-4" />
             <span class="mail-editor__badge" x-show="items.length > 0" x-cloak x-text="items.length"></span>
-        </button>
+        </label>
         <button type="button" class="mail-editor__btn" title="Limpar formatação" data-mail-format="removeFormat" @mousedown.prevent="format('removeFormat')">
             <x-ui.icon name="eraser" class="h-4 w-4" />
         </button>
@@ -73,20 +73,24 @@
     <textarea name="quote" class="sr-only" x-ref="quoteField">{{ $quoteHtml }}</textarea>
 @endif
 <div class="mail-compose__attach">
-    <button type="button" class="mail-compose__attach-btn" @click="$refs.attachPicker.click()">
+    <p class="mail-compose__attach-title">
         <x-ui.icon name="paperclip" class="h-4 w-4" />
         Anexos
         <span class="mail-attach-count" x-show="items.length > 0" x-cloak>
             <span x-text="items.length"></span>
             · <span x-text="sizeLabel"></span>
         </span>
-    </button>
+    </p>
+    <label class="mail-compose__attach-add" for="mail-attach-picker" title="Adicionar arquivo" aria-label="Adicionar arquivo">
+        <x-ui.icon name="plus" class="h-4 w-4" />
+    </label>
     <p class="mail-compose__attach-hint">Até 5 arquivos · 10 MB no total. Imagens podem ir no texto.</p>
     <template x-if="loadingCount > 0">
         <p class="mail-compose__attach-hint" data-mail-attach-loading>Carregando <span x-text="loadingCount"></span>…</p>
     </template>
-    <div class="mail-compose__file-sink" hidden aria-hidden="true">
+    <div class="sr-only">
         <input
+            id="mail-attach-picker"
             x-ref="attachPicker"
             type="file"
             multiple
@@ -94,6 +98,7 @@
             @change="addFiles($event.target.files, false); $event.target.value = ''"
         >
         <input
+            id="mail-inline-picker"
             x-ref="inlineInput"
             type="file"
             accept=".jpg,.jpeg,.png,.webp,.gif"
@@ -139,5 +144,9 @@
                 <button type="button" class="mail-gallery__remove" @click="removeItem(item.id)" title="Remover anexo">×</button>
             </article>
         </template>
+        <label class="mail-gallery__add" for="mail-attach-picker" title="Adicionar arquivo">
+            <x-ui.icon name="plus" class="h-5 w-5" />
+            <span>Adicionar</span>
+        </label>
     </div>
 </template>

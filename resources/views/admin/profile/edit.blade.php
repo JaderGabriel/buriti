@@ -70,9 +70,44 @@
         <div class="space-y-6">
             <section class="rounded-sm border border-line bg-panel p-5 sm:p-6">
                 <p class="text-xs font-semibold uppercase tracking-[0.14em] text-mist">Verificação em dois fatores</p>
-                <p class="mt-1 text-sm text-mist">O iPhone usa o app Senhas. O Telegram continua como alternativa.</p>
+                <p class="mt-1 text-sm text-mist">A chave de acesso no iPhone entra com Face ID, sem código. Nos outros aparelhos, senha + código (Senhas ou Telegram).</p>
 
                 <div class="mt-4 space-y-3">
+                    <div class="border-b border-line pb-3" data-passkey-register data-passkey-options="{{ route('admin.profile.passkey.options') }}" data-passkey-store="{{ route('admin.profile.passkey.store') }}">
+                        <p class="text-sm font-semibold text-snow">Chave de acesso · iPhone / Safari</p>
+                        <p class="mt-0.5 text-xs text-mist">
+                            Depois de salvar neste iPhone, o Safari oferece Face ID no login e não pede o código de 6 dígitos. Um computador sem a chave continua com senha e código.
+                        </p>
+
+                        @if ($passkeys->isNotEmpty())
+                            <ul class="mt-3 space-y-2">
+                                @foreach ($passkeys as $passkey)
+                                    <li class="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-line px-3 py-2">
+                                        <span class="text-sm text-snow">{{ $passkey->name ?: 'Chave de acesso' }}</span>
+                                        <form method="POST" action="{{ route('admin.profile.passkey.destroy', $passkey) }}" class="flex flex-wrap items-end gap-2">
+                                            @csrf
+                                            @method('DELETE')
+                                            <input type="password" name="current_password" required autocomplete="current-password" placeholder="Senha atual" class="w-36 rounded-sm border border-line bg-ink px-2 py-1 text-xs text-snow">
+                                            <button type="submit" class="text-xs font-semibold text-red-300 hover:text-red-200">Remover</button>
+                                        </form>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+
+                        @if (! empty($passkeyEnabled))
+                            <div class="mt-3 space-y-3">
+                                <x-ui.input type="password" name="current_password" label="Senha atual para adicionar" autocomplete="current-password" data-passkey-password />
+                                <button type="button" class="inline-flex items-center justify-center rounded-sm bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-bright" data-passkey-add>
+                                    Adicionar chave de acesso
+                                </button>
+                                <p class="hidden text-xs text-red-400" data-passkey-error role="alert"></p>
+                            </div>
+                        @else
+                            <p class="mt-3 text-xs text-mist">Chaves de acesso precisam de HTTPS (ou localhost).</p>
+                        @endif
+                    </div>
+
                     <div class="flex items-start justify-between gap-3 border-b border-line pb-3">
                         <div>
                             <p class="text-sm font-semibold text-snow">iPhone · app Senhas</p>

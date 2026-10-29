@@ -44,6 +44,17 @@ class User extends Authenticatable
         return filled($this->totp_secret) && $this->totp_confirmed_at !== null;
     }
 
+    public function hasPasskey(): bool
+    {
+        return $this->webauthnCredentials()->exists();
+    }
+
+    /** @return HasMany<WebauthnCredential, $this> */
+    public function webauthnCredentials(): HasMany
+    {
+        return $this->hasMany(WebauthnCredential::class);
+    }
+
     public function hasTelegramTwoFactor(): bool
     {
         return filled($this->telegram_chat_id);

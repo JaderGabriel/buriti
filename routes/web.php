@@ -40,6 +40,8 @@ use App\Http\Controllers\Jirau\TimeController as JirauTimeController;
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\TelegramWebhookController;
 use App\Http\Controllers\TestimonialController;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [SiteController::class, 'home'])->name('home');
@@ -70,6 +72,16 @@ Route::post('/webhooks/telegram/{secret}', TelegramWebhookController::class)
     ->middleware('throttle:120,1')
     ->name('webhooks.telegram');
 
+if (app()->environment('local') && env('LOCAL_MAIL_QA') === '1') {
+    Route::get('/_local/mailbox-compose', function () {
+        $user = User::query()->where('is_admin', true)->where('is_active', true)->firstOrFail();
+        Auth::login($user);
+        request()->session()->regenerate();
+
+        return redirect()->route('admin.mailbox.compose');
+    })->name('local.mailbox-compose');
+}
+
 Route::middleware('guest')->group(function () {
     Route::get('/admin/login', [LoginController::class, 'create'])->name('login');
     Route::post('/admin/login', [LoginController::class, 'store'])
@@ -96,6 +108,12 @@ Route::middleware('guest')->group(function () {
     Route::get('/admin/login/telegram/callback', [LoginController::class, 'telegramWidget'])
         ->middleware('throttle:20,1')
         ->name('login.telegram.callback');
+    Route::post('/admin/login/passkey/options', [LoginController::class, 'passkeyOptions'])
+        ->middleware('throttle:20,1')
+        ->name('login.passkey.options');
+    Route::post('/admin/login/passkey', [LoginController::class, 'passkeyLogin'])
+        ->middleware('throttle:10,1')
+        ->name('login.passkey');
 });
 
 Route::post('/admin/logout', [LoginController::class, 'destroy'])
@@ -214,6 +232,15 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::delete('/perfil/2fa/ios', [ProfileController::class, 'destroyIosTwoFactor'])
         ->middleware('throttle:10,1')
         ->name('profile.ios-2fa.destroy');
+    Route::post('/perfil/passkey/options', [ProfileController::class, 'passkeyOptions'])
+        ->middleware('throttle:10,1')
+        ->name('profile.passkey.options');
+    Route::post('/perfil/passkey', [ProfileController::class, 'storePasskey'])
+        ->middleware('throttle:10,1')
+        ->name('profile.passkey.store');
+    Route::delete('/perfil/passkey/{credential}', [ProfileController::class, 'destroyPasskey'])
+        ->middleware('throttle:10,1')
+        ->name('profile.passkey.destroy');
 
     Route::resource('usuarios', UserController::class)
         ->parameters(['usuarios' => 'user'])
