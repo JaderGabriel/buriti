@@ -52,6 +52,11 @@ class Rfc822Message
         return $this->header('cc');
     }
 
+    public function bcc(): string
+    {
+        return $this->header('bcc');
+    }
+
     public function subject(): string
     {
         return $this->decode($this->header('subject'));

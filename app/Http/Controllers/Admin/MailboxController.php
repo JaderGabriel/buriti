@@ -48,11 +48,18 @@ class MailboxController extends Controller
         $filter = ImapClient::normalizeFilter($request->string('filtro')->toString());
 
         $workspace = $this->mailbox->workspace($folder, $page, $uid, $query !== '' ? $query : null, $filter);
+        $compose = null;
+        $mode = 'read';
+
+        if ($uid && is_array($workspace['selected'] ?? null) && $this->workspaceFolderRole($workspace) === 'drafts') {
+            $mode = 'compose';
+            $compose = $this->composeStateFromDraft($workspace['selected'], (string) $workspace['folder']);
+        }
 
         return view('admin.mailbox.index', [
             'workspace' => $workspace,
-            'mode' => 'read',
-            'compose' => null,
+            'mode' => $mode,
+            'compose' => $compose,
             'query' => $query,
             'filter' => $filter,
             'catalog' => $this->annotate->catalog(),
@@ -62,6 +69,27 @@ class MailboxController extends Controller
     public function compose(Request $request): View
     {
         $this->authorizeMailAdmin($request->user());
+
+        $modo = (string) $request->query('modo', 'new');
+        $draftFolder = (string) $request->query('rascunho_pasta', '');
+        $draftUid = $request->integer('rascunho_uid');
+        if ($modo === 'draft' || ($draftFolder !== '' && $draftUid > 0)) {
+            $draftFolder = $draftFolder !== '' ? $draftFolder : (string) $request->query('responder_pasta', '');
+            $draftUid = $draftUid > 0 ? $draftUid : $request->integer('responder_uid');
+            $workspace = $this->mailbox->workspace($draftFolder !== '' ? $draftFolder : 'Drafts', 1, $draftUid > 0 ? $draftUid : null, null);
+            $draft = $workspace['selected'] ?? null;
+            if (is_array($draft)) {
+                return view('admin.mailbox.index', [
+                    'workspace' => $workspace,
+                    'mode' => 'compose',
+                    'query' => '',
+                    'filter' => null,
+                    'compose' => $this->composeStateFromDraft($draft, (string) $workspace['folder']),
+                    'catalog' => $this->annotate->catalog(),
+                ]);
+            }
+            $modo = 'new';
+        }
 
         $workspace = $this->mailbox->workspace('INBOX', 1, null, null);
         $reply = null;
@@ -77,7 +105,6 @@ class MailboxController extends Controller
         $toName = '';
         $cc = '';
         $subject = (string) $request->query('assunto', '');
-        $modo = (string) $request->query('modo', 'new');
         $body = '';
         $quote = '';
         $quoteLabel = 'Mensagem original';
@@ -146,6 +173,8 @@ class MailboxController extends Controller
                 'reply_folder' => $replyFolder,
                 'reply_uid' => $replyUid > 0 ? $replyUid : null,
                 'contact_message_id' => $contactMessageId,
+                'draft_folder' => '',
+                'draft_uid' => null,
                 'modo' => $modo,
             ],
             'catalog' => $this->annotate->catalog(),
@@ -562,6 +591,96 @@ class MailboxController extends Controller
         $emails = CrmMailboxService::extractAddresses($from);
 
         return $emails[0] ?? '';
+    }
+
+    /**
+     * @param  array<string, mixed>  $workspace
+     */
+    private function workspaceFolderRole(array $workspace): string
+    {
+        $folder = (string) ($workspace['folder'] ?? '');
+        foreach ($workspace['folders'] ?? [] as $item) {
+            if (($item['name'] ?? '') === $folder) {
+                return (string) ($item['role'] ?? 'other');
+            }
+        }
+
+        return ImapClient::classifyFolder($folder, '');
+    }
+
+    /**
+     * @param  array<string, mixed>  $message
+     * @return array<string, mixed>
+     */
+    private function composeStateFromDraft(array $message, string $folder): array
+    {
+        $to = $this->usableDraftRecipients((string) ($message['to'] ?? ''));
+        $cc = $this->usableDraftRecipients((string) ($message['cc'] ?? ''));
+        $bcc = $this->usableDraftRecipients((string) ($message['bcc'] ?? ''));
+        $subject = trim((string) ($message['subject'] ?? ''));
+        if ($subject === '(sem assunto)') {
+            $subject = '';
+        }
+
+        return [
+            'to' => $to,
+            'to_name' => $this->displayNameFromHeader($to),
+            'cc' => $cc,
+            'bcc' => $bcc,
+            'subject' => $subject,
+            'body' => $this->draftBodyForEditor($message),
+            'quote' => '',
+            'quote_label' => 'Mensagem original',
+            'in_reply_to' => '',
+            'reply_folder' => '',
+            'reply_uid' => null,
+            'contact_message_id' => null,
+            'draft_folder' => $folder,
+            'draft_uid' => (int) ($message['uid'] ?? 0) ?: null,
+            'modo' => 'draft',
+        ];
+    }
+
+    private function usableDraftRecipients(string $header): string
+    {
+        $header = trim($header);
+        if ($header === '' || preg_match('/undisclosed-recipients/i', $header) === 1) {
+            return '';
+        }
+
+        return CrmMailboxService::extractAddresses($header) === [] ? '' : $header;
+    }
+
+    private function displayNameFromHeader(string $header): string
+    {
+        $header = trim($header);
+        if (preg_match('/^"?([^"<]+)"?\s*<[^>]+>\s*$/', $header, $match) === 1) {
+            return trim($match[1], " \t\"'");
+        }
+
+        $email = $this->extractEmail($header);
+        if ($email === '') {
+            return '';
+        }
+
+        return trim((string) (Contact::query()->where('email', $email)->value('name') ?? ''));
+    }
+
+    /**
+     * @param  array<string, mixed>  $message
+     */
+    private function draftBodyForEditor(array $message): string
+    {
+        $html = trim((string) ($message['html'] ?? ''));
+        if ($html !== '') {
+            return MailHtml::sanitize($html);
+        }
+
+        $text = trim((string) ($message['text'] ?? ''));
+        $text = preg_replace('/\n-- \n.*$/s', '', $text) ?? $text;
+        $text = trim($text);
+
+        return $text !== '' ? MailHtml::fromPlain($text) : '';
     }
 
     /**

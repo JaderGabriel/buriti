@@ -13,6 +13,8 @@
         $messages = $listing['messages'] ?? [];
         $folderMeta = collect($folders)->firstWhere('name', $folder) ?? ['label' => $folder, 'role' => 'other', 'unseen' => 0, 'messages' => $listing['exists'] ?? 0];
         $isSent = ($folderMeta['role'] ?? '') === 'sent';
+        $isDrafts = ($folderMeta['role'] ?? '') === 'drafts';
+        $isOutgoing = $isSent || $isDrafts;
         $inboxUnseen = (int) (collect($folders)->firstWhere('role', 'inbox')['unseen'] ?? 0);
         $composeMode = $compose['modo'] ?? 'new';
         $composeTitle = match ($composeMode) {
@@ -20,6 +22,7 @@
             'reply-all' => 'Responder a todos',
             'forward' => 'Encaminhar',
             'contact-reply' => 'Resposta ao site',
+            'draft' => 'Editar rascunho',
             default => 'Nova mensagem',
         };
         $folderIcon = fn (string $role) => match ($role) {
@@ -283,7 +286,11 @@
                     <div class="messenger-list__scroll">
                         @forelse($messages as $item)
                             @php
-                                $peer = $isSent ? ($item['to'] ?: $item['from']) : ($item['from'] ?: $item['to']);
+                                $toLabel = \App\Services\CrmMailboxService::visibleRecipient((string) ($item['to'] ?? ''));
+                                $peer = $isOutgoing
+                                    ? ($toLabel !== '' ? $toLabel : '')
+                                    : (($item['from'] ?: $item['to']) ?: '');
+                                $peerFallback = $isOutgoing ? '(sem destinatário)' : '(sem remetente)';
                             @endphp
                             <div
                                 @class([
@@ -303,7 +310,7 @@
                                     <span class="messenger-avatar" aria-hidden="true">{{ mb_strtoupper(mb_substr($peer ?: '?', 0, 1)) }}</span>
                                     <span class="min-w-0 flex-1">
                                         <span class="flex items-baseline justify-between gap-2">
-                                            <span class="truncate font-semibold text-snow">{{ $peer ?: '(sem remetente)' }}</span>
+                                            <span class="truncate font-semibold text-snow">{{ $peer !== '' ? $peer : $peerFallback }}</span>
                                             <span class="shrink-0 text-[11px] text-mist">{{ \App\Support\MailDate::compact($item['date'] ?? '') }}</span>
                                         </span>
                                         <span class="mt-0.5 flex items-center gap-1.5">
@@ -425,6 +432,7 @@
                                         'field' => 'cc',
                                         'id' => 'mail-cc',
                                         'placeholder' => 'Nome, empresa ou e-mail',
+                                        'seedEmail' => old('cc', $compose['cc'] ?? ''),
                                     ])
                                 </div>
                                 <div class="mail-compose__row" x-show="showBcc" x-cloak>
@@ -433,6 +441,7 @@
                                         'field' => 'bcc',
                                         'id' => 'mail-bcc',
                                         'placeholder' => 'Nome, empresa ou e-mail',
+                                        'seedEmail' => old('bcc', $compose['bcc'] ?? ''),
                                     ])
                                 </div>
                                 <div class="mail-compose__row">

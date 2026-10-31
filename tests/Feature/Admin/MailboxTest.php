@@ -13,6 +13,7 @@ use App\Models\MailLabel;
 use App\Models\MailRecord;
 use App\Models\Project;
 use App\Models\User;
+use App\Services\CrmMailboxService;
 use App\Services\ImapMailboxStore;
 use App\Services\SettingService;
 use App\Support\AdminNavigation;
@@ -945,6 +946,142 @@ class MailboxTest extends TestCase
         $this->assertSame(60, $settings->mailAutosaveSeconds());
     }
 
+    public function test_drafts_folder_lists_recipient_instead_of_self(): void
+    {
+        $this->configureMailbox();
+        $this->scriptImap([
+            ...$this->draftFolderListReplies(),
+            '* 2 EXISTS',
+            'A4 OK SELECT completed',
+            '* 1 FETCH (UID 8 FLAGS (\\Seen \\Draft) BODY[HEADER.FIELDS (FROM TO SUBJECT DATE MESSAGE-ID)]',
+            'From: BURI-TI <contato@exemplo.com>',
+            'To: undisclosed-recipients:;',
+            'Subject: Sem destino',
+            'Date: Sat, 31 Oct 2026 10:00:00 -0300',
+            ')',
+            '* 2 FETCH (UID 7 FLAGS (\\Seen \\Draft) BODY[HEADER.FIELDS (FROM TO SUBJECT DATE MESSAGE-ID)]',
+            'From: BURI-TI <contato@exemplo.com>',
+            'To: Ana Silva <ana@empresa.com>',
+            'Subject: Proposta comercial',
+            'Date: Sat, 31 Oct 2026 11:00:00 -0300',
+            ')',
+            'A5 OK FETCH completed',
+            '* BYE',
+            'A6 OK LOGOUT completed',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.mailbox.index', ['pasta' => 'Drafts']))
+            ->assertOk()
+            ->assertSee('Ana Silva', false)
+            ->assertSee('Proposta comercial', false)
+            ->assertSee('(sem destinatário)', false)
+            ->assertSee('Sem destino', false)
+            ->assertDontSee('IMAP script esgotado', false);
+    }
+
+    public function test_opening_a_draft_loads_composer_with_recipient(): void
+    {
+        $this->configureMailbox();
+        $raw = implode("\r\n", [
+            'From: "BURI-TI" <contato@exemplo.com>',
+            'To: Ana Silva <ana@empresa.com>',
+            'Cc: copia@empresa.com',
+            'Subject: Proposta comercial',
+            'Date: Sat, 31 Oct 2026 11:00:00 -0300',
+            'MIME-Version: 1.0',
+            'Content-Type: text/html; charset=UTF-8',
+            '',
+            '<p>Ainda estamos na proposta.</p>',
+        ]);
+        $this->scriptImap([
+            ...$this->draftFolderListReplies(),
+            '* 1 EXISTS',
+            'A4 OK SELECT completed',
+            '* 1 FETCH (UID 7 FLAGS (\\Seen \\Draft) BODY[HEADER.FIELDS (FROM TO SUBJECT DATE MESSAGE-ID)]',
+            'From: BURI-TI <contato@exemplo.com>',
+            'To: Ana Silva <ana@empresa.com>',
+            'Subject: Proposta comercial',
+            'Date: Sat, 31 Oct 2026 11:00:00 -0300',
+            ')',
+            'A5 OK FETCH completed',
+            '* 1 EXISTS',
+            'A6 OK SELECT completed',
+            '* 1 FETCH (UID 7 FLAGS (\\Seen \\Draft) BODY.PEEK[] {'.strlen($raw).'}',
+            ')',
+            'A7 OK Fetch completed',
+            '* BYE',
+            'A8 OK LOGOUT completed',
+        ], $raw);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.mailbox.index', ['pasta' => 'Drafts', 'uid' => 7]))
+            ->assertOk()
+            ->assertSee('Editar rascunho', false)
+            ->assertSee('data-to="Ana Silva &lt;ana@empresa.com&gt;"', false)
+            ->assertSee('data-seed-email="Ana Silva &lt;ana@empresa.com&gt;"', false)
+            ->assertSee('data-seed-name="Ana Silva"', false)
+            ->assertSee('data-cc="copia@empresa.com"', false)
+            ->assertSee('value="Proposta comercial"', false)
+            ->assertSee('Ainda estamos na proposta.', false)
+            ->assertSee('name="draft_uid"', false)
+            ->assertSee('value="7"', false)
+            ->assertSee('aria-label="Enviar"', false)
+            ->assertDontSee('title="Responder"', false)
+            ->assertDontSee('IMAP script esgotado', false);
+    }
+
+    public function test_compose_route_opens_existing_draft(): void
+    {
+        $this->configureMailbox();
+        $raw = implode("\r\n", [
+            'From: contato@exemplo.com',
+            'To: ana@empresa.com',
+            'Subject: Rascunho',
+            '',
+            'Texto do rascunho.',
+        ]);
+        $this->scriptImap([
+            ...$this->draftFolderListReplies(),
+            '* 1 EXISTS',
+            'A4 OK SELECT completed',
+            '* 1 FETCH (UID 9 FLAGS (\\Seen \\Draft) BODY[HEADER.FIELDS (FROM TO SUBJECT DATE MESSAGE-ID)]',
+            'From: contato@exemplo.com',
+            'To: ana@empresa.com',
+            'Subject: Rascunho',
+            ')',
+            'A5 OK FETCH completed',
+            '* 1 EXISTS',
+            'A6 OK SELECT completed',
+            '* 1 FETCH (UID 9 FLAGS (\\Seen \\Draft) BODY.PEEK[] {'.strlen($raw).'}',
+            ')',
+            'A7 OK Fetch completed',
+            '* BYE',
+            'A8 OK LOGOUT completed',
+        ], $raw);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.mailbox.compose', [
+                'modo' => 'draft',
+                'rascunho_pasta' => 'Drafts',
+                'rascunho_uid' => 9,
+            ]))
+            ->assertOk()
+            ->assertSee('Editar rascunho', false)
+            ->assertSee('data-to="ana@empresa.com"', false)
+            ->assertSee('Texto do rascunho.', false)
+            ->assertSee('value="9"', false)
+            ->assertDontSee('IMAP script esgotado', false);
+    }
+
+    public function test_visible_recipient_ignores_undisclosed_and_keeps_name(): void
+    {
+        $this->assertSame('Ana Silva', CrmMailboxService::visibleRecipient('Ana Silva <ana@empresa.com>'));
+        $this->assertSame('ana@empresa.com', CrmMailboxService::visibleRecipient('ana@empresa.com'));
+        $this->assertSame('', CrmMailboxService::visibleRecipient('undisclosed-recipients:;'));
+        $this->assertSame('', CrmMailboxService::visibleRecipient(''));
+    }
+
     private function configureMailbox(): void
     {
         $settings = app(SettingService::class);
@@ -971,11 +1108,27 @@ class MailboxTest extends TestCase
     /**
      * @param  list<string>  $replies
      */
-    private function scriptImap(array $replies): void
+    private function scriptImap(array $replies, string $bytes = ''): void
     {
-        $transport = new ScriptedImapTransport($replies);
+        $transport = new ScriptedImapTransport($replies, $bytes);
         app(ImapMailboxStore::class)->connectUsing(
             fn (ImapConfig $config) => new ImapClient($transport)
         );
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function draftFolderListReplies(): array
+    {
+        return [
+            '* LIST (\\HasNoChildren) "/" INBOX',
+            '* LIST (\\HasNoChildren \\Drafts) "/" Drafts',
+            'A1 OK LIST completed',
+            '* STATUS "INBOX" (MESSAGES 0 UNSEEN 0)',
+            'A2 OK STATUS completed',
+            '* STATUS "Drafts" (MESSAGES 1 UNSEEN 0)',
+            'A3 OK STATUS completed',
+        ];
     }
 }

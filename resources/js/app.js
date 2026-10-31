@@ -3781,7 +3781,7 @@ function parseMailAddresses(raw) {
 
             return { email, name };
         })
-        .filter((chip) => chip.email !== '');
+        .filter((chip) => looksLikeEmail(chip.email));
 }
 
 function looksLikeEmail(value) {
@@ -4170,7 +4170,14 @@ function mailCompose() {
             };
             document.addEventListener('visibilitychange', this.onPageHide);
             this.syncLoading();
-            this.$nextTick(() => this.bootEditor());
+            this.$nextTick(() => {
+                this.bootEditor();
+                if (this.draftUid) {
+                    this.lastDraftHash = this.draftHash();
+                    this.draftError = false;
+                    this.draftStatus = 'Rascunho pronto para enviar.';
+                }
+            });
         },
         destroy() {
             if (this.autosaveTimer) {

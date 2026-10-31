@@ -40,7 +40,7 @@
             @keydown.enter.prevent="onEnter($event)"
             @blur="onBlur()"
             @if($field === 'to')
-                :required="chips.length === 0"
+                :aria-required="chips.length === 0 ? 'true' : 'false'"
             @endif
         >
     </div>

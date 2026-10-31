@@ -502,6 +502,7 @@ class CrmMailboxService
             'from' => $parsed->from(),
             'to' => $parsed->to(),
             'cc' => $parsed->cc(),
+            'bcc' => $parsed->bcc(),
             'subject' => $parsed->subject() !== '' ? $parsed->subject() : '(sem assunto)',
             'date' => $parsed->date(),
             'message_id' => $parsed->messageId(),
@@ -531,6 +532,28 @@ class CrmMailboxService
         preg_match_all('/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/i', $raw, $matches);
 
         return array_values(array_unique(array_map('strtolower', $matches[0] ?? [])));
+    }
+
+    public static function visibleRecipient(string $header): string
+    {
+        $header = trim($header);
+        if ($header === '' || preg_match('/undisclosed-recipients/i', $header) === 1) {
+            return '';
+        }
+
+        $emails = self::extractAddresses($header);
+        if ($emails === []) {
+            return '';
+        }
+
+        if (preg_match('/^"?([^"<]+)"?\s*<[^>]+>\s*$/', $header, $match) === 1) {
+            $name = trim($match[1], " \t\"'");
+            if ($name !== '') {
+                return $name;
+            }
+        }
+
+        return implode(', ', $emails);
     }
 
     /**
