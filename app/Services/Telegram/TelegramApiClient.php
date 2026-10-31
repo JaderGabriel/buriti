@@ -46,7 +46,7 @@ class TelegramApiClient
 
             return true;
         } catch (\Throwable $e) {
-            Log::warning('Telegram sendMessage exception', ['message' => $e->getMessage()]);
+            Log::warning('Telegram sendMessage exception', ['message' => $this->redact($e->getMessage())]);
 
             return false;
         }
@@ -79,7 +79,7 @@ class TelegramApiClient
 
             return true;
         } catch (\Throwable $e) {
-            Log::warning('Telegram answerCallbackQuery exception', ['message' => $e->getMessage()]);
+            Log::warning('Telegram answerCallbackQuery exception', ['message' => $this->redact($e->getMessage())]);
 
             return false;
         }
@@ -129,7 +129,7 @@ class TelegramApiClient
 
             return true;
         } catch (\Throwable $e) {
-            Log::warning('Telegram sendContact exception', ['message' => $e->getMessage()]);
+            Log::warning('Telegram sendContact exception', ['message' => $this->redact($e->getMessage())]);
 
             return false;
         }
@@ -162,7 +162,7 @@ class TelegramApiClient
 
             return true;
         } catch (\Throwable $e) {
-            Log::warning('Telegram deleteMessage exception', ['message' => $e->getMessage()]);
+            Log::warning('Telegram deleteMessage exception', ['message' => $this->redact($e->getMessage())]);
 
             return false;
         }
@@ -203,7 +203,7 @@ class TelegramApiClient
 
             return true;
         } catch (\Throwable $e) {
-            Log::warning('Telegram sendPhoto exception', ['message' => $e->getMessage()]);
+            Log::warning('Telegram sendPhoto exception', ['message' => $this->redact($e->getMessage())]);
 
             return false;
         }
@@ -368,5 +368,15 @@ class TelegramApiClient
         $token = (string) config('services.telegram.bot_token');
 
         return "https://api.telegram.org/bot{$token}/{$method}";
+    }
+
+    private function redact(string $message): string
+    {
+        $token = (string) config('services.telegram.bot_token');
+        if ($token !== '') {
+            $message = str_replace($token, '[redacted]', $message);
+        }
+
+        return preg_replace('#https://api\.telegram\.org/bot[^/\s]+#', 'https://api.telegram.org/bot[redacted]', $message) ?? $message;
     }
 }

@@ -61,6 +61,12 @@
                                     <td class="px-3 py-3">Até limpar dados do navegador</td>
                                     <td class="px-3 py-3">Sim</td>
                                 </tr>
+                                <tr>
+                                    <td class="px-3 py-3 text-snow">buriti-passkey-preferred (localStorage)</td>
+                                    <td class="px-3 py-3">Lembrar se este navegador deve oferecer chave de acesso no login do painel</td>
+                                    <td class="px-3 py-3">Até limpar dados do navegador</td>
+                                    <td class="px-3 py-3">Funcional</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>

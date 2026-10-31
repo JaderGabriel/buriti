@@ -28,7 +28,7 @@ Jornada: **Mensagem → Contato → Oportunidade → Projeto → Tarefa**.
 |---|---|
 | **Dashboard** | KPIs com tendência, mensagens, contactos, agenda, atividades recentes, ideias (post-its); atalhos Meet / Teams / Jitsi |
 | **Mensagens** | Inbox do formulário público; vínculo a contacto / lead |
-| **Correio** | Cliente IMAP da conta SMTP (só admin): pastas, etiquetas, marcadores, ligações CRM; compositor HTML (Para/Cc/Cco em chips com autocomplete de contatos, formatação, imagens inline CID, galeria de anexos); avisos de e-mail recebido/respondido; assinatura e aviso LGPD; cópia em Enviados |
+| **Correio** | Cliente IMAP da conta SMTP (só admin): pastas, etiquetas, marcadores, ligações CRM; compositor HTML (Para/Cc/Cco em chips com autocomplete de contatos, formatação, imagens inline CID, galeria de anexos); layout em colunas que colapsa no telemóvel; avisos de e-mail recebido/enviado/respondido no Telegram (corpo separado da assinatura, sem duplicar o mesmo UID); assinatura e aviso LGPD; cópia em Enviados |
 | **Empresas** | Cadastro de clientes/organizações |
 | **Contatos** | Agenda telefónica + ficha (hero, timeline, pasta de arquivos, mini-calendário); telefone em E.164 (`tel:` e WhatsApp) |
 | **Atividades** | Notas, chamadas, reuniões, e-mails; vínculo opcional a tarefa/oportunidade; conclusão de reunião **só se marcada** |
@@ -52,7 +52,7 @@ Jornada: **Mensagem → Contato → Oportunidade → Projeto → Tarefa**.
 - Senha mínima com letras e números (regra `Password::defaults`)
 - Honeypot no contacto público
 - Login admin por usuário/senha exige 2FA: TOTP nas **Senhas do iPhone** se o método estiver vinculado; senão, código de 6 dígitos no Telegram
-- **Chave de acesso (passkey)** cadastra-se só no perfil, já autenticado. No Safari/iOS o próximo login pode usar Face ID sem o código; outros dispositivos continuam com senha + código
+- **Chave de acesso (passkey)** cadastra-se só no perfil, já autenticado, com a senha atual. RP ID = host de `APP_URL` (ex. `buriti.dev.br`). Exige HTTPS ou hostname `localhost`. No Safari/iOS o próximo login pode usar Face ID sem o código; noutros aparelhos: senha + código. A biblioteca vai em `libraries/lbuchs-webauthn` (o `vendor/` não está no Git); após `git pull` em produção: `sudo systemctl reload php8.4-fpm`
 - Login admin também via desafio temporário no bot Telegram (sem widget de terceiros na página)
 - Membro de Jirau autentica só com usuário/senha (sem Telegram) e não acessa o CRM
 - Telefones normalizados em E.164 (DDI + DDD + número) em `tel:` e `wa.me` no CRM e no bot
@@ -145,6 +145,8 @@ Quadro ágil de exemplo com um usuário que só vê aquele projeto:
 ./bin/php artisan db:seed --class=JirauDemoSeeder
 ```
 
+Apenas para ambiente local. **Não executar este seeder no servidor público.**
+
 ## Contactos e serviços
 
 E-mail, telefone, WhatsApp, Telegram, LinkedIn e GitHub do **site** editam-se em **Admin → Configurações**. Não ficam em código nem no Git.
@@ -224,7 +226,7 @@ php artisan telegram:configure --skip-name --drop-pending
 php artisan telegram:set-webhook
 ```
 
-Lembretes de tarefas (~10 min antes): `php artisan tasks:telegram-reminders` (via `schedule:run`).
+Jobs via `schedule:run` (cron a cada minuto): `mail:notify-inbox`, `tasks:telegram-reminders`, `jirau:telegram-reminders` (todos ~5 min), `opportunities:follow-up` (segunda 09:00) e `security:prune-logs` (03:15).
 
 ## Arquitetura (MVC)
 
@@ -267,6 +269,7 @@ Cobertura inclui site público, auth (passkey/Face ID, 2FA iOS + Telegram), CRM 
 | `npm run dev` / `npm run build` | Vite |
 | `php artisan telegram:configure` | Nome, comandos, foto e webhook do bot |
 | `php artisan telegram:set-webhook` | Só regista o webhook |
+| `php artisan mail:notify-inbox` | Avisa e-mails novos da INBOX (Telegram + sino) |
 | `php artisan tasks:telegram-reminders` | Lembretes de tarefas |
 | `php artisan schedule:run` | Jobs agendados (cron a cada minuto) |
 
@@ -280,8 +283,10 @@ Cobertura inclui site público, auth (passkey/Face ID, 2FA iOS + Telegram), CRM 
 6. `php artisan config:cache && php artisan view:cache`
 7. Cron: `* * * * * cd /caminho && php artisan schedule:run`
 8. Web root apontando para a pasta `public/` (ideal: URL sem `/public`; se a app ficar em `https://dominio/public`, o guard remove `route:cache` automaticamente)
-9. Trocar senha do admin e proteger `/admin`
+9. Trocar senha do admin e proteger `/admin`. Não correr `JirauDemoSeeder` em produção.
 10. Gravar SMTP/IMAP, Telegram, Google, Trello e Notion no painel (não deixar tokens no `.env` da máquina de deploy se já estiverem na base)
+11. HTTPS: `SESSION_SECURE_COOKIE=true`. `LOCAL_MAIL_QA` só em `APP_ENV=local`
+12. Após atualizar passkeys: `sudo systemctl reload php8.4-fpm`. Se o token do bot já apareceu em `storage/logs`, gere um token novo no BotFather e grave-o de novo em Integrações
 
 **Nota sobre `route:cache`:** com `APP_URL` em subpath (ex. `https://dominio/public`), o cache de rotas quebra a home (`GET /` → 405, só `HEAD`). A app **remove esse cache ao arrancar** e após `optimize`/`route:cache`. Prefira document root = `public/` e `APP_URL` sem path; aí `route:cache` é seguro. Logout volta para a home do site.
 

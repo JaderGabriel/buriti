@@ -53,7 +53,7 @@ class SiteController extends Controller
     public function privacy(): View
     {
         return view('site.legal.privacy', [
-            'updatedAt' => '28/10/2026',
+            'updatedAt' => '29/10/2026',
             'privacyEmail' => $this->privacyEmail(),
         ]);
     }
@@ -61,7 +61,7 @@ class SiteController extends Controller
     public function cookies(): View
     {
         return view('site.legal.cookies', [
-            'updatedAt' => '28/10/2026',
+            'updatedAt' => '29/10/2026',
             'privacyEmail' => $this->privacyEmail(),
         ]);
     }

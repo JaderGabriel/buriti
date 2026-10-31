@@ -19,6 +19,8 @@ class LegalPagesTest extends TestCase
             ->assertSee('Telegram', false)
             ->assertSee('Google', false)
             ->assertSee('TOTP', false)
+            ->assertSee('chave de acesso', false)
+            ->assertSee('WebAuthn', false)
             ->assertSee('CRM', false)
             ->assertSee('©', false);
 
@@ -26,7 +28,8 @@ class LegalPagesTest extends TestCase
             ->assertOk()
             ->assertSee('Política de Cookies', false)
             ->assertSee('buriti-cookie-consent', false)
-            ->assertSee('estritamente necessários', false);
+            ->assertSee('estritamente necessários', false)
+            ->assertSee('buriti-passkey-preferred', false);
     }
 
     public function test_home_footer_navigation_only_lists_privacy_and_cookies(): void
