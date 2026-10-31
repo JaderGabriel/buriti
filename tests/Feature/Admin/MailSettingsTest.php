@@ -46,7 +46,9 @@ class MailSettingsTest extends TestCase
             ->assertSee('Enviar e-mail de teste', false)
             ->assertSee('não são enviados por e-mail', false)
             ->assertSee('Convites de depoimento', false)
-            ->assertSee('Abrir caixa', false);
+            ->assertSee('Abrir caixa', false)
+            ->assertSee('Salvar rascunho automaticamente', false)
+            ->assertSee('name="mail_autosave_seconds"', false);
 
         $this->actingAs($this->admin)
             ->getJson(route('admin.search', ['q' => 'smtp']))
@@ -136,6 +138,33 @@ class MailSettingsTest extends TestCase
         $this->assertSame('log', app(SettingService::class)->get('mail_mailer'));
         $this->assertSame('segredo-smtp', app(SettingService::class)->getSecret('mail_password'));
         $this->assertSame('log', config('mail.default'));
+    }
+
+    public function test_admin_can_configure_draft_autosave(): void
+    {
+        $this->actingAs($this->admin)
+            ->put(route('admin.settings.mail.update'), [
+                'mail_mailer' => 'log',
+                'mail_autosave_drafts' => '1',
+                'mail_autosave_seconds' => '120',
+            ])
+            ->assertRedirect(route('admin.settings.mail'))
+            ->assertSessionHas('success');
+
+        $settings = app(SettingService::class);
+        $this->assertTrue($settings->mailAutosaveDraftsEnabled());
+        $this->assertSame(120, $settings->mailAutosaveSeconds());
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.settings.mail.update'), [
+                'mail_mailer' => 'log',
+                'mail_autosave_drafts' => '0',
+                'mail_autosave_seconds' => '15',
+            ])
+            ->assertRedirect(route('admin.settings.mail'));
+
+        $this->assertFalse(app(SettingService::class)->mailAutosaveDraftsEnabled());
+        $this->assertSame(15, app(SettingService::class)->mailAutosaveSeconds());
     }
 
     public function test_admin_can_send_test_email(): void

@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Services\CrmMailboxService;
 use App\Services\MailAnnotationService;
 use App\Services\MailSettingsService;
+use App\Services\SettingService;
 use App\Support\MailContacts;
 use App\Support\MailHtml;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -151,8 +152,12 @@ class MailboxController extends Controller
         ]);
     }
 
-    public function send(SendMailboxMessageRequest $request): RedirectResponse
+    public function send(SendMailboxMessageRequest $request): RedirectResponse|JsonResponse
     {
+        if ($request->isDraft()) {
+            return $this->persistDraft($request);
+        }
+
         $to = $request->string('to')->toString();
         $subject = $request->string('subject')->toString();
         $body = MailHtml::withQuote(
@@ -164,14 +169,6 @@ class MailboxController extends Controller
         $inline = $request->uploadedInline();
 
         try {
-            if ($request->boolean('draft')) {
-                $folder = $this->mailbox->saveDraft($to, $subject, $body, $request->user(), $withSignature, $files, $inline);
-
-                return redirect()
-                    ->route('admin.mailbox.index', ['pasta' => $folder])
-                    ->with('success', 'Rascunho salvo em '.$folder.'.');
-            }
-
             $sentFolder = $this->mailbox->send(
                 $to,
                 $subject,
@@ -186,6 +183,8 @@ class MailboxController extends Controller
                 $files,
                 $inline,
             );
+
+            $this->discardComposeDraft($request);
 
             $contactMessageId = $request->integer('contact_message_id');
             if ($contactMessageId > 0) {
@@ -210,6 +209,40 @@ class MailboxController extends Controller
                 ->withInput()
                 ->with('error', $e->getMessage());
         }
+    }
+
+    public function draft(SendMailboxMessageRequest $request): JsonResponse
+    {
+        $response = $this->persistDraft($request);
+
+        return $response instanceof JsonResponse
+            ? $response
+            : response()->json(['ok' => true, 'message' => 'Rascunho salvo.']);
+    }
+
+    public function autosavePreference(Request $request): JsonResponse
+    {
+        $this->authorizeMailAdmin($request->user());
+
+        $data = $request->validate([
+            'enabled' => ['required', 'boolean'],
+            'seconds' => ['nullable', 'integer', 'in:15,30,60,120,180'],
+        ]);
+
+        $payload = [
+            'mail_autosave_drafts' => $request->boolean('enabled') ? '1' : '0',
+        ];
+        if (array_key_exists('seconds', $data) && $data['seconds'] !== null) {
+            $payload['mail_autosave_seconds'] = (string) $data['seconds'];
+        }
+
+        app(SettingService::class)->putMany($payload);
+
+        return response()->json([
+            'ok' => true,
+            'enabled' => $request->boolean('enabled'),
+            'seconds' => app(SettingService::class)->mailAutosaveSeconds(),
+        ]);
     }
 
     public function destroy(Request $request): RedirectResponse
@@ -610,6 +643,87 @@ class MailboxController extends Controller
         }
 
         return trim(html_entity_decode(strip_tags((string) ($message['html'] ?? '')), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+    }
+
+    private function persistDraft(SendMailboxMessageRequest $request): RedirectResponse|JsonResponse
+    {
+        $wantsJson = $request->expectsJson() || $request->routeIs('admin.mailbox.draft');
+
+        if ($request->isAutosave() && $request->draftPayloadEmpty()) {
+            return response()->json(['ok' => true, 'skipped' => true]);
+        }
+
+        $to = $request->string('to')->toString();
+        $subject = $request->string('subject')->toString();
+        $body = MailHtml::withQuote(
+            $request->string('body')->toString(),
+            $request->string('quote')->toString(),
+        );
+        $withSignature = $request->boolean('signature', true);
+
+        try {
+            $saved = $this->mailbox->saveDraft(
+                $to,
+                $subject,
+                $body,
+                $request->user(),
+                $withSignature,
+                $request->uploadedAttachments(),
+                $request->uploadedInline(),
+                $request->input('cc'),
+                $request->input('bcc'),
+                $request->input('draft_folder'),
+                $request->integer('draft_uid') ?: null,
+                $request->isAutosave(),
+            );
+        } catch (Throwable $e) {
+            $this->rethrowAuthorization($e);
+
+            if ($wantsJson) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
+
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+
+        $folder = (string) $saved['folder'];
+        $uid = $saved['uid'] !== null ? (int) $saved['uid'] : null;
+
+        if ($wantsJson) {
+            return response()->json([
+                'ok' => true,
+                'skipped' => false,
+                'folder' => $folder,
+                'uid' => $uid,
+                'saved_at' => now()->timezone((string) config('app.timezone'))->format('H:i'),
+                'message' => 'Rascunho salvo.',
+            ]);
+        }
+
+        return back()
+            ->withInput($request->except(['attachments', 'inline']) + [
+                'draft_folder' => $folder,
+                'draft_uid' => $uid,
+            ])
+            ->with('success', 'Rascunho salvo em '.$folder.'.');
+    }
+
+    private function discardComposeDraft(SendMailboxMessageRequest $request): void
+    {
+        $folder = trim((string) $request->input('draft_folder', ''));
+        $uid = $request->integer('draft_uid');
+        if ($folder === '' || $uid < 1) {
+            return;
+        }
+
+        try {
+            $this->mailbox->discardDraft($folder, $uid, $request->user());
+        } catch (Throwable) {
+            // o envio já saiu
+        }
     }
 
     private function authorizeMailAdmin(?User $user): void

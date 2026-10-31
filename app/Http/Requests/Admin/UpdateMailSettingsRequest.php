@@ -50,6 +50,8 @@ class UpdateMailSettingsRequest extends FormRequest
             'mail_imap_port' => ['nullable', 'integer', 'min:1', 'max:65535'],
             'mail_imap_encryption' => ['nullable', 'string', Rule::in(['ssl', 'tls', 'none'])],
             'mail_imap_sent_folder' => ['nullable', 'string', 'max:80'],
+            'mail_autosave_drafts' => ['sometimes', 'boolean'],
+            'mail_autosave_seconds' => ['nullable', 'integer', Rule::in([15, 30, 60, 120, 180])],
         ];
     }
 

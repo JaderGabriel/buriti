@@ -54,13 +54,24 @@ class ImapClientTest extends TestCase
             'A1 OK [APPENDUID 1 2] APPEND completed',
         ]);
 
-        (new ImapClient($transport))->append('Sent', "Subject: Hi\n\nOi");
+        $uid = (new ImapClient($transport))->append('Sent', "Subject: Hi\n\nOi");
 
+        $this->assertSame(2, $uid);
         $this->assertCount(2, $transport->writes);
         $this->assertMatchesRegularExpression('/^A1 APPEND "Sent" \(\\\\Seen\) \{\d+\}\r\n$/', $transport->writes[0]);
         preg_match('/\{(\d+)\}/', $transport->writes[0], $match);
         $this->assertSame((int) $match[1] + 2, strlen($transport->writes[1]));
         $this->assertSame("Subject: Hi\r\n\r\nOi\r\n\r\n", $transport->writes[1]);
+    }
+
+    public function test_append_without_appenduid_returns_null(): void
+    {
+        $transport = new ScriptedImapTransport([
+            '+ Ready for literal',
+            'A1 OK APPEND completed',
+        ]);
+
+        $this->assertNull((new ImapClient($transport))->append('Drafts', "Subject: Hi\n\nOi"));
     }
 
     public function test_parse_fetch_headers_reads_from_subject_date(): void

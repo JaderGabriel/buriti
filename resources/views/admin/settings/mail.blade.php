@@ -105,6 +105,29 @@
                 </div>
             </div>
 
+            <div class="border-t border-line pt-4">
+                <h3 class="font-display text-base font-semibold">Rascunhos</h3>
+                <p class="mt-1 text-sm text-mist">Antes do envio, o compositor pode gravar sozinho na pasta Rascunhos do IMAP. O botão de salvar ao lado de enviar faz o mesmo.</p>
+                <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                    <label class="flex items-start gap-2.5 text-sm text-snow">
+                        <input type="hidden" name="mail_autosave_drafts" value="0">
+                        <input type="checkbox" name="mail_autosave_drafts" value="1" class="mt-1" @checked(old('mail_autosave_drafts', $form['mail_autosave_drafts']) === '1')>
+                        <span>
+                            <span class="block font-medium">Salvar rascunho automaticamente</span>
+                            <span class="mt-0.5 block text-xs text-mist">Liga o intervalo abaixo no compositor. Podes desligar lá também.</span>
+                        </span>
+                    </label>
+                    <label class="block text-sm">
+                        <span class="text-mist">Intervalo</span>
+                        <select name="mail_autosave_seconds" class="mt-1.5 w-full rounded-xl border border-line bg-ink px-3 py-2.5 text-snow">
+                            @foreach([15 => '15 segundos', 30 => '30 segundos', 60 => '1 minuto', 120 => '2 minutos', 180 => '3 minutos'] as $seconds => $label)
+                                <option value="{{ $seconds }}" @selected((int) old('mail_autosave_seconds', $form['mail_autosave_seconds']) === $seconds)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                </div>
+            </div>
+
             <button type="submit" class="pm-btn pm-btn--primary">
                 <x-ui.icon name="settings" class="h-4 w-4" />
                 Salvar e-mail

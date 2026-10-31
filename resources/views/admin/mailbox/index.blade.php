@@ -381,6 +381,10 @@
                             enctype="multipart/form-data"
                             x-data="window.mailCompose()"
                             data-contacts-url="{{ route('admin.mailbox.contacts') }}"
+                            data-draft-url="{{ route('admin.mailbox.draft') }}"
+                            data-autosave-url="{{ route('admin.mailbox.autosave') }}"
+                            data-autosave="{{ ($identity['autosave_drafts'] ?? true) ? '1' : '0' }}"
+                            data-autosave-seconds="{{ (int) ($identity['autosave_seconds'] ?? 30) }}"
                             data-show-cc="{{ $showCc ? '1' : '0' }}"
                             data-show-bcc="{{ $showBcc ? '1' : '0' }}"
                             data-to="{{ old('to', $compose['to'] ?? '') }}"
@@ -388,12 +392,16 @@
                             data-cc="{{ old('cc', $compose['cc'] ?? '') }}"
                             data-bcc="{{ old('bcc', $compose['bcc'] ?? '') }}"
                             @submit="beforeSubmit($event)"
+                            @keydown.ctrl.s.prevent="saveDraft(true)"
+                            @keydown.meta.s.prevent="saveDraft(true)"
                         >
                             @csrf
                             <input type="hidden" name="in_reply_to" value="{{ $compose['in_reply_to'] ?? '' }}">
                             <input type="hidden" name="reply_folder" value="{{ $compose['reply_folder'] ?? '' }}">
                             <input type="hidden" name="reply_uid" value="{{ $compose['reply_uid'] ?? '' }}">
                             <input type="hidden" name="contact_message_id" value="{{ $compose['contact_message_id'] ?? '' }}">
+                            <input type="hidden" name="draft_folder" value="{{ old('draft_folder', $compose['draft_folder'] ?? '') }}" x-ref="draftFolder">
+                            <input type="hidden" name="draft_uid" value="{{ old('draft_uid', $compose['draft_uid'] ?? '') }}" x-ref="draftUid">
                             <div class="mail-compose__fields">
                                 <div class="mail-compose__row">
                                     <label for="mail-to">Para</label>
@@ -429,23 +437,44 @@
                                 </div>
                                 <div class="mail-compose__row">
                                     <label for="mail-subject">Assunto</label>
-                                    <input id="mail-subject" type="text" name="subject" value="{{ old('subject', $compose['subject'] ?? '') }}" required class="mail-input" autocomplete="off">
+                                    <input id="mail-subject" type="text" name="subject" value="{{ old('subject', $compose['subject'] ?? '') }}" class="mail-input" autocomplete="off">
                                 </div>
                             </div>
                             <div class="mail-compose__scroll">
                                 @include('admin.mailbox.partials.editor')
                             </div>
                             <div class="mail-compose__bar">
-                                <label class="mail-compose__sign">
-                                    <input type="hidden" name="signature" value="0">
-                                    <input type="checkbox" name="signature" value="1" @checked(old('signature', '1') === '1')>
-                                    Assinatura
-                                </label>
+                                <div class="mail-compose__meta">
+                                    <label class="mail-compose__sign">
+                                        <input type="hidden" name="signature" value="0">
+                                        <input type="checkbox" name="signature" value="1" @checked(old('signature', '1') === '1')>
+                                        Assinatura
+                                    </label>
+                                    <label class="mail-compose__autosave">
+                                        <input type="checkbox" x-model="autosaveEnabled" @change="persistAutosave()">
+                                        Rascunho automático
+                                        <select
+                                            class="mail-compose__autosave-interval"
+                                            x-show="autosaveEnabled"
+                                            x-cloak
+                                            x-model.number="autosaveSeconds"
+                                            @change="persistAutosave()"
+                                            aria-label="Intervalo do rascunho automático"
+                                        >
+                                            <option value="15">15 s</option>
+                                            <option value="30">30 s</option>
+                                            <option value="60">1 min</option>
+                                            <option value="120">2 min</option>
+                                            <option value="180">3 min</option>
+                                        </select>
+                                    </label>
+                                    <p class="mail-compose__draft-status" x-show="draftStatus" x-cloak x-text="draftStatus" :class="{ 'is-error': draftError }"></p>
+                                </div>
                                 <div class="messenger-composer__actions">
-                                    <button type="submit" name="draft" value="1" class="messenger-icon-btn" :disabled="sending" title="Rascunho" aria-label="Rascunho">
+                                    <button type="submit" name="draft" value="1" class="messenger-icon-btn" :disabled="sending || savingDraft" title="Salvar rascunho" aria-label="Salvar rascunho">
                                         <x-ui.icon name="save" class="h-4 w-4" />
                                     </button>
-                                    <button type="submit" class="messenger-icon-btn messenger-icon-btn--primary" :disabled="sending" title="Enviar" aria-label="Enviar">
+                                    <button type="submit" class="messenger-icon-btn messenger-icon-btn--primary" :disabled="sending || savingDraft" title="Enviar" aria-label="Enviar">
                                         <x-ui.icon name="send" class="h-4 w-4" />
                                     </button>
                                 </div>

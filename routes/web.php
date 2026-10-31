@@ -266,6 +266,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
         Route::post('/correio/enviar', [MailboxController::class, 'send'])
             ->middleware('throttle:20,1')
             ->name('mailbox.send');
+        Route::post('/correio/rascunho', [MailboxController::class, 'draft'])
+            ->middleware('throttle:40,1')
+            ->name('mailbox.draft');
+        Route::put('/correio/rascunho-auto', [MailboxController::class, 'autosavePreference'])
+            ->middleware('throttle:20,1')
+            ->name('mailbox.autosave');
         Route::post('/correio/apagar', [MailboxController::class, 'destroy'])
             ->middleware('throttle:30,1')
             ->name('mailbox.destroy');

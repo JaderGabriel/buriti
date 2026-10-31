@@ -67,6 +67,8 @@ class MailboxTest extends TestCase
             ['get', 'admin.mailbox.contacts'],
             ['get', 'admin.mailbox.attachment'],
             ['post', 'admin.mailbox.send'],
+            ['post', 'admin.mailbox.draft'],
+            ['put', 'admin.mailbox.autosave'],
             ['post', 'admin.mailbox.destroy'],
             ['post', 'admin.mailbox.move'],
             ['post', 'admin.mailbox.seen'],
@@ -385,7 +387,13 @@ class MailboxTest extends TestCase
             ->assertSee('mail-compose__scroll', false)
             ->assertSee('mail-compose__field', false)
             ->assertSee('aria-label="Enviar"', false)
-            ->assertSee('aria-label="Rascunho"', false)
+            ->assertSee('aria-label="Salvar rascunho"', false)
+            ->assertSee('Rascunho automático', false)
+            ->assertSee('data-draft-url="', false)
+            ->assertSee('data-autosave="', false)
+            ->assertSee('name="draft_folder"', false)
+            ->assertSee('name="draft_uid"', false)
+            ->assertSee('correio/rascunho', false)
             ->assertSee('Nome, empresa ou e-mail', false)
             ->assertSee('role="combobox"', false)
             ->assertSee('Contatos', false)
@@ -812,6 +820,129 @@ class MailboxTest extends TestCase
             ->assertSee('>E-mail</span>', false)
             ->assertSee('>Mensagens</span>', false)
             ->assertSee('>MAIL</span>', false);
+    }
+
+    public function test_admin_can_save_incomplete_draft_via_json(): void
+    {
+        $this->configureMailbox();
+        $transport = new ScriptedImapTransport([
+            '* LIST (\\HasNoChildren \\Drafts) "/" Drafts',
+            'A1 OK LIST completed',
+            '+',
+            'A2 OK [APPENDUID 1 7] APPEND completed',
+            '* BYE',
+            'A3 OK LOGOUT completed',
+        ]);
+        app(ImapMailboxStore::class)->connectUsing(
+            fn (ImapConfig $config) => new ImapClient($transport)
+        );
+
+        $this->actingAs($this->admin)
+            ->postJson(route('admin.mailbox.draft'), [
+                'subject' => 'Proposta em rascunho',
+                'body' => '<p>Ainda sem destinatário.</p>',
+                'signature' => '1',
+            ])
+            ->assertOk()
+            ->assertJsonPath('ok', true)
+            ->assertJsonPath('folder', 'Drafts')
+            ->assertJsonPath('uid', 7)
+            ->assertJsonPath('skipped', false);
+
+        $this->assertStringContainsString('APPEND "Drafts" (\\Seen \\Draft)', implode("\n", $transport->writes));
+    }
+
+    public function test_autosave_replaces_previous_draft_uid(): void
+    {
+        $this->configureMailbox();
+        $transport = new ScriptedImapTransport([
+            '* LIST (\\HasNoChildren \\Drafts) "/" Drafts',
+            'A1 OK LIST completed',
+            '+',
+            'A2 OK [APPENDUID 1 7] APPEND completed',
+            '* BYE',
+            'A3 OK LOGOUT completed',
+            '* LIST (\\HasNoChildren \\Drafts) "/" Drafts',
+            'A1 OK LIST completed',
+            '+',
+            'A2 OK [APPENDUID 1 8] APPEND completed',
+            '* 1 EXISTS',
+            'A3 OK [UIDVALIDITY 1] SELECT completed',
+            'A4 OK STORE completed',
+            'A5 OK EXPUNGE completed',
+            '* BYE',
+            'A6 OK LOGOUT completed',
+        ]);
+        app(ImapMailboxStore::class)->connectUsing(
+            fn (ImapConfig $config) => new ImapClient($transport)
+        );
+
+        $this->actingAs($this->admin)
+            ->postJson(route('admin.mailbox.draft'), [
+                'to' => 'ana@exemplo.com',
+                'subject' => 'Rascunho',
+                'body' => '<p>Primeira versão.</p>',
+                'signature' => '1',
+            ])
+            ->assertOk()
+            ->assertJsonPath('uid', 7);
+
+        $this->actingAs($this->admin)
+            ->postJson(route('admin.mailbox.draft'), [
+                'to' => 'ana@exemplo.com',
+                'subject' => 'Rascunho',
+                'body' => '<p>Segunda versão.</p>',
+                'signature' => '1',
+                'draft_folder' => 'Drafts',
+                'draft_uid' => 7,
+                'autosave' => '1',
+            ])
+            ->assertOk()
+            ->assertJsonPath('uid', 8);
+
+        $writes = implode("\n", $transport->writes);
+        $this->assertStringContainsString('UID STORE 7 +FLAGS (\\Deleted)', $writes);
+        $this->assertStringContainsString('EXPUNGE', $writes);
+    }
+
+    public function test_empty_autosave_is_skipped(): void
+    {
+        $this->actingAs($this->admin)
+            ->postJson(route('admin.mailbox.draft'), [
+                'autosave' => '1',
+            ])
+            ->assertOk()
+            ->assertJsonPath('ok', true)
+            ->assertJsonPath('skipped', true);
+    }
+
+    public function test_send_still_requires_recipient(): void
+    {
+        $this->actingAs($this->admin)
+            ->from(route('admin.mailbox.compose'))
+            ->post(route('admin.mailbox.send'), [
+                'subject' => 'Sem destinatário',
+                'body' => '<p>Olá</p>',
+            ])
+            ->assertRedirect(route('admin.mailbox.compose'))
+            ->assertSessionHasErrors('to');
+    }
+
+    public function test_admin_can_toggle_autosave_preference(): void
+    {
+        $this->actingAs($this->admin)
+            ->putJson(route('admin.mailbox.autosave'), [
+                'enabled' => false,
+                'seconds' => 60,
+            ])
+            ->assertOk()
+            ->assertJsonPath('ok', true)
+            ->assertJsonPath('enabled', false)
+            ->assertJsonPath('seconds', 60);
+
+        $settings = app(SettingService::class);
+        $this->assertFalse($settings->mailAutosaveDraftsEnabled());
+        $this->assertSame(60, $settings->mailAutosaveSeconds());
     }
 
     private function configureMailbox(): void

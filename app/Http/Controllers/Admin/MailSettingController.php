@@ -32,13 +32,18 @@ class MailSettingController extends Controller
 
     public function update(UpdateMailSettingsRequest $request): RedirectResponse
     {
-        $data = $request->safe()->except('mail_password');
+        $data = $request->safe()->except(['mail_password', 'mail_autosave_drafts', 'mail_autosave_seconds']);
         $data['mail_port'] = $request->filled('mail_port')
             ? (string) $request->integer('mail_port')
             : null;
         $data['mail_imap_port'] = $request->filled('mail_imap_port')
             ? (string) $request->integer('mail_imap_port')
             : null;
+        if ($request->exists('mail_autosave_drafts') || $request->exists('mail_autosave_seconds')) {
+            $data['mail_autosave_drafts'] = $request->boolean('mail_autosave_drafts') ? '1' : '0';
+            $seconds = $request->integer('mail_autosave_seconds');
+            $data['mail_autosave_seconds'] = (string) (in_array($seconds, SettingService::MAIL_AUTOSAVE_INTERVALS, true) ? $seconds : 30);
+        }
 
         $this->settings->putMany($data);
 

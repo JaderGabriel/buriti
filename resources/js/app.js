@@ -4129,7 +4129,18 @@ function mailCompose() {
         attachError: '',
         editorEmpty: true,
         sending: false,
+        savingDraft: false,
         contactsUrl: '',
+        draftUrl: '',
+        autosaveUrl: '',
+        autosaveEnabled: true,
+        autosaveSeconds: 30,
+        autosaveTimer: null,
+        lastDraftHash: '',
+        draftFolder: '',
+        draftUid: '',
+        draftStatus: '',
+        draftError: false,
         savedRange: null,
         get sizeLabel() {
             return this.formatSize(this.items.reduce((sum, item) => sum + item.size, 0));
@@ -4140,10 +4151,34 @@ function mailCompose() {
         init() {
             const el = this.$el;
             this.contactsUrl = el.getAttribute('data-contacts-url') || '';
+            this.draftUrl = el.getAttribute('data-draft-url') || el.getAttribute('action') || '';
+            this.autosaveUrl = el.getAttribute('data-autosave-url') || '';
+            this.autosaveEnabled = el.getAttribute('data-autosave') !== '0';
+            const seconds = Number(el.getAttribute('data-autosave-seconds') || 30);
+            this.autosaveSeconds = [15, 30, 60, 120, 180].includes(seconds) ? seconds : 30;
+            this.draftFolder = this.$refs.draftFolder?.value || '';
+            this.draftUid = this.$refs.draftUid?.value || '';
             this.showCc = el.getAttribute('data-show-cc') === '1' || (el.getAttribute('data-cc') || '').trim() !== '';
             this.showBcc = el.getAttribute('data-show-bcc') === '1' || (el.getAttribute('data-bcc') || '').trim() !== '';
+            this.onComposeChange = () => this.queueAutosave();
+            el.addEventListener('input', this.onComposeChange);
+            el.addEventListener('change', this.onComposeChange);
+            this.onPageHide = () => {
+                if (document.visibilityState === 'hidden' && this.autosaveEnabled && ! this.sending) {
+                    this.saveDraft(false);
+                }
+            };
+            document.addEventListener('visibilitychange', this.onPageHide);
             this.syncLoading();
             this.$nextTick(() => this.bootEditor());
+        },
+        destroy() {
+            if (this.autosaveTimer) {
+                window.clearTimeout(this.autosaveTimer);
+            }
+            this.$el?.removeEventListener('input', this.onComposeChange);
+            this.$el?.removeEventListener('change', this.onComposeChange);
+            document.removeEventListener('visibilitychange', this.onPageHide);
         },
         bootEditor() {
             const seed = this.$refs.bodyField?.value?.trim() || '';
@@ -4335,6 +4370,7 @@ function mailCompose() {
             }
             this.syncLoading();
             this.syncFileInputs();
+            this.queueAutosave();
         },
         loadPreview(cid) {
             const item = this.items.find((entry) => entry.cid === cid);
@@ -4414,6 +4450,7 @@ function mailCompose() {
             this.items.splice(index, 1);
             this.syncLoading();
             this.syncFileInputs();
+            this.queueAutosave();
         },
         syncFileInputs() {
             if (this.$refs.attachInput && typeof DataTransfer !== 'undefined') {
@@ -4467,16 +4504,32 @@ function mailCompose() {
 
             return window.Alpine.$data(node);
         },
+        isDraftSubmit(event) {
+            const submitter = event.submitter;
+
+            return Boolean(submitter && submitter.getAttribute('name') === 'draft');
+        },
         beforeSubmit(event) {
             ['to', 'cc', 'bcc'].forEach((field) => {
                 this.picker(field)?.commitTyped();
             });
+            if (this.isDraftSubmit(event)) {
+                event.preventDefault();
+                this.saveDraft(true);
+                return;
+            }
             const to = this.picker('to');
             if (! to || to.chips.length === 0) {
                 event.preventDefault();
                 this.$el.querySelector('#mail-to')?.focus();
                 to?.lookup('');
 
+                return;
+            }
+            const subject = (this.$el.querySelector('#mail-subject')?.value || '').trim();
+            if (subject === '') {
+                event.preventDefault();
+                this.$el.querySelector('#mail-subject')?.focus();
                 return;
             }
             this.commitInlineSrc();
@@ -4489,6 +4542,191 @@ function mailCompose() {
                 return;
             }
             this.sending = true;
+        },
+        prepareBodyForSave() {
+            const editor = this.$refs.editor;
+            if (! editor || ! this.$refs.bodyField) {
+                return;
+            }
+            const clone = editor.cloneNode(true);
+            clone.querySelectorAll('img[data-cid]').forEach((img) => {
+                const cid = img.getAttribute('data-cid');
+                if (cid) {
+                    img.setAttribute('src', 'cid:' + cid);
+                }
+            });
+            this.$refs.bodyField.value = clone.innerHTML;
+            const text = (editor.innerText || '').replace(/\u00a0/g, ' ').trim();
+            this.editorEmpty = text === '';
+        },
+        fieldValue(name) {
+            return (this.$el.querySelector(`[name="${name}"]`)?.value || '').trim();
+        },
+        recipientValue(field) {
+            const picker = this.picker(field);
+            if (picker?.chips?.length) {
+                return picker.chips.map((chip) => chip.email || chip.value || '').filter(Boolean).join(', ');
+            }
+
+            return this.fieldValue(field);
+        },
+        draftIsEmpty() {
+            this.prepareBodyForSave();
+            const quoted = (this.$refs.quoteField?.value || '').trim();
+
+            return this.recipientValue('to') === ''
+                && this.recipientValue('cc') === ''
+                && this.recipientValue('bcc') === ''
+                && this.fieldValue('subject') === ''
+                && this.editorEmpty
+                && quoted === ''
+                && this.items.length === 0;
+        },
+        draftHash() {
+            this.prepareBodyForSave();
+            const signatureOn = this.$el.querySelector('input[name="signature"][type="checkbox"]')?.checked ? '1' : '0';
+            const files = this.items.map((item) => `${item.name}:${item.size}:${item.inline ? '1' : '0'}`).join('|');
+
+            return [
+                this.recipientValue('to'),
+                this.recipientValue('cc'),
+                this.recipientValue('bcc'),
+                this.fieldValue('subject'),
+                this.$refs.bodyField?.value || '',
+                this.$refs.quoteField?.value || '',
+                signatureOn,
+                files,
+            ].join('\u001f');
+        },
+        queueAutosave() {
+            if (this.autosaveTimer) {
+                window.clearTimeout(this.autosaveTimer);
+                this.autosaveTimer = null;
+            }
+            if (! this.autosaveEnabled || this.sending || this.savingDraft) {
+                return;
+            }
+            const wait = Math.max(10, Number(this.autosaveSeconds) || 30) * 1000;
+            this.autosaveTimer = window.setTimeout(() => this.saveDraft(false), wait);
+        },
+        async persistAutosave() {
+            if (this.autosaveEnabled) {
+                this.queueAutosave();
+            } else if (this.autosaveTimer) {
+                window.clearTimeout(this.autosaveTimer);
+                this.autosaveTimer = null;
+            }
+            if (! this.autosaveUrl) {
+                return;
+            }
+            try {
+                await fetch(this.autosaveUrl, {
+                    method: 'PUT',
+                    headers: {
+                        ...csrfHeaders(),
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        enabled: Boolean(this.autosaveEnabled),
+                        seconds: Number(this.autosaveSeconds) || 30,
+                    }),
+                });
+            } catch {
+                // a preferência local continua válida nesta sessão
+            }
+        },
+        async saveDraft(manual) {
+            if (this.sending || this.savingDraft) {
+                return;
+            }
+            ['to', 'cc', 'bcc'].forEach((field) => {
+                this.picker(field)?.commitTyped();
+            });
+            if (this.loadingCount > 0) {
+                if (manual) {
+                    this.draftError = false;
+                    this.draftStatus = 'Aguarda os anexos terminarem de carregar.';
+                } else {
+                    this.queueAutosave();
+                }
+                return;
+            }
+            if (this.draftIsEmpty()) {
+                if (manual) {
+                    this.draftError = true;
+                    this.draftStatus = 'Nada para salvar como rascunho.';
+                }
+                return;
+            }
+            const hash = this.draftHash();
+            if (! manual && hash === this.lastDraftHash) {
+                return;
+            }
+            this.prepareBodyForSave();
+            this.syncFileInputs();
+            const form = this.$el;
+            const payload = new FormData(form);
+            payload.set('draft', '1');
+            payload.set('autosave', manual ? '0' : '1');
+            if (this.draftFolder) {
+                payload.set('draft_folder', this.draftFolder);
+            }
+            if (this.draftUid) {
+                payload.set('draft_uid', String(this.draftUid));
+            }
+            this.savingDraft = true;
+            this.draftError = false;
+            this.draftStatus = 'Salvando rascunho…';
+            try {
+                const response = await fetch(this.draftUrl || form.action, {
+                    method: 'POST',
+                    headers: {
+                        ...csrfHeaders(),
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                    body: payload,
+                });
+                const data = await response.json().catch(() => ({}));
+                if (! response.ok) {
+                    const firstError = Object.values(data.errors || {}).flat()[0];
+                    this.draftError = true;
+                    this.draftStatus = data.message || firstError || 'Não foi possível salvar o rascunho.';
+                    return;
+                }
+                if (data.skipped) {
+                    if (manual) {
+                        this.draftError = false;
+                        this.draftStatus = 'Nada para salvar como rascunho.';
+                    }
+                    return;
+                }
+                this.draftFolder = data.folder || this.draftFolder;
+                this.draftUid = data.uid ? String(data.uid) : this.draftUid;
+                if (this.$refs.draftFolder) {
+                    this.$refs.draftFolder.value = this.draftFolder || '';
+                }
+                if (this.$refs.draftUid) {
+                    this.$refs.draftUid.value = this.draftUid || '';
+                }
+                this.lastDraftHash = hash;
+                this.draftError = false;
+                this.draftStatus = data.saved_at
+                    ? (manual ? 'Rascunho salvo às ' : 'Rascunho automático às ') + data.saved_at
+                    : (data.message || 'Rascunho salvo.');
+            } catch {
+                this.draftError = true;
+                this.draftStatus = 'Não foi possível salvar o rascunho.';
+            } finally {
+                this.savingDraft = false;
+                if (this.autosaveEnabled && ! this.sending) {
+                    this.queueAutosave();
+                }
+            }
         },
     };
 }

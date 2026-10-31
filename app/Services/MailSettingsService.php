@@ -197,6 +197,8 @@ class MailSettingsService
                 ? $stored['mail_imap_encryption']
                 : 'ssl',
             'mail_imap_sent_folder' => $stored['mail_imap_sent_folder'] ?: '',
+            'mail_autosave_drafts' => $this->settings->mailAutosaveDraftsEnabled() ? '1' : '0',
+            'mail_autosave_seconds' => (string) $this->settings->mailAutosaveSeconds(),
         ];
     }
 

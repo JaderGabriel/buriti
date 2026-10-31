@@ -49,7 +49,12 @@ class SettingService
         'mail_imap_encryption',
         'mail_imap_sent_folder',
         'mail_signature',
+        'mail_autosave_drafts',
+        'mail_autosave_seconds',
     ];
+
+    /** @var list<int> */
+    public const MAIL_AUTOSAVE_INTERVALS = [15, 30, 60, 120, 180];
 
     /** @var list<string> */
     public const SECRET_KEYS = [
@@ -219,12 +224,31 @@ class SettingService
             'mail_imap_encryption' => null,
             'mail_imap_sent_folder' => null,
             'mail_signature' => null,
+            'mail_autosave_drafts' => null,
+            'mail_autosave_seconds' => null,
         ];
     }
 
     public function autoSyncEnabled(): bool
     {
         return in_array($this->get('google_auto_sync'), ['1', 'true', 'on', 'yes'], true);
+    }
+
+    public function mailAutosaveDraftsEnabled(): bool
+    {
+        $raw = $this->get('mail_autosave_drafts');
+        if ($raw === null || $raw === '') {
+            return true;
+        }
+
+        return in_array(strtolower((string) $raw), ['1', 'true', 'on', 'yes'], true);
+    }
+
+    public function mailAutosaveSeconds(): int
+    {
+        $seconds = (int) ($this->get('mail_autosave_seconds') ?: 30);
+
+        return in_array($seconds, self::MAIL_AUTOSAVE_INTERVALS, true) ? $seconds : 30;
     }
 
     public function getSecret(string $key): ?string

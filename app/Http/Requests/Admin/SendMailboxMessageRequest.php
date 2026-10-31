@@ -22,15 +22,46 @@ class SendMailboxMessageRequest extends FormRequest
         return $this->user()?->can('manageMail') === true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->routeIs('admin.mailbox.draft')) {
+            $this->merge(['draft' => '1']);
+        }
+    }
+
+    public function isDraft(): bool
+    {
+        return $this->boolean('draft');
+    }
+
+    public function isAutosave(): bool
+    {
+        return $this->boolean('autosave');
+    }
+
+    public function draftPayloadEmpty(): bool
+    {
+        return trim((string) $this->input('to', '')) === ''
+            && trim((string) $this->input('cc', '')) === ''
+            && trim((string) $this->input('bcc', '')) === ''
+            && trim((string) $this->input('subject', '')) === ''
+            && MailHtml::isBlank((string) $this->input('body', ''))
+            && MailHtml::isBlank((string) $this->input('quote', ''))
+            && $this->uploadedAttachments() === []
+            && $this->uploadedInline() === [];
+    }
+
     /** @return array<string, mixed> */
     public function rules(): array
     {
+        $draft = $this->boolean('draft') || $this->routeIs('admin.mailbox.draft');
+
         return [
-            'to' => ['required', 'string', 'max:500'],
+            'to' => [$draft ? 'nullable' : 'required', 'string', 'max:500'],
             'cc' => ['nullable', 'string', 'max:500'],
             'bcc' => ['nullable', 'string', 'max:500'],
-            'subject' => ['required', 'string', 'max:180'],
-            'body' => ['required', 'string', 'max:100000'],
+            'subject' => [$draft ? 'nullable' : 'required', 'string', 'max:180'],
+            'body' => [$draft ? 'nullable' : 'required', 'string', 'max:100000'],
             'quote' => ['nullable', 'string', 'max:100000'],
             'inline' => ['nullable', 'array', 'max:5'],
             'inline.*' => ['file', 'max:10240'],
@@ -40,6 +71,9 @@ class SendMailboxMessageRequest extends FormRequest
             'reply_uid' => ['nullable', 'integer', 'min:1'],
             'contact_message_id' => ['nullable', 'integer', 'min:1'],
             'draft' => ['sometimes', 'boolean'],
+            'autosave' => ['sometimes', 'boolean'],
+            'draft_folder' => ['nullable', 'string', 'max:200'],
+            'draft_uid' => ['nullable', 'integer', 'min:1'],
             'attachments' => ['nullable', 'array', 'max:5'],
             'attachments.*' => ['file', 'max:10240'],
         ];
@@ -73,6 +107,14 @@ class SendMailboxMessageRequest extends FormRequest
 
             if ($total > MailAnnotationService::MAX_ATTACHMENT_BYTES) {
                 $validator->errors()->add('attachments', 'Os anexos não podem ultrapassar 10 MB no total.');
+            }
+
+            if ($this->isDraft()) {
+                if (! $this->isAutosave() && $this->draftPayloadEmpty()) {
+                    $validator->errors()->add('body', 'Nada para salvar como rascunho.');
+                }
+
+                return;
             }
 
             if (MailHtml::isBlank((string) $this->input('body', '')) && MailHtml::isBlank((string) $this->input('quote', ''))) {

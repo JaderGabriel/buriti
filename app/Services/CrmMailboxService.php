@@ -48,6 +48,8 @@ class CrmMailboxService
             'name' => (string) config('mail.from.name'),
             'signature' => $signature,
             'signature_block' => MailBranding::block($signature, (string) config('mail.from.name')),
+            'autosave_drafts' => $this->settings->mailAutosaveDraftsEnabled(),
+            'autosave_seconds' => $this->settings->mailAutosaveSeconds(),
         ];
     }
 
@@ -193,26 +195,79 @@ class CrmMailboxService
     /**
      * @param  list<UploadedFile>  $attachments
      * @param  list<array{cid: string, file: UploadedFile}>  $inline
+     * @return array{folder: string, uid: int|null}
      */
-    public function saveDraft(string $to, string $subject, string $body, User $admin, bool $withSignature = true, array $attachments = [], array $inline = []): string
-    {
+    public function saveDraft(
+        string $to,
+        string $subject,
+        string $body,
+        User $admin,
+        bool $withSignature = true,
+        array $attachments = [],
+        array $inline = [],
+        ?string $cc = null,
+        ?string $bcc = null,
+        ?string $replaceFolder = null,
+        ?int $replaceUid = null,
+        bool $silent = false,
+    ): array {
         $this->assertAdmin($admin);
         $this->mail->apply();
         $identity = $this->identity();
         $signature = $withSignature ? $this->personalSignature() : '';
-        $raw = $this->draftRfc822($identity, $to, $subject, $body, $signature, $attachments, $inline);
+        $raw = $this->draftRfc822(
+            $identity,
+            $to,
+            $subject,
+            $body,
+            $signature,
+            $attachments,
+            $inline,
+            (string) $cc,
+            (string) $bcc,
+        );
 
-        return $this->imap->usingClient(function (ImapClient $client) use ($raw, $admin, $subject) {
+        return $this->imap->usingClient(function (ImapClient $client) use ($raw, $admin, $subject, $replaceFolder, $replaceUid, $silent) {
             $folder = $this->roleFolder($client, 'drafts') ?? 'Drafts';
             try {
-                $client->append($folder, $raw, '\\Seen \\Draft');
+                $uid = $client->append($folder, $raw, '\\Seen \\Draft');
             } catch (Throwable) {
                 $client->createFolder($folder);
-                $client->append($folder, $raw, '\\Seen \\Draft');
+                $uid = $client->append($folder, $raw, '\\Seen \\Draft');
             }
-            $this->audit->record('mailbox.draft', null, ['subject' => $subject], null, $admin->id);
 
-            return $folder;
+            $previous = (int) $replaceUid;
+            if ($previous > 0 && is_string($replaceFolder) && strcasecmp($replaceFolder, $folder) === 0 && $previous !== (int) $uid) {
+                try {
+                    $client->setFlags($folder, [$previous], '\\Deleted', true);
+                    $client->expunge();
+                } catch (Throwable) {
+                    // o rascunho novo já está gravado
+                }
+            }
+
+            if (! $silent) {
+                $this->audit->record('mailbox.draft', null, [
+                    'subject' => $subject,
+                    'folder' => $folder,
+                    'uid' => $uid,
+                ], null, $admin->id);
+            }
+
+            return ['folder' => $folder, 'uid' => $uid];
+        });
+    }
+
+    public function discardDraft(string $folder, int $uid, User $admin): void
+    {
+        $this->assertAdmin($admin);
+        if ($folder === '' || $uid < 1) {
+            return;
+        }
+
+        $this->imap->usingClient(function (ImapClient $client) use ($folder, $uid) {
+            $client->setFlags($folder, [$uid], '\\Deleted', true);
+            $client->expunge();
         });
     }
 
@@ -497,23 +552,43 @@ class CrmMailboxService
      * @param  list<UploadedFile>  $attachments
      * @param  list<array{cid: string, file: UploadedFile}>  $inline
      */
-    private function draftRfc822(array $identity, string $to, string $subject, string $body, string $signature, array $attachments = [], array $inline = []): string
-    {
+    private function draftRfc822(
+        array $identity,
+        string $to,
+        string $subject,
+        string $body,
+        string $signature,
+        array $attachments = [],
+        array $inline = [],
+        string $cc = '',
+        string $bcc = '',
+    ): string {
         $from = $identity['name'] !== ''
             ? sprintf('"%s" <%s>', addcslashes($identity['name'], '"'), $identity['address'])
             : $identity['address'];
         $html = MailHtml::prepare($body);
         $text = trim(MailHtml::toText($body).($signature !== '' ? "\n\n-- \n".$signature : ''));
         $text .= "\n\n-- \n".MailBranding::legalNotice();
+        $subjectLine = $subject !== '' ? $subject : '(sem assunto)';
+        $toHeader = $to !== '' ? $to : 'undisclosed-recipients:;';
 
         if ($attachments === [] && $inline === [] && ! preg_match('/<[a-z][\s\S]*>/i', $html)) {
             $encoded = function_exists('mb_encode_mimeheader')
-                ? mb_encode_mimeheader($subject, 'UTF-8', 'Q')
-                : $subject;
+                ? mb_encode_mimeheader($subjectLine, 'UTF-8', 'Q')
+                : $subjectLine;
+            $headers = [
+                'From: '.$from,
+                'To: '.$toHeader,
+            ];
+            if (trim($cc) !== '') {
+                $headers[] = 'Cc: '.$cc;
+            }
+            if (trim($bcc) !== '') {
+                $headers[] = 'Bcc: '.$bcc;
+            }
 
             return implode("\r\n", [
-                'From: '.$from,
-                'To: '.$to,
+                ...$headers,
                 'Subject: '.$encoded,
                 'Date: '.now()->toRfc2822String(),
                 'MIME-Version: 1.0',
@@ -526,11 +601,23 @@ class CrmMailboxService
 
         $email = (new Email)
             ->from(new MimeAddress($identity['address'], $identity['name'] ?: $identity['address']))
-            ->to(...$this->splitAddresses($to))
-            ->subject($subject)
+            ->subject($subjectLine)
             ->html($html !== '' ? $html : nl2br(e($body), false))
             ->text($text)
             ->date(now());
+
+        $tos = self::extractAddresses($to);
+        if ($tos !== []) {
+            $email->to(...$tos);
+        }
+        $ccs = self::extractAddresses($cc);
+        if ($ccs !== []) {
+            $email->cc(...$ccs);
+        }
+        $bccs = self::extractAddresses($bcc);
+        if ($bccs !== []) {
+            $email->bcc(...$bccs);
+        }
 
         foreach ($this->filePayloads($attachments) as $file) {
             $email->attachFromPath($file['path'], $file['name'], $file['mime']);

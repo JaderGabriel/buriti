@@ -63,7 +63,7 @@ class ImapClient
         return $create;
     }
 
-    public function append(string $folder, string $rfc822, string $flags = '\\Seen'): void
+    public function append(string $folder, string $rfc822, string $flags = '\\Seen'): ?int
     {
         $rfc822 = str_replace("\n", "\r\n", str_replace("\r\n", "\n", $rfc822));
         if (! str_ends_with($rfc822, "\r\n")) {
@@ -89,6 +89,8 @@ class ImapClient
         if (! str_contains($last, ' OK ')) {
             throw new RuntimeException('IMAP APPEND falhou: '.self::sanitize($last));
         }
+
+        return self::parseAppendUid($done);
     }
 
     /**
@@ -512,6 +514,20 @@ class ImapClient
     public static function quote(string $value): string
     {
         return '"'.str_replace(['\\', '"'], ['\\\\', '\\"'], $value).'"';
+    }
+
+    /**
+     * @param  list<string>  $lines
+     */
+    public static function parseAppendUid(array $lines): ?int
+    {
+        foreach ($lines as $line) {
+            if (preg_match('/\[APPENDUID\s+\d+\s+(\d+)\]/i', (string) $line, $match) === 1) {
+                return (int) $match[1];
+            }
+        }
+
+        return null;
     }
 
     public static function parseListLine(string $line): ?array
